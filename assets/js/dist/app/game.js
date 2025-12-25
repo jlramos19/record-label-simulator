@@ -2185,7 +2185,8 @@ function decayCreatorMarketHeat() {
 }
 function marketPressureForRole(role) {
     ensureCreatorMarketHeat();
-    const supply = state.marketCreators.filter((creator) => creator.role === role).length;
+    const pool = Array.isArray(state.marketCreators) ? state.marketCreators : [];
+    const supply = pool.filter((creator) => creator.role === role).length;
     const baseline = MARKET_MIN_PER_ROLE || 1;
     const supplyRatio = baseline ? supply / baseline : 1;
     const supplyPressure = clamp(1 - supplyRatio, -0.4, 0.6);
@@ -5669,6 +5670,7 @@ function normalizeState() {
         state.ui.trendScopeType = "global";
     if (!state.ui.trendScopeTarget)
         state.ui.trendScopeTarget = defaultTrendNation();
+    state.ui.communityRankingLimit = normalizeCommunityRankingLimit(state.ui.communityRankingLimit);
     if (!state.ui.promoType)
         state.ui.promoType = DEFAULT_PROMO_TYPE;
     if (!Array.isArray(state.ui.promoTypes) || !state.ui.promoTypes.length) {
@@ -6683,7 +6685,10 @@ function renderFocusEraStatus() {
     const fallbackEra = !focusEra && activeEras.length === 1 ? activeEras[0] : null;
     const displayEra = focusEra || fallbackEra;
     const actName = displayEra ? getAct(displayEra.actId)?.name : null;
-    const baseLabel = displayEra ? `${displayEra.name}${actName ? ` (${actName})` : ""}` : "";
+    const stageName = displayEra ? ERA_STAGES[displayEra.stageIndex] || "Active" : "";
+    const baseLabel = displayEra
+        ? `${displayEra.name}${actName ? ` (${actName})` : ""}${stageName ? ` | ${stageName}` : ""}`
+        : "";
     const headerLabel = focusEra
         ? baseLabel
         : fallbackEra
@@ -7632,7 +7637,7 @@ function buildCalendarSources() {
     });
     return { labelScheduled, labelReleased, rivalScheduled, rivalReleased, eras };
 }
-function buildCalendarProjection({ pastWeeks = 0, futureWeeks = 3 } = {}) {
+function buildCalendarProjection({ pastWeeks = 1, futureWeeks = 4 } = {}) {
     const tab = state.ui.calendarTab || "label";
     const filters = state.ui.calendarFilters || {};
     return useCalendarProjection({
@@ -7640,6 +7645,7 @@ function buildCalendarProjection({ pastWeeks = 0, futureWeeks = 3 } = {}) {
         anchorWeekIndex: getCalendarAnchorWeekIndex(),
         pastWeeks,
         futureWeeks,
+        activeWeeks: 4,
         tab,
         filters,
         sources: buildCalendarSources()
@@ -8328,6 +8334,63 @@ function renderReleaseDesk() {
     });
     $("releaseQueueList").innerHTML = queue.join("");
 }
+function collectTrendRanking() {
+    const aggregate = aggregateTrendLedger(getTrendLedgerWindow());
+    let ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : [];
+    if (!ranking.length) {
+        ranking = Object.entries(aggregate.totals || {})
+            .sort((a, b) => b[1] - a[1])
+            .map((entry) => entry[0]);
+    }
+    const chartPresence = new Set(aggregate.chartGenres || []);
+    const visible = ranking.filter((trend) => (aggregate.totals?.[trend] || 0) > 0 && chartPresence.has(trend));
+    return { visible, aggregate };
+}
+function buildTrendRankingList({ limit = null, showMore = false } = {}) {
+    const { visible, aggregate } = collectTrendRanking();
+    const displayed = typeof limit === "number" ? visible.slice(0, limit) : visible;
+    if (!displayed.length) {
+        return { markup: `<div class="muted">No trends yet.</div>`, visibleCount: 0, totalCount: visible.length };
+    }
+    const alignmentScores = aggregate.alignmentScores || {};
+    const list = displayed.map((trend, index) => {
+        const theme = themeFromGenre(trend);
+        const mood = moodFromGenre(trend);
+        const isTop = index < TREND_DETAIL_COUNT;
+        const leader = isTop ? trendAlignmentLeader(trend, alignmentScores) : null;
+        const detail = isTop
+            ? `
+        <div class="trend-detail">
+          <div class="trend-detail-row">
+            <span class="trend-detail-pill">Alignment push</span>
+            ${leader
+                ? `${renderAlignmentTag(leader.alignment)} <span class="muted">${leader.share}% of trend points</span>`
+                : `<span class="muted">No clear alignment leader</span>`}
+          </div>
+        </div>
+      `
+            : "";
+        const moreAction = showMore && index === 0
+            ? `<button type="button" class="ghost mini" data-ranking-more="trends">More</button>`
+            : "";
+        return `
+      <div class="list-item trend-item${isTop ? " trend-item--top" : ""}">
+        <div class="list-row">
+          <div>
+            <div class="item-title">#${index + 1} ${formatGenreKeyLabel(trend)}</div>
+            <div class="time-row">${renderThemeTag(theme)} ${renderMoodLabel(mood)}</div>
+          </div>
+          <div class="ranking-actions">
+            <div class="badge warn">Hot</div>
+            ${moreAction}
+          </div>
+        </div>
+        ${detail}
+      </div>
+    `;
+    });
+    return { markup: list.join(""), visibleCount: displayed.length, totalCount: visible.length };
+}
 function renderTrends() {
     const listEl = $("trendList");
     if (!listEl)
@@ -8346,54 +8409,52 @@ function renderTrends() {
         targetSelect.disabled = true;
         targetSelect.innerHTML = `<option value="global">Global</option>`;
     }
-    const aggregate = aggregateTrendLedger(getTrendLedgerWindow());
-    let ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : [];
-    if (!ranking.length) {
-        ranking = Object.entries(aggregate.totals || {})
-            .sort((a, b) => b[1] - a[1])
-            .map((entry) => entry[0]);
-    }
-    const chartPresence = new Set(aggregate.chartGenres || []);
-    const visible = ranking
-        .filter((trend) => (aggregate.totals?.[trend] || 0) > 0 && chartPresence.has(trend))
-        .slice(0, TREND_LIST_LIMIT);
+    const limit = getCommunityRankingLimit();
+    const { markup, visibleCount, totalCount } = buildTrendRankingList({ limit, showMore: true });
+    listEl.innerHTML = markup;
     if (scopeMeta) {
-        scopeMeta.textContent = visible.length
-            ? `Showing Global Top ${visible.length} trends.`
-            : "No trends available yet.";
+        if (!totalCount) {
+            scopeMeta.textContent = "No trends available yet.";
+        }
+        else if (visibleCount >= totalCount) {
+            scopeMeta.textContent = `Showing ${formatCount(totalCount)} global trends.`;
+        }
+        else {
+            scopeMeta.textContent = `Showing Global Top ${formatCount(visibleCount)} of ${formatCount(totalCount)} trends.`;
+        }
     }
-    const alignmentScores = aggregate.alignmentScores || {};
-    const list = visible.map((trend, index) => {
-        const theme = themeFromGenre(trend);
-        const mood = moodFromGenre(trend);
-        const isTop = index < TREND_DETAIL_COUNT;
-        const leader = isTop ? trendAlignmentLeader(trend, alignmentScores) : null;
-        const detail = isTop
-            ? `
-        <div class="trend-detail">
-          <div class="trend-detail-row">
-            <span class="trend-detail-pill">Alignment push</span>
-            ${leader
-                ? `${renderAlignmentTag(leader.alignment)} <span class="muted">${leader.share}% of trend points</span>`
-                : `<span class="muted">No clear alignment leader</span>`}
-          </div>
-        </div>
-      `
-            : "";
-        return `
-      <div class="list-item trend-item${isTop ? " trend-item--top" : ""}">
-        <div class="list-row">
-          <div>
-            <div class="item-title">#${index + 1} ${formatGenreKeyLabel(trend)}</div>
-            <div class="time-row">${renderThemeTag(theme)} ${renderMoodLabel(mood)}</div>
-          </div>
-          <div class="badge warn">Hot</div>
-        </div>
-        ${detail}
-      </div>
-    `;
-    });
-    listEl.innerHTML = list.length ? list.join("") : `<div class="muted">No trends yet.</div>`;
+}
+function renderCommunityRankings() {
+    renderCommunityLabels();
+    renderTrends();
+}
+function renderRankingModal(category) {
+    const titleEl = $("rankingModalTitle");
+    const listEl = $("rankingModalList");
+    const metaEl = $("rankingModalMeta");
+    if (!titleEl || !listEl)
+        return;
+    if (category === "labels") {
+        const { markup, totalCount } = buildLabelRankingList();
+        titleEl.textContent = "Label Rankings";
+        listEl.innerHTML = markup;
+        if (metaEl) {
+            metaEl.textContent = totalCount
+                ? `Showing ${formatCount(totalCount)} ranked labels.`
+                : "No labels ranked yet.";
+        }
+    }
+    else if (category === "trends") {
+        const { markup, totalCount } = buildTrendRankingList();
+        titleEl.textContent = "Trend Rankings";
+        listEl.innerHTML = markup;
+        if (metaEl) {
+            metaEl.textContent = totalCount
+                ? `Showing ${formatCount(totalCount)} global trends.`
+                : "No trends available yet.";
+        }
+    }
+    openOverlay("rankingModal");
 }
 function renderCreateTrends() {
     const listEl = $("createTrendList");
@@ -9110,12 +9171,16 @@ function getCreateStageAvailability() {
     const theme = $("themeSelect") ? $("themeSelect").value : "";
     const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
     const modifier = getModifier(modifierId);
-    const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
-    const cost = Math.max(0, baseCost + (modifier?.costDelta || 0));
+    const sheetCrew = mode === "collab" ? assignedSongwriters : eligibleSongwriters;
+    const sheetCost = sheetCrew.length
+        ? (mode === "collab"
+            ? getStageCost(0, modifier, sheetCrew)
+            : Math.min(...sheetCrew.map((id) => getStageCost(0, modifier, [id]))))
+        : 0;
     const sheetHasCrew = mode === "collab" ? assignedSongwriters.length > 0 : eligibleSongwriters.length > 0;
     const sheetCanStart = !!theme
         && sheetHasCrew
-        && state.label.cash >= cost
+        && state.label.cash >= sheetCost
         && getStudioAvailableSlots() > 0
         && getStageStudioAvailable(0) > 0;
     const demoTracks = state.tracks.filter((track) => track.status === "Awaiting Demo");
@@ -9132,10 +9197,12 @@ function getCreateStageAvailability() {
     const demoAssigned = demoPerformers.length
         ? normalizeRoleIds(demoPerformers, "Performer")
         : getTrackRoleIds(demoTrack, "Performer");
+    const demoCost = demoAssigned.length ? getStageCost(1, demoTrack?.modifier, demoAssigned) : 0;
     const demoReady = demoTrack && demoTrack.status === "Awaiting Demo" && demoTrack.stageIndex === 1;
     const demoCanStart = !!demoReady
         && moodValid
         && demoAssigned.length > 0
+        && state.label.cash >= demoCost
         && getStudioAvailableSlots() > 0
         && getStageStudioAvailable(1) > 0;
     const masterTrackId = (state.ui.createTrackIds ? state.ui.createTrackIds.master : null)
@@ -9149,6 +9216,7 @@ function getCreateStageAvailability() {
     const masterAssigned = masterProducers.length
         ? normalizeRoleIds(masterProducers, "Producer")
         : getTrackRoleIds(masterTrack, "Producer");
+    const masterCost = masterAssigned.length ? getStageCost(2, masterTrack?.modifier, masterAssigned) : 0;
     const masterReady = masterTrack
         && masterTrack.status === "Awaiting Master"
         && masterTrack.stageIndex === 2
@@ -9156,6 +9224,7 @@ function getCreateStageAvailability() {
     const masterCanStart = !!masterReady
         && alignmentValid
         && masterAssigned.length > 0
+        && state.label.cash >= masterCost
         && getStudioAvailableSlots() > 0
         && getStageStudioAvailable(2) > 0;
     return {
@@ -9285,7 +9354,7 @@ function renderActiveView(view) {
     else if (active === "world") {
         renderMarket();
         renderPopulation();
-        renderTrends();
+        renderCommunityRankings();
         renderGenreIndex();
         renderEconomySummary();
         renderQuests();
@@ -9315,4 +9384,4 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, normalizeCreator, postCreatorSigned, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderResourceTickSummary, renderActiveCampaigns, renderQuickRecipes, renderCalendarView, renderCalendarList, renderCreateStageControls, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, assignToSlot, shakeElement, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };
+export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, normalizeCreator, postCreatorSigned, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderResourceTickSummary, renderActiveCampaigns, renderQuickRecipes, renderCalendarView, renderCalendarList, renderCreateStageControls, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, getCommunityRankingLimit, renderRankingModal, assignToSlot, shakeElement, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };

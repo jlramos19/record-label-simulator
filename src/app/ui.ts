@@ -75,6 +75,7 @@ const {
   renderCalendarList,
   renderCalendarView,
   renderGenreIndex,
+  renderCommunityRankings,
   renderStudiosList,
   renderRoleActions,
   renderCharts,
@@ -88,6 +89,8 @@ const {
   formatMoney,
   formatDate,
   formatWeekRangeLabel,
+  getCommunityRankingLimit,
+  renderRankingModal,
   handleFromName,
   setSlotTarget,
   assignToSlot,
@@ -132,6 +135,13 @@ const START_PREFS_KEY = "rls_start_prefs_v1";
 let activeRoute = DEFAULT_ROUTE;
 let hasMountedRoute = false;
 let chartHistoryRequestId = 0;
+const CALENDAR_WHEEL_THRESHOLD = 120;
+const CALENDAR_WHEEL_RESET_MS = 320;
+const CALENDAR_DRAG_THRESHOLD = 80;
+const CALENDAR_VELOCITY_THRESHOLD = 0.55;
+let calendarWheelAcc = 0;
+let calendarWheelAt = 0;
+let calendarDragState = null;
 
 const TRACK_ROLE_KEYS = {
   Songwriter: "songwriterIds",
@@ -148,6 +158,80 @@ const ROLE_LABELS = {
   Performer: "Performer",
   Producer: "Producer"
 };
+
+function calendarAnchorWeek() {
+  return Number.isFinite(state.ui?.calendarWeekIndex) ? state.ui.calendarWeekIndex : weekIndex();
+}
+
+function setCalendarAnchorWeek(next) {
+  const clamped = Math.max(0, Math.round(next));
+  if (state.ui.calendarWeekIndex === clamped) return false;
+  state.ui.calendarWeekIndex = clamped;
+  renderCalendarView();
+  saveToActiveSlot();
+  return true;
+}
+
+function shiftCalendarAnchorWeek(delta) {
+  if (!delta) return false;
+  return setCalendarAnchorWeek(calendarAnchorWeek() + delta);
+}
+
+function handleCalendarWheel(e) {
+  const now = Date.now();
+  if (now - calendarWheelAt > CALENDAR_WHEEL_RESET_MS) calendarWheelAcc = 0;
+  calendarWheelAt = now;
+  const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  if (!Number.isFinite(delta) || delta === 0) return;
+  calendarWheelAcc += delta;
+  if (Math.abs(calendarWheelAcc) < CALENDAR_WHEEL_THRESHOLD) return;
+  const direction = calendarWheelAcc > 0 ? 1 : -1;
+  calendarWheelAcc = 0;
+  shiftCalendarAnchorWeek(direction);
+}
+
+function handleCalendarPointerDown(e) {
+  if (e.button && e.button !== 0) return;
+  calendarDragState = {
+    pointerId: e.pointerId,
+    startX: e.clientX,
+    startY: e.clientY,
+    startAt: Date.now(),
+    lastX: e.clientX,
+    lastY: e.clientY
+  };
+  if (typeof e.currentTarget?.setPointerCapture === "function") {
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+}
+
+function handleCalendarPointerMove(e) {
+  if (!calendarDragState || e.pointerId !== calendarDragState.pointerId) return;
+  calendarDragState.lastX = e.clientX;
+  calendarDragState.lastY = e.clientY;
+}
+
+function handleCalendarPointerEnd(e) {
+  if (!calendarDragState || e.pointerId !== calendarDragState.pointerId) return;
+  const drag = calendarDragState;
+  calendarDragState = null;
+  if (typeof e.currentTarget?.releasePointerCapture === "function") {
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  }
+  const endX = Number.isFinite(e.clientX) ? e.clientX : drag.lastX;
+  const endY = Number.isFinite(e.clientY) ? e.clientY : drag.lastY;
+  const dx = endX - drag.startX;
+  const dy = endY - drag.startY;
+  const dt = Math.max(1, Date.now() - drag.startAt);
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+  const primaryDelta = absX >= absY ? dx : dy;
+  const primaryAbs = Math.abs(primaryDelta);
+  const velocity = primaryAbs / dt;
+  if (primaryAbs < CALENDAR_DRAG_THRESHOLD && velocity < CALENDAR_VELOCITY_THRESHOLD) return;
+  const direction = primaryDelta < 0 ? 1 : -1;
+  shiftCalendarAnchorWeek(direction);
+}
 
 function roleLabel(role) {
   return ROLE_LABELS[role] || role;
@@ -1467,6 +1551,7 @@ function bindGlobalHandlers() {
     });
   });
   on("chartHistoryClose", "click", () => closeOverlay("chartHistoryModal"));
+  on("rankingModalClose", "click", () => closeOverlay("rankingModal"));
   on("chartHistoryLatest", "click", () => {
     resetChartHistoryView();
     closeOverlay("chartHistoryModal");
@@ -1817,6 +1902,34 @@ function bindViewHandlers(route, root) {
     });
   }
 
+  if (route === "world") {
+    const syncRankingControls = () => {
+      const limit = getCommunityRankingLimit();
+      root.querySelectorAll("[data-ranking-limit]").forEach((input) => {
+        const value = Number(input.dataset.rankingLimit || input.value);
+        input.checked = value === limit;
+      });
+    };
+    syncRankingControls();
+    root.addEventListener("change", (e) => {
+      const input = e.target.closest("[data-ranking-limit]");
+      if (!input) return;
+      const next = Number(input.dataset.rankingLimit || input.value);
+      if (!Number.isFinite(next)) return;
+      state.ui.communityRankingLimit = next;
+      syncRankingControls();
+      renderCommunityRankings();
+      saveToActiveSlot();
+    });
+    root.addEventListener("click", (e) => {
+      const moreBtn = e.target.closest("[data-ranking-more]");
+      if (!moreBtn) return;
+      const category = moreBtn.dataset.rankingMore;
+      if (!category) return;
+      renderRankingModal(category);
+    });
+  }
+
   if (route === "releases") {
     root.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1836,6 +1949,14 @@ function bindViewHandlers(route, root) {
         saveToActiveSlot();
       });
     });
+    const calendarGrid = root.querySelector("#calendarGrid");
+    if (calendarGrid) {
+      calendarGrid.addEventListener("wheel", handleCalendarWheel, { passive: true });
+      calendarGrid.addEventListener("pointerdown", handleCalendarPointerDown);
+      calendarGrid.addEventListener("pointermove", handleCalendarPointerMove);
+      calendarGrid.addEventListener("pointerup", handleCalendarPointerEnd);
+      calendarGrid.addEventListener("pointercancel", handleCalendarPointerEnd);
+    }
   }
 
   if (route === "charts") {

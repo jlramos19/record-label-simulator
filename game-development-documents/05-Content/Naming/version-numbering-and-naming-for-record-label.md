@@ -25,4 +25,9 @@
 * `Semantic Versioning: While your proposed system segments updates clearly, consider aligning with Semantic Versioning practices where major, minor, and patch levels are defined by backward compatibility and feature introduction, which might help in broader software development and deployment contexts`   
 * `Expansion and Flexibility: Be prepared to adapt and expand the versioning system as the game evolves. New types of updates or components might necessitate adjustments to how version numbers are incremented.`
 
-`Using this structured approach to versioning ensures that all stakeholders, from developers to players, have a clear understanding of each update’s impact and scope, facilitating better engagement with the game’s evolution and maintenance. If you need further specifics on implementing this system within the web app or other operational details, feel free to ask.`  
+### **`Web Release Patch IDs`**
+
+* `Web build releases use a timestamped patch ID separate from the gameplay/content versioning scheme.`
+* `Format: RLS-PATCH-YYYYMMDD-HHMMZ (UTC), stored in assets/js/data/release.js and mirrored in patch notes.`
+
+`Using this structured approach to versioning ensures that all stakeholders, from developers to players, have a clear understanding of each update's impact and scope, facilitating better engagement with the game's evolution and maintenance. If you need further specifics on implementing this system within the web app or other operational details, feel free to ask.`  

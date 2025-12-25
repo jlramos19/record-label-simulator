@@ -39,6 +39,7 @@ type CalendarProjectionConfig = {
   anchorWeekIndex: number;
   pastWeeks?: number;
   futureWeeks?: number;
+  activeWeeks?: number;
   tab?: string;
   filters?: CalendarFilters;
   sources?: CalendarSources;
@@ -86,6 +87,7 @@ export function useCalendarProjection({
   anchorWeekIndex,
   pastWeeks = 0,
   futureWeeks = 3,
+  activeWeeks = 4,
   tab = "label",
   filters = {},
   sources = {}
@@ -110,10 +112,14 @@ export function useCalendarProjection({
   const safeAnchor = Number.isFinite(anchorWeekIndex) ? anchorWeekIndex : 0;
   const startWeekIndex = safeAnchor - Math.max(0, pastWeeks);
   const totalWeeks = Math.max(1, Math.max(0, pastWeeks) + Math.max(0, futureWeeks) + 1);
+  const activeEndOffset = Math.max(0, activeWeeks - 1);
 
   const weeks = [];
   for (let i = 0; i < totalWeeks; i += 1) {
     const weekIndex = startWeekIndex + i;
+    const offset = weekIndex - safeAnchor;
+    const isPreview = offset < 0 || offset > activeEndOffset;
+    const isAnchor = offset === 0;
     const weekStart = startEpochMs + weekIndex * WEEK_HOURS * HOUR_MS;
     const weekEnd = weekStart + WEEK_HOURS * HOUR_MS;
     const weekEvents = activeEvents.filter((event) => event.ts >= weekStart && event.ts < weekEnd);
@@ -129,12 +135,16 @@ export function useCalendarProjection({
         end: dayEnd,
         dayLabel: formatDayLabel(dayStart),
         dateLabel: formatShortDate(dayStart),
-        events: dayEvents
+        events: dayEvents,
+        isPreview
       });
     }
 
     weeks.push({
       weekIndex,
+      offset,
+      isPreview,
+      isAnchor,
       weekNumber: weekIndex + 1,
       start: weekStart,
       end: weekEnd,
@@ -160,6 +170,7 @@ export function CalendarDayCell(day) {
   const events = Array.isArray(day.events) ? day.events : [];
   const visible = events.slice(0, MAX_EVENTS_PER_DAY);
   const overflow = events.length - visible.length;
+  const dayClass = day.isPreview ? "calendar-day is-preview" : "calendar-day";
   const eventHtml = visible.map((event) => {
     const typeLabel = event.typeLabel || "Event";
     const title = event.title || "Untitled";
@@ -180,7 +191,7 @@ export function CalendarDayCell(day) {
     : "";
 
   return `
-    <div class="calendar-day" data-day-ts="${day.start}">
+    <div class="${dayClass}" data-day-ts="${day.start}">
       <div class="calendar-day-head">
         <div class="calendar-day-name">${day.dayLabel}</div>
         <div class="calendar-day-date">${day.dateLabel}</div>
@@ -197,8 +208,13 @@ export function CalendarWeekRow(week) {
   const days = Array.isArray(week.days) ? week.days : [];
   const label = week.label || `Week ${week.weekNumber}`;
   const dayCells = days.map((day) => CalendarDayCell(day)).join("");
+  const rowClass = [
+    "calendar-week-row",
+    week.isPreview ? "is-preview" : "",
+    week.isAnchor ? "is-anchor" : ""
+  ].filter(Boolean).join(" ");
   return `
-    <div class="calendar-week-row">
+    <div class="${rowClass}">
       <div class="calendar-week-label">${label}</div>
       <div class="calendar-week-days">
         ${dayCells}

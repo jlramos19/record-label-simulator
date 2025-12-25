@@ -1708,6 +1708,22 @@ select, input[type="text"], input[type="number"] {
   flex-direction: column;
   gap: 6px;
 }
+.calendar-day.is-preview {
+  opacity: 0.55;
+  background: rgba(18, 24, 35, 0.5);
+  border-style: dashed;
+}
+.calendar-grid-wrap { cursor: grab; }
+.calendar-grid-wrap:active { cursor: grabbing; }
+.calendar-week-row.is-preview .calendar-week-label {
+  color: rgba(165, 173, 186, 0.6);
+}
+.calendar-week-row.is-anchor .calendar-week-label {
+  color: var(--accent);
+}
+.calendar-week-row.is-anchor .calendar-day {
+  box-shadow: 0 0 0 1px rgba(244, 177, 90, 0.25);
+}
 .calendar-day-head {
   display: flex;
   justify-content: space-between;

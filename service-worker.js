@@ -1,13 +1,25 @@
-const CACHE_VERSION = "v3";
+let releaseStamp = { patchId: "dev" };
+try {
+  importScripts("assets/js/data/release.js");
+  if (self.RLS_RELEASE?.patchId) {
+    releaseStamp = self.RLS_RELEASE;
+  }
+} catch (error) {
+  console.warn("Release stamp unavailable, falling back to dev cache.", error);
+}
+const CACHE_VERSION = releaseStamp.patchId || "dev";
 const CACHE_NAME = `rls-cache-${CACHE_VERSION}`;
 const ASSETS = [
   ".",
   "index.html",
   "manifest.webmanifest",
+  "assets/js/data/release.js",
   "assets/css/app.css",
   "assets/js/dist/main.js",
+  "assets/js/dist/app/guardrails.js",
   "assets/js/dist/app/game.js",
   "assets/js/dist/app/ui.js",
+  "assets/js/dist/app/calendar.js",
   "assets/js/dist/app/csv.js",
   "assets/js/dist/app/db.js",
   "assets/js/dist/app/promo_types.js",

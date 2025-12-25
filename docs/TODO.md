@@ -1,6 +1,7 @@
 # TODO
 
 - [ ] RLS-PROMO-AUTO-001: Define auto promo wallet-percentage budgeting for player + rivals and document the rule.
+- [ ] RLS-OPS-LIVEEDIT-001: Define live-edit guardrails, release patch stamping, and cache/version rules for hosted builds.
 - [ ] RLS-PROMO-LOGS-001: Remove Loss Archives and Debug Bundle panels from Promotions view; keep internal logging for balance review.
 - [ ] RLS-CALENDAR-PROJ-001: Add the Calendar projection view (Releases -> Calendar), merge the Eras calendar panel, and keep scheduling data backward compatible.
 - [ ] RLS-DOC-PATCH-001: Cross-link new docs, update testing checklist, and add consolidated patch note summary.

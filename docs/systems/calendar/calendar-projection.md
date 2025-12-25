@@ -21,8 +21,13 @@ The Calendar is a projection layer over existing scheduling data. It does not re
 
 ## Defaults
 - Week anchoring uses the current `weekIndex()` for the active week.
-- Week window defaults to the current week plus the next 3 weeks (4 total).
+- Week window defaults to 6 weeks: preview week -1, active weeks 0-3, preview week +4.
 - Filters default to showing scheduled + released items for label and rivals.
+
+## Snap Behavior
+- Calendar navigation snaps in full-week increments using an integer `calendarWeekIndex` anchor.
+- Wheel delta accumulation, drag distance, and touch velocity advance the anchor by whole weeks.
+- Snapping updates only the anchor index and does not mutate scheduling data.
 
 ## Compatibility Rules
 - No renames of data stores or event types.

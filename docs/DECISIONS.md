@@ -14,3 +14,6 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 
 ## Closure workflow
 - DEC-20251225-004: Closure workflow is TODO -> Docs -> Code -> Patch Notes.
+
+## Release policy
+- DEC-20251225-005: Release patch IDs use the timestamped format `RLS-PATCH-YYYYMMDD-HHMMZ` (UTC) and live in `assets/js/data/release.js`; patch notes must include the patch ID, and the service worker cache version must match the release stamp.

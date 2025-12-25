@@ -78,3 +78,4 @@ declare const TRACK_TITLES_KR: string[];
 declare const TRACK_TITLES_ES: string[];
 declare const SOCIAL_TEMPLATES: Record<string, unknown>;
 declare function postFromTemplate(id: string, vars?: Record<string, unknown>): void;
+declare const RLS_RELEASE: { patchId: string; timestamp: string; channel: string };
