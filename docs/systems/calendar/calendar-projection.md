@@ -28,3 +28,4 @@ The Calendar is a projection layer over existing scheduling data. It does not re
 - No renames of data stores or event types.
 - Old saves load without migration changes to release scheduling.
 - Calendar reads the same release queues used by Release Desk.
+- Scheduled release entries must target a future in-game timestamp; releases trigger once `state.time.epochMs` meets or exceeds `releaseAt`.

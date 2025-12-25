@@ -9,7 +9,8 @@ const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
     promotion: "logs",
     promotions: "logs",
-    era: "eras"
+    era: "eras",
+    calendar: "releases"
 };
 const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
 const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";

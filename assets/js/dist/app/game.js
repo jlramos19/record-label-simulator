@@ -24,8 +24,10 @@ const STARTING_CASH = 50000;
 const STARTING_STUDIO_SLOTS = 2;
 const STAGE_STUDIO_LIMIT = 3;
 const STUDIO_COLUMN_SLOT_COUNT = 5;
-const STAMINA_OVERUSE_LIMIT = 300;
-const STAMINA_OVERUSE_STRIKES = 2;
+const STAMINA_OVERUSE_LIMIT = 200;
+const STAMINA_OVERUSE_STRIKES = 1;
+const STAMINA_REGEN_PER_HOUR = 50;
+const RESOURCE_TICK_LEDGER_LIMIT = 24;
 const SEED_CALIBRATION_YEAR = 2400;
 const TREND_LIST_LIMIT = 40;
 const TREND_DETAIL_COUNT = 3;
@@ -393,6 +395,7 @@ function makeDefaultState() {
         rivals: [],
         quests: [],
         events: [],
+        resourceTickLedger: { hours: [] },
         ui: {
             activeChart: "global",
             trendScopeType: "global",
@@ -687,9 +690,58 @@ function clampQuality(value) {
 function clampStamina(value) {
     return clamp(Math.round(value), 0, STAMINA_MAX);
 }
+function staminaRatio(creator) {
+    if (!creator)
+        return 0;
+    const stamina = clampStamina(creator.stamina ?? 0);
+    return STAMINA_MAX ? clamp(stamina / STAMINA_MAX, 0, 1) : 0;
+}
+function skillWithStamina(creator) {
+    const ratio = staminaRatio(creator);
+    const factor = 0.7 + 0.3 * ratio;
+    return (creator?.skill ?? 0) * factor;
+}
+function averageSkill(list, { staminaAdjusted = false } = {}) {
+    if (!list.length)
+        return 0;
+    const sum = list.reduce((total, creator) => (total + (staminaAdjusted ? skillWithStamina(creator) : (creator?.skill ?? 0))), 0);
+    return sum / list.length;
+}
+function getCreatorStaminaSpentToday(creator) {
+    if (!creator)
+        return 0;
+    if (typeof creator.staminaSpentToday === "number")
+        return creator.staminaSpentToday;
+    return creator.staminaUsedToday || 0;
+}
+function setCreatorStaminaSpentToday(creator, value) {
+    if (!creator)
+        return 0;
+    const next = Math.max(0, Math.round(value || 0));
+    creator.staminaSpentToday = next;
+    creator.staminaUsedToday = next;
+    return next;
+}
+function resetCreatorDailyUsage(creator, dayIndex) {
+    if (!creator)
+        return;
+    creator.lastUsageDay = dayIndex;
+    creator.lastOveruseDay = null;
+    setCreatorStaminaSpentToday(creator, 0);
+}
 const DAY_MS = HOUR_MS * 24;
+const WEEK_MS = DAY_MS * 7;
 const YEAR_MS = DAY_MS * 365;
 const CREATOR_INACTIVITY_MS = YEAR_MS * 2;
+const CREATOR_SKILL_GAIN_BY_STAGE = [0.15, 0.25, 0.4];
+const CREATOR_SKILL_DECAY_GRACE_WEEKS = 6;
+const CREATOR_SKILL_DECAY_STEP_WEEKS = 2;
+const CREATOR_MARKET_HEAT_MAX = 10;
+const CREATOR_MARKET_HEAT_DECAY = 0.85;
+const CREATOR_MARKET_HEAT_STEP = 1;
+const STAGE_COST_CREW_STEP = 0.1;
+const STAGE_COST_SKILL_MIN = 0.85;
+const STAGE_COST_SKILL_MAX = 1.45;
 const MARKET_MIN_PER_ROLE = 10;
 const RIVAL_MIN_PER_ROLE = 10;
 const MARKET_ROLES = ["Songwriter", "Performer", "Producer"];
@@ -2002,8 +2054,11 @@ function normalizeCreator(creator) {
         creator.lastReleaseAt = null;
     if (typeof creator.lastPromoAt !== "number")
         creator.lastPromoAt = null;
+    if (typeof creator.staminaSpentToday !== "number") {
+        creator.staminaSpentToday = typeof creator.staminaUsedToday === "number" ? creator.staminaUsedToday : 0;
+    }
     if (typeof creator.staminaUsedToday !== "number")
-        creator.staminaUsedToday = 0;
+        creator.staminaUsedToday = creator.staminaSpentToday;
     if (typeof creator.lastUsageDay !== "number") {
         creator.lastUsageDay = Math.floor((creator.lastActivityAt || now) / DAY_MS);
     }
@@ -2195,28 +2250,45 @@ function markCreatorPromo(creatorIds, atMs = state.time.epochMs) {
         creator.lastActivityAt = atMs;
     });
 }
-function updateCreatorOveruse(creator, staminaCost) {
-    if (!creator)
-        return;
+function describeOveruseContext(context = {}) {
+    const parts = [];
+    if (context.stageName)
+        parts.push(context.stageName);
+    const track = context.trackId ? getTrack(context.trackId) : null;
+    if (track)
+        parts.push(`"${track.title}"`);
+    if (context.orderId)
+        parts.push(`order ${context.orderId}`);
+    return parts.length ? parts.join(" ") : "unknown work";
+}
+function updateCreatorOveruse(creator, staminaCost, context = {}) {
+    if (!creator || !staminaCost)
+        return { strikeApplied: false, departureFlagged: false };
     const dayIndex = Math.floor(state.time.epochMs / DAY_MS);
     if (creator.lastUsageDay !== dayIndex) {
-        creator.lastUsageDay = dayIndex;
-        creator.staminaUsedToday = 0;
-        creator.lastOveruseDay = null;
+        resetCreatorDailyUsage(creator, dayIndex);
     }
-    creator.staminaUsedToday = (creator.staminaUsedToday || 0) + staminaCost;
-    if (creator.staminaUsedToday <= STAMINA_OVERUSE_LIMIT)
-        return;
-    if (creator.lastOveruseDay === dayIndex)
-        return;
+    const prev = getCreatorStaminaSpentToday(creator);
+    const next = setCreatorStaminaSpentToday(creator, prev + staminaCost);
+    if (prev > STAMINA_OVERUSE_LIMIT || next <= STAMINA_OVERUSE_LIMIT) {
+        return { strikeApplied: false, departureFlagged: false };
+    }
+    if (creator.lastOveruseDay === dayIndex) {
+        return { strikeApplied: false, departureFlagged: false };
+    }
     creator.overuseStrikes = (creator.overuseStrikes || 0) + 1;
     creator.lastOveruseDay = dayIndex;
+    const detail = describeOveruseContext(context);
+    logEvent(`Overuse strike: ${creator.name} (${roleLabel(creator.role)}) spent ${formatCount(next)} stamina today (limit ${STAMINA_OVERUSE_LIMIT}). Trigger: ${detail}.`, "warn");
+    let departureFlagged = false;
     if (creator.overuseStrikes >= STAMINA_OVERUSE_STRIKES) {
         if (!creator.departurePending) {
             creator.departurePending = { reason: "overuse", flaggedAt: state.time.epochMs };
-            logEvent(`${creator.name} is overused and considering leaving the label.`, "warn");
+            departureFlagged = true;
+            logEvent(`${creator.name} entered departure risk from overuse (strikes ${creator.overuseStrikes}/${STAMINA_OVERUSE_STRIKES}, spent ${formatCount(next)} today).`, "warn");
         }
     }
+    return { strikeApplied: true, departureFlagged };
 }
 function creatorPreferredGenres(creator) {
     const list = [];
@@ -2499,11 +2571,6 @@ function computeQualityPotential(track) {
     const writers = getTrackRoleIds(track, "Songwriter").map((id) => getCreator(id)).filter(Boolean);
     const performers = getTrackRoleIds(track, "Performer").map((id) => getCreator(id)).filter(Boolean);
     const producers = getTrackRoleIds(track, "Producer").map((id) => getCreator(id)).filter(Boolean);
-    const averageSkill = (list) => {
-        if (!list.length)
-            return 0;
-        return list.reduce((sum, creator) => sum + creator.skill, 0) / list.length;
-    };
     const matchRate = (list, matches) => {
         if (!list.length)
             return 0;
@@ -2511,9 +2578,9 @@ function computeQualityPotential(track) {
         return hits / list.length;
     };
     let score = 40 + rand(-5, 5);
-    score += averageSkill(writers) * 0.2;
-    score += averageSkill(performers) * 0.2;
-    score += averageSkill(producers) * 0.3;
+    score += averageSkill(writers, { staminaAdjusted: true }) * 0.2;
+    score += averageSkill(performers, { staminaAdjusted: true }) * 0.2;
+    score += averageSkill(producers, { staminaAdjusted: true }) * 0.3;
     if (track.theme) {
         score += matchRate(writers, (creator) => creator.prefThemes.includes(track.theme)) * 3;
         score += matchRate(producers, (creator) => creator.prefThemes.includes(track.theme)) * 3;
@@ -2945,6 +3012,7 @@ function returnCreatorToMarket(creator, reason) {
         lastPromoAt: null,
         departurePending: null,
         overuseStrikes: 0,
+        staminaSpentToday: 0,
         staminaUsedToday: 0,
         lastUsageDay: Math.floor(state.time.epochMs / DAY_MS),
         lastOveruseDay: null
@@ -3379,6 +3447,71 @@ function startMasterStage(track, producerIds, alignment) {
     refreshTrackQuality(track, 2);
     return scheduleStage(track, 2);
 }
+function initWorkOrderStaminaMeta(order, stage, { legacyPaid = false } = {}) {
+    if (!order || !stage)
+        return;
+    const hours = Number.isFinite(order.hours) ? order.hours : stage.hours || 1;
+    const totalTicks = Math.max(1, Math.ceil(hours || 1));
+    const perTick = Math.floor(stage.stamina / totalTicks);
+    const remainder = stage.stamina % totalTicks;
+    if (!order.staminaTickMeta || typeof order.staminaTickMeta !== "object") {
+        order.staminaTickMeta = {};
+    }
+    order.staminaTickMeta.totalTicks = totalTicks;
+    order.staminaTickMeta.perTick = perTick;
+    order.staminaTickMeta.remainder = remainder;
+    if (!order.staminaTickMeta.ticksApplied || typeof order.staminaTickMeta.ticksApplied !== "object") {
+        order.staminaTickMeta.ticksApplied = {};
+    }
+    if (legacyPaid)
+        order.staminaTickMeta.legacyPaid = true;
+}
+function consumeWorkOrderStaminaSlice(order, stage, creator) {
+    if (!order || !stage || !creator)
+        return 0;
+    if (!order.staminaTickMeta)
+        initWorkOrderStaminaMeta(order, stage);
+    const meta = order.staminaTickMeta;
+    if (meta.legacyPaid)
+        return 0;
+    const applied = meta.ticksApplied?.[creator.id] || 0;
+    if (applied >= meta.totalTicks)
+        return 0;
+    const slice = meta.perTick + (applied < meta.remainder ? 1 : 0);
+    meta.ticksApplied[creator.id] = applied + 1;
+    if (slice <= 0)
+        return 0;
+    creator.stamina = clampStamina(creator.stamina - slice);
+    return slice;
+}
+function logProducerAssignment(crew, stage, order) {
+    if (!stage || stage.role !== "Producer")
+        return;
+    const crewIds = new Set(crew.map((creator) => creator.id));
+    const alternatives = state.creators.filter((creator) => {
+        if (creator.role !== "Producer")
+            return false;
+        if (crewIds.has(creator.id))
+            return false;
+        if (creator.stamina < stage.stamina)
+            return false;
+        if (getCreatorStaminaSpentToday(creator) + stage.stamina > STAMINA_OVERUSE_LIMIT)
+            return false;
+        return !getBusyCreatorIds("In Progress").has(creator.id);
+    });
+    const details = crew.map((creator) => {
+        const spent = getCreatorStaminaSpentToday(creator);
+        const projected = spent + stage.stamina;
+        return `${creator.name} (stamina ${creator.stamina}, spent ${formatCount(spent)}/${STAMINA_OVERUSE_LIMIT}, projected ${formatCount(projected)})`;
+    }).join(" | ");
+    const track = order?.trackId ? getTrack(order.trackId) : null;
+    const trackLabel = track ? ` "${track.title}"` : "";
+    logEvent(`Producer assignment${trackLabel}: ${details}. Alternatives under limit: ${alternatives.length}.`);
+    const overLimit = crew.some((creator) => getCreatorStaminaSpentToday(creator) + stage.stamina > STAMINA_OVERUSE_LIMIT);
+    if (overLimit) {
+        logEvent(`Producer assignment exceeds daily limit (${STAMINA_OVERUSE_LIMIT}). Consider rotating Producers or pausing to reset at 12AM.`, "warn");
+    }
+}
 function tryStartWorkOrder(order) {
     const stage = STAGES[order.stageIndex];
     if (order.status !== "Queued")
@@ -3407,10 +3540,9 @@ function tryStartWorkOrder(order) {
     order.creatorIds = crew.map((creator) => creator.id);
     order.creatorId = order.creatorIds[0];
     crew.forEach((creator) => {
-        creator.stamina = clampStamina(creator.stamina - stage.stamina);
         markCreatorActivityById(creator.id);
-        updateCreatorOveruse(creator, stage.stamina);
     });
+    initWorkOrderStaminaMeta(order, stage);
     ejectLowStaminaTrackSlots();
     order.status = "In Progress";
     order.studioSlot = assignedSlot;
@@ -3423,6 +3555,7 @@ function tryStartWorkOrder(order) {
         const crewLabel = crew.length > 1 ? `${lead.name} +${crew.length - 1}` : lead.name;
         logEvent(`${crewLabel} started ${stage.name} on "${track.title}".`);
     }
+    logProducerAssignment(crew, stage, order);
 }
 function processWorkOrders() {
     const now = state.time.epochMs;
@@ -3569,14 +3702,6 @@ function processReleaseQueue() {
         }
     });
     state.releaseQueue = remaining;
-}
-function rechargeStamina(hours) {
-    const busyIds = getBusyCreatorIds("In Progress");
-    state.creators.forEach((creator) => {
-        if (busyIds.has(creator.id))
-            return;
-        creator.stamina = clampStamina(creator.stamina + 50 * hours);
-    });
 }
 function scoreTrack(track, regionName) {
     const region = REGION_PROFILES[regionName] || NATION_PROFILES[regionName] || NATION_PROFILES.Annglora;
@@ -4971,18 +5096,98 @@ async function runScheduledWeeklyEvents(now) {
         await weeklyUpdate();
     }
 }
+function resetDailyUsageForCreators(dayIndex) {
+    state.creators.forEach((creator) => resetCreatorDailyUsage(creator, dayIndex));
+}
+function recordResourceTickSummary(summary) {
+    if (!state.resourceTickLedger || typeof state.resourceTickLedger !== "object") {
+        state.resourceTickLedger = { hours: [] };
+    }
+    if (!Array.isArray(state.resourceTickLedger.hours)) {
+        state.resourceTickLedger.hours = [];
+    }
+    state.resourceTickLedger.hours.push({ ts: state.time.epochMs, ...summary });
+    state.resourceTickLedger.hours = state.resourceTickLedger.hours.filter(Boolean).slice(-RESOURCE_TICK_LEDGER_LIMIT);
+}
+function applyHourlyResourceTick(activeOrders = []) {
+    const busyIds = new Set();
+    activeOrders.forEach((order) => {
+        getWorkOrderCreatorIds(order).forEach((id) => busyIds.add(id));
+    });
+    let regenTotal = 0;
+    let regenCount = 0;
+    state.creators.forEach((creator) => {
+        if (busyIds.has(creator.id))
+            return;
+        const before = creator.stamina;
+        creator.stamina = clampStamina(creator.stamina + STAMINA_REGEN_PER_HOUR);
+        const delta = creator.stamina - before;
+        if (delta > 0) {
+            regenTotal += delta;
+            regenCount += 1;
+        }
+    });
+    let spendTotal = 0;
+    let spendCount = 0;
+    let overuseCount = 0;
+    let departuresFlagged = 0;
+    activeOrders.forEach((order) => {
+        const stage = STAGES[order.stageIndex];
+        if (!stage)
+            return;
+        if (!order.staminaTickMeta) {
+            const legacyPaid = Boolean(order.staminaPaidUpfront);
+            initWorkOrderStaminaMeta(order, stage, { legacyPaid });
+        }
+        if (order.staminaTickMeta?.legacyPaid)
+            return;
+        const creatorIds = getWorkOrderCreatorIds(order);
+        creatorIds.forEach((id) => {
+            const creator = getCreator(id);
+            if (!creator)
+                return;
+            const spent = consumeWorkOrderStaminaSlice(order, stage, creator);
+            if (!spent)
+                return;
+            spendTotal += spent;
+            spendCount += 1;
+            const result = updateCreatorOveruse(creator, spent, {
+                orderId: order.id,
+                trackId: order.trackId,
+                stageName: stage.name
+            });
+            if (result.strikeApplied)
+                overuseCount += 1;
+            if (result.departureFlagged)
+                departuresFlagged += 1;
+        });
+    });
+    recordResourceTickSummary({
+        regenTotal,
+        regenCount,
+        spendTotal,
+        spendCount,
+        overuseCount,
+        departuresFlagged
+    });
+    if (regenTotal || spendTotal) {
+        logEvent(`Hourly stamina: +${formatCount(regenTotal)} regen (${regenCount} idle) | -${formatCount(spendTotal)} spend (${spendCount} active).`);
+    }
+}
 async function runHourlyTick() {
     const prevDayIndex = Math.floor(state.time.epochMs / DAY_MS);
     state.time.totalHours += 1;
     state.time.epochMs += HOUR_MS;
     const currentDayIndex = Math.floor(state.time.epochMs / DAY_MS);
     if (currentDayIndex !== prevDayIndex) {
+        resetDailyUsageForCreators(currentDayIndex);
         refreshDailyMarket();
     }
+    const activeOrders = state.workOrders.filter((order) => order.status === "In Progress");
+    applyHourlyResourceTick(activeOrders);
     processWorkOrders();
     processReleaseQueue();
     processRivalReleaseQueue();
-    rechargeStamina(1);
     expirePromoFacilityBookings();
     await runScheduledWeeklyEvents(state.time.epochMs);
     runYearTicksIfNeeded(currentYear());
@@ -5503,6 +5708,16 @@ function normalizeState() {
             order.creatorId = order.creatorIds[0];
         if (order.status !== "In Progress")
             order.studioSlot = null;
+        const stage = STAGES[order.stageIndex];
+        if (order.status === "In Progress" && stage) {
+            if (!order.staminaTickMeta) {
+                order.staminaPaidUpfront = true;
+                initWorkOrderStaminaMeta(order, stage, { legacyPaid: true });
+            }
+            else {
+                initWorkOrderStaminaMeta(order, stage, { legacyPaid: Boolean(order.staminaTickMeta.legacyPaid) });
+            }
+        }
         return order;
     });
     syncWorkOrderStudioSlots();
@@ -5528,6 +5743,12 @@ function normalizeState() {
     });
     if (!state.trends)
         state.trends = [];
+    if (!state.resourceTickLedger || typeof state.resourceTickLedger !== "object") {
+        state.resourceTickLedger = { hours: [] };
+    }
+    if (!Array.isArray(state.resourceTickLedger.hours))
+        state.resourceTickLedger.hours = [];
+    state.resourceTickLedger.hours = state.resourceTickLedger.hours.filter(Boolean).slice(-RESOURCE_TICK_LEDGER_LIMIT);
     if (!Array.isArray(state.trendRanking)) {
         state.trendRanking = Array.isArray(state.trends) ? state.trends.slice() : [];
     }
@@ -5862,18 +6083,20 @@ function rankCandidates(role) {
     return state.creators
         .filter((c) => c.role === role)
         .map((creator) => {
-        const staminaUsedToday = creator.staminaUsedToday || 0;
+        const staminaSpentToday = getCreatorStaminaSpentToday(creator);
         const overuseStrikes = creator.overuseStrikes || 0;
+        const projectedSpent = staminaSpentToday + req;
         const overuseRisk = STAMINA_OVERUSE_LIMIT > 0
-            ? staminaUsedToday >= STAMINA_OVERUSE_LIMIT
+            ? projectedSpent > STAMINA_OVERUSE_LIMIT
                 ? 2
-                : staminaUsedToday >= STAMINA_OVERUSE_LIMIT * 0.75
+                : projectedSpent >= STAMINA_OVERUSE_LIMIT * 0.75
                     ? 1
                     : 0
             : 0;
         return {
             ...creator,
-            staminaUsedToday,
+            staminaSpentToday,
+            projectedSpent,
             overuseStrikes,
             overuseRisk,
             ready: creator.stamina >= req,
@@ -5889,10 +6112,12 @@ function rankCandidates(role) {
             return a.overuseRisk - b.overuseRisk;
         if (a.overuseStrikes !== b.overuseStrikes)
             return a.overuseStrikes - b.overuseStrikes;
+        if (a.projectedSpent !== b.projectedSpent)
+            return a.projectedSpent - b.projectedSpent;
         if (a.skill !== b.skill)
             return b.skill - a.skill;
-        if (a.staminaUsedToday !== b.staminaUsedToday)
-            return a.staminaUsedToday - b.staminaUsedToday;
+        if (a.staminaSpentToday !== b.staminaSpentToday)
+            return a.staminaSpentToday - b.staminaSpentToday;
         return b.stamina - a.stamina;
     });
 }

@@ -1,3 +1,49 @@
+type CalendarEvent = {
+  id?: string;
+  ts: number;
+  title?: string;
+  actName?: string;
+  label?: string;
+  kind?: string;
+  typeLabel?: string;
+  distribution?: string;
+  className?: string;
+};
+
+type CalendarEraEntry = {
+  id?: string;
+  name?: string;
+  actName?: string;
+  stageName?: string;
+  startedWeek?: number;
+  content?: string;
+};
+
+type CalendarSources = {
+  labelScheduled?: CalendarEvent[];
+  labelReleased?: CalendarEvent[];
+  rivalScheduled?: CalendarEvent[];
+  rivalReleased?: CalendarEvent[];
+  eras?: CalendarEraEntry[];
+};
+
+type CalendarFilters = {
+  labelScheduled?: boolean;
+  labelReleased?: boolean;
+  rivalScheduled?: boolean;
+  rivalReleased?: boolean;
+};
+
+type CalendarProjectionConfig = {
+  startEpochMs: number;
+  anchorWeekIndex: number;
+  pastWeeks?: number;
+  futureWeeks?: number;
+  tab?: string;
+  filters?: CalendarFilters;
+  sources?: CalendarSources;
+};
+
 const DAY_MS = HOUR_MS * 24;
 const MAX_EVENTS_PER_DAY = 3;
 
@@ -43,7 +89,7 @@ export function useCalendarProjection({
   tab = "label",
   filters = {},
   sources = {}
-}) {
+}: CalendarProjectionConfig) {
   const labelScheduled = Array.isArray(sources.labelScheduled) ? sources.labelScheduled : [];
   const labelReleased = Array.isArray(sources.labelReleased) ? sources.labelReleased : [];
   const rivalScheduled = Array.isArray(sources.rivalScheduled) ? sources.rivalScheduled : [];

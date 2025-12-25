@@ -21,6 +21,8 @@ const {
   makeLabelName,
   getModifier,
   staminaRequirement,
+  getCreatorStaminaSpentToday,
+  STAMINA_OVERUSE_LIMIT,
   getCrewStageStats,
   getAdjustedStageHours,
   getAdjustedTotalStageHours,
@@ -157,15 +159,27 @@ function getTrackSlotIds(role) {
   return list.filter(Boolean);
 }
 
+function isCreatorOveruseSafe(creator, staminaCost) {
+  if (!creator) return false;
+  if (!Number.isFinite(staminaCost) || staminaCost <= 0) return true;
+  return getCreatorStaminaSpentToday(creator) + staminaCost <= STAMINA_OVERUSE_LIMIT;
+}
+
 function setTrackSlotIds(role, ids) {
   const key = TRACK_ROLE_KEYS[role];
   const limit = TRACK_ROLE_LIMITS?.[role] || 1;
   if (!key) return;
   const next = Array.from({ length: limit }, () => null);
   const req = staminaRequirement(role);
+  const blocked = [];
   const eligible = ids.filter((id) => {
     const creator = getCreator(id);
-    return creator && creator.stamina >= req;
+    if (!creator || creator.stamina < req) return false;
+    if (!isCreatorOveruseSafe(creator, req)) {
+      blocked.push(creator);
+      return false;
+    }
+    return true;
   });
   eligible.slice(0, limit).forEach((id, index) => {
     next[index] = id;
@@ -179,6 +193,13 @@ function setTrackSlotIds(role, ids) {
     };
   }
   state.ui.trackSlots[key] = next;
+  if (blocked.length) {
+    const names = blocked.map((creator) => creator.name).join(", ");
+    logEvent(
+      `Skipped ${roleLabel(role)} due to daily stamina limit (${STAMINA_OVERUSE_LIMIT}): ${names}.`,
+      "warn"
+    );
+  }
 }
 
 function primaryTrackSlotTarget(role) {
@@ -205,14 +226,22 @@ function recommendCreatorForSlot(targetId) {
   }
   const currentId = getSlotValue(targetId);
   const assigned = collectAssignedTrackSlotIds(currentId);
+  const req = staminaRequirement(role);
   const candidates = rankCandidates(role).filter((creator) => creator.ready && !assigned.has(creator.id));
-  if (!candidates.length) {
+  const safe = candidates.filter((creator) => isCreatorOveruseSafe(creator, req));
+  if (!safe.length) {
     shakeSlot(targetId);
-    const req = staminaRequirement(role);
-    logEvent(`No available ${roleLabel(role)} creators with ${req} stamina.`, "warn");
+    if (!candidates.length) {
+      logEvent(`No available ${roleLabel(role)} creators with ${req} stamina.`, "warn");
+    } else {
+      logEvent(
+        `No available ${roleLabel(role)} creators under daily limit (${STAMINA_OVERUSE_LIMIT}).`,
+        "warn"
+      );
+    }
     return;
   }
-  const picked = candidates[0];
+  const picked = safe[0];
   assignToSlot(targetId, "creator", picked.id);
   logEvent(`Recommended ${picked.name} for ${describeSlot(targetId)}.`);
 }
@@ -275,6 +304,7 @@ const VIEW_DEFAULTS = {
   },
   logs: {
     "eyerisocial": VIEW_PANEL_STATES.open,
+    "resource-ticks": VIEW_PANEL_STATES.open,
     "system-log": VIEW_PANEL_STATES.open,
     "usage-ledger": VIEW_PANEL_STATES.open,
     "debug-export": VIEW_PANEL_STATES.open
@@ -1788,6 +1818,27 @@ function bindViewHandlers(route, root) {
     });
   }
 
+  if (route === "releases") {
+    root.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.calendarTab;
+        if (!tab) return;
+        state.ui.calendarTab = tab;
+        renderCalendarView();
+        saveToActiveSlot();
+      });
+    });
+    root.querySelectorAll("[data-calendar-filter]").forEach((input) => {
+      input.addEventListener("change", (e) => {
+        const key = e.target.dataset.calendarFilter;
+        if (!key) return;
+        state.ui.calendarFilters[key] = e.target.checked;
+        renderCalendarView();
+        saveToActiveSlot();
+      });
+    });
+  }
+
   if (route === "charts") {
     root.addEventListener("click", (e) => {
       if (!state.ui.chartHistoryWeek) return;
@@ -2475,7 +2526,8 @@ function applyTrackRecommendationPlan(rec, stage) {
 function assignAllCreatorsToSlots() {
   const roles = ["Songwriter", "Performer", "Producer"];
   return roles.map((role) => {
-    const candidates = rankCandidates(role).filter((creator) => creator.ready);
+    const req = staminaRequirement(role);
+    const candidates = rankCandidates(role).filter((creator) => creator.ready && isCreatorOveruseSafe(creator, req));
     setTrackSlotIds(role, candidates.map((creator) => creator.id));
     return { role, count: getTrackSlotIds(role).length, req: staminaRequirement(role) };
   });
@@ -2495,7 +2547,7 @@ function recommendAllCreators() {
   const missing = summary.filter((entry) => entry.count === 0);
   if (missing.length) {
     const detail = missing.map((entry) => `${entry.role} (${entry.req} stamina)`).join(", ");
-    logEvent(`No available creators for: ${detail}.`, "warn");
+    logEvent(`No available creators for: ${detail}. Daily limit ${STAMINA_OVERUSE_LIMIT}.`, "warn");
   }
 }
 
@@ -2695,7 +2747,15 @@ function autoAssignCreators() {
 }
 
 function assignBestCandidates() {
-  const pickBest = (role) => rankCandidates(role)[0]?.id || null;
+  const pickBest = (role) => {
+    const req = staminaRequirement(role);
+    const candidates = rankCandidates(role).filter((creator) => creator.ready && isCreatorOveruseSafe(creator, req));
+    if (!candidates.length) {
+      logEvent(`No available ${roleLabel(role)} creators under daily limit (${STAMINA_OVERUSE_LIMIT}).`, "warn");
+      return null;
+    }
+    return candidates[0].id || null;
+  };
   setTrackSlotIds("Songwriter", [pickBest("Songwriter")]);
   setTrackSlotIds("Performer", [pickBest("Performer")]);
   setTrackSlotIds("Producer", [pickBest("Producer")]);
