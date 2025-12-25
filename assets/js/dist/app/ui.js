@@ -8,6 +8,7 @@ const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
     promotion: "logs",
+    promotions: "logs",
     era: "eras"
 };
 const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
@@ -1042,18 +1043,36 @@ function promoBudgetBaseCost(typeId) {
     const details = getPromoTypeDetails(typeId);
     return Math.max(PROMO_BUDGET_MIN, details.cost);
 }
-function setPromoBudgetToBaseCost(root, typeId) {
+function promoBudgetBaseCostForTypes(typeIds) {
+    if (!typeIds)
+        return promoBudgetBaseCost(DEFAULT_PROMO_TYPE);
+    const list = Array.isArray(typeIds) ? typeIds : [typeIds];
+    const costs = list
+        .filter(Boolean)
+        .map((typeId) => promoBudgetBaseCost(typeId));
+    if (!costs.length)
+        return promoBudgetBaseCost(DEFAULT_PROMO_TYPE);
+    return Math.max(...costs);
+}
+function setPromoBudgetToBaseCost(root, typeIds) {
     const scope = root || document;
     const input = scope.querySelector("#promoBudget");
     if (!input)
         return;
+    const baseCost = promoBudgetBaseCostForTypes(typeIds);
+    const raw = Number(input.value);
+    const hasValue = Number.isFinite(raw);
+    const autoBudget = input.dataset.promoBudgetAuto !== "false";
     input.min = String(PROMO_BUDGET_MIN);
-    input.value = String(promoBudgetBaseCost(typeId));
+    if (!hasValue || autoBudget) {
+        input.value = String(baseCost);
+        input.dataset.promoBudgetAuto = "true";
+    }
 }
-function normalizePromoBudget(root, typeId) {
+function normalizePromoBudget(root, typeIds) {
     const scope = root || document;
     const input = scope.querySelector("#promoBudget");
-    const baseCost = promoBudgetBaseCost(typeId);
+    const baseCost = promoBudgetBaseCostForTypes(typeIds);
     if (!input)
         return baseCost;
     input.min = String(PROMO_BUDGET_MIN);
@@ -1062,6 +1081,22 @@ function normalizePromoBudget(root, typeId) {
     if (String(next) !== input.value)
         input.value = String(next);
     return next;
+}
+function getSelectedPromoTypes(root) {
+    const scope = root || document;
+    return Array.from(scope.querySelectorAll("[data-promo-type].is-active"))
+        .map((card) => card.dataset.promoType)
+        .filter(Boolean);
+}
+function ensurePromoTypeSelection(root, fallbackTypeId) {
+    const scope = root || document;
+    let selected = getSelectedPromoTypes(scope);
+    if (!selected.length) {
+        const fallback = fallbackTypeId || DEFAULT_PROMO_TYPE;
+        selected = [fallback];
+        syncPromoTypeCards(scope, selected);
+    }
+    return selected;
 }
 function hydratePromoTypeCards(root) {
     const scope = root || document;
@@ -1084,13 +1119,14 @@ function hydratePromoTypeCards(root) {
             cost.textContent = `Typical cost: ${formatMoney(details.cost)}`;
     });
 }
-function syncPromoTypeCards(root, typeId) {
+function syncPromoTypeCards(root, typeIds) {
     const scope = root || document;
     const cards = scope.querySelectorAll("[data-promo-type]");
     if (!cards.length)
         return;
+    const selected = new Set((Array.isArray(typeIds) ? typeIds : [typeIds]).filter(Boolean));
     cards.forEach((card) => {
-        const isActive = card.dataset.promoType === typeId;
+        const isActive = selected.has(card.dataset.promoType);
         card.classList.toggle("is-active", isActive);
         card.setAttribute("aria-checked", isActive ? "true" : "false");
         const status = card.querySelector("[data-promo-status]");
@@ -1106,20 +1142,65 @@ function buildPromoFacilityHint(typeId) {
     const label = facility === "broadcast" ? "Broadcast slots" : "Filming slots";
     return ` | ${label} today: ${availability.available}/${availability.capacity}`;
 }
+function getPromoFacilityNeeds(typeIds) {
+    const list = Array.isArray(typeIds) ? typeIds : [typeIds];
+    return list.reduce((acc, typeId) => {
+        if (!typeId)
+            return acc;
+        const facility = getPromoFacilityForType(typeId);
+        if (!facility)
+            return acc;
+        acc[facility] = (acc[facility] || 0) + 1;
+        return acc;
+    }, {});
+}
+function buildPromoFacilityHints(typeIds) {
+    const needs = getPromoFacilityNeeds(typeIds);
+    const entries = Object.entries(needs);
+    if (!entries.length)
+        return "";
+    return entries.map(([facilityId, count]) => {
+        const availability = getPromoFacilityAvailability(facilityId);
+        const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
+        const neededLabel = count > 1 ? ` (need ${count})` : "";
+        return `${label} today: ${availability.available}/${availability.capacity}${neededLabel}`;
+    }).join(" | ");
+}
 function updatePromoTypeHint(root) {
     const scope = root || document;
     const select = scope.querySelector("#promoTypeSelect");
     const hint = scope.querySelector("#promoTypeHint");
-    const typeId = select ? select.value : DEFAULT_PROMO_TYPE;
+    const selectedTypes = ensurePromoTypeSelection(scope, select ? select.value : DEFAULT_PROMO_TYPE);
+    const primaryType = select && selectedTypes.includes(select.value) ? select.value : selectedTypes[0];
+    if (select && primaryType)
+        select.value = primaryType;
+    state.ui.promoTypes = selectedTypes.slice();
+    state.ui.promoType = primaryType || DEFAULT_PROMO_TYPE;
     const inflationMultiplier = getPromoInflationMultiplier();
-    if (hint)
-        hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)}${buildPromoFacilityHint(typeId)}`;
-    syncPromoTypeCards(scope, typeId);
-    setPromoBudgetToBaseCost(scope, typeId);
+    syncPromoTypeCards(scope, selectedTypes);
+    setPromoBudgetToBaseCost(scope, selectedTypes);
+    const budget = normalizePromoBudget(scope, selectedTypes);
+    if (hint) {
+        if (selectedTypes.length === 1) {
+            const typeId = selectedTypes[0];
+            hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)}${buildPromoFacilityHint(typeId)}`;
+        }
+        else {
+            const labels = selectedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
+            const facilityHint = buildPromoFacilityHints(selectedTypes);
+            const facilitySuffix = facilityHint ? ` | ${facilityHint}` : "";
+            const totalSpend = formatMoney(budget * selectedTypes.length);
+            hint.textContent = `Selected (${selectedTypes.length}): ${labels}. Budget applies per type; total spend: ${totalSpend}${facilitySuffix}`;
+        }
+    }
     const budgetInput = scope.querySelector("#promoBudget");
     if (budgetInput) {
-        const { adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
-        budgetInput.placeholder = formatMoney(adjustedCost);
+        const costs = selectedTypes.map((typeId) => getPromoTypeCosts(typeId, inflationMultiplier).adjustedCost);
+        const minCost = Math.min(...costs);
+        const maxCost = Math.max(...costs);
+        budgetInput.placeholder = minCost === maxCost
+            ? formatMoney(maxCost)
+            : `${formatMoney(minCost)}-${formatMoney(maxCost)}`;
     }
 }
 function bindGlobalHandlers() {
@@ -1648,10 +1729,14 @@ function bindViewHandlers(route, root) {
         });
     }
     if (route === "logs") {
-        on("promoTypeSelect", "change", () => updatePromoTypeHint(root));
-        on("promoBudget", "change", () => {
-            const typeId = root.querySelector("#promoTypeSelect")?.value || DEFAULT_PROMO_TYPE;
-            normalizePromoBudget(root, typeId);
+        on("promoTypeSelect", "change", (e) => {
+            const typeId = e.target.value || DEFAULT_PROMO_TYPE;
+            syncPromoTypeCards(root, [typeId]);
+            updatePromoTypeHint(root);
+        });
+        on("promoBudget", "change", (e) => {
+            e.target.dataset.promoBudgetAuto = "false";
+            updatePromoTypeHint(root);
         });
         const promoGrid = root.querySelector("#promoTypeGrid");
         if (promoGrid) {
@@ -1663,12 +1748,32 @@ function bindViewHandlers(route, root) {
                 if (!typeId)
                     return;
                 const select = root.querySelector("#promoTypeSelect");
+                const selected = ensurePromoTypeSelection(root, select ? select.value : DEFAULT_PROMO_TYPE);
+                const isActive = selected.includes(typeId);
+                if (isActive && selected.length === 1)
+                    return;
+                const nextSelected = isActive
+                    ? selected.filter((id) => id !== typeId)
+                    : Array.from(new Set([...selected, typeId]));
+                syncPromoTypeCards(root, nextSelected);
                 if (select)
-                    select.value = typeId;
+                    select.value = isActive ? (nextSelected[0] || typeId) : typeId;
                 updatePromoTypeHint(root);
             });
         }
         hydratePromoTypeCards(root);
+        if (Array.isArray(state.ui.promoTypes) && state.ui.promoTypes.length) {
+            syncPromoTypeCards(root, state.ui.promoTypes);
+            const select = root.querySelector("#promoTypeSelect");
+            if (select)
+                select.value = state.ui.promoTypes[0];
+        }
+        else if (state.ui.promoType) {
+            syncPromoTypeCards(root, [state.ui.promoType]);
+            const select = root.querySelector("#promoTypeSelect");
+            if (select)
+                select.value = state.ui.promoType;
+        }
         updatePromoTypeHint(root);
     }
     on("chartWeekBtn", "click", () => {
@@ -1795,7 +1900,7 @@ function bindViewHandlers(route, root) {
         }
         state.meta.autoRollout.enabled = e.target.checked;
         state.meta.autoRollout.lastCheckedAt = Date.now();
-        logEvent(state.meta.autoRollout.enabled ? "Auto-rollout enabled (rules pending)." : "Auto-rollout disabled.");
+        logEvent(state.meta.autoRollout.enabled ? "Auto promo enabled." : "Auto promo disabled.");
         saveToActiveSlot();
     });
     const autoRolloutToggle = root.querySelector("#autoRolloutToggle");
@@ -3015,9 +3120,9 @@ function pickPromoTrackFromFocus() {
 }
 function runPromotion() {
     const trackId = state.ui.promoSlots.trackId;
-    const promoType = $("promoTypeSelect") ? $("promoTypeSelect").value : DEFAULT_PROMO_TYPE;
-    const promoDetails = getPromoTypeDetails(promoType);
-    const budget = normalizePromoBudget(document, promoType);
+    const selectedTypes = ensurePromoTypeSelection(document, $("promoTypeSelect") ? $("promoTypeSelect").value : DEFAULT_PROMO_TYPE);
+    const budget = normalizePromoBudget(document, selectedTypes);
+    const totalCost = budget * selectedTypes.length;
     if (!trackId) {
         logEvent("No released track selected for promo push.", "warn");
         return;
@@ -3026,8 +3131,9 @@ function runPromotion() {
         logEvent("Promo budget must be greater than 0.", "warn");
         return;
     }
-    if (state.label.cash < budget) {
-        logEvent("Not enough cash for promo push.", "warn");
+    if (state.label.cash < totalCost) {
+        const label = selectedTypes.length > 1 ? "promo pushes" : "promo push";
+        logEvent(`Not enough cash for ${label}.`, "warn");
         return;
     }
     const track = getTrack(trackId);
@@ -3046,40 +3152,59 @@ function runPromotion() {
     const market = state.marketTracks.find((entry) => entry.id === track.marketId);
     if (!market)
         return;
-    const facilityId = getPromoFacilityForType(promoType);
-    if (facilityId) {
+    const facilityNeeds = getPromoFacilityNeeds(selectedTypes);
+    for (const [facilityId, count] of Object.entries(facilityNeeds)) {
+        const availability = getPromoFacilityAvailability(facilityId);
+        if (availability.available < count) {
+            const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
+            const plural = count === 1 ? "type" : "types";
+            logEvent(`Not enough ${label} today for ${count} promo ${plural}.`, "warn");
+            return;
+        }
+    }
+    for (const promoType of selectedTypes) {
+        const facilityId = getPromoFacilityForType(promoType);
+        if (!facilityId)
+            continue;
         const reservation = reservePromoFacilitySlot(facilityId, promoType, track.id);
         if (!reservation.ok) {
             logEvent(reservation.reason || "No facility slots available today.", "warn");
             return;
         }
     }
-    state.label.cash -= budget;
+    state.label.cash -= totalCost;
     const boostWeeks = clamp(Math.floor(budget / 1200) + 1, 1, 4);
     market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);
-    state.meta.promoRuns = (state.meta.promoRuns || 0) + 1;
+    state.meta.promoRuns = (state.meta.promoRuns || 0) + selectedTypes.length;
     const promoIds = [
         ...(track.creators?.songwriterIds || []),
         ...(track.creators?.performerIds || []),
         ...(track.creators?.producerIds || [])
     ].filter(Boolean);
     markCreatorPromo(promoIds);
-    logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks: boostWeeks, promoType });
+    selectedTypes.forEach((promoType) => {
+        logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks: boostWeeks, promoType });
+        if (typeof postFromTemplate === "function") {
+            postFromTemplate(promoType, {
+                trackTitle: track.title,
+                actName: act ? act.name : "Unknown Act",
+                releaseDate,
+                channel: track.distribution || "Digital",
+                handle: handleFromName(state.label.name, "Label"),
+                cost: budget
+            });
+        }
+    });
     if (typeof postFromTemplate === "function") {
-        postFromTemplate(promoType, {
-            trackTitle: track.title,
-            actName: act ? act.name : "Unknown Act",
-            releaseDate,
-            channel: track.distribution || "Digital",
-            handle: handleFromName(state.label.name, "Label"),
-            cost: budget
-        });
         renderSocialFeed();
     }
     else {
         logEvent("Promo template posting not available.", "warn");
     }
-    logEvent(`Promo push funded for "${track.title}" (${promoDetails.label}) (+${boostWeeks} weeks).`);
+    const promoLabels = selectedTypes.map((promoType) => getPromoTypeDetails(promoType).label).join(", ");
+    const verb = selectedTypes.length > 1 ? "Promo pushes funded" : "Promo push funded";
+    const spendNote = selectedTypes.length > 1 ? ` Total spend: ${formatMoney(totalCost)}.` : "";
+    logEvent(`${verb} for "${track.title}" (${promoLabels}) (+${boostWeeks} weeks).${spendNote}`);
     renderAll();
 }
 function handleReleaseActRecommendation(e) {
