@@ -16,4 +16,5 @@ Filming studios are production facilities required for multimedia promo types.
 - Base cost rule (MVP): 3x the standard eyeriSocial post base cost.
 
 ## Related
+- `docs/systems/promo/auto-promo.md`
 - `docs/systems/promo/broadcast-studios.md`

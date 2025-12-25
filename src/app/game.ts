@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { storeChartSnapshot } from "./db.js";
+import { DEFAULT_PROMO_TYPE } from "./promo_types.js";
 
 const LIVE_SYNC_INTERVAL_MS = 500;
 
@@ -90,6 +91,9 @@ const GAME_DIFFICULTIES = {
   }
 };
 const DEFAULT_GAME_DIFFICULTY = "medium";
+const AUTO_PROMO_BUDGET_PCT = 0.05;
+const AUTO_PROMO_MIN_BUDGET = 100;
+const AUTO_PROMO_RIVAL_TYPE = "eyeriSocialPost";
 
 const TRACK_ROLE_KEYS = {
   Songwriter: "songwriterIds",
@@ -436,6 +440,8 @@ function makeDefaultState() {
       trackSlotVisible: buildDefaultTrackSlotVisibility(),
       focusEraId: null,
       eraSlots: { actId: null },
+      promoType: DEFAULT_PROMO_TYPE,
+      promoTypes: [DEFAULT_PROMO_TYPE],
       promoSlots: { trackId: null },
       socialSlots: { trackId: null },
       viewContext: {
@@ -528,7 +534,7 @@ function makeDefaultState() {
       winShown: false,
       endShown: false,
       autoSave: { enabled: false, minutes: 5, lastSavedAt: null },
-      autoRollout: { enabled: false, lastCheckedAt: null }
+      autoRollout: { enabled: false, lastCheckedAt: null, budgetPct: AUTO_PROMO_BUDGET_PCT }
     }
   };
 }
@@ -1718,6 +1724,37 @@ function reservePromoFacilitySlot(facilityId, promoType, trackId) {
   };
   facilities[facilityId].bookings.push(booking);
   return { ok: true, booking, availability };
+}
+
+function promoFacilityNeeds(typeIds) {
+  const list = Array.isArray(typeIds) ? typeIds : [typeIds];
+  return list.reduce((acc, typeId) => {
+    if (!typeId) return acc;
+    const facility = getPromoFacilityForType(typeId);
+    if (!facility) return acc;
+    acc[facility] = (acc[facility] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function autoPromoBudgetPct() {
+  const raw = state.meta?.autoRollout?.budgetPct;
+  if (typeof raw !== "number" || Number.isNaN(raw)) return AUTO_PROMO_BUDGET_PCT;
+  return clamp(raw, 0, 1);
+}
+
+function computeAutoPromoBudget(cash, pct = AUTO_PROMO_BUDGET_PCT) {
+  const safeCash = Number.isFinite(cash) ? Math.max(0, cash) : 0;
+  const safePct = clamp(pct, 0, 1);
+  if (!safeCash || safePct <= 0) return 0;
+  const target = Math.floor(safeCash * safePct);
+  const budget = Math.max(AUTO_PROMO_MIN_BUDGET, target);
+  if (budget > safeCash) return 0;
+  return budget;
+}
+
+function promoWeeksFromBudget(budget) {
+  return clamp(Math.floor(budget / 1200) + 1, 1, 4);
 }
 
 function expirePromoFacilityBookings() {
@@ -3187,6 +3224,20 @@ function markRivalReleaseActivity(labelName, releasedAt, creatorIds = []) {
     if (!creator) return;
     creator.lastReleaseAt = releasedAt;
     creator.lastActivityAt = releasedAt;
+  });
+}
+
+function markRivalPromoActivity(labelName, promoAt, creatorIds = []) {
+  const rival = getRivalByName(labelName);
+  if (!rival || !Array.isArray(rival.creators) || !rival.creators.length) return;
+  const ids = Array.isArray(creatorIds) && creatorIds.length
+    ? creatorIds
+    : [pickOne(rival.creators).id];
+  ids.forEach((id) => {
+    const creator = rival.creators.find((entry) => entry.id === id);
+    if (!creator) return;
+    creator.lastPromoAt = promoAt;
+    creator.lastActivityAt = promoAt;
   });
 }
 
@@ -4777,9 +4828,89 @@ function advanceEraWeek() {
   state.era.active = stillActive;
 }
 
-function maybeRunAutoRollout() {
+function runAutoPromoForPlayer() {
+  if (!state.meta.autoRollout || !state.meta.autoRollout.enabled) return;
+  const trackId = state.ui?.promoSlots?.trackId;
+  if (!trackId) return;
+  const track = getTrack(trackId);
+  if (!track || track.status !== "Released" || !track.marketId) return;
+  const era = track.eraId ? getEraById(track.eraId) : null;
+  if (!era || era.status !== "Active") return;
+  const market = state.marketTracks.find((entry) => entry.id === track.marketId);
+  if (!market || (market.promoWeeks || 0) > 0) return;
+  const selectedTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
+    ? state.ui.promoTypes
+    : [state.ui?.promoType || DEFAULT_PROMO_TYPE];
+  const budget = computeAutoPromoBudget(state.label.cash, autoPromoBudgetPct());
+  const totalCost = budget * selectedTypes.length;
+  if (!budget || state.label.cash < totalCost) return;
+  const facilityNeeds = promoFacilityNeeds(selectedTypes);
+  for (const [facilityId, count] of Object.entries(facilityNeeds)) {
+    const availability = getPromoFacilityAvailability(facilityId);
+    if (availability.available < count) return;
+  }
+  for (const promoType of selectedTypes) {
+    const facilityId = getPromoFacilityForType(promoType);
+    if (!facilityId) continue;
+    const reservation = reservePromoFacilitySlot(facilityId, promoType, track.id);
+    if (!reservation.ok) return;
+  }
+  state.label.cash -= totalCost;
+  if (state.label.wallet) state.label.wallet.cash = state.label.cash;
+  const boostWeeks = promoWeeksFromBudget(budget);
+  market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
+  state.meta.promoRuns = (state.meta.promoRuns || 0) + selectedTypes.length;
+  const promoIds = [
+    ...(track.creators?.songwriterIds || []),
+    ...(track.creators?.performerIds || []),
+    ...(track.creators?.producerIds || [])
+  ].filter(Boolean);
+  markCreatorPromo(promoIds);
+  const spendNote = selectedTypes.length > 1 ? `${formatMoney(totalCost)} total` : formatMoney(totalCost);
+  logEvent(`Auto promo funded for "${track.title}" (+${boostWeeks} weeks, ${spendNote}).`);
+}
+
+function pickRivalAutoPromoTrack(rival) {
+  if (!rival) return null;
+  const candidates = state.marketTracks.filter((entry) => !entry.isPlayer
+    && entry.label === rival.name
+    && (entry.promoWeeks || 0) <= 0);
+  if (!candidates.length) return null;
+  return candidates.reduce((latest, entry) => {
+    const latestStamp = latest?.releasedAt || 0;
+    const entryStamp = entry?.releasedAt || 0;
+    return entryStamp >= latestStamp ? entry : latest;
+  }, candidates[0]);
+}
+
+function runAutoPromoForRivals() {
+  if (!Array.isArray(state.rivals) || !state.rivals.length) return;
+  const pct = autoPromoBudgetPct();
+  state.rivals.forEach((rival) => {
+    const market = pickRivalAutoPromoTrack(rival);
+    if (!market) return;
+    const budget = computeAutoPromoBudget(rival.cash, pct);
+    if (!budget || rival.cash < budget) return;
+    const promoType = AUTO_PROMO_RIVAL_TYPE;
+    const facilityId = getPromoFacilityForType(promoType);
+    if (facilityId) {
+      const reservation = reservePromoFacilitySlot(facilityId, promoType, market.trackId);
+      if (!reservation.ok) return;
+    }
+    rival.cash -= budget;
+    if (!rival.wallet) rival.wallet = { cash: rival.cash };
+    rival.wallet.cash = rival.cash;
+    const boostWeeks = promoWeeksFromBudget(budget);
+    market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
+    markRivalPromoActivity(rival.name, state.time.epochMs);
+  });
+}
+
+function maybeRunAutoPromo() {
+  runAutoPromoForRivals();
   if (!state.meta.autoRollout || !state.meta.autoRollout.enabled) return;
   state.meta.autoRollout.lastCheckedAt = state.time.epochMs;
+  runAutoPromoForPlayer();
 }
 
 function weeklyUpdate() {
@@ -4801,8 +4932,8 @@ function weeklyUpdate() {
   updateQuests();
   refreshQuestPool();
   advanceEraWeek();
-  maybeRunAutoRollout();
   ageMarketTracks();
+  maybeRunAutoPromo();
   processCreatorDepartures();
   applyBailoutIfNeeded();
   evaluateAchievements();
@@ -5151,6 +5282,8 @@ function normalizeState() {
         producerIds: buildEmptyTrackSlotList("Producer")
       },
       eraSlots: { actId: null },
+      promoType: DEFAULT_PROMO_TYPE,
+      promoTypes: [DEFAULT_PROMO_TYPE],
       promoSlots: { trackId: null },
       activeView: "charts"
     };
@@ -5158,6 +5291,10 @@ function normalizeState() {
   if (!state.ui.activeChart) state.ui.activeChart = "global";
   if (!state.ui.trendScopeType) state.ui.trendScopeType = "global";
   if (!state.ui.trendScopeTarget) state.ui.trendScopeTarget = defaultTrendNation();
+  if (!state.ui.promoType) state.ui.promoType = DEFAULT_PROMO_TYPE;
+  if (!Array.isArray(state.ui.promoTypes) || !state.ui.promoTypes.length) {
+    state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
+  }
   if (!state.ui.genreTheme) state.ui.genreTheme = "All";
   if (!state.ui.genreMood) state.ui.genreMood = "All";
   if (!state.ui.actSlots) state.ui.actSlots = { lead: null, member2: null, member3: null };
@@ -5386,8 +5523,14 @@ function normalizeState() {
   if (!state.meta.autoSave) state.meta.autoSave = { enabled: false, minutes: 5, lastSavedAt: null };
   if (typeof state.meta.autoSave.minutes !== "number") state.meta.autoSave.minutes = 5;
   if (typeof state.meta.autoSave.enabled !== "boolean") state.meta.autoSave.enabled = false;
-  if (!state.meta.autoRollout) state.meta.autoRollout = { enabled: false, lastCheckedAt: null };
+  if (!state.meta.autoRollout) {
+    state.meta.autoRollout = { enabled: false, lastCheckedAt: null, budgetPct: AUTO_PROMO_BUDGET_PCT };
+  }
   if (typeof state.meta.autoRollout.enabled !== "boolean") state.meta.autoRollout.enabled = false;
+  if (typeof state.meta.autoRollout.budgetPct !== "number") {
+    state.meta.autoRollout.budgetPct = AUTO_PROMO_BUDGET_PCT;
+  }
+  state.meta.autoRollout.budgetPct = clamp(state.meta.autoRollout.budgetPct, 0, 1);
   if (!state.meta.seedInfo) state.meta.seedInfo = null;
   if (!state.meta.seedHistory) state.meta.seedHistory = null;
   if (!state.meta.seedCalibration) state.meta.seedCalibration = null;

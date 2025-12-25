@@ -1270,6 +1270,8 @@ function updatePromoTypeHint(root) {
   const selectedTypes = ensurePromoTypeSelection(scope, select ? select.value : DEFAULT_PROMO_TYPE);
   const primaryType = select && selectedTypes.includes(select.value) ? select.value : selectedTypes[0];
   if (select && primaryType) select.value = primaryType;
+  state.ui.promoTypes = selectedTypes.slice();
+  state.ui.promoType = primaryType || DEFAULT_PROMO_TYPE;
   const inflationMultiplier = getPromoInflationMultiplier();
   syncPromoTypeCards(scope, selectedTypes);
   setPromoBudgetToBaseCost(scope, selectedTypes);
@@ -1822,6 +1824,15 @@ function bindViewHandlers(route, root) {
       });
     }
     hydratePromoTypeCards(root);
+    if (Array.isArray(state.ui.promoTypes) && state.ui.promoTypes.length) {
+      syncPromoTypeCards(root, state.ui.promoTypes);
+      const select = root.querySelector("#promoTypeSelect");
+      if (select) select.value = state.ui.promoTypes[0];
+    } else if (state.ui.promoType) {
+      syncPromoTypeCards(root, [state.ui.promoType]);
+      const select = root.querySelector("#promoTypeSelect");
+      if (select) select.value = state.ui.promoType;
+    }
     updatePromoTypeHint(root);
   }
 
@@ -1941,7 +1952,7 @@ function bindViewHandlers(route, root) {
     }
     state.meta.autoRollout.enabled = e.target.checked;
     state.meta.autoRollout.lastCheckedAt = Date.now();
-    logEvent(state.meta.autoRollout.enabled ? "Auto-rollout enabled (rules pending)." : "Auto-rollout disabled.");
+    logEvent(state.meta.autoRollout.enabled ? "Auto promo enabled." : "Auto promo disabled.");
     saveToActiveSlot();
   });
 

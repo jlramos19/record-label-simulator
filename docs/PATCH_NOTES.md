@@ -13,4 +13,5 @@
 - Broadcast Studios now gate interviews and live performances with day-based slot availability (Sunday-heavy).
 - Filming Studio slots now gate music videos and eyeriSocial ads; ads cost more and post as multimedia promos.
 - Promotions tab now supports multi-select promo types and houses the eyeriSocial feed (renamed from the Social tab).
+- Auto promo now spends a wallet-percentage budget (default 5%) per promo type for both player and rival labels.
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
