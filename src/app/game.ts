@@ -398,6 +398,7 @@ function makeDefaultState() {
     creators: [],
     acts: [],
     marketCreators: [],
+    ccc: { signLockoutsByCreatorId: {} },
     tracks: [],
     workOrders: [],
     releaseQueue: [],
@@ -2341,6 +2342,7 @@ function ensureMarketCreators(options = {}) {
 }
 
 function refreshDailyMarket() {
+  clearCreatorSignLockouts();
   state.marketCreators = buildMarketCreators();
   ensureMarketCreators();
   if (state.ui?.activeView === "world") {
@@ -5182,6 +5184,9 @@ function normalizeState() {
   }
   ensureTrackSlotArrays();
   ensureTrackSlotVisibility();
+  if (!state.ccc) state.ccc = { signLockoutsByCreatorId: {} };
+  if (!state.ccc.signLockoutsByCreatorId) state.ccc.signLockoutsByCreatorId = {};
+  pruneCreatorSignLockouts(Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now());
   if (typeof state.ui.createHelpOpen !== "boolean") state.ui.createHelpOpen = false;
   if (typeof state.ui.createAdvancedOpen !== "boolean") state.ui.createAdvancedOpen = false;
   if (!state.ui.trackPanelTab || (state.ui.trackPanelTab !== "active" && state.ui.trackPanelTab !== "archive")) {
