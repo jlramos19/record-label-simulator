@@ -3311,8 +3311,8 @@ function setupPanelResizers(root) {
 
           panel.style.width = `${width}px`;
           panel.style.height = `${height}px`;
-          if (dir === "left") panel.style.marginLeft = `${marginLeft}px`;
-          if (dir === "top") panel.style.marginTop = `${marginTop}px`;
+          if (useLeft) panel.style.marginLeft = `${marginLeft}px`;
+          if (useTop) panel.style.marginTop = `${marginTop}px`;
         };
 
         const onUp = () => {
@@ -3321,6 +3321,7 @@ function setupPanelResizers(root) {
           // after finishing resize, ensure panel placement and reset z-index
           panel.classList.remove('resizing');
           panel.style.zIndex = '';
+          ensurePanelPlacement(panel);
           persistPanelSize(panel);
         };
 
@@ -3477,6 +3478,7 @@ function runTimeJump(totalHours, label) {
     if (cancelled) {
       logEvent("Time skip canceled.", "warn");
       closeSkipProgress();
+      renderAll();
       return;
     }
     const remaining = totalHours - completed;
@@ -3486,6 +3488,7 @@ function runTimeJump(totalHours, label) {
     setSkipProgress(totalHours, completed, label);
     if (completed >= totalHours) {
       closeSkipProgress();
+      renderAll();
       return;
     }
     setTimeout(step, 0);
