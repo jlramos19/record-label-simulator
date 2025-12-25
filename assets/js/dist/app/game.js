@@ -6509,15 +6509,14 @@ function recommendActForTrack(track) {
         reason
     };
 }
-function recommendModifierId(theme, mood) {
-    const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
+function recommendModifierId(theme, mood, crewIds = []) {
     const trendMatch = state.trends.includes(makeGenre(theme, mood));
     const qualityMod = MODIFIERS.find((mod) => mod.qualityDelta > 0);
     const speedMod = MODIFIERS.find((mod) => mod.hoursDelta < 0);
-    if (trendMatch && qualityMod && state.label.cash >= baseCost + (qualityMod.costDelta || 0)) {
+    if (trendMatch && qualityMod && state.label.cash >= getStageCost(0, qualityMod, crewIds)) {
         return { modifierId: qualityMod.id, reason: "Invest in quality while trend is hot." };
     }
-    if (!trendMatch && speedMod && state.label.cash >= baseCost + (speedMod.costDelta || 0)) {
+    if (!trendMatch && speedMod && state.label.cash >= getStageCost(0, speedMod, crewIds)) {
         return { modifierId: speedMod.id, reason: "Favor speed on a colder week." };
     }
     return { modifierId: MODIFIERS[0]?.id || "None", reason: "Standard budget tier." };

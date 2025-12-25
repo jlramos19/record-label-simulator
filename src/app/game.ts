@@ -33,7 +33,8 @@ const STAMINA_OVERUSE_STRIKES = 1;
 const STAMINA_REGEN_PER_HOUR = 50;
 const RESOURCE_TICK_LEDGER_LIMIT = 24;
 const SEED_CALIBRATION_YEAR = 2400;
-const TREND_LIST_LIMIT = 40;
+const COMMUNITY_RANKING_LIMITS = [8, 40];
+const COMMUNITY_RANKING_DEFAULT = 40;
 const TREND_DETAIL_COUNT = 3;
 const TREND_WINDOW_WEEKS = 4;
 const WEEKLY_SCHEDULE = {
@@ -2451,7 +2452,9 @@ function describeOveruseContext(context = {}) {
 
 function updateCreatorOveruse(creator, staminaCost, context = {}) {
   if (!creator || !staminaCost) return { strikeApplied: false, departureFlagged: false };
-  const dayIndex = Math.floor(state.time.epochMs / DAY_MS);
+  const dayIndex = Number.isFinite(context.dayIndex)
+    ? context.dayIndex
+    : Math.floor(state.time.epochMs / DAY_MS);
   if (creator.lastUsageDay !== dayIndex) {
     resetCreatorDailyUsage(creator, dayIndex);
   }
@@ -5349,7 +5352,7 @@ function recordResourceTickSummary(summary) {
   state.resourceTickLedger.hours = state.resourceTickLedger.hours.filter(Boolean).slice(-RESOURCE_TICK_LEDGER_LIMIT);
 }
 
-function applyHourlyResourceTick(activeOrders = []) {
+function applyHourlyResourceTick(activeOrders = [], dayIndex = null) {
   const busyIds = new Set();
   activeOrders.forEach((order) => {
     getWorkOrderCreatorIds(order).forEach((id) => busyIds.add(id));
@@ -5391,7 +5394,8 @@ function applyHourlyResourceTick(activeOrders = []) {
       const result = updateCreatorOveruse(creator, spent, {
         orderId: order.id,
         trackId: order.trackId,
-        stageName: stage.name
+        stageName: stage.name,
+        dayIndex
       });
       if (result.strikeApplied) overuseCount += 1;
       if (result.departureFlagged) departuresFlagged += 1;
@@ -5419,12 +5423,12 @@ async function runHourlyTick() {
   state.time.totalHours += 1;
   state.time.epochMs += HOUR_MS;
   const currentDayIndex = Math.floor(state.time.epochMs / DAY_MS);
+  const activeOrders = state.workOrders.filter((order) => order.status === "In Progress");
+  applyHourlyResourceTick(activeOrders, prevDayIndex);
   if (currentDayIndex !== prevDayIndex) {
     resetDailyUsageForCreators(currentDayIndex);
     refreshDailyMarket();
   }
-  const activeOrders = state.workOrders.filter((order) => order.status === "In Progress");
-  applyHourlyResourceTick(activeOrders);
   processWorkOrders();
   processReleaseQueue();
   processRivalReleaseQueue();
@@ -6440,7 +6444,7 @@ function recommendTrackPlan() {
   const writer = pickOveruseSafeCandidate("Songwriter");
   const performer = pickOveruseSafeCandidate("Performer");
   const producer = pickOveruseSafeCandidate("Producer");
-  const modifierPick = recommendModifierId(trend.theme, trend.mood);
+  const modifierPick = recommendModifierId(trend.theme, trend.mood, writer ? [writer.id] : []);
   const projectPick = recommendProjectType(actPick.actId);
   return {
     version: RECOMMEND_VERSION,
