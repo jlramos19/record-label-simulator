@@ -1,5 +1,14 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1605Z)
+- Rival competitive rollout mode now guarantees one deterministic anchor rival per planning cycle, with additional rivals joining only when budget gates pass.
+- Rival husk plans now commit to multi-week windows while keeping releases on Friday 00:00 and promos gated by budget + facility capacity.
+
+## 2025-12-25 (RLS-PATCH-20251225-1604Z)
+- Simulation ticks now advance in quarter-hour increments while keeping the clock display hour-only.
+- Work order stamina and scheduled events now resolve on quarter-hour ticks with minute-gated weekly triggers.
+- Progress bars now interpolate smoothly across quarter-hour updates.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1600Z)
 - Rival labels now plan releases/promos from a shared husk library (starter + completed era husks) using deterministic trend/alignment/budget scoring.
 - Rival schedules snap releases to Friday 00:00 and promo events to whole-hour timestamps with duplicate-week guards and fallback to starter cadence.

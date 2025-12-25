@@ -7012,6 +7012,7 @@ function seedNewGame(options = {}) {
     else {
         state.marketTracks = [];
     }
+    generateRivalReleases();
     seedActs();
     syncLabelWallets();
     logEvent("Welcome back, CEO. Your label awaits.");
