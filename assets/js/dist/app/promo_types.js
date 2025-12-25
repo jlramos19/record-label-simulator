@@ -3,6 +3,9 @@ const formatMoney = (amount) => {
     const abs = Math.abs(amount);
     return `${sign}$${abs.toLocaleString("en-US")}`;
 };
+const EYERISOCIAL_POST_COST = 600;
+const EYERISOCIAL_AD_COST_MULTIPLIER = 3;
+const EYERISOCIAL_AD_COST = EYERISOCIAL_POST_COST * EYERISOCIAL_AD_COST_MULTIPLIER;
 const PROMO_TYPE_DETAILS = {
     musicVideo: {
         label: "Music Video",
@@ -17,7 +20,12 @@ const PROMO_TYPE_DETAILS = {
     eyeriSocialPost: {
         label: "eyeriSocial Post",
         requirement: "Cover art + caption",
-        cost: 600
+        cost: EYERISOCIAL_POST_COST
+    },
+    eyeriSocialAd: {
+        label: "eyeriSocial Ad",
+        requirement: "Multimedia post + placement",
+        cost: EYERISOCIAL_AD_COST
     },
     interview: {
         label: "Interview",

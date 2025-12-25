@@ -14,3 +14,6 @@ Filming studios are production facilities required for multimedia promo types.
 ## Ad definition
 - "eyeriSocial Ad" is a multimedia post with higher cost than a standard eyeriSocial post.
 - Base cost rule (MVP): 3x the standard eyeriSocial post base cost.
+
+## Related
+- `docs/systems/promo/broadcast-studios.md`

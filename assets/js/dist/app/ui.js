@@ -3,7 +3,7 @@ import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
-const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
+const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
 const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
@@ -134,7 +134,6 @@ const VIEW_DEFAULTS = {
     },
     create: {
         "create-track": VIEW_PANEL_STATES.open,
-        "create-trends": VIEW_PANEL_STATES.open,
         "tracks": VIEW_PANEL_STATES.open
     },
     releases: {
@@ -1099,6 +1098,14 @@ function syncPromoTypeCards(root, typeId) {
             status.textContent = isActive ? "Selected" : "Select";
     });
 }
+function buildPromoFacilityHint(typeId) {
+    const facility = getPromoFacilityForType(typeId);
+    if (!facility)
+        return "";
+    const availability = getPromoFacilityAvailability(facility);
+    const label = facility === "broadcast" ? "Broadcast slots" : "Filming slots";
+    return ` | ${label} today: ${availability.available}/${availability.capacity}`;
+}
 function updatePromoTypeHint(root) {
     const scope = root || document;
     const select = scope.querySelector("#promoTypeSelect");
@@ -1106,7 +1113,7 @@ function updatePromoTypeHint(root) {
     const typeId = select ? select.value : DEFAULT_PROMO_TYPE;
     const inflationMultiplier = getPromoInflationMultiplier();
     if (hint)
-        hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)}`;
+        hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)}${buildPromoFacilityHint(typeId)}`;
     syncPromoTypeCards(scope, typeId);
     setPromoBudgetToBaseCost(scope, typeId);
     const budgetInput = scope.querySelector("#promoBudget");
@@ -3039,6 +3046,14 @@ function runPromotion() {
     const market = state.marketTracks.find((entry) => entry.id === track.marketId);
     if (!market)
         return;
+    const facilityId = getPromoFacilityForType(promoType);
+    if (facilityId) {
+        const reservation = reservePromoFacilitySlot(facilityId, promoType, track.id);
+        if (!reservation.ok) {
+            logEvent(reservation.reason || "No facility slots available today.", "warn");
+            return;
+        }
+    }
     state.label.cash -= budget;
     const boostWeeks = clamp(Math.floor(budget / 1200) + 1, 1, 4);
     market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);

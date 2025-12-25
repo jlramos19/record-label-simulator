@@ -11,3 +11,6 @@ This doc lists every surface that renders trend data and the display rules for t
 - Dashboard stat card: Top 1 trend (from `trendRanking[0]`).
 - Create view: Uses the header summary (no separate Top Trends side panel).
 - Community (world) view: See `docs/ui/community-trends.md` for the full list rules.
+
+## Related
+- `docs/systems/time/weekly-timing.md`

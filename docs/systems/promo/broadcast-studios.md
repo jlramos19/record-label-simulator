@@ -20,3 +20,6 @@ Slots are day-based and reset at midnight.
 
 ## Rationale
 Sunday has the highest availability to simulate heavier broadcast programming and promo throughput.
+
+## Related
+- `docs/systems/promo/filming-studios.md`

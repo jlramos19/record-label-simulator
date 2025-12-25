@@ -11,3 +11,4 @@
 - Community tab now shows up to Top 40 global trends filtered by rolling-window consumption and recent chart presence.
 - Broadcast Studios now gate interviews and live performances with day-based slot availability (Sunday-heavy).
 - Filming Studio slots now gate music videos and eyeriSocial ads; ads cost more and post as multimedia promos.
+- Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
