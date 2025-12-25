@@ -3737,7 +3737,7 @@ function logProducerAssignment(crew, stage, order) {
   }).join(" | ");
   const track = order?.trackId ? getTrack(order.trackId) : null;
   const trackLabel = track ? ` "${track.title}"` : "";
-  logEvent(`Producer assignment${trackLabel}: ${details}. Alternatives under limit: ${alternatives.length}.`);
+  logEvent(`Producer assignment (${stage.name})${trackLabel}: ${details}. Alternatives under limit: ${alternatives.length}.`);
   const overLimit = crew.some((creator) => getCreatorStaminaSpentToday(creator) + stage.stamina > STAMINA_OVERUSE_LIMIT);
   if (overLimit) {
     logEvent(`Producer assignment exceeds daily limit (${STAMINA_OVERUSE_LIMIT}). Consider rotating Producers or pausing to reset at 12AM.`, "warn");
@@ -4813,6 +4813,8 @@ function finalizeGame(result, reason) {
   ];
   if (result === "loss") {
     lines.push({ title: "Loss archived", detail: `Saved to Loss Archives (last ${LOSS_ARCHIVE_LIMIT}).` });
+    const cash = formatMoney(state.label?.cash ?? 0);
+    logEvent(`Loss recorded: ${reason} | Week ${weekIndex() + 1} | Year ${currentYear()} | Cash ${cash}.`, "warn");
   }
   lines.push({ title: "Select a new slot", detail: "Pick a game slot in the main menu to keep playing." });
   showEndScreen(title, lines);
@@ -5700,6 +5702,7 @@ function normalizeState() {
   if (!state.ui.activeChart) state.ui.activeChart = "global";
   if (!state.ui.trendScopeType) state.ui.trendScopeType = "global";
   if (!state.ui.trendScopeTarget) state.ui.trendScopeTarget = defaultTrendNation();
+  state.ui.communityRankingLimit = normalizeCommunityRankingLimit(state.ui.communityRankingLimit);
   if (!state.ui.promoType) state.ui.promoType = DEFAULT_PROMO_TYPE;
   if (!Array.isArray(state.ui.promoTypes) || !state.ui.promoTypes.length) {
     state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
@@ -6703,6 +6706,64 @@ function getLabelRanking(limit) {
   return typeof limit === "number" ? ranking.slice(0, limit) : ranking;
 }
 
+function normalizeCommunityRankingLimit(value) {
+  const parsed = Number(value);
+  return COMMUNITY_RANKING_LIMITS.includes(parsed) ? parsed : COMMUNITY_RANKING_DEFAULT;
+}
+
+function getCommunityRankingLimit() {
+  if (!state.ui) state.ui = {};
+  const normalized = normalizeCommunityRankingLimit(state.ui.communityRankingLimit);
+  state.ui.communityRankingLimit = normalized;
+  return normalized;
+}
+
+function buildLabelRankingList({ limit = null, showMore = false } = {}) {
+  const fullRanking = getLabelRanking();
+  const visible = typeof limit === "number" ? fullRanking.slice(0, limit) : fullRanking;
+  if (!visible.length) {
+    return { markup: `<div class="muted">No labels yet.</div>`, visibleCount: 0, totalCount: fullRanking.length };
+  }
+  const list = visible.map((row, index) => {
+    const labelName = row[0];
+    const points = row[1];
+    const country = getRivalByName(labelName)?.country || state.label.country;
+    const moreAction = showMore && index === 0
+      ? `<button type="button" class="ghost mini" data-ranking-more="labels">More</button>`
+      : "";
+    return `
+      <div class="list-item">
+        <div class="list-row">
+          <div class="item-title">#${index + 1} ${renderLabelTag(labelName, country)}</div>
+          <div class="ranking-actions">
+            <span class="muted">${formatCount(points)} pts</span>
+            ${moreAction}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  return { markup: list.join(""), visibleCount: visible.length, totalCount: fullRanking.length };
+}
+
+function renderCommunityLabels() {
+  const listEl = $("topLabelsWorldList");
+  if (!listEl) return;
+  const limit = getCommunityRankingLimit();
+  const { markup, visibleCount, totalCount } = buildLabelRankingList({ limit, showMore: true });
+  listEl.innerHTML = markup;
+  const meta = $("labelRankingMeta");
+  if (meta) {
+    if (!totalCount) {
+      meta.textContent = "No labels ranked yet.";
+    } else if (visibleCount >= totalCount) {
+      meta.textContent = `Showing ${formatCount(totalCount)} labels.`;
+    } else {
+      meta.textContent = `Showing Top ${formatCount(visibleCount)} of ${formatCount(totalCount)} labels.`;
+    }
+  }
+}
+
 function renderTopBar() {
   const ranking = getLabelRanking(3);
   const labelsMarkup = ranking.length
@@ -6725,8 +6786,6 @@ function renderTopBar() {
     : `<div class="muted">No trends yet</div>`;
   const headerList = $("topLabelsHeaderList");
   if (headerList) headerList.innerHTML = labelsMarkup;
-  const worldList = $("topLabelsWorldList");
-  if (worldList) worldList.innerHTML = labelsMarkup;
   const trendsList = $("topTrendsHeaderList");
   if (trendsList) trendsList.innerHTML = trendsMarkup;
   if ($("topActName")) {
@@ -8954,12 +9013,14 @@ function getCreateStageAvailability() {
   const theme = $("themeSelect") ? $("themeSelect").value : "";
   const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
   const modifier = getModifier(modifierId);
-  const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
-  const cost = Math.max(0, baseCost + (modifier?.costDelta || 0));
+  const sheetCrew = mode === "collab" ? assignedSongwriters : eligibleSongwriters;
+  const sheetCost = sheetCrew.length
+    ? Math.min(...sheetCrew.map((id) => getStageCost(0, modifier, [id])))
+    : 0;
   const sheetHasCrew = mode === "collab" ? assignedSongwriters.length > 0 : eligibleSongwriters.length > 0;
   const sheetCanStart = !!theme
     && sheetHasCrew
-    && state.label.cash >= cost
+    && state.label.cash >= sheetCost
     && getStudioAvailableSlots() > 0
     && getStageStudioAvailable(0) > 0;
 
@@ -8978,10 +9039,12 @@ function getCreateStageAvailability() {
   const demoAssigned = demoPerformers.length
     ? normalizeRoleIds(demoPerformers, "Performer")
     : getTrackRoleIds(demoTrack, "Performer");
+  const demoCost = demoAssigned.length ? getStageCost(1, demoTrack?.modifier, demoAssigned) : 0;
   const demoReady = demoTrack && demoTrack.status === "Awaiting Demo" && demoTrack.stageIndex === 1;
   const demoCanStart = !!demoReady
     && moodValid
     && demoAssigned.length > 0
+    && state.label.cash >= demoCost
     && getStudioAvailableSlots() > 0
     && getStageStudioAvailable(1) > 0;
 
@@ -8996,6 +9059,7 @@ function getCreateStageAvailability() {
   const masterAssigned = masterProducers.length
     ? normalizeRoleIds(masterProducers, "Producer")
     : getTrackRoleIds(masterTrack, "Producer");
+  const masterCost = masterAssigned.length ? getStageCost(2, masterTrack?.modifier, masterAssigned) : 0;
   const masterReady = masterTrack
     && masterTrack.status === "Awaiting Master"
     && masterTrack.stageIndex === 2
@@ -9003,6 +9067,7 @@ function getCreateStageAvailability() {
   const masterCanStart = !!masterReady
     && alignmentValid
     && masterAssigned.length > 0
+    && state.label.cash >= masterCost
     && getStudioAvailableSlots() > 0
     && getStageStudioAvailable(2) > 0;
 

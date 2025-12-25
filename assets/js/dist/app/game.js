@@ -29,7 +29,8 @@ const STAMINA_OVERUSE_STRIKES = 1;
 const STAMINA_REGEN_PER_HOUR = 50;
 const RESOURCE_TICK_LEDGER_LIMIT = 24;
 const SEED_CALIBRATION_YEAR = 2400;
-const TREND_LIST_LIMIT = 40;
+const COMMUNITY_RANKING_LIMITS = [8, 40];
+const COMMUNITY_RANKING_DEFAULT = 40;
 const TREND_DETAIL_COUNT = 3;
 const TREND_WINDOW_WEEKS = 4;
 const WEEKLY_SCHEDULE = {
@@ -2405,7 +2406,9 @@ function describeOveruseContext(context = {}) {
 function updateCreatorOveruse(creator, staminaCost, context = {}) {
     if (!creator || !staminaCost)
         return { strikeApplied: false, departureFlagged: false };
-    const dayIndex = Math.floor(state.time.epochMs / DAY_MS);
+    const dayIndex = Number.isFinite(context.dayIndex)
+        ? context.dayIndex
+        : Math.floor(state.time.epochMs / DAY_MS);
     if (creator.lastUsageDay !== dayIndex) {
         resetCreatorDailyUsage(creator, dayIndex);
     }
@@ -3686,7 +3689,7 @@ function logProducerAssignment(crew, stage, order) {
     }).join(" | ");
     const track = order?.trackId ? getTrack(order.trackId) : null;
     const trackLabel = track ? ` "${track.title}"` : "";
-    logEvent(`Producer assignment${trackLabel}: ${details}. Alternatives under limit: ${alternatives.length}.`);
+    logEvent(`Producer assignment (${stage.name})${trackLabel}: ${details}. Alternatives under limit: ${alternatives.length}.`);
     const overLimit = crew.some((creator) => getCreatorStaminaSpentToday(creator) + stage.stamina > STAMINA_OVERUSE_LIMIT);
     if (overLimit) {
         logEvent(`Producer assignment exceeds daily limit (${STAMINA_OVERUSE_LIMIT}). Consider rotating Producers or pausing to reset at 12AM.`, "warn");
@@ -4757,6 +4760,8 @@ function finalizeGame(result, reason) {
     ];
     if (result === "loss") {
         lines.push({ title: "Loss archived", detail: `Saved to Loss Archives (last ${LOSS_ARCHIVE_LIMIT}).` });
+        const cash = formatMoney(state.label?.cash ?? 0);
+        logEvent(`Loss recorded: ${reason} | Week ${weekIndex() + 1} | Year ${currentYear()} | Cash ${cash}.`, "warn");
     }
     lines.push({ title: "Select a new slot", detail: "Pick a game slot in the main menu to keep playing." });
     showEndScreen(title, lines);
@@ -5302,7 +5307,7 @@ function recordResourceTickSummary(summary) {
     state.resourceTickLedger.hours.push({ ts: state.time.epochMs, ...summary });
     state.resourceTickLedger.hours = state.resourceTickLedger.hours.filter(Boolean).slice(-RESOURCE_TICK_LEDGER_LIMIT);
 }
-function applyHourlyResourceTick(activeOrders = []) {
+function applyHourlyResourceTick(activeOrders = [], dayIndex = null) {
     const busyIds = new Set();
     activeOrders.forEach((order) => {
         getWorkOrderCreatorIds(order).forEach((id) => busyIds.add(id));
@@ -5347,7 +5352,8 @@ function applyHourlyResourceTick(activeOrders = []) {
             const result = updateCreatorOveruse(creator, spent, {
                 orderId: order.id,
                 trackId: order.trackId,
-                stageName: stage.name
+                stageName: stage.name,
+                dayIndex
             });
             if (result.strikeApplied)
                 overuseCount += 1;
@@ -5372,12 +5378,12 @@ async function runHourlyTick() {
     state.time.totalHours += 1;
     state.time.epochMs += HOUR_MS;
     const currentDayIndex = Math.floor(state.time.epochMs / DAY_MS);
+    const activeOrders = state.workOrders.filter((order) => order.status === "In Progress");
+    applyHourlyResourceTick(activeOrders, prevDayIndex);
     if (currentDayIndex !== prevDayIndex) {
         resetDailyUsageForCreators(currentDayIndex);
         refreshDailyMarket();
     }
-    const activeOrders = state.workOrders.filter((order) => order.status === "In Progress");
-    applyHourlyResourceTick(activeOrders);
     processWorkOrders();
     processReleaseQueue();
     processRivalReleaseQueue();
@@ -6538,7 +6544,7 @@ function recommendTrackPlan() {
     const writer = pickOveruseSafeCandidate("Songwriter");
     const performer = pickOveruseSafeCandidate("Performer");
     const producer = pickOveruseSafeCandidate("Producer");
-    const modifierPick = recommendModifierId(trend.theme, trend.mood);
+    const modifierPick = recommendModifierId(trend.theme, trend.mood, writer ? [writer.id] : []);
     const projectPick = recommendProjectType(actPick.actId);
     return {
         version: RECOMMEND_VERSION,
@@ -6799,6 +6805,64 @@ function getLabelRanking(limit) {
         .sort((a, b) => b[1] - a[1]);
     return typeof limit === "number" ? ranking.slice(0, limit) : ranking;
 }
+function normalizeCommunityRankingLimit(value) {
+    const parsed = Number(value);
+    return COMMUNITY_RANKING_LIMITS.includes(parsed) ? parsed : COMMUNITY_RANKING_DEFAULT;
+}
+function getCommunityRankingLimit() {
+    if (!state.ui)
+        state.ui = {};
+    const normalized = normalizeCommunityRankingLimit(state.ui.communityRankingLimit);
+    state.ui.communityRankingLimit = normalized;
+    return normalized;
+}
+function buildLabelRankingList({ limit = null, showMore = false } = {}) {
+    const fullRanking = getLabelRanking();
+    const visible = typeof limit === "number" ? fullRanking.slice(0, limit) : fullRanking;
+    if (!visible.length) {
+        return { markup: `<div class="muted">No labels yet.</div>`, visibleCount: 0, totalCount: fullRanking.length };
+    }
+    const list = visible.map((row, index) => {
+        const labelName = row[0];
+        const points = row[1];
+        const country = getRivalByName(labelName)?.country || state.label.country;
+        const moreAction = showMore && index === 0
+            ? `<button type="button" class="ghost mini" data-ranking-more="labels">More</button>`
+            : "";
+        return `
+      <div class="list-item">
+        <div class="list-row">
+          <div class="item-title">#${index + 1} ${renderLabelTag(labelName, country)}</div>
+          <div class="ranking-actions">
+            <span class="muted">${formatCount(points)} pts</span>
+            ${moreAction}
+          </div>
+        </div>
+      </div>
+    `;
+    });
+    return { markup: list.join(""), visibleCount: visible.length, totalCount: fullRanking.length };
+}
+function renderCommunityLabels() {
+    const listEl = $("topLabelsWorldList");
+    if (!listEl)
+        return;
+    const limit = getCommunityRankingLimit();
+    const { markup, visibleCount, totalCount } = buildLabelRankingList({ limit, showMore: true });
+    listEl.innerHTML = markup;
+    const meta = $("labelRankingMeta");
+    if (meta) {
+        if (!totalCount) {
+            meta.textContent = "No labels ranked yet.";
+        }
+        else if (visibleCount >= totalCount) {
+            meta.textContent = `Showing ${formatCount(totalCount)} labels.`;
+        }
+        else {
+            meta.textContent = `Showing Top ${formatCount(visibleCount)} of ${formatCount(totalCount)} labels.`;
+        }
+    }
+}
 function renderTopBar() {
     const ranking = getLabelRanking(3);
     const labelsMarkup = ranking.length
@@ -6822,9 +6886,6 @@ function renderTopBar() {
     const headerList = $("topLabelsHeaderList");
     if (headerList)
         headerList.innerHTML = labelsMarkup;
-    const worldList = $("topLabelsWorldList");
-    if (worldList)
-        worldList.innerHTML = labelsMarkup;
     const trendsList = $("topTrendsHeaderList");
     if (trendsList)
         trendsList.innerHTML = trendsMarkup;

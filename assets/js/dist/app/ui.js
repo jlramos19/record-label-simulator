@@ -184,9 +184,7 @@ const VIEW_DEFAULTS = {
     logs: {
         "eyerisocial": VIEW_PANEL_STATES.open,
         "resource-ticks": VIEW_PANEL_STATES.open,
-        "system-log": VIEW_PANEL_STATES.open,
-        "usage-ledger": VIEW_PANEL_STATES.open,
-        "debug-export": VIEW_PANEL_STATES.open
+        "system-log": VIEW_PANEL_STATES.open
     }
 };
 function getPanelTray() {
@@ -2229,6 +2227,7 @@ function exportDebugBundle() {
     if (state.meta?.seedCalibration) {
         downloadFile("seed_calibration.json", JSON.stringify(state.meta.seedCalibration, null, 2), "application/json");
     }
+    logEvent(`Debug bundle exported (${formatCount(log.length)} UI events, ${formatCount(eventLog.length)} system events).`);
     logUiEvent("export_debug", { ui_events: log.length, sim_events: eventLog.length });
 }
 function formatLossArchiveTimestamp(epochMs) {
