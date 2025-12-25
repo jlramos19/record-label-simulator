@@ -8,6 +8,7 @@
 - Workflow: TODO -> Docs -> Code -> Patch Notes.
 - When you stage changes in git, draft a commit message for me to push to main on GitHub.
 - When making code changes, run `npm run build` and confirm the build succeeds; always request a test run when code is touched.
+- Primary dev environment: VS Code Run/Debug with Microsoft Edge. Prioritize this setup when developing and validating behavior.
 - References: `docs/DECISIONS.md` and `docs/CONTRADICTIONS.md`.
 - Coordination: Other AI agents may work in this repo; coordinate changes, avoid overlapping edits, and stop to ask when conflicts appear.
 - Coordination addendum: If other agents made local changes that do not conflict with the task, incorporate them into the current pass.
