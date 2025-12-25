@@ -3217,9 +3217,9 @@ function runPromotion() {
       ...(track.creators?.producerIds || [])
     ].filter(Boolean);
     markCreatorPromo(promoIds);
-  if (typeof postFromTemplate === "function") {
-    selectedTypes.forEach((promoType) => {
-      logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks: boostWeeks, promoType });
+  selectedTypes.forEach((promoType) => {
+    logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks: boostWeeks, promoType });
+    if (typeof postFromTemplate === "function") {
       postFromTemplate(promoType, {
         trackTitle: track.title,
         actName: act ? act.name : "Unknown Act",
@@ -3228,7 +3228,9 @@ function runPromotion() {
         handle: handleFromName(state.label.name, "Label"),
         cost: budget
       });
-    });
+    }
+  });
+  if (typeof postFromTemplate === "function") {
     renderSocialFeed();
   } else {
     logEvent("Promo template posting not available.", "warn");
