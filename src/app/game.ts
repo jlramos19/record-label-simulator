@@ -6971,7 +6971,8 @@ function renderMarket() {
     input.checked = filters[key] !== false;
   });
   const pool = state.marketCreators || [];
-  const dayIndex = Math.floor(state.time.epochMs / DAY_MS);
+  const now = state.time.epochMs;
+  pruneCreatorSignLockouts(now);
   const columns = MARKET_ROLES.map((role) => {
     const roleLabelText = roleLabel(role);
     const roleCreators = pool.filter((creator) => creator.role === role);
@@ -6979,9 +6980,15 @@ function renderMarket() {
       const skillGrade = scoreGrade(creator.skill);
       const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
       const nationalityPill = renderNationalityPill(creator.country);
-      const isFailed = creator.signFailedDay === dayIndex;
-      const itemClass = `list-item${isFailed ? " ccc-market-item--failed" : ""}`;
-      const buttonState = isFailed ? " disabled" : "";
+      const lockout = getCreatorSignLockout(creator.id, now);
+      const isLocked = !!lockout;
+      const itemClass = `list-item${isLocked ? " ccc-market-item--failed" : ""}`;
+      const buttonState = isLocked ? " disabled" : "";
+      const buttonLabel = isLocked ? "Locked until refresh" : `Sign ${formatMoney(creator.signCost || 0)}`;
+      const lockoutHint = isLocked ? `<div class="tiny muted">Locked until 12AM refresh</div>` : "";
+      const lockoutTitle = isLocked && lockout
+        ? ` title="Locked until ${formatDate(lockout.lockedUntilEpochMs)}"`
+        : "";
       return `
         <div class="${itemClass}" data-ccc-creator="${creator.id}">
           <div class="list-row">
@@ -6995,7 +7002,10 @@ function renderMarket() {
                 <div class="time-row">${nationalityPill}</div>
               </div>
             </div>
-            <button type="button" data-sign="${creator.id}"${buttonState}>Sign ${formatMoney(creator.signCost || 0)}</button>
+            <div>
+              <button type="button" data-sign="${creator.id}"${buttonState}${lockoutTitle}>${buttonLabel}</button>
+              ${lockoutHint}
+            </div>
           </div>
         </div>
       `;
