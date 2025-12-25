@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { storeChartSnapshot } from "./db.js";
+import { fetchChartSnapshot, listChartWeeks, storeChartSnapshot } from "./db.js";
 import { DEFAULT_PROMO_TYPE } from "./promo_types.js";
 import { CalendarView, useCalendarProjection } from "./calendar.js";
 
@@ -5746,7 +5746,10 @@ function normalizeState() {
   pruneCreatorSignLockouts(Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now());
   if (typeof state.ui.createHelpOpen !== "boolean") state.ui.createHelpOpen = false;
   if (typeof state.ui.createAdvancedOpen !== "boolean") state.ui.createAdvancedOpen = false;
-  if (!state.ui.trackPanelTab || (state.ui.trackPanelTab !== "active" && state.ui.trackPanelTab !== "archive")) {
+  if (!state.ui.trackPanelTab
+    || (state.ui.trackPanelTab !== "active"
+      && state.ui.trackPanelTab !== "archive"
+      && state.ui.trackPanelTab !== "history")) {
     state.ui.trackPanelTab = "active";
   }
   if (typeof state.ui.focusEraId === "undefined") state.ui.focusEraId = null;
@@ -7978,6 +7981,183 @@ function renderWorkOrders() {
   listEl.innerHTML = list.join("");
 }
 
+let trackHistoryRequestId = 0;
+
+function weekNumberFromEpochMs(epochMs) {
+  if (!Number.isFinite(epochMs)) return null;
+  const startEpochMs = getStartEpochMsFromState();
+  const offset = epochMs - startEpochMs;
+  if (!Number.isFinite(offset)) return null;
+  return Math.max(1, Math.floor(offset / (WEEK_HOURS * HOUR_MS)) + 1);
+}
+
+function shortRegionLabel(region) {
+  if (!region) return "";
+  const nation = region.nation || "";
+  const raw = region.id || "";
+  let area = raw;
+  if (nation && raw.startsWith(nation)) {
+    area = raw.slice(nation.length).trim();
+  }
+  if (!area) area = raw;
+  const shortArea = area === "Capital" ? "Cap" : area === "Elsewhere" ? "Else" : area;
+  const label = nation ? `${nation} ${shortArea}`.trim() : shortArea;
+  return label || raw;
+}
+
+function buildTrackHistoryScopes() {
+  const scopes = [{ scope: "global", label: "Global", title: "Global (Gaia)" }];
+  NATIONS.forEach((nation) => {
+    scopes.push({ scope: `nation:${nation}`, label: nation, title: `Nation: ${nation}` });
+  });
+  REGION_DEFS.forEach((region) => {
+    const label = shortRegionLabel(region) || region.id;
+    scopes.push({ scope: `region:${region.id}`, label, title: region.label || region.id });
+  });
+  return scopes;
+}
+
+function renderTrackHistoryPanel(activeTab) {
+  const panel = $("trackHistoryPanel");
+  if (!panel || activeTab !== "history") return;
+  const listEl = $("trackHistoryList");
+  if (!listEl) return;
+  const metaEl = $("trackHistoryMeta");
+  const focusEra = getFocusedEra();
+  const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
+  const fallbackEra = !focusEra && activeEras.length === 1 ? activeEras[0] : null;
+  const targetEra = focusEra || fallbackEra;
+
+  if (!targetEra) {
+    panel.dataset.historyKey = "";
+    panel.dataset.historyStatus = "";
+    if (metaEl) metaEl.textContent = "Focus an active era to view chart history.";
+    listEl.innerHTML = `<div class="muted">No active era selected.</div>`;
+    return;
+  }
+
+  const tracks = state.tracks.filter((track) => track.status === "Released" && track.eraId === targetEra.id);
+  if (metaEl) metaEl.textContent = `${targetEra.name} | ${formatCount(tracks.length)} released tracks`;
+  if (!tracks.length) {
+    panel.dataset.historyKey = "";
+    panel.dataset.historyStatus = "";
+    listEl.innerHTML = `<div class="muted">No released tracks for ${targetEra.name} yet.</div>`;
+    return;
+  }
+
+  const chartWeek = Number.isFinite(state.meta?.chartHistoryLastWeek) ? state.meta.chartHistoryLastWeek : weekIndex() + 1;
+  const trackKey = tracks.map((track) => track.id).sort().join(",");
+  const cacheKey = `${targetEra.id}:${chartWeek}:${trackKey}`;
+  if (panel.dataset.historyKey === cacheKey && panel.dataset.historyStatus === "ready") {
+    return;
+  }
+
+  panel.dataset.historyKey = cacheKey;
+  panel.dataset.historyStatus = "loading";
+  listEl.innerHTML = `<div class="muted">Loading chart history...</div>`;
+
+  const requestId = ++trackHistoryRequestId;
+  (async () => {
+    const weeks = await listChartWeeks();
+    if (requestId !== trackHistoryRequestId) return;
+    const currentWeek = weekIndex() + 1;
+    let weekNumbers = weeks.map((entry) => entry.week).filter((week) => week <= currentWeek);
+    if (!weekNumbers.length) {
+      listEl.innerHTML = `<div class="muted">No chart history yet.</div>`;
+      panel.dataset.historyStatus = "ready";
+      return;
+    }
+    const releaseWeeks = tracks
+      .map((track) => weekNumberFromEpochMs(track.releasedAt))
+      .filter((week) => Number.isFinite(week));
+    const minWeek = releaseWeeks.length ? Math.min(...releaseWeeks) : null;
+    if (minWeek) {
+      weekNumbers = weekNumbers.filter((week) => week >= minWeek);
+    }
+    if (!weekNumbers.length) {
+      listEl.innerHTML = `<div class="muted">No chart history yet.</div>`;
+      panel.dataset.historyStatus = "ready";
+      return;
+    }
+    weekNumbers.sort((a, b) => b - a);
+    const scopes = buildTrackHistoryScopes();
+    const snapshotsByWeek = new Map();
+    for (const week of weekNumbers) {
+      const snapshots = await Promise.all(scopes.map((scope) => fetchChartSnapshot(scope.scope, week)));
+      if (requestId !== trackHistoryRequestId) return;
+      const scopeMap = new Map();
+      snapshots.forEach((snapshot, index) => {
+        if (snapshot) scopeMap.set(scopes[index].scope, snapshot);
+      });
+      snapshotsByWeek.set(week, scopeMap);
+    }
+    if (requestId !== trackHistoryRequestId) return;
+
+    const headerCells = scopes.map((scope) => `<th title="${scope.title}">${scope.label}</th>`).join("");
+    const historyMarkup = tracks.map((track) => {
+      const act = getAct(track.actId);
+      const project = track.projectName || `${track.title} - Single`;
+      const projectType = track.projectType || "Single";
+      const releaseDate = track.releasedAt ? formatShortDate(track.releasedAt) : "TBD";
+      const releaseWeek = weekNumberFromEpochMs(track.releasedAt);
+      const rows = weekNumbers.map((week) => {
+        const weekTitle = formatWeekRangeLabel(week);
+        const weekLabel = `Week ${week}`;
+        const scopeMap = snapshotsByWeek.get(week);
+        const cells = scopes.map((scope) => {
+          const snapshot = scopeMap?.get(scope.scope);
+          const entry = snapshot?.entries?.find((item) => item.trackId === track.id);
+          let value = "-";
+          let cellClass = "chart-rank is-unreleased";
+          if (Number.isFinite(releaseWeek) && week >= releaseWeek) {
+            if (entry && Number.isFinite(entry.rank)) {
+              value = `#${entry.rank}`;
+              cellClass = "chart-rank";
+            } else {
+              value = "DNC";
+              cellClass = "chart-rank is-dnc";
+            }
+          }
+          return `<td class="${cellClass}">${value}</td>`;
+        }).join("");
+        return `<tr><td title="${weekTitle}">${weekLabel}</td>${cells}</tr>`;
+      }).join("");
+
+      return `
+        <div class="list-item track-history-item">
+          <div class="list-row">
+            <div>
+              <div class="item-title">${track.title}</div>
+              <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
+              <div class="muted">Released ${releaseDate} | ${track.distribution || "Digital"}</div>
+            </div>
+          </div>
+          <div class="track-history-table-wrap">
+            <table class="chart-table track-history-table">
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  ${headerCells}
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    listEl.innerHTML = historyMarkup;
+    panel.dataset.historyStatus = "ready";
+  })().catch(() => {
+    if (requestId !== trackHistoryRequestId) return;
+    listEl.innerHTML = `<div class="muted">Chart history unavailable.</div>`;
+    panel.dataset.historyStatus = "ready";
+  });
+}
+
 function renderTracks() {
   const activeView = state.ui.activeView || "";
   const createStage = state.ui.createStage || "sheet";
@@ -8097,7 +8277,10 @@ function renderTracks() {
   });
   archiveList.innerHTML = archiveItems.join("");
 
-  const activeTab = state.ui.trackPanelTab || "active";
+  let activeTab = state.ui.trackPanelTab || "active";
+  if (activeTab === "history" && !$("trackHistoryPanel")) {
+    activeTab = "active";
+  }
   document.querySelectorAll("[data-track-tab]").forEach((tab) => {
     const isActive = tab.dataset.trackTab === activeTab;
     tab.classList.toggle("active", isActive);
@@ -8107,6 +8290,7 @@ function renderTracks() {
     const isActive = panel.dataset.trackPanel === activeTab;
     panel.classList.toggle("hidden", !isActive);
   });
+  renderTrackHistoryPanel(activeTab);
 }
 
 function renderEraStatus() {

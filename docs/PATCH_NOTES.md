@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1327Z)
+- Eras Tracks panel now includes a History tab that lists weekly chart positions per chart with DNC for non-charting weeks.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1316Z)
 - Restored market track active/archive limits so chart pagination no longer throws a ReferenceError.
 

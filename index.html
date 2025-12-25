@@ -735,10 +735,16 @@
         <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">
           <button class="tab" data-track-tab="active" type="button">Active</button>
           <button class="tab" data-track-tab="archive" type="button">Archive</button>
+          <button class="tab" data-track-tab="history" type="button">History</button>
         </div>
         <div class="card-body">
           <div id="trackList" class="list track-panel-list" data-track-panel="active"></div>
           <div id="trackArchiveList" class="list track-panel-list hidden" data-track-panel="archive"></div>
+          <div id="trackHistoryPanel" class="track-history-panel hidden" data-track-panel="history">
+            <div id="trackHistoryMeta" class="tiny muted"></div>
+            <div class="tiny muted">DNC = did not chart. - = not released.</div>
+            <div id="trackHistoryList" class="list"></div>
+          </div>
         </div>
       </div>
     </aside>

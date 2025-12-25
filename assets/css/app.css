@@ -1098,6 +1098,25 @@ select, input[type="text"], input[type="number"] {
 .tab.active { background: rgba(244, 177, 90, 0.2); border-color: rgba(244, 177, 90, 0.6); color: var(--accent); }
 .track-tabs { margin-bottom: 6px; }
 .track-panel-list { min-height: 120px; }
+.track-history-panel { display: grid; gap: 8px; }
+.track-history-panel .list { display: grid; gap: 12px; }
+.track-history-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.track-history-table { min-width: 640px; }
+.track-history-panel .chart-table th,
+.track-history-panel .chart-table td {
+  padding: 6px 8px;
+}
+.track-history-panel .chart-table th { font-size: 10px; }
+.track-history-panel .chart-table td { font-size: 12px; }
+.track-history-panel .chart-table td.is-dnc,
+.track-history-panel .chart-table td.is-unreleased {
+  color: var(--muted);
+  font-weight: 600;
+}
 .chart-table-wrap { width: 100%; }
 .chart-meta-row {
   display: flex;

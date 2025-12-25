@@ -13,6 +13,7 @@
 - [ ] RLS-UI-ACTIONS-003: Render Music Executive action buttons with status badges and disabled states for simulated/placeholder actions.
 - [ ] RLS-UI-ACTIONS-004: Wire live action buttons to navigation + focus behavior (CCC sign, Harmony Hub form, slot placement, Release Desk scheduling, Era Desk conduct, Calendar tours) and log UI events.
 - [ ] RLS-UI-ACTIONS-005: Add a "not live yet" modal or toast for simulated/placeholder actions with the current behavior note (ex: negotiate auto-resolves on sign).
+- [ ] RLS-UI-TRACK-HISTORY-001: Add an Eras tracks panel chart history table with DNC for non-charting weeks.
 - [ ] RLS-UI-COMMUNITY-RANKINGS-001: Align Community rankings to show Top 8/Top 40 toggles for labels and trends, with a full-list "More" action on #1.
 - [ ] Hourly ticks: show stamina depletion + recharge every in-game hour across UI surfaces.
 - [ ] Producer overuse: add observability (why overused; when overuse strikes happen; when/why departure triggers).
