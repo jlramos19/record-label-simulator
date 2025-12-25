@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1708Z)
+- Fixed Calendar view rendering crash caused by a missing CalendarView import.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1656Z)
 - Calendar week headers now follow the projected week start day to remove one-day offsets.
 - Upcoming calendar list now anchors to the next in-game week even when scrolling the grid.

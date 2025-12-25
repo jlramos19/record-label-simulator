@@ -111,6 +111,7 @@ import {
   weekIndex,
   weekNumberFromEpochMs,
 } from "../../game.js";
+import { CalendarView } from "../../calendar.js";
 import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
 
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
