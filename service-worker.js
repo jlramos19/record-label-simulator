@@ -53,28 +53,35 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const request = event.request;
+  const fetchAndCache = () => fetch(request)
+    .then((response) => {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+      return response;
+    });
 
   if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
+      fetchAndCache()
         .catch(() => caches.match(request).then((cached) => cached || caches.match("index.html")))
+    );
+    return;
+  }
+
+  const networkFirst = request.destination === "script"
+    || request.destination === "style"
+    || request.destination === "worker";
+  if (networkFirst) {
+    event.respondWith(
+      fetchAndCache()
+        .catch(() => caches.match(request))
     );
     return;
   }
 
   event.respondWith(
     caches.match(request).then((cached) => {
-      const fetchPromise = fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
+      const fetchPromise = fetchAndCache()
         .catch(() => cached);
       return cached || fetchPromise;
     })

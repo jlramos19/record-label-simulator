@@ -3,6 +3,7 @@ import { storeChartSnapshot } from "./db.js";
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
+import { ACT_NAMES, CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLES } from "./game/names.js";
 const QUARTERS_PER_HOUR = typeof globalThis.QUARTERS_PER_HOUR === "number" ? globalThis.QUARTERS_PER_HOUR : 4;
 const QUARTER_HOUR_MS = typeof globalThis.QUARTER_HOUR_MS === "number"
     ? globalThis.QUARTER_HOUR_MS

@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-25 12:28:42 -04:00
+Last updated: 2025-12-25 12:46:39 -04:00
 
 ## Quick start
 
@@ -85,6 +85,7 @@ Used for save slots, UI state, and preferences:
 ## Development conventions
 
 - Edit TypeScript under `src/`; run `npm run build` to emit JS into `assets/js/dist/`.
+- Service worker registration is disabled on localhost; local runs auto-unregister any existing worker and clear `rls-cache-*`.
 - Global constants live in `assets/js/data/*.js` and are referenced via `src/app/globals.d.ts`.
 - Manual test checklist is in `TESTING.md`.
 

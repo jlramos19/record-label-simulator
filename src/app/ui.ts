@@ -42,7 +42,6 @@ import {
   renderSocialFeed,
   renderStats,
   renderStudiosList,
-  renderSystemLog,
   renderTime,
   renderTracks,
   renderWallet,

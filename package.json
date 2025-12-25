@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "report:lines": "node scripts/report-line-counts.mjs",
     "watch": "tsc -p tsconfig.json --watch",
     "start": "powershell -Command \"python -m http.server 5173\"",
     "dev:logs": "node scripts/dev-with-logs.mjs"

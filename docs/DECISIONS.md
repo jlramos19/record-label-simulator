@@ -17,3 +17,9 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 
 ## Release policy
 - DEC-20251225-005: Release patch IDs use the timestamped format `RLS-PATCH-YYYYMMDD-HHMMZ` (UTC) and live in `assets/js/data/release.js`; patch notes must include the patch ID, and the service worker cache version must match the release stamp.
+
+## Architecture
+- DEC-20251225-006: UI render/DOM helpers live under `src/app/ui/`, and game logic triggers UI updates through `uiHooks` instead of calling renderers directly.
+
+## Naming data
+- DEC-20251225-007: Creator name pools live in `src/app/game/names.ts`, sourced from `game-development-documents/03-Systems/topoda-charts-alphabet-and-vocabulary.md`, ASCII-normalized, and mapped to Annglora/Bytenza/Crowlya regional lore.

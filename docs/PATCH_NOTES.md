@@ -1,5 +1,14 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1644Z)
+- UI render/DOM helpers now live in `src/app/ui/`, with game logic calling `uiHooks` for UI refreshes.
+- Creator name pools moved into `src/app/game/names.ts`, sourced from the Topoda Charts vocabulary and mapped to regional lore.
+- Added `npm run report:lines` to regenerate `docs/reports/file-line-counts.csv`.
+
+## 2025-12-25 (RLS-PATCH-20251225-1637Z)
+- Service worker now fetches scripts/styles from the network first to avoid stale cached builds.
+- Localhost and `?sw=off` runs auto-unregister old service workers and clear RLS caches (one-time reload).
+
 ## 2025-12-25 (RLS-PATCH-20251225-1628Z)
 - Week boundaries now anchor to Sunday 00:00 UTC for week labels and calendar ranges.
 
