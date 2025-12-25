@@ -6,3 +6,4 @@
 - Unity-era content is retconned into web equivalents; keep concepts, rewrite Unity tooling language.
 - Workflow: TODO -> Docs -> Code -> Patch Notes.
 - References: `docs/DECISIONS.md` and `docs/CONTRADICTIONS.md`.
+- If other agents are working in the repo, continue your task unless you hit conflicts; when conflicts appear, stop and ask blocking questions.

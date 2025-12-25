@@ -8,6 +8,6 @@
 - [ ] RLS-PROMO-FILM-001: Define filming studio slots and add ad promo type with higher cost + slot gating.
 - [ ] RLS-DOC-PATCH-001: Cross-link new docs, update testing checklist, and add consolidated patch note summary.
 - [ ] Update chart metrics to use regional consumption weights and refresh chart documentation.
-- [ ] CCC signing: deduct cash only on successful creator sign; failed attempts gray out the sign button until the daily refresh; document creator acceptance criteria.
+- [ ] Fix CCC signing transaction: deduct Wallet only when signing succeeds; on rejection, disable sign action until next CCC refresh at 12AM; document acceptance criteria used by the simulation.
 
 Note: Items stay here until you confirm they are fulfilled.

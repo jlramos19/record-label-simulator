@@ -8,4 +8,3 @@ This file tracks referenced concepts that need canon definition. It is separate 
 - Colored-heart overlays: define the exact heart set and where it is allowed to appear (alignment overlay only).
 - Auto-rollout conditions: define the exact rules a player can set for idle/automatic rollout execution (eligibility checks, gating thresholds, and stop conditions).
 - Country transaction model mapping: identify which Gaia country corresponds to Country A/B/C in Economy - Country Transaction Models.
-- Creator signing acceptance criteria: define how Creators decide accept/reconsider/decline offers from player and AI labels.

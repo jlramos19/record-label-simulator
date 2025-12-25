@@ -719,6 +719,7 @@ const CREATOR_INACTIVITY_MS = YEAR_MS * 2;
 const MARKET_MIN_PER_ROLE = 10;
 const RIVAL_MIN_PER_ROLE = 10;
 const MARKET_ROLES = ["Songwriter", "Performer", "Producer"];
+const CREATOR_ROSTER_CAP = 125;
 
 const STUDIO_CAP_PER_LABEL = 50;
 const ACHIEVEMENT_TARGET = 12;
@@ -2062,6 +2063,122 @@ function computeSignCost(creator) {
   const roleFactor = creator.role === "Producer" ? 1.2 : creator.role === "Songwriter" ? 0.95 : 1.05;
   const base = 900 + creator.skill * 40;
   return clamp(Math.round(base * roleFactor), 900, 9000);
+}
+
+function ensureCccState() {
+  if (!state.ccc) state.ccc = { signLockoutsByCreatorId: {} };
+  if (!state.ccc.signLockoutsByCreatorId) state.ccc.signLockoutsByCreatorId = {};
+}
+
+function nextMidnightEpochMs(epochMs) {
+  const now = new Date(epochMs);
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0);
+}
+
+function pruneCreatorSignLockouts(nowEpochMs) {
+  ensureCccState();
+  const lockouts = state.ccc.signLockoutsByCreatorId;
+  Object.keys(lockouts).forEach((id) => {
+    const entry = lockouts[id];
+    if (!entry || !Number.isFinite(entry.lockedUntilEpochMs) || entry.lockedUntilEpochMs <= nowEpochMs) {
+      delete lockouts[id];
+    }
+  });
+}
+
+function getCreatorSignLockout(creatorId, nowEpochMs = state.time.epochMs) {
+  ensureCccState();
+  const lockout = state.ccc.signLockoutsByCreatorId[creatorId];
+  if (!lockout || !Number.isFinite(lockout.lockedUntilEpochMs)) return null;
+  if (lockout.lockedUntilEpochMs <= nowEpochMs) {
+    delete state.ccc.signLockoutsByCreatorId[creatorId];
+    return null;
+  }
+  return lockout;
+}
+
+function isCreatorSignLocked(creatorId, nowEpochMs = state.time.epochMs) {
+  return !!getCreatorSignLockout(creatorId, nowEpochMs);
+}
+
+function setCreatorSignLockout(creatorId, lockedUntilEpochMs) {
+  if (!creatorId) return;
+  ensureCccState();
+  if (!Number.isFinite(lockedUntilEpochMs)) return;
+  state.ccc.signLockoutsByCreatorId[creatorId] = { lockedUntilEpochMs };
+}
+
+function clearCreatorSignLockout(creatorId) {
+  if (!creatorId) return;
+  ensureCccState();
+  delete state.ccc.signLockoutsByCreatorId[creatorId];
+}
+
+function clearCreatorSignLockouts() {
+  ensureCccState();
+  state.ccc.signLockoutsByCreatorId = {};
+}
+
+function creatorSignAcceptanceChance(creator) {
+  let chance = 0.7;
+  const focusThemes = Array.isArray(state.label.focusThemes) ? state.label.focusThemes : [];
+  const focusMoods = Array.isArray(state.label.focusMoods) ? state.label.focusMoods : [];
+  if (creator.prefThemes?.some((theme) => focusThemes.includes(theme))) chance += 0.08;
+  if (creator.prefMoods?.some((mood) => focusMoods.includes(mood))) chance += 0.05;
+  if (creator.skill >= 85) chance -= 0.08;
+  if (creator.skill <= 60) chance += 0.05;
+  return clamp(chance, 0.35, 0.9);
+}
+
+function creatorAcceptsOffer(creator) {
+  return Math.random() < creatorSignAcceptanceChance(creator);
+}
+
+function attemptSignCreator({ creatorId, recordLabelId, nowEpochMs } = {}) {
+  const now = Number.isFinite(nowEpochMs) ? nowEpochMs : state.time.epochMs;
+  if (!creatorId) {
+    logEvent("Creator signing failed: invalid creator ID.", "warn");
+    return { ok: false, kind: "INVALID", reason: "INVALID_ID" };
+  }
+  const index = state.marketCreators.findIndex((creator) => creator.id === creatorId);
+  if (index === -1) {
+    logEvent("Creator signing failed: creator is no longer available.", "warn");
+    return { ok: false, kind: "INVALID", reason: "NOT_AVAILABLE" };
+  }
+  if (state.creators.some((creator) => creator.id === creatorId)) {
+    logEvent("Creator signing failed: creator is already signed.", "warn");
+    return { ok: false, kind: "INVALID", reason: "ALREADY_SIGNED" };
+  }
+  if (isCreatorSignLocked(creatorId, now)) {
+    logEvent("Creator signing locked until the next CCC refresh at 12AM.", "warn");
+    return { ok: false, kind: "PRECONDITION", reason: "LOCKED" };
+  }
+  if (state.creators.length >= CREATOR_ROSTER_CAP) {
+    logEvent(`Roster full: max ${CREATOR_ROSTER_CAP} creators signed.`, "warn");
+    return { ok: false, kind: "PRECONDITION", reason: "ROSTER_FULL" };
+  }
+  const creator = state.marketCreators[index];
+  const cost = creator.signCost || computeSignCost(creator);
+  if (!creator.signCost) creator.signCost = cost;
+  if (state.label.cash < cost) {
+    logEvent("Not enough cash to sign this creator.", "warn");
+    return { ok: false, kind: "PRECONDITION", reason: "INSUFFICIENT_FUNDS", cost };
+  }
+  if (!creatorAcceptsOffer(creator)) {
+    const lockedUntilEpochMs = nextMidnightEpochMs(now);
+    setCreatorSignLockout(creatorId, lockedUntilEpochMs);
+    logEvent(`Creator ${creator.name} rejected the signing attempt. Next attempt after the 12AM refresh.`, "warn");
+    return { ok: false, kind: "REJECTED", reason: "REJECTED", cost, lockedUntilEpochMs };
+  }
+  state.marketCreators.splice(index, 1);
+  state.label.cash -= cost;
+  creator.signCost = undefined;
+  clearCreatorSignLockout(creatorId);
+  state.creators.push(normalizeCreator(creator));
+  ensureMarketCreators();
+  logEvent(`Signed ${creator.name} (${roleLabel(creator.role)}) for ${formatMoney(cost)}.`);
+  postCreatorSigned(creator, cost);
+  return { ok: true, cost, recordLabelId, creatorId };
 }
 
 function getTrackCreatorIds(track) {

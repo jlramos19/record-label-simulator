@@ -12,6 +12,16 @@ This file tracks known mismatches between the current web MVP implementation and
 
 ## Entries
 
+### 2025-12-25-ccc-signing-01 - CCC signing transaction + lockout
+- ID: 2025-12-25-ccc-signing-01
+- Description: CCC signing UX/logic mismatch: wallet deduction must occur only on success; failures should lock the creator until the next CCC refresh at 12AM. Legacy docs mention reconsider timers; MVP uses instant resolution with a midnight lockout instead.
+- Status: TODO
+- Decision ID: None
+- TODO notes: Define MVP acceptance rule and align CCC UI lockout behavior with midnight refresh.
+- Docs commit/PR: TBD
+- Code commit/PR: TBD
+- Patch note entry: TBD
+
 ### 2025-12-25-ui-structure-01 - Top bar trends summary
 - ID: 2025-12-25-ui-structure-01
 - Description: UI Design System expects a top bar trend summary; the web UI now includes it in the header. Spec: `Game Development Documents/02-UI/Record Label Simulator - UI and UX Design System.md`.

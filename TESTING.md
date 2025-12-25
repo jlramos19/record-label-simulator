@@ -36,5 +36,12 @@ runPopulationABTest({ startYear: 2025, endYear: 2075, runs: 10 })
 6) Automation checklist
 - If anything fails, open the DevTools console and copy errors into an issue.
 
+7) CCC signing
+- Success: set cash to C, sign a creator who accepts; expect cash = C - cost, creator moves to roster, CCC list updates, event log shows signing.
+- Reject: sign a creator who rejects; expect cash unchanged, sign disabled for that creator until next 12AM refresh, event log shows rejection.
+- Precondition (insufficient funds): set cash < cost, click Sign; expect cash unchanged, sign remains enabled, error logged.
+- Precondition (roster full): fill roster to 125 creators, click Sign; expect cash unchanged, sign remains enabled, error logged.
+- Midnight refresh: advance time across 12AM; expect sign lockouts cleared and CCC pool refreshed.
+
 Notes:
 - Population constants live in `assets/js/data/constants.js`, app logic in `src/app/game.ts`.
