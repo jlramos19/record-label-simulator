@@ -1,5 +1,10 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1600Z)
+- Rival labels now plan releases/promos from a shared husk library (starter + completed era husks) using deterministic trend/alignment/budget scoring.
+- Rival schedules snap releases to Friday 00:00 and promo events to whole-hour timestamps with duplicate-week guards and fallback to starter cadence.
+- Rival promo budgets now use a fixed AI wallet percentage instead of player auto promo settings.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1552Z)
 - Rollout Strategies now persist per Era/Act with weekly drop/event husks, manual expansion, and auto-run gating that logs deterministic block reasons.
 - Calendar projection now includes scheduled rollout events alongside release queue entries (all timestamps snap to whole-hour cadence; releases at Friday 00:00).

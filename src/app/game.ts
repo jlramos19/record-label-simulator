@@ -2777,7 +2777,16 @@ function buildRivals() {
     wallet: { cash: STARTING_CASH },
     studio: { slots: STARTING_STUDIO_SLOTS },
     creators: [],
-    aiPlan: { lastPlannedWeek: null, lastHuskId: null, lastPlannedAt: null }
+    aiPlan: {
+      lastPlannedWeek: null,
+      lastHuskId: null,
+      lastPlannedAt: null,
+      activeHuskId: null,
+      huskSource: null,
+      windowStartWeekIndex: null,
+      windowEndWeekIndex: null,
+      competitive: false
+    }
   }));
 }
 
@@ -6011,13 +6020,12 @@ function selectHuskForRival(rival, husks) {
     return { husk, score, eligible, jitter: rng() * 0.01 };
   });
   const eligible = scored.filter((entry) => entry.eligible);
-  const pool = eligible.length ? eligible : scored;
-  if (!pool.length) return null;
-  pool.sort((a, b) => {
+  if (!eligible.length) return null;
+  eligible.sort((a, b) => {
     if (a.score !== b.score) return b.score - a.score;
     return b.jitter - a.jitter;
   });
-  return pool[0].husk;
+  return eligible[0].husk;
 }
 
 function huskWindowWeeks(husk) {
@@ -6057,12 +6065,14 @@ function isRivalCompetitiveEligible(rival, husk) {
   return availableCash >= required;
 }
 
-function getActiveRivalPlan(rival, currentWeekIndex) {
+function getActiveRivalPlan(rival, currentWeekIndex, now = state.time.epochMs) {
   if (!rival?.aiPlan || typeof rival.aiPlan !== "object") return null;
   const startWeek = rival.aiPlan.windowStartWeekIndex;
   const endWeek = rival.aiPlan.windowEndWeekIndex;
   if (!Number.isFinite(startWeek) || !Number.isFinite(endWeek)) return null;
   if (currentWeekIndex > endWeek) return null;
+  const endReleaseAt = rolloutReleaseTimestampForWeek(endWeek + 1);
+  if (Number.isFinite(endReleaseAt) && endReleaseAt <= now) return null;
   return rival.aiPlan;
 }
 
@@ -6215,9 +6225,10 @@ function scheduleHuskForRival(rival, husk, options = {}) {
     : getRivalPlanStartWeekIndex(now);
   const endWeekIndex = Number.isFinite(options.endWeekIndex) ? options.endWeekIndex : null;
   const allowPromo = options.allowPromo !== false;
+  const safeBaseWeekIndex = Math.max(baseWeekIndex, getRivalPlanStartWeekIndex(now));
   steps.forEach((step, index) => {
     const weekOffset = Number.isFinite(step.weekOffset) ? Math.max(0, step.weekOffset) : 0;
-    const targetWeekIndex = baseWeekIndex + weekOffset;
+    const targetWeekIndex = safeBaseWeekIndex + weekOffset;
     if (Number.isFinite(endWeekIndex) && targetWeekIndex > endWeekIndex) return;
     if (step.kind === "release") {
       if (hasRivalQueueEntry(rival.name, "release", targetWeekIndex)) return;
@@ -6989,6 +7000,7 @@ function seedNewGame(options = {}) {
   } else {
     state.marketTracks = [];
   }
+  generateRivalReleases();
   seedActs();
   syncLabelWallets();
   logEvent("Welcome back, CEO. Your label awaits.");
@@ -7276,11 +7288,25 @@ function normalizeState() {
     if (!rival.wallet) rival.wallet = { cash: rival.cash };
     if (!rival.studio) rival.studio = { slots: STARTING_STUDIO_SLOTS };
     if (!rival.aiPlan || typeof rival.aiPlan !== "object") {
-      rival.aiPlan = { lastPlannedWeek: null, lastHuskId: null, lastPlannedAt: null };
+      rival.aiPlan = {
+        lastPlannedWeek: null,
+        lastHuskId: null,
+        lastPlannedAt: null,
+        activeHuskId: null,
+        huskSource: null,
+        windowStartWeekIndex: null,
+        windowEndWeekIndex: null,
+        competitive: false
+      };
     }
     if (typeof rival.aiPlan.lastPlannedWeek !== "number") rival.aiPlan.lastPlannedWeek = null;
     if (typeof rival.aiPlan.lastHuskId !== "string") rival.aiPlan.lastHuskId = null;
     if (typeof rival.aiPlan.lastPlannedAt !== "number") rival.aiPlan.lastPlannedAt = null;
+    if (typeof rival.aiPlan.activeHuskId !== "string") rival.aiPlan.activeHuskId = null;
+    if (typeof rival.aiPlan.huskSource !== "string") rival.aiPlan.huskSource = null;
+    if (typeof rival.aiPlan.windowStartWeekIndex !== "number") rival.aiPlan.windowStartWeekIndex = null;
+    if (typeof rival.aiPlan.windowEndWeekIndex !== "number") rival.aiPlan.windowEndWeekIndex = null;
+    if (typeof rival.aiPlan.competitive !== "boolean") rival.aiPlan.competitive = false;
   });
   if (!state.trends) state.trends = [];
   if (!state.resourceTickLedger || typeof state.resourceTickLedger !== "object") {
@@ -10633,7 +10659,10 @@ function renderMainMenu() {
     const hasData = Boolean(data);
     const labelName = data?.label?.name || "Empty Game Slot";
     const savedAt = data?.meta?.savedAt ? new Date(data.meta.savedAt).toLocaleString() : "Never saved";
-    const hours = data?.time?.totalHours || 0;
+    const totalQuarters = data?.time?.totalQuarters;
+    const hours = Number.isFinite(totalQuarters)
+      ? Math.floor(totalQuarters / QUARTERS_PER_HOUR)
+      : data?.time?.totalHours || 0;
     const week = Math.floor(hours / WEEK_HOURS) + 1;
     const cash = data?.label?.cash ?? 0;
     const mode = getSlotGameMode(data);

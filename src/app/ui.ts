@@ -1432,8 +1432,8 @@ function bindGlobalHandlers() {
   on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
   on("playBtn", "click", () => { setTimeSpeed("play"); });
   on("fastBtn", "click", () => { setTimeSpeed("fast"); });
-  on("skipDayBtn", "click", () => { void advanceHours(24, { renderHourly: false }); });
-  on("skipWeekBtn", "click", () => { void advanceHours(WEEK_HOURS, { renderHourly: false }); });
+  on("skipDayBtn", "click", () => { void advanceHours(24, { renderQuarterly: false }); });
+  on("skipWeekBtn", "click", () => { void advanceHours(WEEK_HOURS, { renderQuarterly: false }); });
   on("skipTimeBtn", "click", () => {
     const now = new Date(state.time.epochMs);
     if ($("skipDateInput")) $("skipDateInput").value = now.toISOString().slice(0, 10);
@@ -2392,7 +2392,8 @@ function exportDebugBundle() {
     activeIdSlot: state.ui.slotTarget,
     time: {
       epochMs: state.time.epochMs,
-      totalHours: state.time.totalHours
+      totalHours: state.time.totalHours,
+      totalQuarters: state.time.totalQuarters
     }
   };
   const summaryLines = [
@@ -4039,7 +4040,7 @@ function runTimeJump(totalHours, label) {
     }
     const remaining = totalHours - completed;
     const stepHours = Math.min(chunkSize, remaining);
-    await advanceHours(stepHours, { renderHourly: false, renderAfter: false });
+    await advanceHours(stepHours, { renderQuarterly: false, renderAfter: false });
     completed += stepHours;
     setSkipProgress(totalHours, completed, label);
     if (completed >= totalHours) {

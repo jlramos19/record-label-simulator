@@ -2325,7 +2325,8 @@ function exportDebugBundle() {
         activeIdSlot: state.ui.slotTarget,
         time: {
             epochMs: state.time.epochMs,
-            totalHours: state.time.totalHours
+            totalHours: state.time.totalHours,
+            totalQuarters: state.time.totalQuarters
         }
     };
     const summaryLines = [

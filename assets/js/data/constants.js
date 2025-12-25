@@ -1,5 +1,7 @@
 // Static data and canon values (themes, moods, colors, AI labels, economy).
 const HOUR_MS = 3600000;
+const QUARTERS_PER_HOUR = 4;
+const QUARTER_HOUR_MS = HOUR_MS / QUARTERS_PER_HOUR;
 const WEEK_HOURS = 168;
 const BASE_EPOCH = Date.UTC(2400, 0, 1, 0, 0, 0);
 const BROADCAST_SLOT_SCHEDULE = [6, 2, 2, 2, 2, 3, 3];

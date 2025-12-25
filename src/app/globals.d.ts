@@ -4,6 +4,8 @@ declare const MOODS: string[];
 declare const ALIGNMENTS: string[];
 declare const ACT_TYPES: string[];
 declare const HOUR_MS: number;
+declare const QUARTERS_PER_HOUR: number;
+declare const QUARTER_HOUR_MS: number;
 declare const WEEK_HOURS: number;
 declare const BASE_EPOCH: number;
 declare const BROADCAST_SLOT_SCHEDULE: number[];
