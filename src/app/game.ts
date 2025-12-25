@@ -30,6 +30,7 @@ const STAMINA_OVERUSE_STRIKES = 1;
 const SEED_CALIBRATION_YEAR = 2400;
 const TREND_LIST_LIMIT = 40;
 const TREND_DETAIL_COUNT = 3;
+const TREND_WINDOW_WEEKS = 4;
 const WEEKLY_SCHEDULE = {
   releaseProcessing: { day: 5, hour: 0 },
   trendsUpdate: { day: 5, hour: 12 },
