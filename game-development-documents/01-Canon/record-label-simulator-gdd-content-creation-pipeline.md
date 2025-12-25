@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 6 of 20: Content Creation Pipeline`**
+### **`Record Label Simulator GDD - : Content Creation Pipeline`**
 
 #### **`Purpose`**
 

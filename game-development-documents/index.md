@@ -7,7 +7,7 @@ This folder mirrors Drive canon and organizes the GDD into functional lanes. Use
 - `02-UI` - UI/UX design system, visual rules, color systems, and interface notes.
 - `03-Systems` - Simulation rules (time, charts, population, economy, quests, rollout, pipelines).
   - `03-Systems/Audience` - Audience mechanics and chunk properties.
-  - `03-Systems/Economy` - Economy specs and models (see `03-Systems/Economy/Index.md`).
+  - `03-Systems/Economy` - Economy specs and models (see `03-Systems/Economy/index.md`).
     - `03-Systems/Economy/Currency` - Currency systems and country acronyms.
     - `03-Systems/Economy/Pricing` - Track/project/format pricing tables and pricing rules.
     - `03-Systems/Economy/Revenue` - Revenue streams, splits, and broadcasting rules.

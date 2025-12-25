@@ -612,7 +612,5 @@ Generated: 2025-12-25T11:01:24.177787Z
 - "99-Archive/Winning and Losing Conditions in Record Label Simulator.md" -> "99-Archive/winning-and-losing-conditions-in-record-label-simulator.md"
 - "99-Archive/eyeriS Broadcasting Corporation (eBC).md" -> "99-Archive/eyeris-broadcasting-corporation-ebc.md"
 - "99-Archive/flushing out the dirty water.md" -> "99-Archive/flushing-out-the-dirty-water.md"
-- "99-Archive/master.md" -> "99-Archive/master.md"
 - "99-Archive/modifiers in record label simulator.md" -> "99-Archive/modifiers-in-record-label-simulator.md"
-- "99-Archive/quality.md" -> "99-Archive/quality.md"
 - "Index.md" -> "index.md"

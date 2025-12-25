@@ -119,7 +119,7 @@
           <div class="muted">Choose distribution; Digital is fast, Physical or Both pays more.</div>
         </div>
         <div class="list-item">
-          <div class="item-title">Promote (Social -> eyeriSocial)</div>
+          <div class="item-title">Promote (Promotions -> eyeriSocial)</div>
           <div class="muted">Pick a released Track ID, set budget, and fund promo pushes.</div>
         </div>
       </div>
@@ -438,9 +438,9 @@
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">public</span>
           <span class="nav-label">Community</span>
         </a>
-        <a href="#/logs" data-route="logs" class="nav-item" aria-label="Social" title="Social">
+        <a href="#/logs" data-route="logs" class="nav-item" aria-label="Promotions" title="Promotions">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">forum</span>
-          <span class="nav-label">Social</span>
+          <span class="nav-label">Promotions</span>
         </a>
       </nav>
     </div>
@@ -1036,8 +1036,8 @@
               <option value="eyeriSocialAd">eyeriSocial Ad</option>
               <option value="interview">Interview</option>
             </select>
-            <div id="promoTypeGrid" class="promo-type-grid slot-grid slot-grid--multi" role="radiogroup" aria-labelledby="promoTypeLabel">
-              <button type="button" class="promo-type-card is-active" data-promo-type="musicVideo" role="radio" aria-checked="true">
+            <div id="promoTypeGrid" class="promo-type-grid slot-grid slot-grid--multi" role="group" aria-labelledby="promoTypeLabel">
+              <button type="button" class="promo-type-card is-active" data-promo-type="musicVideo" role="checkbox" aria-checked="true">
                 <div class="promo-type-row">
                   <div class="slot-label">Promo Type</div>
                   <div class="promo-type-status" data-promo-status>Selected</div>
@@ -1046,7 +1046,7 @@
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Final video + clearance</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $7,500</div>
               </button>
-              <button type="button" class="promo-type-card" data-promo-type="livePerformance" role="radio" aria-checked="false">
+              <button type="button" class="promo-type-card" data-promo-type="livePerformance" role="checkbox" aria-checked="false">
                 <div class="promo-type-row">
                   <div class="slot-label">Promo Type</div>
                   <div class="promo-type-status" data-promo-status>Select</div>
@@ -1055,7 +1055,7 @@
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Venue slot + live-ready set</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $3,000</div>
               </button>
-              <button type="button" class="promo-type-card" data-promo-type="eyeriSocialPost" role="radio" aria-checked="false">
+              <button type="button" class="promo-type-card" data-promo-type="eyeriSocialPost" role="checkbox" aria-checked="false">
                 <div class="promo-type-row">
                   <div class="slot-label">Promo Type</div>
                   <div class="promo-type-status" data-promo-status>Select</div>
@@ -1064,7 +1064,7 @@
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Cover art + caption</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $600</div>
               </button>
-              <button type="button" class="promo-type-card" data-promo-type="eyeriSocialAd" role="radio" aria-checked="false">
+              <button type="button" class="promo-type-card" data-promo-type="eyeriSocialAd" role="checkbox" aria-checked="false">
                 <div class="promo-type-row">
                   <div class="slot-label">Promo Type</div>
                   <div class="promo-type-status" data-promo-status>Select</div>
@@ -1073,7 +1073,7 @@
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Multimedia post + placement</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $1,800</div>
               </button>
-              <button type="button" class="promo-type-card" data-promo-type="interview" role="radio" aria-checked="false">
+              <button type="button" class="promo-type-card" data-promo-type="interview" role="checkbox" aria-checked="false">
                 <div class="promo-type-row">
                   <div class="slot-label">Promo Type</div>
                   <div class="promo-type-status" data-promo-status>Select</div>

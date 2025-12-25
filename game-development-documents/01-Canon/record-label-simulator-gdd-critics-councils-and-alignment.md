@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 16 of 20: Critics Councils and Alignment Alignment`**
+### **`Record Label Simulator GDD - : Critics Councils and Alignment Alignment`**
 
 #### **`Purpose`**
 

@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 19 of 20: Endgame and Replayability Systems`**
+### **`Record Label Simulator GDD - : Endgame and Replayability Systems`**
 
 #### **`Purpose`**
 

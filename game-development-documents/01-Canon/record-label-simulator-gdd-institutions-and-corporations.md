@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 11 of 20: Institutions and Corporations`**
+### **`Record Label Simulator GDD - : Institutions and Corporations`**
 
 #### **`Purpose`**
 

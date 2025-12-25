@@ -5,7 +5,7 @@ Ensure CCC signing only deducts cash on successful sign attempts and that failed
 
 ## Canon Check (What the Docs Say)
 - Canon spec lives in `docs/systems/ccc/signing.md`, including acceptance criteria and lockout timing.
-- Reference-only GDD notes (`Game Development Documents/03-Systems/Record Label Simulator How To Sign a Creator System.md`) describe accept/reconsider/decline outcomes but do not define how creators decide.
+- Reference-only GDD notes (`game-development-documents/03-Systems/record-label-simulator-how-to-sign-a-creator-system.md`) describe accept/reconsider/decline outcomes but do not define how creators decide.
 
 ## Current Behavior (Baseline)
 - Successful sign removes the creator from the CCC market and adds them to the roster with a cash deduction.

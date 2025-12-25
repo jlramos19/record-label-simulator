@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 5 of 20: Acts, Creators, and Audience Chunks`**
+### **`Record Label Simulator GDD - : Acts, Creators, and Audience Chunks`**
 
 #### **`Purpose`**
 

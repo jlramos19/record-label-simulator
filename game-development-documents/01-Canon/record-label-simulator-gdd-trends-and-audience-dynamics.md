@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 8 of 20: Trends and Audience Dynamics`**
+### **`Record Label Simulator GDD - : Trends and Audience Dynamics`**
 
 #### **`Purpose`**
 

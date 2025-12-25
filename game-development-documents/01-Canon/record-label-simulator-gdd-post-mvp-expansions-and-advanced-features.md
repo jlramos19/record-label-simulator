@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 18 of 20: Post-MVP Expansions and Advanced Features`**
+### **`Record Label Simulator GDD - : Post-MVP Expansions and Advanced Features`**
 
 #### **`Purpose`**
 

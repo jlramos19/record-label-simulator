@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 17 of 20: Audience Chunk Preferences and Engagement`**
+### **`Record Label Simulator GDD - : Audience Chunk Preferences and Engagement`**
 
 #### **`Purpose`**
 

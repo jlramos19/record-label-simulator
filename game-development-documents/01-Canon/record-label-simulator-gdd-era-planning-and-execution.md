@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 10 of 20: Era Planning and Execution`**
+### **`Record Label Simulator GDD - : Era Planning and Execution`**
 
 #### **`Purpose`**
 

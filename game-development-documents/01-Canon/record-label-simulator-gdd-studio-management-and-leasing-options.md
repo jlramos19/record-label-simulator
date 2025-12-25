@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 14 of 20: Studio Management and Leasing Options`**
+### **`Record Label Simulator GDD - : Studio Management and Leasing Options`**
 
 #### **`Purpose`**
 

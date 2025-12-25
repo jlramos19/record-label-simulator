@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 7 of 20: Promotional Strategies and Tools`**
+### **`Record Label Simulator GDD - : Promotional Strategies and Tools`**
 
 #### **`Purpose`**
 

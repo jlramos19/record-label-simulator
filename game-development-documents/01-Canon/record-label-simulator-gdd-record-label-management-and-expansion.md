@@ -1,4 +1,4 @@
-### **`Record Label Simulator GDD - Part 9 of 20: Record Label Management and Expansion`**
+### **`Record Label Simulator GDD - : Record Label Management and Expansion`**
 
 #### **`Purpose`**
 

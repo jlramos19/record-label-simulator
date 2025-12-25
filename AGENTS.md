@@ -8,4 +8,4 @@
 - Workflow: TODO -> Docs -> Code -> Patch Notes.
 - When you stage changes in git, draft a commit message for me to push to main on GitHub.
 - References: `docs/DECISIONS.md` and `docs/CONTRADICTIONS.md`.
-- If other agents are working in the repo, continue your task unless you hit conflicts; when conflicts appear, stop and ask blocking questions.
+- Coordination: Other AI agents may work in this repo; coordinate changes, avoid overlapping edits, and stop to ask when conflicts appear.

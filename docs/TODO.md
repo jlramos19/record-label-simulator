@@ -6,6 +6,7 @@
 - [ ] RLS-UI-COMMUNITY-001: Define community trend filters (consumption + chart presence) and show up to top 40 global trends.
 - [ ] RLS-PROMO-BROADCAST-001: Define broadcast studio schedule and gate interviews/live performances on broadcast slots.
 - [ ] RLS-PROMO-FILM-001: Define filming studio slots and add ad promo type with higher cost + slot gating.
+- [ ] RLS-PROMO-MULTI-001: Allow multi-select promo types in the Promotions tab and keep eyeriSocial embedded there.
 - [ ] RLS-DOC-PATCH-001: Cross-link new docs, update testing checklist, and add consolidated patch note summary.
 - [ ] Update chart metrics to use regional consumption weights and refresh chart documentation.
 - [ ] Fix CCC signing transaction: deduct Wallet only when signing succeeds; on rejection, disable sign action until next CCC refresh at 12AM; document acceptance criteria used by the simulation.

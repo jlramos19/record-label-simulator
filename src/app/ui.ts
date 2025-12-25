@@ -115,6 +115,7 @@ const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "
 const DEFAULT_ROUTE = "dashboard";
   const ROUTE_ALIASES = {
     promotion: "logs",
+    promotions: "logs",
     era: "eras"
   };
 const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
@@ -1145,24 +1146,59 @@ function promoBudgetBaseCost(typeId) {
   return Math.max(PROMO_BUDGET_MIN, details.cost);
 }
 
-function setPromoBudgetToBaseCost(root, typeId) {
+function promoBudgetBaseCostForTypes(typeIds) {
+  if (!typeIds) return promoBudgetBaseCost(DEFAULT_PROMO_TYPE);
+  const list = Array.isArray(typeIds) ? typeIds : [typeIds];
+  const costs = list
+    .filter(Boolean)
+    .map((typeId) => promoBudgetBaseCost(typeId));
+  if (!costs.length) return promoBudgetBaseCost(DEFAULT_PROMO_TYPE);
+  return Math.max(...costs);
+}
+
+function setPromoBudgetToBaseCost(root, typeIds) {
   const scope = root || document;
   const input = scope.querySelector("#promoBudget");
   if (!input) return;
+  const baseCost = promoBudgetBaseCostForTypes(typeIds);
+  const raw = Number(input.value);
+  const hasValid = Number.isFinite(raw) && raw >= PROMO_BUDGET_MIN;
+  const autoBudget = input.dataset.promoBudgetAuto !== "false";
   input.min = String(PROMO_BUDGET_MIN);
-  input.value = String(promoBudgetBaseCost(typeId));
+  if (!hasValid || autoBudget) {
+    input.value = String(baseCost);
+    input.dataset.promoBudgetAuto = "true";
+  }
 }
 
-function normalizePromoBudget(root, typeId) {
+function normalizePromoBudget(root, typeIds) {
   const scope = root || document;
   const input = scope.querySelector("#promoBudget");
-  const baseCost = promoBudgetBaseCost(typeId);
+  const baseCost = promoBudgetBaseCostForTypes(typeIds);
   if (!input) return baseCost;
   input.min = String(PROMO_BUDGET_MIN);
   const raw = Number(input.value);
   const next = Number.isFinite(raw) ? Math.max(PROMO_BUDGET_MIN, raw) : baseCost;
   if (String(next) !== input.value) input.value = String(next);
   return next;
+}
+
+function getSelectedPromoTypes(root) {
+  const scope = root || document;
+  return Array.from(scope.querySelectorAll("[data-promo-type].is-active"))
+    .map((card) => card.dataset.promoType)
+    .filter(Boolean);
+}
+
+function ensurePromoTypeSelection(root, fallbackTypeId) {
+  const scope = root || document;
+  let selected = getSelectedPromoTypes(scope);
+  if (!selected.length) {
+    const fallback = fallbackTypeId || DEFAULT_PROMO_TYPE;
+    selected = [fallback];
+    syncPromoTypeCards(scope, selected);
+  }
+  return selected;
 }
 
 function hydratePromoTypeCards(root) {
@@ -1182,12 +1218,13 @@ function hydratePromoTypeCards(root) {
   });
 }
 
-function syncPromoTypeCards(root, typeId) {
+function syncPromoTypeCards(root, typeIds) {
   const scope = root || document;
   const cards = scope.querySelectorAll("[data-promo-type]");
   if (!cards.length) return;
+  const selected = new Set((Array.isArray(typeIds) ? typeIds : [typeIds]).filter(Boolean));
   cards.forEach((card) => {
-    const isActive = card.dataset.promoType === typeId;
+    const isActive = selected.has(card.dataset.promoType);
     card.classList.toggle("is-active", isActive);
     card.setAttribute("aria-checked", isActive ? "true" : "false");
     const status = card.querySelector("[data-promo-status]");
@@ -1203,19 +1240,60 @@ function buildPromoFacilityHint(typeId) {
   return ` | ${label} today: ${availability.available}/${availability.capacity}`;
 }
 
+function getPromoFacilityNeeds(typeIds) {
+  const list = Array.isArray(typeIds) ? typeIds : [typeIds];
+  return list.reduce((acc, typeId) => {
+    if (!typeId) return acc;
+    const facility = getPromoFacilityForType(typeId);
+    if (!facility) return acc;
+    acc[facility] = (acc[facility] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function buildPromoFacilityHints(typeIds) {
+  const needs = getPromoFacilityNeeds(typeIds);
+  const entries = Object.entries(needs);
+  if (!entries.length) return "";
+  return entries.map(([facilityId, count]) => {
+    const availability = getPromoFacilityAvailability(facilityId);
+    const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
+    const neededLabel = count > 1 ? ` (need ${count})` : "";
+    return `${label} today: ${availability.available}/${availability.capacity}${neededLabel}`;
+  }).join(" | ");
+}
+
 function updatePromoTypeHint(root) {
   const scope = root || document;
   const select = scope.querySelector("#promoTypeSelect");
   const hint = scope.querySelector("#promoTypeHint");
-  const typeId = select ? select.value : DEFAULT_PROMO_TYPE;
+  const selectedTypes = ensurePromoTypeSelection(scope, select ? select.value : DEFAULT_PROMO_TYPE);
+  const primaryType = select && selectedTypes.includes(select.value) ? select.value : selectedTypes[0];
+  if (select && primaryType) select.value = primaryType;
   const inflationMultiplier = getPromoInflationMultiplier();
-  if (hint) hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)}${buildPromoFacilityHint(typeId)}`;
-  syncPromoTypeCards(scope, typeId);
-  setPromoBudgetToBaseCost(scope, typeId);
+  syncPromoTypeCards(scope, selectedTypes);
+  setPromoBudgetToBaseCost(scope, selectedTypes);
+  const budget = normalizePromoBudget(scope, selectedTypes);
+  if (hint) {
+    if (selectedTypes.length === 1) {
+      const typeId = selectedTypes[0];
+      hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)}${buildPromoFacilityHint(typeId)}`;
+    } else {
+      const labels = selectedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
+      const facilityHint = buildPromoFacilityHints(selectedTypes);
+      const facilitySuffix = facilityHint ? ` | ${facilityHint}` : "";
+      const totalSpend = formatMoney(budget * selectedTypes.length);
+      hint.textContent = `Selected (${selectedTypes.length}): ${labels}. Budget applies per type; total spend: ${totalSpend}${facilitySuffix}`;
+    }
+  }
   const budgetInput = scope.querySelector("#promoBudget");
   if (budgetInput) {
-    const { adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
-    budgetInput.placeholder = formatMoney(adjustedCost);
+    const costs = selectedTypes.map((typeId) => getPromoTypeCosts(typeId, inflationMultiplier).adjustedCost);
+    const minCost = Math.min(...costs);
+    const maxCost = Math.max(...costs);
+    budgetInput.placeholder = minCost === maxCost
+      ? formatMoney(maxCost)
+      : `${formatMoney(minCost)}-${formatMoney(maxCost)}`;
   }
 }
 
@@ -1715,10 +1793,14 @@ function bindViewHandlers(route, root) {
   }
 
   if (route === "logs") {
-    on("promoTypeSelect", "change", () => updatePromoTypeHint(root));
-    on("promoBudget", "change", () => {
-      const typeId = root.querySelector("#promoTypeSelect")?.value || DEFAULT_PROMO_TYPE;
-      normalizePromoBudget(root, typeId);
+    on("promoTypeSelect", "change", (e) => {
+      const typeId = e.target.value || DEFAULT_PROMO_TYPE;
+      syncPromoTypeCards(root, [typeId]);
+      updatePromoTypeHint(root);
+    });
+    on("promoBudget", "change", (e) => {
+      e.target.dataset.promoBudgetAuto = "false";
+      updatePromoTypeHint(root);
     });
     const promoGrid = root.querySelector("#promoTypeGrid");
     if (promoGrid) {
@@ -1728,7 +1810,14 @@ function bindViewHandlers(route, root) {
         const typeId = card.dataset.promoType;
         if (!typeId) return;
         const select = root.querySelector("#promoTypeSelect");
-        if (select) select.value = typeId;
+        const selected = ensurePromoTypeSelection(root, select ? select.value : DEFAULT_PROMO_TYPE);
+        const isActive = selected.includes(typeId);
+        if (isActive && selected.length === 1) return;
+        const nextSelected = isActive
+          ? selected.filter((id) => id !== typeId)
+          : Array.from(new Set([...selected, typeId]));
+        syncPromoTypeCards(root, nextSelected);
+        if (select) select.value = isActive ? (nextSelected[0] || typeId) : typeId;
         updatePromoTypeHint(root);
       });
     }
