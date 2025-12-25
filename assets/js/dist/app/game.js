@@ -12,6 +12,11 @@ const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
 const LOSS_ARCHIVE_KEY = "rls_loss_archive_v1";
 const LOSS_ARCHIVE_LIMIT = 3;
 const SEED_CALIBRATION_KEY = "rls_seed_calibration_v1";
+const HOURLY_TICK_FRAME_LIMIT = 48;
+const HOURLY_TICK_WARNING_THRESHOLD = 12;
+const WEEKLY_UPDATE_WARN_MS = 50;
+const HOURLY_TICK_WARN_MS = 25;
+const TICK_FRAME_WARN_MS = 33;
 const STARTING_CASH = 50000;
 const STARTING_STUDIO_SLOTS = 2;
 const STAGE_STUDIO_LIMIT = 3;
@@ -138,6 +143,17 @@ function trackRoleLimit(role) {
 }
 function roleLabel(role) {
     return ROLE_LABELS[role] || role;
+}
+function nowMs() {
+    return typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
+}
+function logDuration(label, startTime, thresholdMs, context = "") {
+    const durationMs = nowMs() - startTime;
+    if (durationMs > thresholdMs) {
+        const contextSuffix = context ? ` ${context}` : "";
+        console.warn(`[perf] ${label} took ${durationMs.toFixed(2)}ms${contextSuffix}.`);
+    }
+    return durationMs;
 }
 function buildEmptyTrackSlotList(role) {
     return Array.from({ length: trackRoleLimit(role) }, () => null);
@@ -3681,6 +3697,7 @@ function maybeRunAutoRollout() {
     state.meta.autoRollout.lastCheckedAt = state.time.epochMs;
 }
 function weeklyUpdate() {
+    const startTime = nowMs();
     const week = weekIndex() + 1;
     ensureMarketCreators();
     recruitRivalCreators();
@@ -3706,6 +3723,7 @@ function weeklyUpdate() {
     evaluateAchievements();
     checkWinLoss(labelScores);
     renderAll();
+    logDuration("weeklyUpdate", startTime, WEEKLY_UPDATE_WARN_MS, `(week ${week})`);
 }
 function onYearTick(year) {
     // Annual snapshot and deterministic tie-resolution for awards
@@ -3769,6 +3787,7 @@ function runYearTicksIfNeeded(year) {
     state.time.lastYear = current;
 }
 function runHourlyTick() {
+    const startTime = nowMs();
     state.time.totalHours += 1;
     state.time.epochMs += HOUR_MS;
     processWorkOrders();
@@ -3781,6 +3800,7 @@ function runHourlyTick() {
         weeklyUpdate();
     }
     runYearTicksIfNeeded(currentYear());
+    logDuration("runHourlyTick", startTime, HOURLY_TICK_WARN_MS, `(week ${currentWeek}, hour ${state.time.totalHours})`);
 }
 function advanceHours(hours) {
     if (state.meta.gameOver)
@@ -3824,6 +3844,7 @@ function maybeSyncPausedLiveChanges(now) {
     session.lastSlotPayload = raw;
 }
 function tick(now) {
+    const frameStart = typeof now === "number" ? now : nowMs();
     if (state.time.lastTick === null || Number.isNaN(state.time.lastTick)) {
         state.time.lastTick = now;
         requestAnimationFrame(tick);
@@ -3837,15 +3858,26 @@ function tick(now) {
     if (state.time.speed === "fast")
         secPerHour = state.time.secPerHourFast;
     if (secPerHour !== Infinity) {
+        const queuedIterations = Math.floor(state.time.acc / secPerHour);
+        if (queuedIterations > HOURLY_TICK_WARNING_THRESHOLD) {
+            console.warn(`[perf] tick queued ${queuedIterations} hourly iterations (speed=${state.time.speed}, acc=${state.time.acc.toFixed(3)}, secPerHour=${secPerHour}).`);
+        }
         state.time.acc += dt;
-        while (state.time.acc >= secPerHour) {
+        let iterationsThisFrame = 0;
+        while (state.time.acc >= secPerHour && iterationsThisFrame < HOURLY_TICK_FRAME_LIMIT) {
             state.time.acc -= secPerHour;
             advanceHours(1);
+            iterationsThisFrame += 1;
+        }
+        if (iterationsThisFrame >= HOURLY_TICK_FRAME_LIMIT && state.time.acc >= secPerHour) {
+            const remainingIterations = Math.floor(state.time.acc / secPerHour);
+            console.warn(`[perf] tick capped at ${HOURLY_TICK_FRAME_LIMIT} hourly iterations this frame; ${remainingIterations} remaining (acc=${state.time.acc.toFixed(3)}, secPerHour=${secPerHour}).`);
         }
     }
     maybeSyncPausedLiveChanges(now);
     maybeAutoSave();
     requestAnimationFrame(tick);
+    logDuration("tick", frameStart, TICK_FRAME_WARN_MS);
 }
 function maybeAutoSave() {
     if (!session.activeSlot)
