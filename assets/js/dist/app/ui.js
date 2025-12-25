@@ -2,7 +2,7 @@
 import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
-import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeDetails } from "./promo_types.js";
+import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
 const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY } = game;
 const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
 const DEFAULT_ROUTE = "dashboard";
@@ -953,6 +953,13 @@ function resetViewLayout() {
     renderPanelMenu();
 }
 const PROMO_BUDGET_MIN = 100;
+function getPromoInflationMultiplier() {
+    const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
+    const baseYear = state.meta?.startYear || new Date(state.time?.startEpochMs || state.time?.epochMs || Date.now()).getUTCFullYear();
+    const yearsElapsed = Math.max(0, currentYear - baseYear);
+    const annualInflation = 0.02;
+    return Math.pow(1 + annualInflation, yearsElapsed);
+}
 function promoBudgetBaseCost(typeId) {
     const details = getPromoTypeDetails(typeId);
     return Math.max(PROMO_BUDGET_MIN, details.cost);
@@ -1018,10 +1025,16 @@ function updatePromoTypeHint(root) {
     const select = scope.querySelector("#promoTypeSelect");
     const hint = scope.querySelector("#promoTypeHint");
     const typeId = select ? select.value : DEFAULT_PROMO_TYPE;
+    const inflationMultiplier = getPromoInflationMultiplier();
     if (hint)
-        hint.textContent = `Selected: ${buildPromoHint(typeId)}`;
+        hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)}`;
     syncPromoTypeCards(scope, typeId);
     setPromoBudgetToBaseCost(scope, typeId);
+    const budgetInput = scope.querySelector("#promoBudget");
+    if (budgetInput) {
+        const { adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
+        budgetInput.placeholder = formatMoney(adjustedCost);
+    }
 }
 function bindGlobalHandlers() {
     const on = (id, event, handler) => {

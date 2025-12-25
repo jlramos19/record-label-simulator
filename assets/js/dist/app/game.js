@@ -7555,7 +7555,7 @@ function renderCreateStageControls() {
     renderActiveStudiosSelect();
 }
 function renderActiveView(view) {
-    const raw = view || state.ui.activeView || "charts";
+    const raw = view || state.ui.activeView || "dashboard";
     const active = raw === "promotion" ? "logs" : raw === "era" ? "eras" : raw;
     if (active === "dashboard") {
         renderDashboard();

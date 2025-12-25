@@ -5,11 +5,11 @@
 ` `  
 `In the context of a web-based record label simulator, the key question is how to efficiently and cost-effectively manage data, specifically concerning the naming of tracks.`   
 ` `  
-`This game involves creating album tracklists, where the tracks are not intended to have unique names, but rather generic, thematic ones that different players can reuse. For instance, in an album related to the theme of love, the tracks can have names such as "Wedding Song" or "First Dance."`  
+`This game involves creating album tracklists, where the tracks are not intended to have unique names, but rather generic, thematic ones that different players can reuse. For instance, in an album related to the theme of loyalty, the tracks can have names such as "Wedding Song" or "First Dance."`  
 ` `  
-`Given the requirement for generic and repeated names, a central database of track themes can be created. This database includes common themes often found in music genres. Examples of these themes could be "Love," "Heartbreak," "Party," "Sadness," etc.`   
+`Given the requirement for generic and repeated names, a central database of track themes can be created. This database includes common themes often found in music genres. Examples of these themes could be "Loyalty," "Heartbreak," "Party," "Sadness," etc.`   
 ` `  
-`Under each theme, several generic track names are defined. As an example, the theme "Love" may include track names such as "Wedding Song," "First Kiss", "The Proposal", "A Love Story", etc. The idea here is to have a pool of generic track names that can be reused by all the players, rather than unique names for every piece of music.`  
+`Under each theme, several generic track names are defined. As an example, the theme "Loyalty" may include track names such as "Wedding Song," "First Kiss", "The Proposal", "A Love Story", etc. The idea here is to have a pool of generic track names that can be reused by all the players, rather than unique names for every piece of music.`  
 ` `  
 `This approach makes data management more efficient as you only need to store a limited number of themes and generic track names rather than a variety of unique names.`   
 ` `  
@@ -22,7 +22,7 @@
 `With this approach, despite the generic and repeated use of track names, each player's track can still feel unique due to these other defining attributes. However, the system is created in such a way that the data storage is significantly reduced and the management is efficient and cost-effective.`  
 ` `  
 ` Maintaining clarity and ease of recognition in the in-game trends and charts is your priority. Allowing players to name their songs may dilute this clarity and make it difficult for players to understand what types of songs or themes are currently prevalent within the game.`  
-`You're simplifying recognizing trends by using generic, thematic song names tied closely to the game's mechanics. For example, players can see at a glance if "Wedding Song" from the "Love" theme is trending. They can make strategic decisions based on these visible trends as they navigate their gameplay.`  
+`You're simplifying recognizing trends by using generic, thematic song names tied closely to the game's mechanics. For example, players can see at a glance if "Wedding Song" from the "Loyalty" theme is trending. They can make strategic decisions based on these visible trends as they navigate their gameplay.`  
 `Your approach strikes a balance between giving players a sense of individuality in creating their music portfolios and maintaining an easily understandable system to gauge in-game trends. This approach ensures that game mechanics and player strategies are tightly linked, enhancing gameplay's overall depth and complexity.`  
 ` `  
 ` `  
