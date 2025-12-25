@@ -214,6 +214,10 @@
 
 * `Bytenza blue must remain Bytenza.`
 
+* `Freedom cyan must remain Freedom.`
+
+* `Safe white is reserved for Alignment.`
+
 * `System encoding must not overload Theme/Country colors.`
 
 `Allowed approaches:`

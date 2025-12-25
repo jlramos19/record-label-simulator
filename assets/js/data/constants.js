@@ -116,6 +116,11 @@ const COUNTRY_COLORS = {
   Bytenza: "var(--country-bytenza)",
   Crowlya: "var(--country-crowlya)"
 };
+const COUNTRY_DEMONYMS = {
+  Annglora: "Anngloran",
+  Bytenza: "Bytenese",
+  Crowlya: "Crowlish"
+};
 
 const COUNTRY_LANGUAGE_WEIGHTS = {
   Annglora: [

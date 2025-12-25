@@ -48,6 +48,7 @@ declare const SLOT_COUNT: number;
 declare const SLOT_PREFIX: string;
 declare const THEME_COLORS: Record<string, string>;
 declare const COUNTRY_COLORS: Record<string, string>;
+declare const COUNTRY_DEMONYMS: Record<string, string>;
 declare const COUNTRY_LANGUAGE_WEIGHTS: Record<string, { lang: string; weight: number }[]>;
 declare const CREATOR_NAME_PARTS: Record<string, { given: string[]; surname: string[] }>;
 declare const ACT_NAMES: string[];

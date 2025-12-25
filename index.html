@@ -9,6 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Ubuntu+Mono:wght@400;700&family=Ubuntu+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/app.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f141c">
+<link rel="icon" href="assets/icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 </head>
 <body>
 <div id="mainMenu" class="menu">
@@ -25,6 +29,11 @@
       <label for="gameModeSelect">Game Mode</label>
       <select id="gameModeSelect" aria-label="Game mode selection"></select>
       <div id="gameModeHint" class="tiny"></div>
+    </div>
+    <div class="field">
+      <label for="difficultySelect">Difficulty</label>
+      <select id="difficultySelect" aria-label="Difficulty selection"></select>
+      <div id="difficultyHint" class="tiny"></div>
     </div>
     <div class="field">
       <label for="autoSaveToggle">Auto Save</label>
@@ -73,7 +82,75 @@
     </div>
     <div class="card-body">
       <div class="callout">
-        Learn the game systems and review the world roles that shape demand.
+        Start here: sign Creator IDs in the CCC, build a track (Sheet -> Demo -> Master), release it, and fund a promo push. Use time controls to move weeks and watch charts climb.
+      </div>
+      <div class="actions">
+        <button id="quickRecipesBtn" type="button" class="ghost">Quick Recipes</button>
+      </div>
+      <div class="subhead">Quick Start (First Week)</div>
+      <div class="list">
+        <div class="list-item">
+          <div class="item-title">Sign Creator IDs (Community -> CCC)</div>
+          <div class="muted">Refresh the pool and sign at least one Songwriter, Performer, and Producer.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Form an Act (Roster -> Harmony Hub)</div>
+          <div class="muted">Assign Creator IDs to Act slots to prep releases and eras.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Create content (Create view)</div>
+          <div class="muted">Assign Creator IDs, pick Theme/Mood, then run Sheet -> Demo -> Master stages.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Schedule release (Release Desk)</div>
+          <div class="muted">Choose distribution; Digital is fast, Physical or Both pays more.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Promote (Social -> eyeriSocial)</div>
+          <div class="muted">Pick a released Track ID, set budget, and fund promo pushes.</div>
+        </div>
+      </div>
+      <div class="subhead">Core Loop &amp; Timing</div>
+      <div class="list">
+        <div class="list-item">
+          <div class="item-title">Charts update weekly (168 in-game hours)</div>
+          <div class="muted">Use Pause/Play/Fast and Skip Time to move weeks.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Trends guide demand</div>
+          <div class="muted">Check Top Trends in Community/Create and follow recommendations.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Studios and stamina are bottlenecks</div>
+          <div class="muted">Active Studios cap parallel work; bigger teams are faster but drain stamina.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Eras focus your cadence</div>
+          <div class="muted">Use Era Desk to set a Focus Era for creation and promo priorities.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Cashflow matters</div>
+          <div class="muted">Watch Wallet for weekly revenue/upkeep and avoid negative cash.</div>
+        </div>
+      </div>
+      <div class="subhead">Interface Tips</div>
+      <div class="list">
+        <div class="list-item">
+          <div class="item-title">Use ID slots</div>
+          <div class="muted">Tap a slot, then tap an ID, or drag IDs into slots. Use Clear to reset.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Speed up assignments</div>
+          <div class="muted">Auto Assign and Recommend All help fill creator slots quickly.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Customize the layout</div>
+          <div class="muted">Use Sidebars and Panels to toggle UI sections for each view.</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Save early, save often</div>
+          <div class="muted">Enable Auto Save in Settings or manually save game slots.</div>
+        </div>
       </div>
       <div class="subhead">Roles &amp; Actions</div>
       <div class="tiny muted">Status: Live = playable, Simulated = system-driven, Placeholder = planned.</div>
@@ -283,7 +360,7 @@
         <button id="skipTimeBtn" type="button" class="ghost">Skip Time</button>
       </div>
       <div class="time-meta">
-        <span id="weekDisplay">Week 1</span> | <span id="chartCountdown">Charts update in 168h</span> | <span id="gameModeDisplay" class="pill mode-pill" aria-label="Game mode">-</span>
+        <span id="weekDisplay">Week 1</span> | <span id="chartCountdown">Charts update in 168h</span> | <span id="gameModeDisplay" class="pill mode-pill" aria-label="Game mode">-</span> <span id="gameDifficultyDisplay" class="pill difficulty-pill" aria-label="Game difficulty">-</span>
       </div>
     </div>
     <div class="hud-mid">
@@ -304,6 +381,10 @@
           <span class="material-symbols-rounded icon-glyph" aria-hidden="true">settings</span>
           <span>Settings</span>
         </button>
+        <button id="sidePanelsBtn" type="button" class="ghost">
+          <span class="material-symbols-rounded icon-glyph" aria-hidden="true">view_sidebar</span>
+          <span>Sidebars</span>
+        </button>
         <button id="panelMenuBtn" type="button" class="ghost">
           <span class="material-symbols-rounded icon-glyph" aria-hidden="true">widgets</span>
           <span>Panels</span>
@@ -312,19 +393,94 @@
     </div>
     <div class="hud-nav-row">
       <nav class="app-nav">
-        <a href="#/charts" data-route="charts">Charts</a>
-        <a href="#/create" data-route="create">Create Content</a>
-        <a href="#/releases" data-route="releases">Releases</a>
-        <a href="#/eras" data-route="eras">Eras</a>
-        <a href="#/roster" data-route="roster">Harmony Hub</a>
-        <a href="#/world" data-route="world">Creator Community Chamber</a>
-        <a href="#/logs" data-route="logs">eyeriSocial</a>
+        <a href="#/dashboard" data-route="dashboard" class="nav-item" aria-label="Dashboard" title="Dashboard">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">dashboard</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="#/charts" data-route="charts" class="nav-item" aria-label="Charts" title="Charts">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">bar_chart</span>
+          <span class="nav-label">Charts</span>
+        </a>
+        <a href="#/create" data-route="create" class="nav-item" aria-label="Create" title="Create">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">edit_note</span>
+          <span class="nav-label">Create</span>
+        </a>
+        <a href="#/releases" data-route="releases" class="nav-item" aria-label="Releases" title="Releases">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">album</span>
+          <span class="nav-label">Releases</span>
+        </a>
+        <a href="#/eras" data-route="eras" class="nav-item" aria-label="Eras" title="Eras">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">calendar_month</span>
+          <span class="nav-label">Eras</span>
+        </a>
+        <a href="#/roster" data-route="roster" class="nav-item" aria-label="Roster" title="Roster">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">groups</span>
+          <span class="nav-label">Roster</span>
+        </a>
+        <a href="#/world" data-route="world" class="nav-item" aria-label="Community" title="Community">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">public</span>
+          <span class="nav-label">Community</span>
+        </a>
+        <a href="#/logs" data-route="logs" class="nav-item" aria-label="Social" title="Social">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">forum</span>
+          <span class="nav-label">Social</span>
+        </a>
       </nav>
     </div>
   </header>
 
   <main id="app" class="app-main"></main>
 </div>
+
+<template id="view-dashboard">
+  <div class="view view--dashboard">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="dashboard-overview">
+        <div class="card-head">
+          <h2>Dashboard</h2>
+          <div class="panel-tools">
+            <div id="dashboardWeekLabel" class="tiny muted">Week -</div>
+            <div id="dashboardDateLabel" class="tiny muted">-</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="dashboardStats" class="dashboard-grid"></div>
+          <div class="subhead">Quick Actions</div>
+          <div class="dashboard-actions">
+            <a href="#/create" class="ghost mini">New Track</a>
+            <a href="#/releases" class="ghost mini">Release Desk</a>
+            <a href="#/roster" class="ghost mini">Roster</a>
+            <a href="#/eras" class="ghost mini">Eras</a>
+          </div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="dashboard-pipeline">
+        <h2>Pipeline</h2>
+        <div class="card-body">
+          <div class="subhead">In Production</div>
+          <div id="dashboardWorkOrders" class="list"></div>
+          <div class="subhead">Upcoming Releases</div>
+          <div id="dashboardReleaseQueue" class="list"></div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="dashboard-charts">
+        <h2>Chart Pulse</h2>
+        <div class="card-body">
+          <div id="dashboardChartsList" class="list"></div>
+          <div class="tiny">Global top 5.</div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="dashboard-eras">
+        <h2>Active Eras</h2>
+        <div class="card-body">
+          <div id="dashboardEraList" class="list"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</template>
 
 <template id="view-charts">
   <div class="view view--charts">
@@ -395,35 +551,32 @@
   <div class="view view--create">
     <section class="view-main">
       <div class="panel card panel--scroll" data-panel="create-track">
-        <h2>Create Content</h2>
+        <div class="card-head">
+          <h2>Create Content</h2>
+          <div class="panel-tools">
+            <button id="createHelpToggle" type="button" class="ghost mini">Help</button>
+          </div>
+        </div>
         <div class="card-body">
-          <div class="callout">
+          <div id="createHelp" class="callout hidden">
             Quick start: tap an ID slot, assign Creator IDs, pick a Theme, then start sheet music. Acts are assigned later in Release Desk for release and promotion.
           </div>
           <div class="stage-picker">
             <div class="stage-title">Creation Stage</div>
-            <div class="stage-buttons" role="group" aria-label="Creation stage selection">
+            <div class="stage-buttons stage-buttons--compact" role="group" aria-label="Creation stage selection">
+              <button type="button" class="ghost stage-btn" data-create-stage="all">All Stages</button>
               <button type="button" class="ghost stage-btn" data-create-stage="sheet">Sheet Music</button>
               <button type="button" class="ghost stage-btn" data-create-stage="demo">Demo Recording</button>
               <button type="button" class="ghost stage-btn" data-create-stage="master">Master Recording</button>
             </div>
           </div>
-            <div class="form-grid">
-              <div class="field" data-stage="demo,master">
-                <label for="stageTrackSelect">Track</label>
-                <select id="stageTrackSelect"></select>
-                <div id="stageTrackMeta" class="tiny muted"></div>
-              </div>
-              <div class="field">
-                <label for="activeStudiosSelect">Active Studios</label>
-                <select id="activeStudiosSelect"></select>
-                <div id="activeStudiosMeta" class="tiny muted">Up to 3 studios can run per stage.</div>
-              </div>
-              <div class="field" data-stage="sheet">
-                <label for="trackTitle">Title</label>
-                <div class="input-row">
-                  <input id="trackTitle" type="text" placeholder="Auto-generate if empty">
-                  <button id="trackTitleRandom" type="button" class="ghost mini">Rnd</button>
+          <div class="subhead" data-stage="sheet,all">Track Details</div>
+          <div class="form-grid" data-stage="sheet,all">
+            <div class="field" data-stage="sheet">
+              <label for="trackTitle">Title</label>
+              <div class="input-row">
+                <input id="trackTitle" type="text" placeholder="Auto-generate if empty">
+                <button id="trackTitleRandom" type="button" class="ghost mini">Rnd</button>
               </div>
             </div>
             <div class="field" data-stage="sheet">
@@ -445,6 +598,28 @@
               <label for="themeSelect">Theme</label>
               <select id="themeSelect"></select>
             </div>
+            <div class="field" data-stage="sheet">
+              <label for="modifierSelect">Modifier Slot</label>
+              <select id="modifierSelect"></select>
+            </div>
+          </div>
+          <div class="subhead">Stage Inputs</div>
+          <div class="form-grid">
+            <div class="field" data-stage="demo,all">
+              <label for="demoTrackSelect">Demo Track</label>
+              <select id="demoTrackSelect"></select>
+              <div id="demoTrackMeta" class="tiny muted"></div>
+            </div>
+            <div class="field" data-stage="master,all">
+              <label for="masterTrackSelect">Master Track</label>
+              <select id="masterTrackSelect"></select>
+              <div id="masterTrackMeta" class="tiny muted"></div>
+            </div>
+            <div class="field">
+              <label for="activeStudiosSelect">Active Studios</label>
+              <select id="activeStudiosSelect"></select>
+              <div id="activeStudiosMeta" class="tiny muted">Up to 3 studios can run per stage.</div>
+            </div>
             <div class="field" data-stage="demo">
               <label for="moodSelect">Mood</label>
               <select id="moodSelect"></select>
@@ -453,28 +628,36 @@
               <label for="trackAlignment">Content Alignment</label>
               <select id="trackAlignment"></select>
             </div>
-            <div class="field" data-stage="sheet">
-              <label for="modifierSelect">Modifier Slot</label>
-              <select id="modifierSelect"></select>
-            </div>
           </div>
           <div class="subhead">Recommendation</div>
           <div id="trackRecommend" class="callout"></div>
-          <div class="subhead">Creator Slots</div>
+          <div class="section-head">
+            <div class="subhead">Creator Slots</div>
+            <div class="section-actions" data-stage="sheet,all">
+              <button id="createAdvancedToggle" type="button" class="ghost mini">Advanced</button>
+            </div>
+          </div>
           <div id="trackSlotMeta" class="tiny muted">Songwriters up to 15, recorders up to 10, producers up to 5. Larger teams move faster but drain more stamina and can dilute fit bonuses.</div>
           <div id="trackSlotGrid" class="slot-grid slot-grid--stack"></div>
-          <div class="field">
-            <label for="recommendAllMode">Recommend All Mode</label>
-            <select id="recommendAllMode">
-              <option value="solo">Solo tracks</option>
-              <option value="collab">Collab track</option>
-            </select>
-            <div id="recommendAllHelp" class="tiny muted">Solo starts separate sheet music for each assigned songwriter. Collab fills one track with everyone.</div>
+          <div id="createAdvancedOptions" class="advanced-options hidden">
+            <div class="field">
+              <label for="recommendAllMode">Recommend All Mode</label>
+              <select id="recommendAllMode">
+                <option value="solo">Solo tracks</option>
+                <option value="collab">Collab track</option>
+              </select>
+              <div id="recommendAllHelp" class="tiny muted">Solo starts separate sheet music for each assigned songwriter. Collab fills one track with everyone.</div>
+            </div>
           </div>
           <div class="actions">
             <button id="autoAssignBtn" type="button" class="ghost">Auto assign</button>
             <button id="trackRecommendAll" type="button" class="ghost">Recommend All</button>
-            <button id="startTrackBtn" type="button">Start Sheet Music</button>
+            <button id="startTrackBtn" type="button" class="primary" data-stage-mode="single">Start Sheet Music</button>
+          </div>
+          <div class="actions pipeline-actions hidden" data-stage-mode="pipeline">
+            <button id="startSheetBtn" type="button" class="primary">Start Sheet Music</button>
+            <button id="startDemoBtn" type="button" class="ghost">Start Demo Recording</button>
+            <button id="startMasterBtn" type="button" class="ghost">Start Master Recording</button>
           </div>
           <div id="genrePreview" class="tiny" data-stage="sheet">Planned Genre: -</div>
           <div class="tiny">Base cost: $2500 total. Modifiers adjust cost and time; stages consume 1, 2, and 3 in-game hours.</div>
@@ -491,15 +674,13 @@
       </div>
       <div class="panel card panel--scroll" data-panel="tracks">
         <h2>Tracks</h2>
-        <div class="card-body">
-          <div id="trackList" class="list"></div>
+        <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">
+          <button class="tab" data-track-tab="active" type="button">Active</button>
+          <button class="tab" data-track-tab="archive" type="button">Archive</button>
         </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="track-archive">
-        <h2>Track Archive</h2>
         <div class="card-body">
-          <div class="tiny">Released tracks live here.</div>
-          <div id="trackArchiveList" class="list"></div>
+          <div id="trackList" class="list track-panel-list" data-track-panel="active"></div>
+          <div id="trackArchiveList" class="list track-panel-list hidden" data-track-panel="archive"></div>
         </div>
       </div>
     </aside>
@@ -533,15 +714,13 @@
     <aside class="view-side">
       <div class="panel card panel--scroll" data-panel="tracks">
         <h2>Tracks</h2>
-        <div class="card-body">
-          <div id="trackList" class="list"></div>
+        <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">
+          <button class="tab" data-track-tab="active" type="button">Active</button>
+          <button class="tab" data-track-tab="archive" type="button">Archive</button>
         </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="track-archive">
-        <h2>Track Archive</h2>
         <div class="card-body">
-          <div class="tiny">Released tracks live here.</div>
-          <div id="trackArchiveList" class="list"></div>
+          <div id="trackList" class="list track-panel-list" data-track-panel="active"></div>
+          <div id="trackArchiveList" class="list track-panel-list hidden" data-track-panel="archive"></div>
         </div>
       </div>
     </aside>
@@ -559,7 +738,7 @@
           </div>
           <div class="id-slot" data-slot-target="era-act" data-slot-type="act">
             <div class="slot-label">Act ID</div>
-            <div id="eraActSlot" class="slot-value">Unassigned</div>
+            <div id="eraActSlot" class="slot-value">?</div>
             <button type="button" class="ghost mini" data-slot-clear="era-act">Clear</button>
           </div>
           <div class="field">
@@ -614,15 +793,13 @@
       </div>
       <div class="panel card panel--scroll" data-panel="tracks">
         <h2>Tracks</h2>
-        <div class="card-body">
-          <div id="trackList" class="list"></div>
+        <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">
+          <button class="tab" data-track-tab="active" type="button">Active</button>
+          <button class="tab" data-track-tab="archive" type="button">Archive</button>
         </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="track-archive">
-        <h2>Track Archive</h2>
         <div class="card-body">
-          <div class="tiny">Released tracks live here.</div>
-          <div id="trackArchiveList" class="list"></div>
+          <div id="trackList" class="list track-panel-list" data-track-panel="active"></div>
+          <div id="trackArchiveList" class="list track-panel-list hidden" data-track-panel="archive"></div>
         </div>
       </div>
     </aside>
@@ -663,17 +840,26 @@
           <div class="slot-grid">
             <div class="id-slot" data-slot-target="act-lead" data-slot-type="creator">
               <div class="slot-label">Lead Creator ID</div>
-              <div id="actLeadSlot" class="slot-value">Unassigned</div>
+              <div class="slot-id">
+                <div class="slot-avatar" aria-hidden="true"></div>
+                <div id="actLeadSlot" class="slot-value">?</div>
+              </div>
               <button type="button" class="ghost mini" data-slot-clear="act-lead">Clear</button>
             </div>
             <div class="id-slot" data-slot-target="act-member2" data-slot-type="creator">
               <div class="slot-label">Member 2 ID</div>
-              <div id="actMember2Slot" class="slot-value">Unassigned</div>
+              <div class="slot-id">
+                <div class="slot-avatar" aria-hidden="true"></div>
+                <div id="actMember2Slot" class="slot-value">?</div>
+              </div>
               <button type="button" class="ghost mini" data-slot-clear="act-member2">Clear</button>
             </div>
             <div class="id-slot" data-slot-target="act-member3" data-slot-type="creator">
               <div class="slot-label">Member 3 ID</div>
-              <div id="actMember3Slot" class="slot-value">Unassigned</div>
+              <div class="slot-id">
+                <div class="slot-avatar" aria-hidden="true"></div>
+                <div id="actMember3Slot" class="slot-value">?</div>
+              </div>
               <button type="button" class="ghost mini" data-slot-clear="act-member3">Clear</button>
             </div>
           </div>
@@ -751,7 +937,7 @@
             <label class="check-pill"><input type="checkbox" data-ccc-filter="Performer">Performers</label>
             <label class="check-pill"><input type="checkbox" data-ccc-filter="Producer">Producers</label>
           </div>
-          <div id="marketList" class="list"></div>
+          <div id="marketList" class="list ccc-market-grid"></div>
           <div class="tiny">Use the CCC to scout and sign new Creator IDs.</div>
         </div>
       </div>
@@ -819,7 +1005,7 @@
           <div class="subhead">Promotional Content</div>
           <div class="id-slot" data-slot-target="promo-track" data-slot-type="track">
             <div class="slot-label">Track ID</div>
-            <div id="promoTrackSlot" class="slot-value">Unassigned</div>
+            <div id="promoTrackSlot" class="slot-value">?</div>
             <button type="button" class="ghost mini" data-slot-clear="promo-track">Clear</button>
           </div>
           <div class="list-item">
@@ -881,7 +1067,7 @@
           </div>
           <div class="field">
             <label for="promoBudget">Promo Budget</label>
-            <input id="promoBudget" type="number" min="0" step="100" value="1000">
+            <input id="promoBudget" type="number" min="100" step="100" value="7500">
           </div>
           <div class="field">
             <label class="toggle-pill">
