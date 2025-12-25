@@ -3,7 +3,7 @@ import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
-const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, renderCreateStageControls, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderCalendarView, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, getCommunityRankingLimit, renderRankingModal, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
+const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, renderCreateStageControls, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderCalendarView, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, getCommunityRankingLimit, renderRankingModal, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
 const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
@@ -3489,13 +3489,9 @@ function handleReleaseAction(e) {
             scheduleRelease(track, rec.scheduleHours, distribution);
         }
     }
-    if (btn.dataset.release === "now") {
-        scheduleHours = 0;
-        if (!isReady) {
-            logEvent("Track is still mastering. Schedule a future release instead.", "warn");
-            return;
-        }
-        releaseTrack(track, distribution, distribution);
+    if (btn.dataset.release === "asap" || btn.dataset.release === "now") {
+        scheduleHours = getReleaseAsapHours();
+        scheduleRelease(track, scheduleHours, distribution);
     }
     if (btn.dataset.release === "week") {
         scheduleHours = WEEK_HOURS;

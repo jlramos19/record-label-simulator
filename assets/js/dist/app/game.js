@@ -1654,14 +1654,20 @@ function isScheduledTime(epochMs, schedule) {
     const current = getUtcDayHour(epochMs);
     return current.day === schedule.day && current.hour === schedule.hour;
 }
-function hoursUntilNextScheduledTime(schedule) {
-    const current = getUtcDayHour(state.time.epochMs);
+function hoursUntilNextScheduledTime(schedule, epochMs = state.time.epochMs) {
+    const current = getUtcDayHour(epochMs);
     const dayDelta = (schedule.day - current.day + 7) % 7;
     const hourDelta = schedule.hour - current.hour;
     let total = dayDelta * 24 + hourDelta;
     if (total <= 0)
         total += WEEK_HOURS;
     return total;
+}
+function getReleaseAsapHours(epochMs = state.time.epochMs) {
+    return hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.releaseProcessing, epochMs);
+}
+function getReleaseAsapAt(epochMs = state.time.epochMs) {
+    return epochMs + getReleaseAsapHours(epochMs) * HOUR_MS;
 }
 function getUtcDayIndex(epochMs) {
     return getUtcDayHour(epochMs).day;
@@ -8425,6 +8431,8 @@ function renderEraStatus() {
 }
 function renderReleaseDesk() {
     const queuedIds = new Set(state.releaseQueue.map((entry) => entry.trackId));
+    const asapAt = getReleaseAsapAt();
+    const asapLabel = formatDate(asapAt);
     const readyTracks = state.tracks.filter((track) => {
         if (queuedIds.has(track.id))
             return false;
@@ -8464,7 +8472,6 @@ function renderReleaseDesk() {
             const statusLabel = isReady ? "" : track.status === "In Production" ? "Mastering" : "Awaiting Master";
             const genreLabel = derivedGenre || "-";
             const hasAct = Boolean(track.actId);
-            const canReleaseNow = hasAct && isReady;
             const canSchedule = hasAct && (isReady || isMastering);
             return `
         <div class="list-item">
@@ -8482,7 +8489,10 @@ function renderReleaseDesk() {
               </div>
             </div>
             <div class="time-row">
-              <button type="button" data-release="now" data-track="${track.id}"${canReleaseNow ? "" : " disabled"}>Release</button>
+              <div>
+                <button type="button" data-release="asap" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Release ASAP</button>
+                <div class="time-meta">${asapLabel} (earliest Friday at midnight)</div>
+              </div>
               <button type="button" class="ghost" data-release="week" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+7d</button>
               <button type="button" class="ghost" data-release="fortnight" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+14d</button>
               <button type="button" class="ghost" data-release="recommend" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Use Recommended</button>
@@ -9574,4 +9584,4 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, normalizeCreator, postCreatorSigned, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderResourceTickSummary, renderActiveCampaigns, renderQuickRecipes, renderCalendarView, renderCalendarList, renderCreateStageControls, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, getCommunityRankingLimit, renderRankingModal, assignToSlot, shakeElement, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };
+export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, getReleaseAsapHours, normalizeCreator, postCreatorSigned, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderResourceTickSummary, renderActiveCampaigns, renderQuickRecipes, renderCalendarView, renderCalendarList, renderCreateStageControls, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, getCommunityRankingLimit, renderRankingModal, assignToSlot, shakeElement, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };

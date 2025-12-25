@@ -639,7 +639,9 @@
                 <div id="genrePreview" class="tiny">Planned Genre: -</div>
               </div>
               <div class="create-stage-actions">
+                <button type="button" class="ghost stage-recommend-btn" data-track-recommend="sheet">Recommend creator(s)</button>
                 <button id="startSheetBtn" type="button" class="primary stage-start-btn">Start Sheet Music</button>
+                <div id="startSheetReason" class="tiny muted hidden"></div>
               </div>
             </section>
             <section class="create-stage-column" data-create-column="demo">
@@ -668,7 +670,9 @@
                 </div>
               </div>
               <div class="create-stage-actions">
+                <button type="button" class="ghost stage-recommend-btn" data-track-recommend="demo">Recommend creator(s)</button>
                 <button id="startDemoBtn" type="button" class="primary stage-start-btn">Start Demo Recording</button>
+                <div id="startDemoReason" class="tiny muted hidden"></div>
               </div>
             </section>
             <section class="create-stage-column" data-create-column="master">
@@ -697,7 +701,9 @@
                 </div>
               </div>
               <div class="create-stage-actions">
+                <button type="button" class="ghost stage-recommend-btn" data-track-recommend="master">Recommend creator(s)</button>
                 <button id="startMasterBtn" type="button" class="primary stage-start-btn">Start Master Recording</button>
+                <div id="startMasterReason" class="tiny muted hidden"></div>
               </div>
             </section>
           </div>
@@ -723,7 +729,6 @@
           </div>
           <div class="actions">
             <button id="autoAssignBtn" type="button" class="ghost">Auto assign</button>
-            <button id="trackRecommendAll" type="button" class="ghost">Recommend All</button>
           </div>
           <div class="tiny">Base cost: $2500 total. Modifiers adjust cost and time; stages consume 1, 2, and 3 in-game hours.</div>
         </div>
@@ -846,6 +851,48 @@
             <button id="startEraBtn" type="button">Start Era</button>
             <button id="endEraBtn" type="button" class="ghost">End Era</button>
           </div>
+          <div class="subhead">Rollout Strategy</div>
+          <div class="field">
+            <label for="rolloutStrategySelect">Strategy</label>
+            <div class="input-row">
+              <select id="rolloutStrategySelect"></select>
+              <button id="rolloutStrategyCreate" type="button" class="ghost mini">New</button>
+            </div>
+            <div class="tiny muted">Plan weekly drops/events, then expand into the Calendar.</div>
+          </div>
+          <div class="field">
+            <label for="rolloutStrategyWeek">Week</label>
+            <input id="rolloutStrategyWeek" type="number" min="1" value="1">
+          </div>
+          <div class="field">
+            <label for="rolloutStrategyDropId">Drop Track ID</label>
+            <div class="input-row">
+              <input id="rolloutStrategyDropId" type="text" placeholder="Track ID">
+              <button id="rolloutStrategyAddDrop" type="button" class="ghost mini">Add Drop</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="rolloutStrategyEventType">Event Type</label>
+            <div class="input-row">
+              <select id="rolloutStrategyEventType"></select>
+              <button id="rolloutStrategyAddEvent" type="button" class="ghost mini">Add Event</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="rolloutStrategyEventContent">Event Content ID (optional)</label>
+            <input id="rolloutStrategyEventContent" type="text" placeholder="Track ID">
+          </div>
+          <div class="field">
+            <label class="toggle-pill">
+              <input id="rolloutStrategyAutoRun" type="checkbox">
+              <span>Auto-run Strategy</span>
+            </label>
+            <div class="tiny">Auto-schedule items when ready and within calendar rules.</div>
+          </div>
+          <div class="actions">
+            <button id="rolloutStrategyExpand" type="button" class="ghost">Expand to Calendar</button>
+          </div>
+          <div id="rolloutStrategySummary" class="list"></div>
           <div class="subhead">Focus Era</div>
           <div class="list-item">
             <div class="list-row">

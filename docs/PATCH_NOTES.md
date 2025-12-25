@@ -1,5 +1,12 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1530Z)
+- Create pipeline now puts Recommend creator(s) above each stage start button and surfaces a short reason when start is disabled.
+- Start buttons stay gated by stage prerequisites (inputs, assignments, cash, studio slots) while existing validation still blocks invalid creation.
+
+## 2025-12-25 (RLS-PATCH-20251225-1522Z)
+- Release Desk now schedules "Release ASAP" drops for the next Friday 00:00 and shows the scheduled time under the button.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1327Z)
 - Eras Tracks panel now includes a History tab that lists weekly chart positions per chart with DNC for non-charting weeks.
 

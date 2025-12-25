@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-25 09:29:24 -04:00
+Last updated: 2025-12-25 11:22:58 -04:00
 
 ## Quick start
 

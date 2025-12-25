@@ -4,6 +4,7 @@
 - [ ] RLS-OPS-LIVEEDIT-001: Define live-edit guardrails, release patch stamping, and cache/version rules for hosted builds.
 - [ ] RLS-PROMO-LOGS-001: Remove Loss Archives and Debug Bundle panels from Promotions view; keep internal logging for balance review.
 - [ ] RLS-CALENDAR-PROJ-001: Add the Calendar projection view (Releases -> Calendar), merge the Eras calendar panel, and keep scheduling data backward compatible.
+- [ ] RLS-ERA-ROLLOUT-001: Implement rollout strategies (data model + Era planning + calendar expansion + auto-run + era completion husk).
 - [ ] RLS-DOC-PATCH-001: Cross-link new docs, update testing checklist, and add consolidated patch note summary.
 - [ ] RLS-ECONOMY-COSTS-001: Balance sheet/demo/master costs with quality scaling, creator supply-demand pressure, and skill progression/decay.
 - [ ] RLS-ERA-FOCUS-001: Define Focus Era purpose, mechanics, and UX guardrails for quick decisions.

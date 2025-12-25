@@ -58,6 +58,7 @@ const {
   assignTrackAct,
   releaseTrack,
   scheduleRelease,
+  getReleaseAsapHours,
   buildMarketCreators,
   normalizeCreator,
   postCreatorSigned,
@@ -2026,6 +2027,11 @@ function bindViewHandlers(route, root) {
   const stageColumns = root.querySelector(".create-stage-columns");
   if (stageColumns) {
     stageColumns.addEventListener("click", (e) => {
+      const recommendBtn = e.target.closest("[data-track-recommend]");
+      if (recommendBtn) {
+        recommendAllCreators(recommendBtn.dataset.trackRecommend);
+        return;
+      }
       const button = e.target.closest("[data-create-stage]");
       if (!button || button.disabled) return;
       const stageId = button.dataset.createStage;
@@ -2075,7 +2081,6 @@ function bindViewHandlers(route, root) {
     renderAll();
     saveToActiveSlot();
   });
-  on("trackRecommendAll", "click", recommendAllCreators);
   on("autoAssignBtn", "click", autoAssignCreators);
   on("startTrackBtn", "click", startTrackFromUI);
   on("startSheetBtn", "click", startSheetFromUI);
@@ -2679,9 +2684,13 @@ function assignAllCreatorsToSlots() {
   });
 }
 
-function recommendAllCreators() {
+function recommendAllCreators(stageOverride) {
+  const validStages = ["sheet", "demo", "master"];
+  const stage = validStages.includes(stageOverride)
+    ? stageOverride
+    : state.ui.createStage || "sheet";
+  if (stage !== state.ui.createStage) state.ui.createStage = stage;
   const rec = recommendTrackPlan();
-  const stage = state.ui.createStage || "sheet";
   applyTrackRecommendationPlan(rec, stage);
   const summary = assignAllCreatorsToSlots();
   renderSlots();
@@ -3533,13 +3542,9 @@ function handleReleaseAction(e) {
       scheduleRelease(track, rec.scheduleHours, distribution);
     }
   }
-  if (btn.dataset.release === "now") {
-    scheduleHours = 0;
-    if (!isReady) {
-      logEvent("Track is still mastering. Schedule a future release instead.", "warn");
-      return;
-    }
-    releaseTrack(track, distribution, distribution);
+  if (btn.dataset.release === "asap" || btn.dataset.release === "now") {
+    scheduleHours = getReleaseAsapHours();
+    scheduleRelease(track, scheduleHours, distribution);
   }
   if (btn.dataset.release === "week") {
     scheduleHours = WEEK_HOURS;

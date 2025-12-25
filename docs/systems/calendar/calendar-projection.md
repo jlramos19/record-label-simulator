@@ -5,6 +5,7 @@ The Calendar is a projection layer over existing scheduling data. It does not re
 
 ## Sources (Read-Only)
 - Label scheduled drops: `state.releaseQueue`.
+- Label scheduled events: `state.scheduledEvents`.
 - Label released drops: `state.marketTracks` where `isPlayer` is true.
 - Rival scheduled drops: `state.rivalReleaseQueue`.
 - Rival released drops: `state.marketTracks` where `isPlayer` is false.

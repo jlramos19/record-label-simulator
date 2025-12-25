@@ -1690,13 +1690,21 @@ function isScheduledTime(epochMs, schedule) {
   return current.day === schedule.day && current.hour === schedule.hour;
 }
 
-function hoursUntilNextScheduledTime(schedule) {
-  const current = getUtcDayHour(state.time.epochMs);
+function hoursUntilNextScheduledTime(schedule, epochMs = state.time.epochMs) {
+  const current = getUtcDayHour(epochMs);
   const dayDelta = (schedule.day - current.day + 7) % 7;
   const hourDelta = schedule.hour - current.hour;
   let total = dayDelta * 24 + hourDelta;
   if (total <= 0) total += WEEK_HOURS;
   return total;
+}
+
+function getReleaseAsapHours(epochMs = state.time.epochMs) {
+  return hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.releaseProcessing, epochMs);
+}
+
+function getReleaseAsapAt(epochMs = state.time.epochMs) {
+  return epochMs + getReleaseAsapHours(epochMs) * HOUR_MS;
 }
 
 function getUtcDayIndex(epochMs) {
@@ -8333,6 +8341,8 @@ function renderEraStatus() {
 
 function renderReleaseDesk() {
   const queuedIds = new Set(state.releaseQueue.map((entry) => entry.trackId));
+  const asapAt = getReleaseAsapAt();
+  const asapLabel = formatDate(asapAt);
   const readyTracks = state.tracks.filter((track) => {
     if (queuedIds.has(track.id)) return false;
     if (track.status === "Ready") return true;
@@ -8370,7 +8380,6 @@ function renderReleaseDesk() {
       const statusLabel = isReady ? "" : track.status === "In Production" ? "Mastering" : "Awaiting Master";
       const genreLabel = derivedGenre || "-";
       const hasAct = Boolean(track.actId);
-      const canReleaseNow = hasAct && isReady;
       const canSchedule = hasAct && (isReady || isMastering);
       return `
         <div class="list-item">
@@ -8388,7 +8397,10 @@ function renderReleaseDesk() {
               </div>
             </div>
             <div class="time-row">
-              <button type="button" data-release="now" data-track="${track.id}"${canReleaseNow ? "" : " disabled"}>Release</button>
+              <div>
+                <button type="button" data-release="asap" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Release ASAP</button>
+                <div class="time-meta">${asapLabel} (earliest Friday at midnight)</div>
+              </div>
               <button type="button" class="ghost" data-release="week" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+7d</button>
               <button type="button" class="ghost" data-release="fortnight" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+14d</button>
               <button type="button" class="ghost" data-release="recommend" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Use Recommended</button>
@@ -9266,11 +9278,24 @@ function getCreateStageAvailability() {
       : Math.min(...sheetCrew.map((id) => getStageCost(0, modifier, [id]))))
     : 0;
   const sheetHasCrew = mode === "collab" ? assignedSongwriters.length > 0 : eligibleSongwriters.length > 0;
+  const studioSlotsAvailable = getStudioAvailableSlots();
+  const sheetStageSlots = getStageStudioAvailable(0);
   const sheetCanStart = !!theme
     && sheetHasCrew
     && state.label.cash >= sheetCost
-    && getStudioAvailableSlots() > 0
-    && getStageStudioAvailable(0) > 0;
+    && studioSlotsAvailable > 0
+    && sheetStageSlots > 0;
+  const sheetReason = (() => {
+    if (!theme) return "Select a Theme to start sheet music.";
+    if (!assignedSongwriters.length) return "Assign a Songwriter ID to start sheet music.";
+    if (mode === "solo" && assignedSongwriters.length && !eligibleSongwriters.length) {
+      return `No available Songwriter creators with ${req} stamina.`;
+    }
+    if (sheetStageSlots <= 0) return "No studio slots available for sheet music. Wait for a studio to free up.";
+    if (studioSlotsAvailable <= 0) return "No studio slots available. Finish a production or expand capacity first.";
+    if (state.label.cash < sheetCost) return "Not enough cash to start sheet music.";
+    return "";
+  })();
 
   const demoTracks = state.tracks.filter((track) => track.status === "Awaiting Demo");
   const masterTracks = state.tracks.filter((track) => track.status === "Awaiting Master");
@@ -9289,12 +9314,26 @@ function getCreateStageAvailability() {
     : getTrackRoleIds(demoTrack, "Performer");
   const demoCost = demoAssigned.length ? getStageCost(1, demoTrack?.modifier, demoAssigned) : 0;
   const demoReady = demoTrack && demoTrack.status === "Awaiting Demo" && demoTrack.stageIndex === 1;
+  const demoStageSlots = getStageStudioAvailable(1);
   const demoCanStart = !!demoReady
     && moodValid
     && demoAssigned.length > 0
     && state.label.cash >= demoCost
-    && getStudioAvailableSlots() > 0
-    && getStageStudioAvailable(1) > 0;
+    && studioSlotsAvailable > 0
+    && demoStageSlots > 0;
+  const demoReason = (() => {
+    if (!demoCount) return "No tracks awaiting demo recording.";
+    if (!demoTrackId) return "Select a track awaiting demo recording.";
+    if (!demoTrack) return "Track not found for demo recording.";
+    if (!demoReady) return "Track is not ready for demo recording.";
+    if (!mood) return "Select a Mood to start the demo recording.";
+    if (!moodValid) return "Select a valid Mood to start the demo recording.";
+    if (!demoAssigned.length) return "Assign a Performer ID to start the demo recording.";
+    if (studioSlotsAvailable <= 0) return "No studio slots available. Finish a production or expand capacity first.";
+    if (demoStageSlots <= 0) return "No studio slots available for demo recording. Wait for a studio to free up.";
+    if (state.label.cash < demoCost) return "Not enough cash to start the demo recording.";
+    return "";
+  })();
 
   const masterTrackId = (state.ui.createTrackIds ? state.ui.createTrackIds.master : null)
     || $("masterTrackSelect")?.value
@@ -9312,12 +9351,29 @@ function getCreateStageAvailability() {
     && masterTrack.status === "Awaiting Master"
     && masterTrack.stageIndex === 2
     && !!masterTrack.mood;
+  const masterStageSlots = getStageStudioAvailable(2);
   const masterCanStart = !!masterReady
     && alignmentValid
     && masterAssigned.length > 0
     && state.label.cash >= masterCost
-    && getStudioAvailableSlots() > 0
-    && getStageStudioAvailable(2) > 0;
+    && studioSlotsAvailable > 0
+    && masterStageSlots > 0;
+  const masterReason = (() => {
+    if (!masterCount) return "No tracks awaiting mastering.";
+    if (!masterTrackId) return "Select a track awaiting mastering.";
+    if (!masterTrack) return "Track not found for mastering.";
+    if (!masterTrack.status || masterTrack.status !== "Awaiting Master" || masterTrack.stageIndex !== 2) {
+      return "Track is not ready for mastering.";
+    }
+    if (!masterTrack.mood) return "Demo recording must assign a Mood before mastering.";
+    if (!masterAssigned.length) return "Assign a Producer ID to start mastering.";
+    if (!resolvedAlignment) return "Select a Content Alignment before mastering.";
+    if (!alignmentValid) return "Select a valid Content Alignment before mastering.";
+    if (studioSlotsAvailable <= 0) return "No studio slots available. Finish a production or expand capacity first.";
+    if (masterStageSlots <= 0) return "No studio slots available for mastering. Wait for a studio to free up.";
+    if (state.label.cash < masterCost) return "Not enough cash to start mastering.";
+    return "";
+  })();
 
   return {
     sheetReadyCount,
@@ -9325,7 +9381,10 @@ function getCreateStageAvailability() {
     masterCount,
     sheetCanStart,
     demoCanStart,
-    masterCanStart
+    masterCanStart,
+    sheetReason: sheetCanStart ? "" : (sheetReason || "Requirements not met."),
+    demoReason: demoCanStart ? "" : (demoReason || "Requirements not met."),
+    masterReason: masterCanStart ? "" : (masterReason || "Requirements not met.")
   };
 }
 
@@ -9376,16 +9435,34 @@ function renderCreateStageControls() {
   if (sheetBtn) {
     sheetBtn.textContent = "Start Sheet Music";
     sheetBtn.disabled = !availability.sheetCanStart;
+    sheetBtn.title = availability.sheetCanStart ? "" : availability.sheetReason;
+  }
+  const sheetReason = $("startSheetReason");
+  if (sheetReason) {
+    sheetReason.textContent = availability.sheetReason || "";
+    sheetReason.classList.toggle("hidden", !availability.sheetReason);
   }
   const demoBtn = $("startDemoBtn");
   if (demoBtn) {
     demoBtn.textContent = "Start Demo Recording";
     demoBtn.disabled = !availability.demoCanStart;
+    demoBtn.title = availability.demoCanStart ? "" : availability.demoReason;
+  }
+  const demoReason = $("startDemoReason");
+  if (demoReason) {
+    demoReason.textContent = availability.demoReason || "";
+    demoReason.classList.toggle("hidden", !availability.demoReason);
   }
   const masterBtn = $("startMasterBtn");
   if (masterBtn) {
     masterBtn.textContent = "Start Master Recording";
     masterBtn.disabled = !availability.masterCanStart;
+    masterBtn.title = availability.masterCanStart ? "" : availability.masterReason;
+  }
+  const masterReason = $("startMasterReason");
+  if (masterReason) {
+    masterReason.textContent = availability.masterReason || "";
+    masterReason.classList.toggle("hidden", !availability.masterReason);
   }
   const recommendSelect = $("recommendAllMode");
   if (recommendSelect) recommendSelect.value = state.ui.recommendAllMode || "solo";
@@ -9507,6 +9584,7 @@ export {
   pickDistinct,
   uid,
   weekIndex,
+  getReleaseAsapHours,
   normalizeCreator,
   postCreatorSigned,
   markCreatorPromo,
