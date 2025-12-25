@@ -1,1517 +1,618 @@
 # GDD Rename Map
-Generated: 2025-12-24T01:47:52
+Generated: 2025-12-25T11:01:24.177787Z
 
-- `“What is a Creator.md` -> `What is a Creator.md`
-- `“What is a Record Label.md` -> `What is a Record Label.md`
-- `“What is Record Label Simulator (RLS).md` -> `What is Record Label Simulator (RLS).md`
-- `# ---Record Label Simulator--- - Game Design Document__1U2KL6f3-sXHhpfLbduWS2IsXnKWUHqcJBviKc_lBsq8.md` -> `---Record Label Simulator--- - Game Design Document1U2KL6f3-sXHhpfLbduWS2IsXnKWUHqcJBviKclBsq8.md`
-- `# Examples of real-life songs inspiring theme and mood of in-game content genres__1OvBNvjbOvZG1yIRXfPutlz9zkN9ISpOIp5y6GkQ0PxY.md` -> `Examples of real-life songs inspiring theme and mood of in-game content genres.md`
-- `# Game Concept- Roles, Occupations & Action Verbs of Characters in Record Label Simulator's Game Design__1hPiYbsiRD62W6XTLPBSVQQ0BWKPfFm0dEwCFgMlzDKg.md` -> `Game Concept- Roles Occupations Action Verbs of Characters in Record Label Simulators Game Design.md`
-- `# In-Game Time Controller Script__1Mf8nF_AFBtTfH6iSnB0s6VzdpPwPEnLCR2Ko2Xw1sgM.md` -> `In-Game Time Controller Script1Mf8nFAFBtTfH6iSnB0s6VzdpPwPEnLCR2Ko2Xw1sgM.md`
-- `# Record Label Simulator - Player Scenario__15ttfr28-Ij5K7WTBBOSCx-5jcn0KDe2_ZbX5VKOCVJM.md` -> `Record Label Simulator - Player Scenario15ttfr28-Ij5K7WTBBOSCx-5jcn0KDe2ZbX5VKOCVJM.md`
-- `# Record Label Simulator - Text Formatting Guide for In-Game Terminology.md` -> `Record Label Simulator - Text Formatting Guide for In-Game Terminology-2.md`
-- `# Record Label Simulator In-Game Characters__1KVQlPv3H2qsiL2gOjQvw3jKm3HWbyvTuZQQ4gUfCySQ.md` -> `Record Label Simulator In-Game Characters.md`
-- `# Record Label Simulator Pre-Game Simulation Plan.md` -> `Record Label Simulator Pre-Game Simulation Plan.md`
-- `# TODO- simulate gameplay design of Record Label Simulator__1de2PSVqRYoJGGlNXO4DssrFDkYcY-DY6YPflKR-emfU.md` -> `TODO- simulate gameplay design of Record Label Simulator.md`
-- `## --Identities-- & --OCCUPATIONS--__1ifF0rFXmK8dFwQqRY2dIWsdi780DojPI61OZ5zazcfU.md` -> `--Identities-- --OCCUPATIONS--.md`
-- `## --OCCUPATION- GUIDE--__1vcoHUiAz5u47AB9N4RC2R6pny3Wc3_dYp0DteivPcgE.md` -> `--OCCUPATION- GUIDE--1vcoHUiAz5u47AB9N4RC2R6pny3Wc3dYp0DteivPcgE.md`
-- `### Action Verbs and Their Parameters in -Record Label Simulator-.md` -> `Action Verbs and Their Parameters in -Record Label Simulator-.md`
-- `### Calculation for Maximum Length and Width of the Terrain__1SAJiOO5FOcK72FKj-h_od_2gjomKiNCpYWUeR4AhTLA.md` -> `Calculation for Maximum Length and Width of the Terrain1SAJiOO5FOcK72FKj-hod2gjomKiNCpYWUeR4AhTLA.md`
-- `### Capsule to ID Animation in -Record Label Simulator-__1W-IQ-qcpoJNL_8XDMEnoT7-xLMP-MuEETMVDudAE_-k.md` -> `Capsule to ID Animation in -Record Label Simulator-1W-IQ-qcpoJNL8XDMEnoT7-xLMP-MuEETMVDudAE-k.md`
-- `### Complete Demo Recording Creation Process for Recording Artist in -Record Label Simulator-__1Y96-kS8sIXgBZ5w1dK22aZcxzOQ1KrwmL9BbQmHvfW0.md` -> `Complete Demo Recording Creation Process for Recording Artist in -Record Label Simulator-.md`
-- `### Complete Sheet Music Creation Process in -Record Label Simulator-__1qI1-ky3gEcRU2oOhyNqI9aovK1oEs4110pil24Gf5VU.md` -> `Complete Sheet Music Creation Process in -Record Label Simulator-.md`
-- `### Complete Song Creation Process__1M8SqT1WGhOmcmwumhhL9nUaG1huEvgQ8R57qiT810fM.md` -> `Complete Song Creation Process.md`
-- `### Components of Content- Themes.md` -> `Components of Content- Themes.md`
-- `### Comprehensive Documentation for Record Label Simulator.md` -> `Comprehensive Documentation for Record Label Simulator.md`
-- `### Eras in Record Label Simulator__1JOACaV27VYRNqOazXPiMFuMTvpjnUdgrvLn1yeMt-UY.md` -> `Eras in Record Label Simulator.md`
-- `### From Sheet Music to Track- Step-by-Step in Record Label Simulator__1FMoTCJzz9M4LwPkiFUR40T_DafmpaXFo2n-npMKn0x0.md` -> `From Sheet Music to Track- Step-by-Step in Record Label Simulator1FMoTCJzz9M4LwPkiFUR40TDafmpaXFo2n-npMKn0x0.md`
-- `### Game Concept- Content Types in Record Label Simulator__1sDfk1SDmpYl_RZlx9by_n8P_taU4AsPzWSHTvndxJgg.md` -> `Game Concept- Content Types in Record Label Simulator1sDfk1SDmpYlRZlx9byn8PtaU4AsPzWSHTvndxJgg.md`
-- `### Game Concept- Organizations in Record Label Simulator.md` -> `Game Concept- Organizations in Record Label Simulator.md`
-- `### High-Level Game Design Overview- Record Label Simulator.md` -> `High-Level Game Design Overview- Record Label Simulator.md`
-- `### Leasing Process in -Record Label Simulator-__1drKSqMdGWl5jsu11cTxkyW2kj09hSXhOjPwI4ZeKI0U.md` -> `Leasing Process in -Record Label Simulator-.md`
-- `### Member and Structure Dynamics in -Record Label Simulator-__1wBtBXNr1yMA6r0LDjKUlOZGJ_iZ_zWXobQ4Qe8MF2EM.md` -> `Member and Structure Dynamics in -Record Label Simulator-1wBtBXNr1yMA6r0LDjKUlOZGJiZzWXobQ4Qe8MF2EM.md`
-- `### Member Rating Mechanism in -Record Label Simulator-__1MfW-X5fpqaM3K2HRJMd7zVzZ8t7EI042QNPiQVrp2wo.md` -> `Member Rating Mechanism in -Record Label Simulator-.md`
-- `### Optimal Stamina Usage and Long-Term Effects in -Record Label Simulator-__1S4bJ7OGIWjI9L75g3aPL_yX5fbrilT-roRIiVP5Kx1I.md` -> `Optimal Stamina Usage and Long-Term Effects in -Record Label Simulator-1S4bJ7OGIWjI9L75g3aPLyX5fbrilT-roRIiVP5Kx1I.md`
-- `### Poem Structure Rules__13qTNSMLmGvUNbuUhCgHWY_uE9_LhrbGCvAqlEiDQXxU.md` -> `Poem Structure Rules13qTNSMLmGvUNbuUhCgHWYuE9LhrbGCvAqlEiDQXxU.md`
-- `### Record Label Simulator Specifications-__1Q1cl7m6W6f8gqv83QUb3XNntVTkDd6nOJhWFZAVlamA.md` -> `Record Label Simulator Specifications-.md`
-- `### Stamina Recharge Mechanic in -Record Label Simulator-__1QjJUHard3_Cjbl6jfMcd3YNiJtsbrGdk73KYaneNbQs.md` -> `Stamina Recharge Mechanic in -Record Label Simulator-1QjJUHard3Cjbl6jfMcd3YNiJtsbrGdk73KYaneNbQs.md`
-- `### TRANCE - THE THIRTEENTH ALBUM__1tM0qzvo4H0JEeV87seY0SzTsxMukOUZZkOCKqvMipjI.md` -> `TRANCE - THE THIRTEENTH ALBUM.md`
-- `### Video Game Specifications- Genres of Record Label Simulator__1IhMF63c6WvCfCHaVrUIkw0utrsXHOvAjxpsfS-HwQ5I.md` -> `Video Game Specifications- Genres of Record Label Simulator.md`
-- `45 content media genres in record label simulator full names- theme + mood.md` -> `45 content media genres in record label simulator full names- theme mood.md`
-- `5 years later…__1hx1syfoJgN19IdDohjcTcCkBRuU5vh08RPbigTJZt18.md` -> `5 years later.md`
-- `Act’s Game Loop in Record Label Simulator__1_PElQk2GxZCvtgg6GmtarGF_OCMPJIfnbiENEaXaAv8.md` -> `Acts Game Loop in Record Label Simulator1PElQk2GxZCvtgg6GmtarGFOCMPJIfnbiENEaXaAv8.md`
-- `Adapt - Song lyrics track__1Dkwi-EgdOqvVUUcRlAb3DocvztUFZyqWzL_-N_zxU-s.md` -> `Adapt - Song lyrics track1Dkwi-EgdOqvVUUcRlAb3DocvztUFZyqWzL-NzxU-s.md`
-- `Age Group Generations Names in Record Label Simulator__1QjR9_-bbOSW13dsj-vOeiJ9SQYxj1m-L1jhJuIlIejI.md` -> `Age Group Generations Names in Record Label Simulator1QjR9-bbOSW13dsj-vOeiJ9SQYxj1m-L1jhJuIlIejI.md`
-- `Ahora no quieres más__1VWrnwNPFfnHel30f8rYoIgs6Ari3u4Tr4erAQ5rfDWc.md` -> `Ahora no quieres ms.md`
-- `AI team at Topoda Charts-__1Il7jfNPo-KASxsBscAge6Vbjk7L5M5-GXpoUcA2Ii2U.md` -> `AI team at Topoda Charts-.md`
-- `Aim for a -T- Rating- Crafting an Inspiring Journey of Resilience and Support for Record Label Simulator__1no5WiZ0FJZqTRx02OAoPp1lF2gKop3Ti7nTFTv7g9xE.md` -> `Aim for a -T- Rating- Crafting an Inspiring Journey of Resilience and Support for Record Label Simulator.md`
-- `Album 01- Faint of Heart (DEBUT) - Track 01. Me and Myself Later (Lyrics)__1_fm0F0JwZ_JrXeJiknz3q2ElxmP6qcAemiKrsFU71Kw.md` -> `Album 01- Faint of Heart (DEBUT) - Track 01 Me and Myself Later (Lyrics)1fm0F0JwZJrXeJiknz3q2ElxmP6qcAemiKrsFU71Kw.md`
-- `Algorithm initialization of Record Label simulator__1Dy0BWTjpbJp-k6Xg5CFZMcXWkbQhHsXzJ7H4RYpkq88.md` -> `Algorithm initialization of Record Label simulator.md`
-- `Alignment of Themes in Record Label Simulator__11-IHm3_YPUynF5x325ugIuShQxOYZY7QSqY3d4cEk0c.md` -> `Alignment of Themes in Record Label Simulator11-IHm3YPUynF5x325ugIuShQxOYZY7QSqY3d4cEk0c.md`
-- `All those times I tried to leave you, song lyrics track__1ScUhUcblq3hNMHNejOT0rN7J9SW5ZhVvInJObdGV3qc.md` -> `All those times I tried to leave you song lyrics track.md`
-- `Angry at myself - song lyrics - track__1EifKiWVe6oYmTQ2qZNWxNZG3MSuTik1TBRLQqfEEG7c.md` -> `Angry at myself - song lyrics - track.md`
-- `Animation for when Charts Update__1OTYqSw8kCNpDYF8oAnzcXHlWOjpD5YxCx9Wm_MSW48o.md` -> `Animation for when Charts Update1OTYqSw8kCNpDYF8oAnzcXHlWOjpD5YxCx9WmMSW48o.md`
-- `Annglora's subculture__1XL-E9_YXbmbFNYEk8ASECHXNjubF7YTqrIebrOJ73pk.md` -> `Anngloras subculture1XL-E9YXbmbFNYEk8ASECHXNjubF7YTqrIebrOJ73pk.md`
-- `ANNGLORAN CREATOR HISTORY OF CONTENT GENRES__1UXZR2u9Qs495CQuJwleU7JV5NaaMhXE6HLSwUYYXx9E.md` -> `ANNGLORAN CREATOR HISTORY OF CONTENT GENRES.md`
-- `Area slots in Record Label Simulator__1aJc8b2zNXrQRYIrDjFw_bGGJ1Ovuv_hTnfn7oMcTYB4.md` -> `Area slots in Record Label Simulator1aJc8b2zNXrQRYIrDjFwbGGJ1OvuvhTnfn7oMcTYB4.md`
-- `Audience in record label simulator__1QH6LzEo5PPlShM3ZkVuNtwbbiphiFXcP3JpE-L95zso.md` -> `Audience in record label simulator.md`
-- `Audience, Community, and Community Chunk Game Mechanics.md` -> `Audience Community and Community Chunk Game Mechanics.md`
-- `B.U.F.F. Office__13oOaVlHUlvUJKQoAIOdVtr_PHL91TSZehYG8z0IDKg8.md` -> `BUFF Office13oOaVlHUlvUJKQoAIOdVtrPHL91TSZehYG8z0IDKg8.md`
-- `Banned words for creative AI writing__1h3gLwNm_lU07uTmEInb14XAg10NP3qFtZqd92RjLAIQ.md` -> `Banned words for creative AI writing1h3gLwNmlU07uTmEInb14XAg10NP3qFtZqd92RjLAIQ.md`
-- `Below is a structured document detailing the refined Cultural Reset mechanic and its integration into the Record Label Simulator__1Q4r8uQlJitI1cDLmpKVIkw8MJH_Ia2XmaMwNDhv5Ibs.md` -> `Below is a structured document detailing the refined Cultural Reset mechanic and its integration into the Record Label Simulator1Q4r8uQlJitI1cDLmpKVIkw8MJHIa2XmaMwNDhv5Ibs.md`
-- `Blue - song lyrics track__1EeXX3Cz24mq9ZU6eoNENwovcf8q_4RSjUIDLTSEwcTw.md` -> `Blue - song lyrics track1EeXX3Cz24mq9ZU6eoNENwovcf8q4RSjUIDLTSEwcTw.md`
-- `Boy__12t1e7OmuXQr7DoH3JyC5SnyNG7Yn-Di-BWbXePf6-xQ.md` -> `Boy.md`
-- `Breakdown of hours to max level up skills__1gmtRucx8Ppzl3I2vmf3Gu1MKWfrq_MrSsaM2sPdixyQ.md` -> `Breakdown of hours to max level up skills1gmtRucx8Ppzl3I2vmf3Gu1MKWfrqMrSsaM2sPdixyQ.md`
-- `Buffs (Bonuses )and add ons provided by GUIDE IDs in topoda charts__17FtmJhhBzlA5YrpQud-Nv_9RoxYgw0xGkoN-pXzEcpw.md` -> `Buffs (Bonuses )and add ons provided by GUIDE IDs in topoda charts17FtmJhhBzlA5YrpQud-Nv9RoxYgw0xGkoN-pXzEcpw.md`
-- `Calendar Module in Record Label Simulator video game__17FQrmG_SR-9EK5LXb4eb2KbInYMLHx_3BQz2ucaFvw8.md` -> `Calendar Module in Record Label Simulator video game17FQrmGSR-9EK5LXb4eb2KbInYMLHx3BQz2ucaFvw8.md`
-- `Card roles in topoda charts__1ITA2FSUNWLYKybCAXUMhbp7bmuOoKX-LlRta76mcZN8.md` -> `Card roles in topoda charts.md`
-- `Cards as entities, inventory items, currency, etc.__12IkA7S55KoQ56GfVl7KJ3d029i3VzO2W0EnqxHkk0TY.md` -> `Cards as entities inventory items currency etc.md`
-- `Catharsis change of members__1gl5i_mBSVnv-r5mrNVhrudvKWuyN_YXW9QhXplOY7M0.md` -> `Catharsis change of members1gl5imBSVnv-r5mrNVhrudvKWuyNYXW9QhXplOY7M0.md`
-- `Catharsis Mechanic of Members__1cfMy-b4MdmqNu5G8ziQWxAlhO5fBmaVsrH5ucxruj1o.md` -> `Catharsis Mechanic of Members.md`
-- `CEO 12 Requests — Annual Winners, Scoring, and No-Ties Policy (Gaia).md` -> `CEO 12 Requests - Annual Winners Scoring and No-Ties Policy (Gaia).md`
-- `CEO’s uncle as difficulty setting and investor.md` -> `CEOs uncle as difficulty setting and investor.md`
-- `Chart Competition in Record Label Simulator__1Q33HmplhC36Nn0MFp04Bs54fZPTQJbqNiFTeata3qMI.md` -> `Chart Competition in Record Label Simulator.md`
-- `Charts, records and milestones accounts for eyeriSocial__1U4QQ-r2mh6XRkdZMX0aiojDeYShvDyCVm-9ljp-V_uU.md` -> `Charts records and milestones accounts for eyeriSocial1U4QQ-r2mh6XRkdZMX0aiojDeYShvDyCVm-9ljp-VuU.md`
-- `ChatGPT 4o - Memory (6-17-2024)__1qzRzcSv9MsjttRHS1EX0wNnrfoF35EWnjvWd_i4w15U.md` -> `ChatGPT 4o - Memory (6-17-2024)1qzRzcSv9MsjttRHS1EX0wNnrfoF35EWnjvWdi4w15U.md`
-- `Children of Marc Hann & Genevieve Mar__1WGeHP0fjVqVG4WiFNn7BWMl5OfY6_MBiQ1CC2wWviRk.md` -> `Children of Marc Hann Genevieve Mar1WGeHP0fjVqVG4WiFNn7BWMl5OfY6MBiQ1CC2wWviRk.md`
-- `Chords and Instruments__1oCq57jantj6oj9c7pF-tBNvSUoEG8b-i4y5KvYZG93o.md` -> `Chords and Instruments.md`
-- `Cities- Skylines II Mod- Record Labels__1fRX3d6nR0XCVDr8eCgJfXqx8DigW8IwR0QPCUH4rSyQ.md` -> `Cities- Skylines II Mod- Record Labels.md`
-- `classes for slots in game topoda charts__1_KuZzGP7gwYmiEiRBkBN6sJHu-FOb1V8-Zc9dbMdwSQ.md` -> `classes for slots in game topoda charts1KuZzGP7gwYmiEiRBkBN6sJHu-FOb1V8-Zc9dbMdwSQ.md`
-- `Classes in Unity for Topoda Charts__16TpvwJayO7N-p6hN6RGOrd9ylbQ2kmN2iFFkVwsgZVc.md` -> `Classes in Unity for Topoda Charts.md`
-- `Clothing material of each country in Record Label Simulator__1cULq0smRAye6ShMHdi7VUgPTVlDHQEIG_tjRb563Qjw.md` -> `Clothing material of each country in Record Label Simulator1cULq0smRAye6ShMHdi7VUgPTVlDHQEIGtjRb563Qjw.md`
-- `Cloud Storage (Player Inventory) in Record Label Simulator__1mkFuXcSPGwDBBMkop47PQNtEbzhrx2amyAZyYLcNBc0.md` -> `Cloud Storage (Player Inventory) in Record Label Simulator.md`
-- `Color Assignment of Moods in Record Label Simulator__13zd7paAksZe1HN1IpYXoldTiNhipUakJCI3NFM1k-Vg.md` -> `Color Assignment of Moods in Record Label Simulator.md`
-- `Colors of Record Label Simulator Lyrical Themes for Tracks__1Bxo5oe70DDdBlzh48H63XEtsS9j-1Hu6qncL8H-OSKU.md` -> `Colors of Record Label Simulator Lyrical Themes for Tracks.md`
-- `Combinations of Broadcasting Studios in Record Label Simulator__1Pib2XTrafmPxfbwmSPhjXyESf4w5_8HjsGOoIttR9Pw.md` -> `Combinations of Broadcasting Studios in Record Label Simulator1Pib2XTrafmPxfbwmSPhjXyESf4w58HjsGOoIttR9Pw.md`
-- `Combinations of Broadcasting Studios in Record Label Simulator__1Ymlmxo6EBcihPC4pCWb_RFdEpWXk7oyjzTRtbnjCwJQ.md` -> `Combinations of Broadcasting Studios in Record Label Simulator1Ymlmxo6EBcihPC4pCWbRFdEpWXk7oyjzTRtbnjCwJQ.md`
-- `comfort album__1NKUdMr1tQKOSWQioPXNGj_-EufRMqm-EqR2bxUYU7KM.md` -> `comfort album1NKUdMr1tQKOSWQioPXNGj-EufRMqm-EqR2bxUYU7KM.md`
-- `Communities of Topoda Charts__1SMd0OP9yHU5V-gVmxVaAe6QhVag1T6oAopXHj3W24RY.md` -> `Communities of Topoda Charts.md`
-- `Community Member Theme and Mood Development__1FGrZrpvNq9liNJAHtIuhqSu2yqbu3GNaIhr8tABD0_Q.md` -> `Community Member Theme and Mood Development1FGrZrpvNq9liNJAHtIuhqSu2yqbu3GNaIhr8tABD0Q.md`
-- `Components of Community Members in Record Label Simulator__1VKpUGiVzRUoG614vsFwyI5GfEPHeWyjS122CXVYChP0.md` -> `Components of Community Members in Record Label Simulator.md`
-- `Concept about player's goal to succeed at the game__1HVi9aL7DaZNTBs9JNCVMhg1Bi2oAS2cxHL7cekzI4Zk.md` -> `Concept about players goal to succeed at the game.md`
-- `Connections supply and demand for topoda charts record label simulator__1EG_2Sbah8xijwcvMyFkqNiVR5y8bswYUzikHDLUdZ5M.md` -> `Connections supply and demand for topoda charts record label simulator1EG2Sbah8xijwcvMyFkqNiVR5y8bswYUzikHDLUdZ5M.md`
-- `Content Cycle- Schedule, Announce, Release, Promote, Discontinue (SARPD) for Record Label Simulator__1bT_wqvDYP2XHABVD5T6a2OJ-pJIVFdmCi72z54W4McU.md` -> `Content Cycle- Schedule Announce Release Promote Discontinue (SARPD) for Record Label Simulator1bTwqvDYP2XHABVD5T6a2OJ-pJIVFdmCi72z54W4McU.md`
-- `Content produced on demand__1UkI3x1ujJhM2qLKx401e-0TZcZ0t411ZOUh_-BMjODQ.md` -> `Content produced on demand1UkI3x1ujJhM2qLKx401e-0TZcZ0t411ZOUh-BMjODQ.md`
-- `Content Shopping Center in Record Label Simulator__1VgGzLwU4PoXKs6sO4LQc_E8Sfys31NJgq1Gye61hoCQ.md` -> `Content Shopping Center in Record Label Simulator1VgGzLwU4PoXKs6sO4LQcE8Sfys31NJgq1Gye61hoCQ.md`
-- `Cool inspiring phrases for record label simulator__11L8ouwPEWtV81kTO9rlab0EnBkF19U21BOzIieqOqHs.md` -> `Cool inspiring phrases for record label simulator.md`
-- `Copy of Combinations of Broadcasting Studios in Record Label Simulator__1vAQsNvPnPmiH58YoSlLcWZHJwgqXCeETT9Mtg4BlAiM.md` -> `Copy of Combinations of Broadcasting Studios in Record Label Simulator.md`
-- `Copy of Love Note song lyrics track__15i8hzvBsyYUeFMo0vmZM4U8Bmqqk6rXXVTHK02cNgv8.md` -> `Copy of Love Note song lyrics track.md`
-- `Copy of Project Design Doc [GDOC]__1dgSy9Ov61eQv-QE9hiTqfBI65ETHj3hLjIG-zzpabAo.md` -> `Copy of Project Design Doc GDOC.md`
-- `Copy of Record Label Simulator - MVP Gameplay Overview (December 5, 2025 version).md` -> `Copy of Record Label Simulator - MVP Gameplay Overview (December 5 2025 version).md`
-- `Corporations in Record Label Simulator__11E0x-WTqwguh7ZZNNN2gc3PsQwXXA-cvgyY3Mvqb-jw.md` -> `Corporations in Record Label Simulator.md`
-- `Countries for inspiration of names in Topoda Charts In-Game Universe__1LbZOG-TwMOpfjLKCla63b_ftt8KuNzzi8uMBCQWKWYA.md` -> `Countries for inspiration of names in Topoda Charts In-Game Universe1LbZOG-TwMOpfjLKCla63bftt8KuNzzi8uMBCQWKWYA.md`
-- `Countries Parameters and Relationships - Gaia Nations Overview__1Oz3O9bQm4VIyfXau_nRhAQiS6v_T7RrzKELLejfR0cQ.md` -> `Countries Parameters and Relationships - Gaia Nations Overview1Oz3O9bQm4VIyfXaunRhAQiS6vT7RrzKELLejfR0cQ.md`
-- `Country of Record Label Simulator In-Game Universe- Annglora, Commonwealth of Annglora.md` -> `Country of Record Label Simulator In-Game Universe- Annglora Commonwealth of Annglora.md`
-- `Country of Record Label Simulator In-Game Universe- Crowlya, Kingdom of Crowlya__1n4xe1rd6NJ20DM_3o_L1YXsyt0Q45wOmwotuH3N2fqQ.md` -> `Country of Record Label Simulator In-Game Universe- Crowlya Kingdom of Crowlya1n4xe1rd6NJ20DM3oL1YXsyt0Q45wOmwotuH3N2fqQ.md`
-- `COURSE OF ACTION FOR Record Label Simulator__1wlaydfgjoMHjh4IhWl355CFOXtHj26yN4G1UJ_cK7oA.md` -> `COURSE OF ACTION FOR Record Label Simulator1wlaydfgjoMHjh4IhWl355CFOXtHj26yN4G1UJcK7oA.md`
-- `Courtroom Sketch__1V3uvr5pciqr9pxVE_IrzdOiUvFruRNCRUnA1KXnkR_Y.md` -> `Courtroom Sketch1V3uvr5pciqr9pxVEIrzdOiUvFruRNCRUnA1KXnkRY.md`
-- `Covers (Acts promoting not-owned Tracks) in Record Label Simulator__1_Dqv1ZTmS41GJMcT4d7hFchOHn8Si88Vrs8BKsNIFWI.md` -> `Covers (Acts promoting not-owned Tracks) in Record Label Simulator1Dqv1ZTmS41GJMcT4d7hFchOHn8Si88Vrs8BKsNIFWI.md`
-- `Create fake social media for game feedback from NPC in Record Label Simulator In-Game Universe__14COJgr91HCZo4zKBkwWN2jHkKiSCF-C6re2DCuCH54Y.md` -> `Create fake social media for game feedback from NPC in Record Label Simulator In-Game Universe.md`
-- `CREATOR CARD- INTERVIEWEE__1JAYbbR_oOvytYk8ku1YL2j8bY6dKgnKFdOdqsFTo2zI.md` -> `CREATOR CARD- INTERVIEWEE1JAYbbRoOvytYk8ku1YL2j8bY6dKgnKFdOdqsFTo2zI.md`
-- `CREATOR ID ERA, DRIVE AND EMOTIONS in TOPODA CHARTS__1GZeVTpNbY_AmvNX-x4SCSLFcJAnVFOqCsxLLDGDiLjw.md` -> `CREATOR ID ERA DRIVE AND EMOTIONS in TOPODA CHARTS1GZeVTpNbYAmvNX-x4SCSLFcJAnVFOqCsxLLDGDiLjw.md`
-- `CREATOR IDS PROPERTIES in Record Label Simulator__1nQbzTsm6WlX20WYVv-np_JW4H0mZ9yvgKbrwG5jsbB4.md` -> `CREATOR IDS PROPERTIES in Record Label Simulator1nQbzTsm6WlX20WYVv-npJW4H0mZ9yvgKbrwG5jsbB4.md`
-- `CREATOR IDs Properties__1w44ub8SK73oIhEfc2KF-cxlCSaud5O0tHqYPc_8HpBQ.md` -> `CREATOR IDs Properties1w44ub8SK73oIhEfc2KF-cxlCSaud5O0tHqYPc8HpBQ.md`
-- `Creator resources__1EWlNpLMPrvb2qo3K6nNA7atbOFMfMv0FrQB8z0Sf1es.md` -> `Creator resources.md`
-- `Creator- Prima Donna__1Zvq-ypyAHM_pdAWGuXojPqd6XM6fcAOQhrOu8gT_PNM.md` -> `Creator- Prima Donna1Zvq-ypyAHMpdAWGuXojPqd6XM6fcAOQhrOu8gTPNM.md`
-- `Creators and members catharsis points__1ga0dE6ich_Cpsxsyv7L-5SvQtDTAzkx3sBieH8MjxW8.md` -> `Creators and members catharsis points1ga0dE6ichCpsxsyv7L-5SvQtDTAzkx3sBieH8MjxW8.md`
-- `Critics’ Councils in Record Label Simulator__1dgyt5tA_-vCdGvcitP7Hlm7pD4Ow7N4t7FrrZstEOrA.md` -> `Critics Councils in Record Label Simulator1dgyt5tA-vCdGvcitP7Hlm7pD4Ow7N4t7FrrZstEOrA.md`
-- `Currencies by Country in Gaia__1YyDwbjnnNRLcyKPqBgsuv_aAJjC2oYo-bkRZ-oMggGI.md` -> `Currencies by Country in Gaia1YyDwbjnnNRLcyKPqBgsuvaAJjC2oYo-bkRZ-oMggGI.md`
-- `Daily Routine__1GJ-iyAQAEr-hvP7YYW2CcnBX6m-lBgntJerUlmpMR4k.md` -> `Daily Routine.md`
-- `Debugging__1W-A8bkRQuk2vcJKLykVdKSBI3344TM5KfBQ1hO5AbMY.md` -> `Debugging.md`
-- `Default demo album for Topoda Charts Gameplay Tutorial__1M3Gu0x9EggiD_EmtwyoVXqBU5UIoZe8SNd3inoTT-qA.md` -> `Default demo album for Topoda Charts Gameplay Tutorial1M3Gu0x9EggiDEmtwyoVXqBU5UIoZe8SNd3inoTT-qA.md`
-- `Detailed Revenue Breakdown (Capacities 1,000 to 300,000) Arenas and Stadiums__1Z8Jll3b7Ov-TGpsRYM2XJLk_oJJX8I5xC9apuX4Pr_I.md` -> `Detailed Revenue Breakdown (Capacities 1000 to 300000) Arenas and Stadiums1Z8Jll3b7Ov-TGpsRYM2XJLkoJJX8I5xC9apuX4PrI.md`
-- `dialogue - Record Label Simulator__1nY10bOIzYBTVCcYiFdtLmBO3yDiHcoDQFFHDVz4YiJU.md` -> `dialogue - Record Label Simulator.md`
-- `Dialogue for Quests for Record Label Simulator__1GMPh-m-oa8CDHi9gi0pZMlhuo7bUKRP7JjH3owrqiAs.md` -> `Dialogue for Quests for Record Label Simulator.md`
-- `Dialogue for Record Label Simulator__1S3iV1i109QbFmP9VaHG4iYwqtHVk-j3MRf7ntYdNLHk.md` -> `Dialogue for Record Label Simulator.md`
-- `Dialogue__1FnHrN0jVd3SjCIltvlCecxOC02XcK8VZqvYHZnHxZ7I.md` -> `Dialogue.md`
-- `Directory of Entities__1M4QX12nhOb1BKSNmtNZvGCeBO9c02ZzqdRs-WEpgleA.md` -> `Directory of Entities.md`
-- `do you mean it- - song lyrics track [RAW VOW].md` -> `do you mean it- - song lyrics track RAW VOW.md`
-- `Dominican phrases to use in-game for Record Label Simulator NPC dialogue__1Rb4P9uwH6jHmc2l_C3KdKMWGtHjWSvwtFX9qJKxDbIo.md` -> `Dominican phrases to use in-game for Record Label Simulator NPC dialogue1Rb4P9uwH6jHmc2lC3KdKMWGtHjWSvwtFX9qJKxDbIo.md`
-- `don’t call it love yet - song lyrics track [RAW VOW].md` -> `dont call it love yet - song lyrics track RAW VOW.md`
-- `Don’t wanna remember song lyrics track__1hqVNhYay4Ad4yTqU-TOr2S-SScrEXFLCm-uFaZNO7Tg.md` -> `Dont wanna remember song lyrics track.md`
-- `Donations to institutions in Record Label Simulator__14ZChC7OOG5AGCXeNZfb8FTf78zoJvD5jhjsQHTlPs0M.md` -> `Donations to institutions in Record Label Simulator.md`
-- `Drive-Wide Terminology Cleanup Scripts — Reproducible Run Rules & Logging Standard (Docs + Sheets).md` -> `Drive-Wide Terminology Cleanup Scripts - Reproducible Run Rules Logging Standard (Docs Sheets).md`
-- `Email Template- Quest__1_883vb01mBsdtyvJlFcQv1eqSU_Sxn187gyVkSqDrmg.md` -> `Email Template- Quest1883vb01mBsdtyvJlFcQv1eqSUSxn187gyVkSqDrmg.md`
-- `Emotion, feeling, mood, state__1Bjt8w6ugnpO3xWaAR2lb62VpTp3JALIEpRyVTG8D18I.md` -> `Emotion feeling mood state.md`
-- `Engagement & Consumerism Metrics in Record Label Simulator__123eLm7lPlesNLp0X80IXvee4hPgoeMpz57-Pvf6zK7c.md` -> `Engagement Consumerism Metrics in Record Label Simulator.md`
-- `Entities, Components, and Systems in Record Label Simulator__1FRfExyQwkQZPSUI1UB2yxth8wtzprY5dxFiAOYI66-g.md` -> `Entities Components and Systems in Record Label Simulator.md`
-- `Even song lyrics track__1LGvtUJO6pB7gnVGbmxVNKOUMqXBeCuCaoJEK7MeMnss.md` -> `Even song lyrics track.md`
-- `Example Breakdown- 30,000 Physical Sales Revenue in Record Label Simulator__1n5ViBSF6UdLcCP1-4WV6LXsMow1wTX1LvTxvv3tO16A.md` -> `Example Breakdown- 30000 Physical Sales Revenue in Record Label Simulator.md`
-- `Example Breakdown- Digital Streaming__15zE4zxx7xAAzlg1LhojY_RotRLiq2TL0sia_fpQoXqo.md` -> `Example Breakdown- Digital Streaming15zE4zxx7xAAzlg1LhojYRotRLiq2TL0siafpQoXqo.md`
-- `Examples of Prompts for Leonardo.AI Phoenix model__1QUCSbSGicsNEpCw7YaZJPMYzZyXr3fUeU5FTc46ioT4.md` -> `Examples of Prompts for LeonardoAI Phoenix model.md`
-- `Expanded and Integrated Stamina System Explanation__1gjxUdG_B0_hEHEXPcUJQdSx8EhvQoBnQ_d1aMl9YQns.md` -> `Expanded and Integrated Stamina System Explanation1gjxUdGB0hEHEXPcUJQdSx8EhvQoBnQd1aMl9YQns.md`
-- `EXPLAINS HOW THEMES ARE SATISFIED BY REACHING CERTAIN GOALS__1wDTGMLzxfVvujn_OLhrBcYwRIhm1Gb-0PR4bFj5yMjg.md` -> `EXPLAINS HOW THEMES ARE SATISFIED BY REACHING CERTAIN GOALS1wDTGMLzxfVvujnOLhrBcYwRIhm1Gb-0PR4bFj5yMjg.md`
-- `Explanation of Alignment of Content, Projects, Acts, Eras, and Record Label in Record Label Simulator video game project__1VecOQK5rW2jmCYx2dYBejaDYn591WkxAeGtc03sElrQ.md` -> `Explanation of Alignment of Content Projects Acts Eras and Record Label in Record Label Simulator video game project.md`
-- `Explanation of Terrain Features and Building Navigation__1K2abmf6NT-ASLQ0ozu8mNAzA6r6dNUYYjW5t3VWOY_o.md` -> `Explanation of Terrain Features and Building Navigation1K2abmf6NT-ASLQ0ozu8mNAzA6r6dNUYYjW5t3VWOYo.md`
-- `Expression Points (EXP) in Record Label Simulator__1d6uLUuaEnYTiVVaamFgbIxP5RhUJwucVc-ufkjb5kgw.md` -> `Expression Points (EXP) in Record Label Simulator.md`
-- `eyeriS Broadcasting Corporation (eBC)__1rv4jQmbi-CKe5rqn_99fBjKrc4kexnElhsOFTuomZv4.md` -> `eyeriS Broadcasting Corporation (eBC)1rv4jQmbi-CKe5rqn99fBjKrc4kexnElhsOFTuomZv4.md`
-- `eyeriS Broadcasting Corporation (eBC)__1Tw1UtkURgJQX8sATtD6hInzujv-aDuo4FvVT_3b-FGo.md` -> `eyeriS Broadcasting Corporation (eBC)1Tw1UtkURgJQX8sATtD6hInzujv-aDuo4FvVT3b-FGo.md`
-- `eyeriSocial Handles, Mentions, and Inactive Accounts.md` -> `eyeriSocial Handles Mentions and Inactive Accounts.md`
-- `Fake Article- The Symphony of Man and Machine- Merging Human and AI Artists in Music Tycoon Gaming, Record Label Simulator.md` -> `Fake Article- The Symphony of Man and Machine- Merging Human and AI Artists in Music Tycoon Gaming Record Label Simulator.md`
-- `Family Tree with # Headings and ## Subheadings__19d_stjB1iFT4Pf1hH-wI88Oa1mnBR5VZGJ3ARGw-qeM.md` -> `Family Tree with Headings and Subheadings19dstjB1iFT4Pf1hH-wI88Oa1mnBR5VZGJ3ARGw-qeM.md`
-- `Festivals in Record Label Simulator__1ePtwbvlH_weTj0JvAYcz_evJR3LufQy7eXDSjUZyCPs.md` -> `Festivals in Record Label Simulator1ePtwbvlHweTj0JvAYczevJR3LufQy7eXDSjUZyCPs.md`
-- `Financial Flow and Strategy for Broadcasts__1-VYMYMhZ5vFXoQFzwdbJqG4gGmYjSRL0WSIKT81IH98.md` -> `Financial Flow and Strategy for Broadcasts.md`
-- `FINDING CREATORS in Record Label Simulator__1y_45NgoYgBeVaWLCR0I9LE2nNtFOlxOnyKSUi28M97g.md` -> `FINDING CREATORS in Record Label Simulator1y45NgoYgBeVaWLCR0I9LE2nNtFOlxOnyKSUi28M97g.md`
-- `Five CREATORS with the FLAMP themes related names - Record Label Simulator__1AvnJbuSzzdmEqywl8gQITiSa3mi8KhzZkfpVCfoHZvo.md` -> `Five CREATORS with the FLAMP themes related names - Record Label Simulator.md`
-- `five key traits for modeling subcultures in Topoda Charts__1mxHjTXezful-g6KH40ZBVCS38i18FaTI8y8gh-7HbvA.md` -> `five key traits for modeling subcultures in Topoda Charts.md`
-- `flushing out the dirty water__12E9MLg8nHr-7gLQ4KibPvehBkFwl-KDSgv4qdFamPZQ.md` -> `flushing out the dirty water.md`
-- `Format - Formatting Paragraph Styles__1UvZStaN2qsQMs9rrKDkwwPffUMZ0jEk_5rQ2x3cYhuU.md` -> `Format - Formatting Paragraph Styles1UvZStaN2qsQMs9rrKDkwwPffUMZ0jEk5rQ2x3cYhuU.md`
-- `Full content Genre Concept in the Game__1YTjfBVmyfdDjOLrOe11Cz1njGdBzRyl9Woi3TBp6ibU.md` -> `Full content Genre Concept in the Game.md`
-- `Gaia Countries and Currencies__1pFmtlX9RTjVG3TsXWjTIzi1lodZxk01tSD2xpFreRH8.md` -> `Gaia Countries and Currencies.md`
-- `Gaia Pantheon Matrix__1PFO6DPHBpCmC2rJkls9LoMkoPYM2h0AUoN7PILL0NAE.md` -> `Gaia Pantheon Matrix.md`
-- `Gaia Time Zone Overview (Using Standard or Elsewhere) in Record Company Simulator.__1XUvHeydpq96HW1BIClCzUpxuAAIBLYxkdjYDj2TrLaw.md` -> `Gaia Time Zone Overview (Using Standard or Elsewhere) in Record Company Simulator.md`
-- `Game Concept- Capital City Tile Layouts__1cQzqmqVtRb6_kT5yEWR8iUF8Yj9rNaIuFSHysok4TR0.md` -> `Game Concept- Capital City Tile Layouts1cQzqmqVtRb6kT5yEWR8iUF8Yj9rNaIuFSHysok4TR0.md`
-- `Game Concept- Promotional Efforts for Content__1yEAk3tUnmqoLvoVW9_4WZ0WnnsCb6i19kh6USrZbiw4.md` -> `Game Concept- Promotional Efforts for Content1yEAk3tUnmqoLvoVW94WZ0WnnsCb6i19kh6USrZbiw4.md`
-- `Game Design Document of Record Label Simulator__1zRgxowK2J-14c0ZnVNfaTF12si_OD4IgPsqvVo7wm10.md` -> `Game Design Document of Record Label Simulator1zRgxowK2J-14c0ZnVNfaTF12siOD4IgPsqvVo7wm10.md`
-- `Game design Record Label Simulator (6-23-2024)__1f3gJYVHrE7QGGABLczsYxabpHhC0NmjcBHgkpf1RFsI.md` -> `Game design Record Label Simulator (6-23-2024).md`
-- `Game Loop in -Record Label Simulator-__1TPKdYCQD4ZMUSbPyELH0o68GBLnZ5LRJClSLtGGg3_o.md` -> `Game Loop in -Record Label Simulator-1TPKdYCQD4ZMUSbPyELH0o68GBLnZ5LRJClSLtGGg3o.md`
-- `Game Mechanic- Rollout Strategy of the Era of an Act in Record Label Simulator__17w8i_cwIcPQbXkFUmLolFsvY6DU7PujqftjdoVTjABA.md` -> `Game Mechanic- Rollout Strategy of the Era of an Act in Record Label Simulator17w8icwIcPQbXkFUmLolFsvY6DU7PujqftjdoVTjABA.md`
-- `Game save progress in RLS__1URgI00oI3PvGqSLuUJZjaXdGCX787pWYT8VB4iyJZmI.md` -> `Game save progress in RLS.md`
-- `Gameplay Feature Report for Record Label Simulator- Artist Immortalization System__1BRQPnrzsJ-cLJDo4BHB_L1onravst6Dr_td8aKvpylc.md` -> `Gameplay Feature Report for Record Label Simulator- Artist Immortalization System1BRQPnrzsJ-cLJDo4BHBL1onravst6Drtd8aKvpylc.md`
-- `Gameplay overview__1V1uAA_xTJfTu8zKXVd4rlgLkTYg6cPF0zQiq-hInO7U.md` -> `Gameplay overview1V1uAAxTJfTu8zKXVd4rlgLkTYg6cPF0zQiq-hInO7U.md`
-- `Genevive Song Lyrics__1F8ITMEcUov0rTy9e5cn62UgV7hZ06XSlhA7NHA9W1OE.md` -> `Genevive Song Lyrics.md`
-- `Global Demographic Evolution- Growth and Control Guidelines__1R-m9NxPPRbbZJ1K2cp5wlIo8JuRFzgfKThdDRa3j5jk.md` -> `Global Demographic Evolution- Growth and Control Guidelines.md`
-- `Glossary of important word definitions__1FtnR7Kdsvd9kvKlCoKP8Xma5alOnI2AqUnopteoXq-8.md` -> `Glossary of important word definitions.md`
-- `Glossary__1YuYS2LraypZh7qLHS7VZnxM8KCeh9RfcBljCVR9f70A.md` -> `Glossary.md`
-- `Government Permits and Upgrades-__1u1Worn1sIy_jO57FpAmryfaxfLwgcd55E_juKjnTIT0.md` -> `Government Permits and Upgrades-1u1Worn1sIyjO57FpAmryfaxfLwgcd55EjuKjnTIT0.md`
-- `He dances on - Song Lyrics - Track__192T0aT0vBJZ9lUYeyscsbsvG2bZMtWEM-3OJm2KwFdA.md` -> `He dances on - Song Lyrics - Track.md`
-- `Here’s the revised set of content genres excluding 5 of the Boring categories and a corresponding list of 40 unique creators (20 female and 20 male)-.md` -> `Heres the revised set of content genres excluding 5 of the Boring categories and a corresponding list of 40 unique creators (20 female and 20 male)-.md`
-- `Hey - song lyrics - track__1ZBxuZ7tWCiR9bNV9_i5Ax7bYFFx74n04gDUCy1Ddz9o.md` -> `Hey - song lyrics - track1ZBxuZ7tWCiR9bNV9i5Ax7bYFFx74n04gDUCy1Ddz9o.md`
-- `Hostage Song lyrics track__1UH1a-mX9V9Zw1EJ3CVx4PxoCXYjNMf_pXm842r0lgi0.md` -> `Hostage Song lyrics track1UH1a-mX9V9Zw1EJ3CVx4PxoCXYjNMfpXm842r0lgi0.md`
-- `Hours to level up to 10__1gq3AkCYlfbOISqhre0giW6oJYLGmRU2bqQOirjnWD4k.md` -> `Hours to level up to 10.md`
-- `How Come Lyrics track song__1-ZzitWnjv7SiLxBZH74n0vhYF60B6wfY639TIN8-4nU.md` -> `How Come Lyrics track song.md`
-- `How to adopt a modular code workflow for your team__1UtrpQvPUS59BWdD8pTUzUcYuy_vKk2f4bfj672_PU6Y.md` -> `How to adopt a modular code workflow for your team1UtrpQvPUS59BWdD8pTUzUcYuyvKk2f4bfj672PU6Y.md`
-- `How To Assign Physical Address to Areas in Record Label Simulator__1Qp60Y4gmKh5gRm6dmQb-4FvWDBDiZThN4KA-wdKeaWY.md` -> `How To Assign Physical Address to Areas in Record Label Simulator.md`
-- `How To Determine Theme & Mood (and content Genre) of Content in Record Label Simulator.md` -> `How To Determine Theme Mood (and content Genre) of Content in Record Label Simulator.md`
-- `How to implement Save-Load mechanism with Odin Serializer and SQLite4Unity3d__1FfhICzRVs0VIhfUVYKBGk7R0Uwn6WzaF99g9RCEQdkc.md` -> `How to implement Save-Load mechanism with Odin Serializer and SQLite4Unity3d.md`
-- `Hype in Record Label Simulator__1PghH4SIMqbuo5axsKx5Zh2ERxbKDDsdiTcHlNWdbuX0.md` -> `Hype in Record Label Simulator.md`
-- `i don’t want peace - song lyrics track [RAW VOW].md` -> `i dont want peace - song lyrics track RAW VOW.md`
-- `I Fear song lyrics track__13Tz70BXWwnCVs6x55MbvZAdlobw1F4OofG3tm_gBE5o.md` -> `I Fear song lyrics track13Tz70BXWwnCVs6x55MbvZAdlobw1F4OofG3tmgBE5o.md`
-- `I Hate You by Woodz in Spanish Version__1V9Tq5slknNeXy3Xl0wjP9HCJGOGbrs9TXCPYcUc5oak.md` -> `I Hate You by Woodz in Spanish Version.md`
-- `I Know That You Want My (feat. Genevieve)__18cYK7I0fcWGJyu-QU5PBLdJBMkaAz6zEvPhljJAT1QI.md` -> `I Know That You Want My (feat Genevieve).md`
-- `I Mattered - song lyrics - track__1R-XjeliFvlh7Nv9vfNET1aJO1z95HIWp45xcTGKaGd4.md` -> `I Mattered - song lyrics - track.md`
-- `I Mattered - song lyrics track version 2__15qSVVjK9l6UstuvbLr3_7LGviGoWtbjKRvC4lhIwbLw.md` -> `I Mattered - song lyrics track version 215qSVVjK9l6UstuvbLr37LGviGoWtbjKRvC4lhIwbLw.md`
-- `i walk alone__1aoK90-C4WyvAdU1Qp_wVLqTLUnk81PyNjY3dmEK07JI.md` -> `i walk alone1aoK90-C4WyvAdU1QpwVLqTLUnk81PyNjY3dmEK07JI.md`
-- `I'm Making A Record Label Simulator Game__1piyH3FPB3y5rIaChhkNy-hiZBrOSSzn_pxwxtgwgUj8.md` -> `Im Making A Record Label Simulator Game1piyH3FPB3y5rIaChhkNy-hiZBrOSSznpxwxtgwgUj8.md`
-- `ID__1-6HwXGKbxS4v5LBXSzK0hXF-vqMUu_KU1UMEmn9ODw0.md` -> `ID1-6HwXGKbxS4v5LBXSzK0hXF-vqMUuKU1UMEmn9ODw0.md`
-- `IDs and ID slots on Studios, Academies, Sets and Venues.md` -> `IDs and ID slots on Studios Academies Sets and Venues.md`
-- `Images for eyeriSocial posts__1HGpTdlf4TwPBFnRx8jhtL1vb5zStCy7DjxjUzQVMa-c.md` -> `Images for eyeriSocial posts.md`
-- `Images of Marc Hann__1CfEozIgWBnSlLTXxKr___f4gapJMxiBoiBu2wJTLPQI.md` -> `Images of Marc Hann1CfEozIgWBnSlLTXxKr.md`
-- `Important (Backend Keys etc.)__11ZsJndC98r-5gNctzbNmifo-hWRHRc7y79Z8vj9UQM0.md` -> `Important (Backend Keys etc).md`
-- `Important Unity DOTS YouTube videos__1fcFSjZ_HcwUyNYMXZenjjbcgxmlhRasN6yKbwHYm7tk.md` -> `Important Unity DOTS YouTube videos1fcFSjZHcwUyNYMXZenjjbcgxmlhRasN6yKbwHYm7tk.md`
-- `In Record Label Simulator (RLS), what are the player’s actual responsibilities and actions moment-to-moment, and what outcomes are they driving.md` -> `In Record Label Simulator (RLS) what are the players actual responsibilities and actions moment-to-moment and what outcomes are they driving.md`
-- `In Record Label Simulator (RLS), what does “Chief Executive Officer (CEO) - music executive” mean, and what does that role do inside the game.md` -> `In Record Label Simulator (RLS) what does Chief Executive Officer (CEO) - music executive mean and what does that role do inside the game.md`
-- `In-Game Audience Mechanic in Record Label Simulator__1IsD9-dlxXuEd5jWXqmQ9j8mRjiMlwinhv-iHLZ6Qp7I.md` -> `In-Game Audience Mechanic in Record Label Simulator.md`
-- `In-Game Economy and Transactions__1mTujX27OsWeaqia53m2oGs8Jno-hE6v_BcHeRzy0jJ8.md` -> `In-Game Economy and Transactions1mTujX27OsWeaqia53m2oGs8Jno-hE6vBcHeRzy0jJ8.md`
-- `In-Game Item- Content - Concert DVD__13QjWC_gn_Wg6Qcu0gS2nsdunCzbrL4tw-1EmSgzUf38.md` -> `In-Game Item- Content - Concert DVD13QjWCgnWg6Qcu0gS2nsdunCzbrL4tw-1EmSgzUf38.md`
-- `In-Game Time Control Mechanics for Record Label Simulator__1Ee8bx3jXY3BqXZK-Awp9F2y_nsdpdU7CJ4zJ2uqwNgs.md` -> `In-Game Time Control Mechanics for Record Label Simulator1Ee8bx3jXY3BqXZK-Awp9F2ynsdpdU7CJ4zJ2uqwNgs.md`
-- `In-Game World Initial Simulation for Record Label Simulator__1aHmaIZv-D0v08VkOtLsDjryNE0eOgObVDVacdJWSez0.md` -> `In-Game World Initial Simulation for Record Label Simulator.md`
-- `Incentive for Social Media Content Sharing (TikTok, Reels, Shorts) in Record Label Simulator__13prFq37uTdDysOwZNjQHgO4gedNSme5nUquNrPetApQ.md` -> `Incentive for Social Media Content Sharing (TikTok Reels Shorts) in Record Label Simulator.md`
-- `Income and Expenses of Members in Record Label Simulator__1gswYKPYuyLw8TVohluw8isJLuJymEkVpdV8opiJhKAI.md` -> `Income and Expenses of Members in Record Label Simulator.md`
-- `Infested By You - Lyrics__134Z66Hau6qe_d_Jn7xHyJM2xzkXIhT3z7ZfL6CL23g0.md` -> `Infested By You - Lyrics134Z66Hau6qedJn7xHyJM2xzkXIhT3z7ZfL6CL23g0.md`
-- `Initial Concept of how Tracks gain Properties in-game__1h2PKid0C6EMSJH21GdGHRDv-WvIkOKILqiutWvzE1ac.md` -> `Initial Concept of how Tracks gain Properties in-game.md`
-- `Initial Prompt for KeyMate ChatGPT__18EsYu1d1btjCM4TlwFTega4U22GYtD1mYZIpV4QI5LU.md` -> `Initial Prompt for KeyMate ChatGPT.md`
-- `Initial Simulation of -Era- of an -Act- in the Pre-game Simulation Stage__1euFf0MxfsV01sE_OZWv9kla5S3E0C_ETjPn_r2s3VgQ.md` -> `Initial Simulation of -Era- of an -Act- in the Pre-game Simulation Stage1euFf0MxfsV01sEOZWv9kla5S3E0CETjPnr2s3VgQ.md`
-- `Inspiration, parody of historic figures related to the history of the Dominican Republic__1Xz13RJzfYhD_UjOL4EXGt4jjVd37HRdV1ITJL4N-Zh8.md` -> `Inspiration parody of historic figures related to the history of the Dominican Republic1Xz13RJzfYhDUjOL4EXGt4jjVd37HRdV1ITJL4N-Zh8.md`
-- `Instruments for Moods and Themes (Music Genres) - Background music for RLS__1HWxgc4LgYSp2cQPkWc9M8yQPhQSVbsBO0PXR5bJcOvQ.md` -> `Instruments for Moods and Themes (Music Genres) - Background music for RLS.md`
-- `Interview about Taylor Swift’s Eras Tour__1NfPk6mPR8EBxiTGKlqzeOqCf-WRkSZw5T_B8ExokXNM.md` -> `Interview about Taylor Swifts Eras Tour1NfPk6mPR8EBxiTGKlqzeOqCf-WRkSZw5TB8ExokXNM.md`
-- `Interview style like “The Guardian” for Olivia Rodrigo’s album Guts__1yOD6_U7z7lHB2ltOfPDwN9eyxA-veMFFEJA93NCpd3o.md` -> `Interview style like The Guardian for Olivia Rodrigos album Guts1yOD6U7z7lHB2ltOfPDwN9eyxA-veMFFEJA93NCpd3o.md`
-- `inventory mechanics in Record Label Simulator__1skFyYeB1K6_BA_09c1xTaR9uioNUPukBiBHTkBhE66s.md` -> `inventory mechanics in Record Label Simulator1skFyYeB1K6BA09c1xTaR9uioNUPukBiBHTkBhE66s.md`
-- `Items in 'Record Label Simulator'__1a9kQd9n7YKpvJFAVgzlHEdb10K79rHnqdfgitjB5Wng.md` -> `Items in Record Label Simulator.md`
-- `JavaScript Relevant Learning for Record Label Simulator Development__102LODQe3QTGLdbwGbo7wciNuS8NhzLUSAUAeEU0S6ic.md` -> `JavaScript Relevant Learning for Record Label Simulator Development.md`
-- `kayler’s shadow__16lrG9VmdZ4T2SARCvklP1gifaa2NxW876fDjo_UaXNM.md` -> `kaylers shadow16lrG9VmdZ4T2SARCvklP1gifaa2NxW876fDjoUaXNM.md`
-- `Last name of recording artists__18_e4tqlMjzvfFf9r4s0Mun8XDht8Q4TuzWCd0suPBCU.md` -> `Last name of recording artists18e4tqlMjzvfFf9r4s0Mun8XDht8Q4TuzWCd0suPBCU.md`
-- `Last names and marriage proposals in Record Label Simulator__1EbKg0uW-rPKhsC07Mc-pDz7w7dcpa6xtEnBusWcKLu8.md` -> `Last names and marriage proposals in Record Label Simulator.md`
-- `Last names of songwriters__18JXPhxoMlrq_mKddtQ5v1vm_1VZHF3OtaIecN9XnUuU.md` -> `Last names of songwriters18JXPhxoMlrqmKddtQ5v1vm1VZHF3OtaIecN9XnUuU.md`
-- `Lease and construction cost of studio structures__1f8pQ5ALS8mb0pPqjTI_JIEKwJNrr-AvqDbs2wd0zozg.md` -> `Lease and construction cost of studio structures1f8pQ5ALS8mb0pPqjTIJIEKwJNrr-AvqDbs2wd0zozg.md`
-- `Let It Out__1K407MLMfFMfngLxIL1JuRO5GUErhshRjg6lPGYLWpT4.md` -> `Let It Out.md`
-- `Life stages of songwriter creator cards__1NJilOFV4Sxv0aDEMPOBXL_NAszNL2zl7N3GIv30LiyM.md` -> `Life stages of songwriter creator cards1NJilOFV4Sxv0aDEMPOBXLNAszNL2zl7N3GIv30LiyM.md`
-- `Light origin and FLAMP icons design__14VhUX3o3V0OdCR4rFPHhE_BMF8XScITPkz2ooJFkJPs.md` -> `Light origin and FLAMP icons design14VhUX3o3V0OdCR4rFPHhEBMF8XScITPkz2ooJFkJPs.md`
-- `Limits of consumption of audience chunks__1O_cdaR9nIxcN0J6QJsWvz6SxDlwJQZ3gifsLneMzaAU.md` -> `Limits of consumption of audience chunks1OcdaR9nIxcN0J6QJsWvz6SxDlwJQZ3gifsLneMzaAU.md`
-- `List of data to choose from in the properties of Record Label Simulator IDs__1y4PsjEoV439iyLu1jyu5YmIGebeQuU8_AD1eM4_hyqo.md` -> `List of data to choose from in the properties of Record Label Simulator IDs1y4PsjEoV439iyLu1jyu5YmIGebeQuU8AD1eM4hyqo.md`
-- `List of Record Labels in Record Label Simulator__1AmO4BjyD5BIZ7b1vsyR5CeuW30Ua4kxF7VMTAmKT7ec.md` -> `List of Record Labels in Record Label Simulator.md`
-- `Loan and Interest Rate System in Record Label Simulator__1zYUa4ItSpGNCxQz6huu0SaXdiehKm6iSfO6xwh4JGUQ.md` -> `Loan and Interest Rate System in Record Label Simulator.md`
-- `look at me (intro) - song lyrics track [RAW VOW].md` -> `look at me (intro) - song lyrics track RAW VOW.md`
-- `Love Note song lyrics track__1XENXfROvB0ePPo0C8_MbTVQZmy7Ux2lNpvBSONc81VE.md` -> `Love Note song lyrics track1XENXfROvB0ePPo0C8MbTVQZmy7Ux2lNpvBSONc81VE.md`
-- `Lucky Charm song lyrics track__11cgnAxFMyPHbSvK_MgR8Q-qXHwgiARnW0D_paHlPZuY.md` -> `Lucky Charm song lyrics track11cgnAxFMyPHbSvKMgR8Q-qXHwgiARnW0DpaHlPZuY.md`
-- `Lyrical theme (lyricist) and performance mood (performer) in Record Label Simulator__1e5PNX_mH8CGrhzIZqdA7psSfoZvJCVd6f8Y0c9wCjFQ.md` -> `Lyrical theme (lyricist) and performance mood (performer) in Record Label Simulator1e5PNXmH8CGrhzIZqdA7psSfoZvJCVd6f8Y0c9wCjFQ.md`
-- `Magnetic - song lyrics track__13Cuo-inAQHWikiVC5KkiqDs6COBXyzLPE6vtG4SdDsc.md` -> `Magnetic - song lyrics track.md`
-- `Main Character of Topoda Charts In-Game Universe Story Mode Videogame - EVIL ENTITY- AKITO from Crowlya__1CHxk9Hnk179GORpyo-wz-fFUoFmFZBUhwzi3Xk_AV34.md` -> `Main Character of Topoda Charts In-Game Universe Story Mode Videogame - EVIL ENTITY- AKITO from Crowlya1CHxk9Hnk179GORpyo-wz-fFUoFmFZBUhwzi3XkAV34.md`
-- `Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Genevive Mar- Love Interest__1wE_PQX7cgqFKjeQz7ivauciX_3Klr6-rWayOoBc5mEo.md` -> `Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Genevive Mar- Love Interest1wEPQX7cgqFKjeQz7ivauciX3Klr6-rWayOoBc5mEo.md`
-- `Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Irene Strongbow- Creator of eyeriSocial__19O1CNhsRe8n9Sv1xgFoleG7ZZrOoyjSxV8exqWXmvAM.md` -> `Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Irene Strongbow- Creator of eyeriSocial.md`
-- `Map of Bloomville (Capital City of Annglora) in Record Label Simulator__1N7R8X2Wk6IudF23XAd96VYE0wSW2HFTAaDRE7pU5mKA.md` -> `Map of Bloomville (Capital City of Annglora) in Record Label Simulator.md`
-- `Map of Earth__159gRdhaE93xO2nzkPxMRr0Ll5_xewcc77c_pbRJmFfk.md` -> `Map of Earth159gRdhaE93xO2nzkPxMRr0Ll5xewcc77cpbRJmFfk.md`
-- `Mariah Noya - Marc's Mother in Record Label Simulator__1GJkcPL1eyhG_1QpvJApbgJC5zNhF6X1SMsHcIpXZ1eo.md` -> `Mariah Noya - Marcs Mother in Record Label Simulator1GJkcPL1eyhG1QpvJApbgJC5zNhF6X1SMsHcIpXZ1eo.md`
-- `Markdown Guidelines for Unity GameObjects and Entities__1QvNnFQ-9jXYFJPh_2fHo7vUq9Emgj6N22I569qJwtjY.md` -> `Markdown Guidelines for Unity GameObjects and Entities1QvNnFQ-9jXYFJPh2fHo7vUq9Emgj6N22I569qJwtjY.md`
-- `master recording__1zpgjd_GLm0z9EDxOQ4hQtxA-40Z_OfreElj4rU02TME.md` -> `master recording1zpgjdGLm0z9EDxOQ4hQtxA-40ZOfreElj4rU02TME.md`
-- `Member Personnel Occupation Wage__1g8G9dLbtgcauljpe3I2oC4H4makj8WnznMJTthH3kHw.md` -> `Member Personnel Occupation Wage.md`
-- `Member Transition in “Record Label Simulator”.md` -> `Member Transition in Record Label Simulator.md`
-- `Member Traveling Speed in Record Label Simulator__1KMpmaMd4HbE05WunfX0SyLPyCnPlicN7o0XsQxJ8vXY.md` -> `Member Traveling Speed in Record Label Simulator.md`
-- `Menu scenes__1DuXyTo2U3qKL9KrhIOiTa80zgrA50RmC4inBQmujGgk.md` -> `Menu scenes.md`
-- `Message- If you’re good at everything, you’re specially good at nothing.__1ZlRVQ7bBoIwV-nRnO_x0mA74Z64bQDFX3H7SZNmdqrs.md` -> `Message- If youre good at everything youre specially good at nothing1ZlRVQ7bBoIwV-nRnOx0mA74Z64bQDFX3H7SZNmdqrs.md`
-- `Mike Hawk - Topoda Charts Artist__1Srh8yqpZ714om-gQFIGuHwDmhHr87VJF_IcnK_wm9xc.md` -> `Mike Hawk - Topoda Charts Artist1Srh8yqpZ714om-gQFIGuHwDmhHr87VJFIcnKwm9xc.md`
-- `Miserable - Quote (Dialogue)__1W56gaWNxIeFNlHTi_Lm73WwTjWuO6P61SQs3js3Mt1M.md` -> `Miserable - Quote (Dialogue)1W56gaWNxIeFNlHTiLm73WwTjWuO6P61SQs3js3Mt1M.md`
-- `Modifier - Revamper__1hd3qKbF0Qyh1FL929kATFv-OBwpJyg9EFYC0XNfeKB8.md` -> `Modifier - Revamper.md`
-- `Modifier - Substance Name- Dispatch Dust (faster speed, lower quality)__1dyc3nY1LSK9262gAV_ogX1ero1L1Zdx_PwGGLptxjaA.md` -> `Modifier - Substance Name- Dispatch Dust (faster speed lower quality)1dyc3nY1LSK9262gAVogX1ero1L1ZdxPwGGLptxjaA.md`
-- `Modifier - Substance Name- Sensory Sage (slower speed, higher quality)__1BaZXvq_kQoip1VthCUOrjSYYW72YiMu_YjV21CYS5p4.md` -> `Modifier - Substance Name- Sensory Sage (slower speed higher quality)1BaZXvqkQoip1VthCUOrjSYYW72YiMuYjV21CYS5p4.md`
-- `modifiers in record label simulator__1VzBkbbuQ6QQZDeDmqcsqDfzPsl7u5Ds0OvVSURKDHS0.md` -> `modifiers in record label simulator.md`
-- `Modular creation of items in Studios, Academies, Sets and Venues__1S7ztjkQYXbzxz9E_4clbj0xkTTwNgXfDALhdd_nx5cI.md` -> `Modular creation of items in Studios Academies Sets and Venues1S7ztjkQYXbzxz9E4clbj0xkTTwNgXfDALhddnx5cI.md`
-- `Module Calendar__1gs7jLrMc03tGNAsHBuGtTsV-n-Nz3n415xEwKqGMphU.md` -> `Module Calendar.md`
-- `Mood of tracks in Record Label simulator__1Jx5gP4_lx2FQExFjeom_2pY3FGYBCqqN1o3uOyeA5O0.md` -> `Mood of tracks in Record Label simulator1Jx5gP4lx2FQExFjeom2pY3FGYBCqqN1o3uOyeA5O0.md`
-- `Moods in Record Label Simulator (with Vibe, Energy, Finish, and Lighting)__1HieWZa8j-sk8lZ39hlcjOBMhVpcKDBbe6Hq6S3m24Fs.md` -> `Moods in Record Label Simulator (with Vibe Energy Finish and Lighting).md`
-- `Most chart-topping single of the year- game mechanics__1EZ5Y7BgoGPyUfbALzI29GMYLESFFSKpvldrytcDJuso.md` -> `Most chart-topping single of the year- game mechanics.md`
-- `MUSIC EXECUTIVE in Record Label Simulator__1SqhrabuAjsCwThokDvY1ugVgcwTgdVQrVnEgC7LfToI.md` -> `MUSIC EXECUTIVE in Record Label Simulator.md`
-- `Music Theory Learning for Topoda Charts__1Z5ved_8PbuzwnMf-3oxrWjKHCaBNroK_uQ-RACbR0F4.md` -> `Music Theory Learning for Topoda Charts1Z5ved8PbuzwnMf-3oxrWjKHCaBNroKuQ-RACbR0F4.md`
-- `Mythology of Record Label Simulator based on Dominican folklore__1mCTMH5aHaPswt12cxMpxDWKVnO32wqtnAMEGrUwgzuw.md` -> `Mythology of Record Label Simulator based on Dominican folklore.md`
-- `Name Origin, Ethnicity, Culture, and Demonyms of countries in Record Label Simulator__1N_OknDeDvhoIpppmOqzGDy4SB510Rvlwo8CZVONgbyA.md` -> `Name Origin Ethnicity Culture and Demonyms of countries in Record Label Simulator1NOknDeDvhoIpppmOqzGDy4SB510Rvlwo8CZVONgbyA.md`
-- `Natural Hair Colors in Humans of Record Label Simulator In-Game Universe__1TKdqDOnBDzY0nz2RBXuyMCPHJeqg4H9Hnlyd8g0LrWA.md` -> `Natural Hair Colors in Humans of Record Label Simulator In-Game Universe.md`
-- `negative prompts for leonardo.ai__1hbDAvMHh3IMc3mTog_EzXXlTtf8MiOXdE3B9qSt5Ae4.md` -> `negative prompts for leonardoai1hbDAvMHh3IMc3mTogEzXXlTtf8MiOXdE3B9qSt5Ae4.md`
-- `Negotiating Skill in Record Label Simulator__1exs9WZk1GIBUW3DjJo3hGORx6Pjz4QKwmCuqPLwXG2s.md` -> `Negotiating Skill in Record Label Simulator.md`
-- `New years tradition in Annglora__1Ss755RxfUmSFnmTqw00WAC58QLFsMw17v5kD-vYBHDc.md` -> `New years tradition in Annglora.md`
-- `No Winning Side - Song Lyrics - Track__1Q6_rms_NqwjMrX0nlBS7tlVEieOxQLlcWEnKH0Rf8Eg.md` -> `No Winning Side - Song Lyrics - Track1Q6rmsNqwjMrX0nlBS7tlVEieOxQLlcWEnKH0Rf8Eg.md`
-- `Nobody’s Coming - Song Lyrics - Track__1OJ4DQqFTEt4URFJzx3HEtJt5mAABby6TfCDz59sDqKQ.md` -> `Nobodys Coming - Song Lyrics - Track.md`
-- `Olivia Pope’s Debut Album-__1TxAyra1FmdQjXqG3uMiGYkUBgRojV1M2kRRo5-pZsGw.md` -> `Olivia Popes Debut Album-.md`
-- `One of Those Days song lyrics track__1gd88Ggwxmwfs5PjTzR6pTpxsGFta6X0HldakEc7dwvU.md` -> `One of Those Days song lyrics track.md`
-- `One thousand members of a community in Record Label Simulator-TOPODA CHARTS__10Ia3jYkyLKJ2eqM_LMvwfJgwikMMb1CwaZCWhaIsXUY.md` -> `One thousand members of a community in Record Label Simulator-TOPODA CHARTS10Ia3jYkyLKJ2eqMLMvwfJgwikMMb1CwaZCWhaIsXUY.md`
-- `Open song lyrics track__12a-_LZCg9udaqnVDdMxtytlMVa64MzTaj6gGvRrcCPA.md` -> `Open song lyrics track12a-LZCg9udaqnVDdMxtytlMVa64MzTaj6gGvRrcCPA.md`
-- `Opening Scene__1Ni-2DEXlzD57i_nxvvpia8PUwUAImhcaJTKFu4LuBjM.md` -> `Opening Scene1Ni-2DEXlzD57inxvvpia8PUwUAImhcaJTKFu4LuBjM.md`
-- `Organizations in Record Label Simulator- Institutions vs. Companies.md` -> `Organizations in Record Label Simulator- Institutions vs Companies.md`
-- `Out of Boredom - Song Lyrics - Track__1zJ01HIdImMuozKSE7ZjmOeHTegYqgJdoD8hExG0-zQE.md` -> `Out of Boredom - Song Lyrics - Track.md`
-- `Parody names of real-life musicians__17HXUYS39wM6uuvV8WTOGW6ALy7fA8cNvx1JlWn2oCb8.md` -> `Parody names of real-life musicians.md`
-- `Pessimist Puppet__1jlVzk_vI8uRYfQ6Soj69htwXEYc0UlFNDnZLGV19cLk.md` -> `Pessimist Puppet1jlVzkvI8uRYfQ6Soj69htwXEYc0UlFNDnZLGV19cLk.md`
-- `Phonomarks - Writing System of Topoda Charts In-Game Universe__1oqcZykWh64OYzsNtNSH7wJ0E4_jeCnqgiwIpnYoz7oE.md` -> `Phonomarks - Writing System of Topoda Charts In-Game Universe1oqcZykWh64OYzsNtNSH7wJ0E4jeCnqgiwIpnYoz7oE.md`
-- `pick a side - song lyrics track [RAW VOW].md` -> `pick a side - song lyrics track RAW VOW.md`
-- `Placeholder Scenario for Gameplay in Record Label Simulator__1Aiu0qkhBxDxCnw-DptAI2LBPJqV5-IAhfYaVA1QMx2s.md` -> `Placeholder Scenario for Gameplay in Record Label Simulator.md`
-- `Plan for when Record Label Simulator Webpage is ready for publishing__1OBdSwWQQ5-9HUtRkYWtihlKVYwlntpvaGuQAEZwjlgY.md` -> `Plan for when Record Label Simulator Webpage is ready for publishing.md`
-- `Player ceo game progression__1IurNkmMzPttkWSuh2c7-_ZP-LyiJoX6tFZV3q71sPmY.md` -> `Player ceo game progression1IurNkmMzPttkWSuh2c7-ZP-LyiJoX6tFZV3q71sPmY.md`
-- `Poem written by Marc Hann for Record Label Simulator__1uNQIWFRTHAoDpvID6zsh8bacyg1Y6mQDOG7Q1qckb9Y.md` -> `Poem written by Marc Hann for Record Label Simulator.md`
-- `Politics, Lottery song lyrics track__1rl7kjuUhZwT86xt29fJLg-i2MFK9yS6kcxAm2cveAeI.md` -> `Politics Lottery song lyrics track.md`
-- `PR list to assign Content’s quality__1Th5_lne1pvyUO_V3m927zEtcyxY6Ne7n9qPIgcp7YzA.md` -> `PR list to assign Contents quality1Th5lne1pvyUOV3m927zEtcyxY6Ne7n9qPIgcp7YzA.md`
-- `PRE-Era Stage Definition of Record Label Simulation Game Mechanic__14F-z6mJ_2VEK-OWPAHXp3_E7k-5Bk3Na9onAq8elM3U.md` -> `PRE-Era Stage Definition of Record Label Simulation Game Mechanic14F-z6mJ2VEK-OWPAHXp3E7k-5Bk3Na9onAq8elM3U.md`
-- `Preliminary Tools, Items and Content Concept for Record Label Simulator video game__1h5gzWwckYbEgfZJkXhsiAoU2d5iutRU_jln8_6_rSow.md` -> `Preliminary Tools Items and Content Concept for Record Label Simulator video game1h5gzWwckYbEgfZJkXhsiAoU2d5iutRUjln86rSow.md`
-- `Pressing Plant in Record Label Simulator__10B_WRRfT49aDxZSokASuG734jKjJLLdc8yRrswCiwr0.md` -> `Pressing Plant in Record Label Simulator10BWRRfT49aDxZSokASuG734jKjJLLdc8yRrswCiwr0.md`
-- `Pricing and Track Limits for All Formats of Projects in Record Label Simulator__1eDv82zukTEiZa2MYGtSqtfpMB7X03f-ppSgZEzfqWsM.md` -> `Pricing and Track Limits for All Formats of Projects in Record Label Simulator.md`
-- `Project proposal__1-xLaAUn5IUOzHeqgns8jhjssfEyNicRJABhIpn-7Nhc.md` -> `Project proposal.md`
-- `Properties of Content in Record Label Simulator__1eIy2gvIsrTaHdACIwNA2YFKfxL0Ah6ntt6oGcIEME7k.md` -> `Properties of Content in Record Label Simulator.md`
-- `Properties of creator ID in Record Label Simulator__1K2Se5s-QzB5h7yfMaCpyYRYHYDStkKGXj6iS1e9SaYo.md` -> `Properties of creator ID in Record Label Simulator.md`
-- `Prototype Tasks for Record Label Simulator__1GCo_4o1hl7WsLtk0zrjhtyHc0jo0CWZ4qypXpk-vk58.md` -> `Prototype Tasks for Record Label Simulator1GCo4o1hl7WsLtk0zrjhtyHc0jo0CWZ4qypXpk-vk58.md`
-- `Purpose of Song Creation in Record Label Simulator__18gJ8zzS41qVzjE4Nn0IKWy1JTxdjDvm7303oIHQ4kG8.md` -> `Purpose of Song Creation in Record Label Simulator.md`
-- `quality__1LQGMTeSogDxjuzwyreqN9FdiVwFLfqLnh9P6wU5vvDQ.md` -> `quality.md`
-- `Radio stations__10p8NiTUZRe9gmO6t5FLRshykeiqszOG8xbfAjwZMYRY.md` -> `Radio stations.md`
-- `random ass song lyrics track__1NqDkihaVy0KvXpD1nEuzbRFr7RBcJ9orMJEmB1p9S_c.md` -> `random ass song lyrics track1NqDkihaVy0KvXpD1nEuzbRFr7RBcJ9orMJEmB1p9Sc.md`
-- `Recipe items in topoda charts__16qasGRbv2267T-u61ZVdRTAqyy5WlI4r92rBGZoMRiM.md` -> `Recipe items in topoda charts.md`
-- `Recipes__17y2sLnffl7SQawix8zQ3bTAaheGXiDBR5htI7ZEKQrE.md` -> `Recipes.md`
-- `Record Label ERA- Stages of Grief__1U9DvLpeg3UzKltIbimAFQjCJbhhIKo--PNyWaqNyqEA.md` -> `Record Label ERA- Stages of Grief.md`
-- `record label micromanaging strategy simulator game for PC in Unity__1ht0UaPp_hi-6gCJ3ENWkRGxyK-OhpWOBr2tBplSEoZ8.md` -> `record label micromanaging strategy simulator game for PC in Unity1ht0UaPphi-6gCJ3ENWkRGxyK-OhpWOBr2tBplSEoZ8.md`
-- `Record Label Simulator - Bygone Eras__1e8Loltvx9YWLlVyEwTjzSGb37Xys759uITkLwkhXeAQ.md` -> `Record Label Simulator - Bygone Eras.md`
-- `Record Label Simulator - C.R.A.F.T. Institute__17Hk4iqQK6XR3m3vvdrbpqCsJ5siO6gPqUzLgxO2sa8E.md` -> `Record Label Simulator - CRAFT Institute.md`
-- `Record Label Simulator - Character Dialogue__1BnFuFPAG8b4WROqpie6A2TZi2SQHG2h49HrlTH-7CaM.md` -> `Record Label Simulator - Character Dialogue.md`
-- `Record Label Simulator - CHARTS COLUMNS DEFINITION__1I5ORorwhWjuROEmtSNexkZ34QB5nqGeM_JTS3XIPYBQ.md` -> `Record Label Simulator - CHARTS COLUMNS DEFINITION1I5ORorwhWjuROEmtSNexkZ34QB5nqGeMJTS3XIPYBQ.md`
-- `Record Label Simulator - CREATOR ID SKILLS- PRODUCER__1okSkcYcRyeY-6G6uB9VfY_dbqvgYVpp9911w4v0dTuI.md` -> `Record Label Simulator - CREATOR ID SKILLS- PRODUCER1okSkcYcRyeY-6G6uB9VfYdbqvgYVpp9911w4v0dTuI.md`
-- `Record Label Simulator - CREATOR ID SKILLS- Recording Artist__1slBx5OUDvW1A6qJmvwsAnxYTdFJnqHc7KpoleOGTDdg.md` -> `Record Label Simulator - CREATOR ID SKILLS- Recording Artist.md`
-- `Record Label Simulator - CREATOR ID SKILLS- SONGWRITER__14k1F-Y46y7elsKcvZH5GWx8k9kiaoVCr4wylt_VBwI8.md` -> `Record Label Simulator - CREATOR ID SKILLS- SONGWRITER14k1F-Y46y7elsKcvZH5GWx8k9kiaoVCr4wyltVBwI8.md`
-- `Record Label Simulator - DLC__1UC0IVzrqDsWgoOByLTVi7N4mnkoHBJ2w5qG-v9kT4ZY.md` -> `Record Label Simulator - DLC.md`
-- `Record Label Simulator - ducky and slowy__1RKV_b4smzvghclk7m_aGMTog-IhZOCRfcWHFj0REUyY.md` -> `Record Label Simulator - ducky and slowy1RKVb4smzvghclk7maGMTog-IhZOCRfcWHFj0REUyY.md`
-- `Record Label Simulator - FREEDOM, LOYALTY, AMBITION, MORALITY, and POWER as the Themes of Sheet Music__1b9ihP8OoWX_vrORJ5ojVjHnd_IpTSlID0biG0IsMQwE.md` -> `Record Label Simulator - FREEDOM LOYALTY AMBITION MORALITY and POWER as the Themes of Sheet Music1b9ihP8OoWXvrORJ5ojVjHndIpTSlID0biG0IsMQwE.md`
-- `Record Label Simulator - Game Design - Solution for Track Names, Tracklist and Data Storage__1Y-ZLnqMH1JM5g0Zx6FOk447Bm2MXhraYSnzDZXFh_Sc.md` -> `Record Label Simulator - Game Design - Solution for Track Names Tracklist and Data Storage1Y-ZLnqMH1JM5g0Zx6FOk447Bm2MXhraYSnzDZXFhSc.md`
-- `Record Label Simulator - Gameplay and In-Game Concepts to define__1lXqUcWkl6uW6m0KwbiZWu1BB59Z0bf3HT2_1m7i2ERY.md` -> `Record Label Simulator - Gameplay and In-Game Concepts to define1lXqUcWkl6uW6m0KwbiZWu1BB59Z0bf3HT21m7i2ERY.md`
-- `Record Label Simulator - Gameplay Mechanic - Fusion Profile - In-Game content Genres__1szSoJceHi6S-LAGDuAaiQffOJjtWGZEXqh_X1qkYWJo.md` -> `Record Label Simulator - Gameplay Mechanic - Fusion Profile - In-Game content Genres1szSoJceHi6S-LAGDuAaiQffOJjtWGZEXqhX1qkYWJo.md`
-- `Record Label Simulator - Gameplay Mechanic- Signing Artists (Acquiring CREATORS and GUIDERS (deprecated) CARDS)__19BUpXyCqIgIhwJKryfvGd5AXELe4EUcDmkZB_yL5Us0.md` -> `Record Label Simulator - Gameplay Mechanic- Signing Artists (Acquiring CREATORS and GUIDERS (deprecated) CARDS)19BUpXyCqIgIhwJKryfvGd5AXELe4EUcDmkZByL5Us0.md`
-- `Record Label Simulator - Gameplay Mechanic- Turns__1Tn-kCHfeJIDK-hhIvsLJtmZjslaYTQN6JlR0cbkZd5I.md` -> `Record Label Simulator - Gameplay Mechanic- Turns.md`
-- `Record Label Simulator - Gameplay Mechanics- IDs__1emtABOeqLsRUqw7aABnyS-W9rsXkhHPhSBAPBT91fTw.md` -> `Record Label Simulator - Gameplay Mechanics- IDs.md`
-- `Record Label Simulator - Guide AI__1Ht30pzPGsBdMxtwX1mUlTFDpM6wDrpCNYx6V5rJpoFI.md` -> `Record Label Simulator - Guide AI.md`
-- `Record Label Simulator - IN-GAME AUDIENCE__1f1R9KSpg1ETVAWJ4H8vS-m7NMNcLArYWyzuX4KeaFvs.md` -> `Record Label Simulator - IN-GAME AUDIENCE.md`
-- `Record Label Simulator - In-Game Story Mode- Storyline Quests__1WvrNdevaWeDu8YwmZfFMNiIWUoKlJHaaztv3ppkDTes.md` -> `Record Label Simulator - In-Game Story Mode- Storyline Quests.md`
-- `Record Label Simulator - Marc Hann (CEO-Music Executive) & Genevive Mar (Creator Songwriter ID)__1dW_xnuMNwygaYWn4yIK5r5jewFSpbmJR_GsRVRHCW_Q.md` -> `Record Label Simulator - Marc Hann (CEO-Music Executive) Genevive Mar (Creator Songwriter ID)1dWxnuMNwygaYWn4yIK5r5jewFSpbmJRGsRVRHCWQ.md`
-- `Record Label Simulator - MVP Gameplay Overview (December 5, 2025 version).md` -> `Record Label Simulator - MVP Gameplay Overview (December 5 2025 version).md`
-- `Record Label Simulator - PLAYER OCCUPATION- MUSIC EXECUTIVE__1P4nmmT6NRjpHLAvgeY3By6XEv618JNkymPGt4aSk7Ls.md` -> `Record Label Simulator - PLAYER OCCUPATION- MUSIC EXECUTIVE.md`
-- `Record Label Simulator - Pre-Alpha Design Overview (v. 0.0.1)__1vkMVl4-93zqnnoeEx9MlGBQk4tnz3UwEkKGQI8o8zFw.md` -> `Record Label Simulator - Pre-Alpha Design Overview (v 001).md`
-- `Record Label Simulator - Records (Awards) and Certifications (Milestones) for In-Game Achievements for finishing Quests__1U2fPGAQOdsGQIEl4NdS3vZv-1nT-u7ki96ljIjtiEwc.md` -> `Record Label Simulator - Records (Awards) and Certifications (Milestones) for In-Game Achievements for finishing Quests.md`
-- `Record Label Simulator - Script Types in Unity, MonoBehaviour, ScriptableObject, etc__1m1C2db9ZAKSJmoslqwisuHl8h2ofzewuOnFCFWBJioA.md` -> `Record Label Simulator - Script Types in Unity MonoBehaviour ScriptableObject etc.md`
-- `Record Label Simulator - Sheet Music Creation Process__14bxOuzClQmDTJA_bkvzi3Bx8vNTy_A28ZKLH60sNUFc.md` -> `Record Label Simulator - Sheet Music Creation Process14bxOuzClQmDTJAbkvzi3Bx8vNTyA28ZKLH60sNUFc.md`
-- `Record Label Simulator - UI Design__19h8fOFyzyVRyeC5liohIwIYtS_5WhrWtMCwzIvkuNcI.md` -> `Record Label Simulator - UI Design19h8fOFyzyVRyeC5liohIwIYtS5WhrWtMCwzIvkuNcI.md`
-- `Record Label Simulator - YouTube__1FcR1LS6CGmgJ3FHjUwzNnmlvXQUZMZ2VJM0CVVH9NSo.md` -> `Record Label Simulator - YouTube.md`
-- `Record Label Simulator – Alignment & Color System Notes.md` -> `Record Label Simulator - Alignment Color System Notes.md`
-- `Record Label Simulator – Chart Evolution Framework__1Gsn6z4NsekN0uBVaKbHs8b9JE8gbJToUUyGTz9u7pRM.md` -> `Record Label Simulator - Chart Evolution Framework.md`
-- `Record Label Simulator – ECS Foundations and Performance Architecture.md` -> `Record Label Simulator - ECS Foundations and Performance Architecture.md`
-- `Record Label Simulator — Country Parameters for Image Prompts__1D7scEu2w-90DarIvH3VeOwPDMFdCxnKEX2NxGzfPK3Y.md` -> `Record Label Simulator - Country Parameters for Image Prompts.md`
-- `Record Label Simulator — Country Profiles__1-_1ffhn6JnfA7S1FZn3ZmpOgAUy1DH2tj9BzvmwLpOs.md` -> `Record Label Simulator - Country Profiles1-1ffhn6JnfA7S1FZn3ZmpOgAUy1DH2tj9BzvmwLpOs.md`
-- `Record Label Simulator — Creator Card Image Prompts (Leonardo.AI)__1q0tExo9qjJiD9BNBOhr1s0YHNN3pqn9-zaalXT5-TBw.md` -> `Record Label Simulator - Creator Card Image Prompts (LeonardoAI).md`
-- `Record Label Simulator — Creator IDs (Cards).md` -> `Record Label Simulator - Creator IDs (Cards).md`
-- `Record Label Simulator — Creator IDs- Gameplay Parameters.md` -> `Record Label Simulator - Creator IDs- Gameplay Parameters.md`
-- `Record Label Simulator — Gaia’s World Overview.md` -> `Record Label Simulator - Gaias World Overview.md`
-- `Record Label Simulator — Game Economy & Pricing Models.md` -> `Record Label Simulator - Game Economy Pricing Models.md`
-- `Record Label Simulator — Institutions and Companies.md` -> `Record Label Simulator - Institutions and Companies.md`
-- `Record Label Simulator — Introduction and Vision.md` -> `Record Label Simulator - Introduction and Vision.md`
-- `Record Label Simulator — Language Naming Canon.md` -> `Record Label Simulator - Language Naming Canon.md`
-- `Record Label Simulator — Republic of Bytenza (Gaia Nations Canon)__17hNcdRWNLiH-6v_c0eQ0mvZcRm03t9pmSecjhV_lIEc.md` -> `Record Label Simulator - Republic of Bytenza (Gaia Nations Canon)17hNcdRWNLiH-6vc0eQ0mvZcRm03t9pmSecjhVlIEc.md`
-- `Record Label Simulator — Simulation Timeline and Milestones.md` -> `Record Label Simulator - Simulation Timeline and Milestones.md`
-- `Record Label Simulator — UI and UX Design System.md` -> `Record Label Simulator - UI and UX Design System.md`
-- `Record Label Simulator (RLS) Charts — Simplified Sizes (Player-Facing).md` -> `Record Label Simulator (RLS) Charts - Simplified Sizes (Player-Facing).md`
-- `Record Label Simulator (RLS) GDD- Charting Systems, Feedback Loops, and Geographic Nuances (Nations and Regions).md` -> `Record Label Simulator (RLS) GDD- Charting Systems Feedback Loops and Geographic Nuances (Nations and Regions).md`
-- `Record Label Simulator BRAND SPONSORSHIPS__1eVUhUUsEvMrnu92Y9NnbsO5ICfOnX7jWqKaJm7SYAvs.md` -> `Record Label Simulator BRAND SPONSORSHIPS.md`
-- `Record Label Simulator Concept__19FFEJ4TxUBKNEUhoZ5gabK0dm_HZLso5gpZMD_kzFGU.md` -> `Record Label Simulator Concept19FFEJ4TxUBKNEUhoZ5gabK0dmHZLso5gpZMDkzFGU.md`
-- `Record Label Simulator GDD - Part 5 of 20- Acts, Creators, and Audience Chunks.md` -> `Record Label Simulator GDD - Part 5 of 20- Acts Creators and Audience Chunks.md`
-- `Record Label Simulator GDD Snippet- Key Game Concepts (Alignment, Mood, Theme, content Genre, Quality).md` -> `Record Label Simulator GDD Snippet- Key Game Concepts (Alignment Mood Theme content Genre Quality).md`
-- `Record Label Simulator In-Game World Structure__1hFRMD8x_QezAdJ9IYf-N0QEgUAi6f9D4bZqXLi0G1TI.md` -> `Record Label Simulator In-Game World Structure1hFRMD8xQezAdJ9IYf-N0QEgUAi6f9D4bZqXLi0G1TI.md`
-- `Record Label Simulator Known Characters__1EPBcbfa2DDxaqL5cAc6Uhs22HAIFRIbh0cZbtX7KhQs.md` -> `Record Label Simulator Known Characters.md`
-- `Record Label Simulator Marc Hann Quotes Cleaned__1kB7E5-FPuBTu2afeS1bMLCYtGviMdfzlhgqgtCzZKjE.md` -> `Record Label Simulator Marc Hann Quotes Cleaned.md`
-- `Record Label Simulator Novel Season 1 Episodes 1-8__12HwLpjoc9bRIO7zRIyvZEJ1ftjq93enY_IBeM4bIN-M.md` -> `Record Label Simulator Novel Season 1 Episodes 1-812HwLpjoc9bRIO7zRIyvZEJ1ftjq93enYIBeM4bIN-M.md`
-- `Record Label Simulator Patch Notes for Unity Editor__1xs9w8HuUDrFOD_naLmdi0hkLPC3jGjnSEpqh4UWUhZ0.md` -> `Record Label Simulator Patch Notes for Unity Editor1xs9w8HuUDrFODnaLmdi0hkLPC3jGjnSEpqh4UWUhZ0.md`
-- `Record Label Simulator RLS ABC&D Overview.md` -> `Record Label Simulator RLS ABCD Overview.md`
-- `Record Label Simulator RLS Naming Evolution__1E55UQjSU5rOA-ZT211Q7u-rEPW5h0_syNXzdIMrMSWY.md` -> `Record Label Simulator RLS Naming Evolution1E55UQjSU5rOA-ZT211Q7u-rEPW5h0syNXzdIMrMSWY.md`
-- `Record Label Simulator RLS Pop and Cultural Instruments for Udio Prompts__1JQEejq3nkIRRmJ9yflzakIneYUYNh5HTNaH9GsTDMHU.md` -> `Record Label Simulator RLS Pop and Cultural Instruments for Udio Prompts.md`
-- `Record Label Simulator RLS The Bells of Gaia__1P73yOl3LI-VmIfi12CHiLKMztA39wyqhWATF3F7AjGQ.md` -> `Record Label Simulator RLS The Bells of Gaia.md`
-- `Record Label Simulator RLS The Goddesses of Gaia__1uhgUSdUZXovRSzs1CU_EKCDJc8KRFdeasaQKVE5iQYc.md` -> `Record Label Simulator RLS The Goddesses of Gaia1uhgUSdUZXovRSzs1CUEKCDJc8KRFdeasaQKVE5iQYc.md`
-- `Record label simulator Videogame In-Game Story Mode- Storyline__1A9M_xql0MpT_pGRnYhggF9KIjMAO8jm3NJclrf8N8Kg.md` -> `Record label simulator Videogame In-Game Story Mode- Storyline1A9Mxql0MpTpGRnYhggF9KIjMAO8jm3NJclrf8N8Kg.md`
-- `Record label simulator Videogame In-Game Story Mode- Storyline__1In8CF_qRwnWCjD9jxrIbZlNAAb0M_-nGXks3Kvy2JZY.md` -> `Record label simulator Videogame In-Game Story Mode- Storyline1In8CFqRwnWCjD9jxrIbZlNAAb0M-nGXks3Kvy2JZY.md`
-- `Record Label Simulator__1UB_xkOIzph4nQxsa9KEEKE-W6DBWm0bpVQgbv4ox-NY.md` -> `Record Label Simulator1UBxkOIzph4nQxsa9KEEKE-W6DBWm0bpVQgbv4ox-NY.md`
-- `Record Label Simulator- Buildings, Creator IDs and Inventory Items__1YDVWYwJXBoP_WZQpBxSe-hHdSQCBrx88msF8o0jNID0.md` -> `Record Label Simulator- Buildings Creator IDs and Inventory Items1YDVWYwJXBoPWZQpBxSe-hHdSQCBrx88msF8o0jNID0.md`
-- `Record Label Simulator- Game Concept Overview__1V5HsPCD0WDVx8EBpWsD4deZC4U50EpWULo4RgB_Esbo.md` -> `Record Label Simulator- Game Concept Overview1V5HsPCD0WDVx8EBpWsD4deZC4U50EpWULo4RgBEsbo.md`
-- `Record Label Simulator- Game Overview__1V-9Yk06GsPTjsXb_Fc9ylrHoVoiFWdoK0kG6KW3NSs4.md` -> `Record Label Simulator- Game Overview1V-9Yk06GsPTjsXbFc9ylrHoVoiFWdoK0kG6KW3NSs4.md`
-- `Record Label Simulator- In-Game Concept__1WHedvIWWkoN4dGKPghwP6UE-UF0gS6dVBBm96mPVKqo.md` -> `Record Label Simulator- In-Game Concept.md`
-- `Record Label Simulator- In-Game Entities__1xZj-VZ_tCv9xq-hAyCrpPG8n5suyrb4AfqDafDmyZhs.md` -> `Record Label Simulator- In-Game Entities1xZj-VZtCv9xq-hAyCrpPG8n5suyrb4AfqDafDmyZhs.md`
-- `Record Label Simulator- In-Game Quest Albums- Songs Names__13PeUrByI9AyY_9C5XjieeBlCFi7OFF_M3Owoas61p0Y.md` -> `Record Label Simulator- In-Game Quest Albums- Songs Names13PeUrByI9AyY9C5XjieeBlCFi7OFFM3Owoas61p0Y.md`
-- `Record Label Simulator- In-Game Visualizer Design Documentation__1p9P9uonedcGLoqhSuwoM1dFxydtcMu_bbg2hJEw-1hk.md` -> `Record Label Simulator- In-Game Visualizer Design Documentation1p9P9uonedcGLoqhSuwoM1dFxydtcMubbg2hJEw-1hk.md`
-- `Record Label Simulator- Investment and Revenue Model__1NUFxZdZzEC2pPtaccJK192M4Vb3R8nUef8KY1sWeOHQ.md` -> `Record Label Simulator- Investment and Revenue Model.md`
-- `Record Label Simulator- LOCALIZATION__16miHu6Y78MqndE_2bstrghCHjd0RG0KBnn9OUtk19Aw.md` -> `Record Label Simulator- LOCALIZATION16miHu6Y78MqndE2bstrghCHjd0RG0KBnn9OUtk19Aw.md`
-- `Record Label Simulator- Maintenance Cost of Facilities__1_-H5zZgmA5T_rsxkncUwLjpO1SjHtCyQuixTfsYUAsk.md` -> `Record Label Simulator- Maintenance Cost of Facilities1-H5zZgmA5TrsxkncUwLjpO1SjHtCyQuixTfsYUAsk.md`
-- `Record Label Simulator- Preliminary Quality Assignment__1BeBrzsxk8ig2M_yie8C1o37KFI-uosMtf5fpPB8CWdQ.md` -> `Record Label Simulator- Preliminary Quality Assignment1BeBrzsxk8ig2Myie8C1o37KFI-uosMtf5fpPB8CWdQ.md`
-- `Record Label Simulator- Press Tours__1vEN_u_LzC8lofueVECkJG1eCHGvf4_HNmfKjpqCmHFk.md` -> `Record Label Simulator- Press Tours1vENuLzC8lofueVECkJG1eCHGvf4HNmfKjpqCmHFk.md`
-- `Record Label Simulator- Sheet Music__16FuJYCHZyQpX7c5Zvcvy6BVIEzG6BkGRslfxvp8Lmfk.md` -> `Record Label Simulator- Sheet Music.md`
-- `Record Labels' Responsibilities Regarding Critics and Awards__1nQYnY-o7lMboLMhTYr4gNOuZLFjw3ECHYSduUpuNezE.md` -> `Record Labels Responsibilities Regarding Critics and Awards.md`
-- `Recording Studio Structure and Slot Management in Record Label Simulator__1Ai3LlxHKKTLHJbWnFwZrbX2CGfvP-DUrSuv7XpbMz4c.md` -> `Recording Studio Structure and Slot Management in Record Label Simulator.md`
-- `Residence rental cost 4 year period__1fGRoStMpT-LsFXldy-7M91KyXXE8bkUlyW_YS_xzlZs.md` -> `Residence rental cost 4 year period1fGRoStMpT-LsFXldy-7M91KyXXE8bkUlyWYSxzlZs.md`
-- `Revenue allocation from organizations__1HbO5qb-zCKuyV6lgS1jNEZbUN49C4huR1w3UifAXJ5Y.md` -> `Revenue allocation from organizations.md`
-- `RLS Lore Consistency Tracker Retcon Index__1Clqj3KKr4XELmdKdExxnWUMY3pSDNNCxf82mrlzxPhA.md` -> `RLS Lore Consistency Tracker Retcon Index.md`
-- `RLS Population Evolution System__1xcCx2kd16P_OO5UleXqgPS3UAegDDRo19inq7carOEw.md` -> `RLS Population Evolution System1xcCx2kd16POO5UleXqgPS3UAegDDRo19inq7carOEw.md`
-- `RLS Topodangle Canon Spec__1SZEiei_jiENM1u7GLL9IwJYkkIbGRFKWavFX6JxAZPo.md` -> `RLS Topodangle Canon Spec1SZEieijiENM1u7GLL9IwJYkkIbGRFKWavFX6JxAZPo.md`
-- `RLS_Custom_Instructions_Assistant_and_Unity.md` -> `RLSCustomInstructionsAssistantandUnity.md`
-- `RLS_Game_Info_Lore_and_Mechanics.md` -> `RLSGameInfoLoreandMechanics.md`
-- `Road to development, Unity Muse conversation essay summary.md` -> `Road to development Unity Muse conversation essay summary.md`
-- `Scars - song lyrics - track__1bjIg-DCuXDlPx6ZMTAFJow-Qt5eDBo5MJuKAjyE3zgs.md` -> `Scars - song lyrics - track.md`
-- `Scene setup__1DjSf4Fw26eJ4I09g-rZMwvhYvHc3IbGPvF23XWP6jew.md` -> `Scene setup.md`
-- `Scores for each emotion in Record Label Simulator- Bytenza__10wYQVDehIlYhaeqRDyx7MAHAEoLBQyq702agVisxFzY.md` -> `Scores for each emotion in Record Label Simulator- Bytenza.md`
-- `Scores for each emotion in Record Label Simulator- Crowlya__1GsuyObmBBrIEIFDRYusht7fKXAc2SIZ36bSVGZSWZsY.md` -> `Scores for each emotion in Record Label Simulator- Crowlya.md`
-- `Server-Sided Logic in Cloud Code for Record Label Simulator__1662pPa5_Jcd7DddoGgfhI95FWVCel-XTfBP1VGVR4Xc.md` -> `Server-Sided Logic in Cloud Code for Record Label Simulator1662pPa5Jcd7DddoGgfhI95FWVCel-XTfBP1VGVR4Xc.md`
-- `Set of negative emotions for community songwriter creator IDs__1MxKBiuyaIWciYHkHORBv4WldNqlA6K3nbUGjbWUwaWw.md` -> `Set of negative emotions for community songwriter creator IDs.md`
-- `Sheet Music (Item- Content) in RLS__1HZO5TufsKvCXBLLJQWbCuWLDqPpvo-Qy6MEqZv5XGKY.md` -> `Sheet Music (Item- Content) in RLS.md`
-- `Simulation of Currency Flow between Organizations__1Ew5luIi1zXUGw8RgiscZl1w9RuuW52elFJfi99aAp6Y.md` -> `Simulation of Currency Flow between Organizations.md`
-- `Slots of songwriter IDs in recording studio structures to create sheet music__1bl1UCixafecT-i7Zea6yMe_qEd59f1e6GJkyO8kFpz8.md` -> `Slots of songwriter IDs in recording studio structures to create sheet music1bl1UCixafecT-i7Zea6yMeqEd59f1e6GJkyO8kFpz8.md`
-- `Smear Campaign__1dAtQriepnlP0fNvt-rgkquDUl8fMADueqA5vcDYoODM.md` -> `Smear Campaign.md`
-- `so above it all song lyrics track name__1V9MX68YS-nxV8qVdfk9ICw-i6sY5AP5XfsKwvIy8PtI.md` -> `so above it all song lyrics track name.md`
-- `So Cruel - song lyrics track__13VO_zHc2fv5lksgZMV58ZgWxosFR-DfR4X0ogwD61Ds.md` -> `So Cruel - song lyrics track13VOzHc2fv5lksgZMV58ZgWxosFR-DfR4X0ogwD61Ds.md`
-- `Solace In Solitude dialogue for Record Label Simulator quests__1ncoq9s2mlcfCTeO2SW6Ai3Kfad47zo4QSUz3jT_4Hfc.md` -> `Solace In Solitude dialogue for Record Label Simulator quests1ncoq9s2mlcfCTeO2SW6Ai3Kfad47zo4QSUz3jT4Hfc.md`
-- `Something to Prove lyrics song track__1HIPT5GbM2aARdLH5knjC2ELMHw4AWJ_iEM3CihQH9ag.md` -> `Something to Prove lyrics song track1HIPT5GbM2aARdLH5knjC2ELMHw4AWJiEM3CihQH9ag.md`
-- `Something to Work With Song lyrics track__1fe_WmLBsAfVH8AkxcP9cXDAxKTYeO4JtfRoGBy0J5xE.md` -> `Something to Work With Song lyrics track1feWmLBsAfVH8AkxcP9cXDAxKTYeO4JtfRoGBy0J5xE.md`
-- `song lyrics - track__113dzChOC9eiY9HSPGvfqG9mUXlSzaJZ7k1QeWHEC550.md` -> `song lyrics - track.md`
-- `song lyrics - track__1abr5uUG-FkCHlB_GcJZdzAuY1NWP9PM_wv7htgnBNQE.md` -> `song lyrics - track1abr5uUG-FkCHlBGcJZdzAuY1NWP9PMwv7htgnBNQE.md`
-- `song lyrics - track__1dDBxTLkMJQDjhkEofg3QHBYdrgV-WCbpBjz1Y_WrTWQ.md` -> `song lyrics - track1dDBxTLkMJQDjhkEofg3QHBYdrgV-WCbpBjz1YWrTWQ.md`
-- `song lyrics - track__1qupWXxk04zLwDNICSMvegeTwEYXMtanf8HfWw8DUt0o.md` -> `song lyrics - track-2.md`
-- `Song Lyrics track - His Kiss__14H1fEo1HP4yzfXNFdkz_WPOixjBFbXjMD_fZPAlnM40.md` -> `Song Lyrics track - His Kiss14H1fEo1HP4yzfXNFdkzWPOixjBFbXjMDfZPAlnM40.md`
-- `song lyrics track - no winning side__1A2Vcpopn5kBfUMJfQdF_OIOyqAUTQSDAvQEpBYGLx8k.md` -> `song lyrics track - no winning side1A2Vcpopn5kBfUMJfQdFOIOyqAUTQSDAvQEpBYGLx8k.md`
-- `Song lyrics track songwriting analysis report__1Aj7UP0N1b7ROINxNvkA8i6wA4F-m-6zc3X520ZKFhNo.md` -> `Song lyrics track songwriting analysis report.md`
-- `Song lyrics track__1-k8ngUdL3r5GDxdpL0h-X_rawxYXWmGajG8qZGYTSl0.md` -> `Song lyrics track1-k8ngUdL3r5GDxdpL0h-XrawxYXWmGajG8qZGYTSl0.md`
-- `Song lyrics track__11UmQ_H6d3gjBKCdkQwANJdOGraoTOP6ENzz5d017kzA.md` -> `Song lyrics track11UmQH6d3gjBKCdkQwANJdOGraoTOP6ENzz5d017kzA.md`
-- `song lyrics track__12pP_tX1TIXJUQ-Tm8om4QVuYCmRCHs-TXOpnGH4D7MA.md` -> `song lyrics track12pPtX1TIXJUQ-Tm8om4QVuYCmRCHs-TXOpnGH4D7MA.md`
-- `Song Lyrics Track__131jloqDDds8EJNdDlVQAMWN-saQrmZ96kRZpPgsmb0o.md` -> `Song Lyrics Track.md`
-- `Song lyrics track__16dfdLzJpHDfPV3wuur8ebec13DGr6loNCyLe0uKE2pY.md` -> `Song lyrics track-2.md`
-- `song lyrics track__18brmljQXuwnYsbwhYKy8pD8ol67jGcOQ7oMccou1alI.md` -> `song lyrics track-3.md`
-- `Song lyrics track__1a_6gmNMunDgsuTCafHqmMMavPQAyHKvn4aTF8sVs3Rg.md` -> `Song lyrics track1a6gmNMunDgsuTCafHqmMMavPQAyHKvn4aTF8sVs3Rg.md`
-- `song lyrics track__1akz5k_7yxe645V7ccuIiZyrLNoFP4a1h06WZ5EaixlI.md` -> `song lyrics track1akz5k7yxe645V7ccuIiZyrLNoFP4a1h06WZ5EaixlI.md`
-- `song lyrics track__1ce1vfu_j0xsvnOztZaIuuT38jVXAbbHMBzRissPXrNI.md` -> `song lyrics track1ce1vfuj0xsvnOztZaIuuT38jVXAbbHMBzRissPXrNI.md`
-- `song lyrics track__1D2Q0AEZEdECxLPLwdw7leB97UemdFcC5SeCWhGZyQR4.md` -> `song lyrics track-4.md`
-- `song lyrics track__1F-TAz_VugfqJUblyIT73DkFVlCy3LHe1-ozreFBhLlk.md` -> `song lyrics track1F-TAzVugfqJUblyIT73DkFVlCy3LHe1-ozreFBhLlk.md`
-- `Song lyrics track__1htJ-q6X-YJy4a2rcIW0GF3j22GzQNgmvBikn2btBibc.md` -> `Song lyrics track-5.md`
-- `song lyrics track__1p8ClAgeUHCq2Iy_RS2989PC1TyuNpIb1VP7LP0Eq6es.md` -> `song lyrics track1p8ClAgeUHCq2IyRS2989PC1TyuNpIb1VP7LP0Eq6es.md`
-- `song lyrics track__1SheAuHRnviN3JmluCRgm6DUpTTw5NK2huecJBLC3kCI.md` -> `song lyrics track-6.md`
-- `song lyrics track__1V5Z7YwERH-xDCHc6ek2ofwaj12lOZgccRIrZ-TI4xAw.md` -> `song lyrics track-7.md`
-- `song lyrics track__1wlmZEmxJtMQ2wiHiGo1fiXz_Xf1UTSKhd7VzoYjeXQ0.md` -> `song lyrics track1wlmZEmxJtMQ2wiHiGo1fiXzXf1UTSKhd7VzoYjeXQ0.md`
-- `song lyrics track__1yz9eFaUcmn-5G_RNvsJh27sr9QEYS_TviOVmIhSsqLU.md` -> `song lyrics track1yz9eFaUcmn-5GRNvsJh27sr9QEYSTviOVmIhSsqLU.md`
-- `Song- SOS__1C3Ryr2NWhz3IBohKU9LIwa7L0_aUofBwS9LirZ8o16A.md` -> `Song- SOS1C3Ryr2NWhz3IBohKU9LIwa7L0aUofBwS9LirZ8o16A.md`
-- `Songwriting Session with Songwriter ID in Recording Studio Structure__15MByxgBCSiGS5-0JXAewe4NHMIdHD60gGq2OdZVh4u8.md` -> `Songwriting Session with Songwriter ID in Recording Studio Structure.md`
-- `Speed movement of community members based on wealth level__1K-xeYj6buGdV4_sebixYWIBhg3UvurhflM3elqFSGOg.md` -> `Speed movement of community members based on wealth level1K-xeYj6buGdV4sebixYWIBhg3UvurhflM3elqFSGOg.md`
-- `Split of catharsis between creators in a song - Record Label Simulator__1BKgMAkCbbzkZVSvlFjq45VB32p3kY-6-VpTBwasf2iw.md` -> `Split of catharsis between creators in a song - Record Label Simulator.md`
-- `Stamina in RLS__1Po7n5xn1nxBcIWgjcqdzLsSaUaWlnVroa8bB77X5QEM.md` -> `Stamina in RLS.md`
-- `Stay - Song lyrics track__15gCaYf-1FoxL2AtJB2vP6KhTsEbzw1XC4S7ZSJUf2qU.md` -> `Stay - Song lyrics track.md`
-- `Still song lyrics track__10ZcLa9joU9PbrthmRSyq7PZU7NdGWqD8fSkstVFz3W0.md` -> `Still song lyrics track.md`
-- `STORY MODE IDEA for Record Label Simulator__1xj4nE5LZVy-619Cq88d9A0WtO_3k92mhNpGzTooSyL8.md` -> `STORY MODE IDEA for Record Label Simulator1xj4nE5LZVy-619Cq88d9A0WtO3k92mhNpGzTooSyL8.md`
-- `Streaming contracts in topoda charts__1FzuC7_XzJroPKuVYRipROWCavDQhUWpRwkmt1f8rOEA.md` -> `Streaming contracts in topoda charts1FzuC7XzJroPKuVYRipROWCavDQhUWpRwkmt1f8rOEA.md`
-- `Structures in Record Label Simulator__1IBBU0XYggeSp-0bXNCi_RiBwko-4yosYc7h5Rk-RkA4.md` -> `Structures in Record Label Simulator1IBBU0XYggeSp-0bXNCiRiBwko-4yosYc7h5Rk-RkA4.md`
-- `Studios, Academies, Sets and Venues__1L5nOVnWOGwzv4fJF58ppCrp3D_lucsDDPvDx40Ubrnc.md` -> `Studios Academies Sets and Venues1L5nOVnWOGwzv4fJF58ppCrp3DlucsDDPvDx40Ubrnc.md`
-- `Sub-genres to explore in Topoda Charts Record Label Simulator__1zx_Ryi4VKr_qTkXN7OpzDajtSUyvzzqlSRaxZBkmdM4.md` -> `Sub-genres to explore in Topoda Charts Record Label Simulator1zxRyi4VKrqTkXN7OpzDajtSUyvzzqlSRaxZBkmdM4.md`
-- `Subcultures in topoda charts__1NvdMchj8rLnq215Z9TYQ_XqynmANUHn3eP2Qu3C49dY.md` -> `Subcultures in topoda charts1NvdMchj8rLnq215Z9TYQXqynmANUHn3eP2Qu3C49dY.md`
-- `Target Audience for Record Label Simulator__1Bu17DtbbTcdu3tyoeNBAi6dDWtu2nq_iYSBkLQHOiac.md` -> `Target Audience for Record Label Simulator1Bu17DtbbTcdu3tyoeNBAi6dDWtu2nqiYSBkLQHOiac.md`
-- `Template for creating stanza songwriting writing poem__1h7A7JxNzyJ51GMHCoFG94haaZK543DSM-tGeouB6XAg.md` -> `Template for creating stanza songwriting writing poem.md`
-- `Template of Prompts for Record Label Simulator (made with Leonardo.AI)__126pQgZUHfW6lF8Y_-6OL9hOpmSXX7uOERok1Po1jz0g.md` -> `Template of Prompts for Record Label Simulator (made with LeonardoAI)126pQgZUHfW6lF8Y-6OL9hOpmSXX7uOERok1Po1jz0g.md`
-- `Template prompt for generation of game assets for emotions which is a feedback mechanism for the player of the Record Label Simulator__1KlcDCbUIhsyEeDXBuyddtpOWbKEbFVnAoSnfnudnqgI.md` -> `Template prompt for generation of game assets for emotions which is a feedback mechanism for the player of the Record Label Simulator.md`
-- `Tempo and instrumentation of themes and moods in Record Label Simulator__1eF6oJoMXXZz29lNndT5-IYTUJqjxOoLnB6wWqmFBEo4.md` -> `Tempo and instrumentation of themes and moods in Record Label Simulator.md`
-- `Terrain Generation Priority in Record Label Simulator__17SrZ_zmSnyK-kDVl6YAzD-JFKBWe8fk6_GmpG1vdn-I.md` -> `Terrain Generation Priority in Record Label Simulator17SrZzmSnyK-kDVl6YAzD-JFKBWe8fk6GmpG1vdn-I.md`
-- `Terrain in record label simulator__1-DCIS2klc-afFI0Na9laQRcyEs9YE1quIlarlr6lgzY.md` -> `Terrain in record label simulator.md`
-- `Terrain Tiles - Neighborhood Directions and Expansion Sequence for Bloomville, Annglora__1s5szYqBG1wTn8RoetC-4H-UdzLtGLpW1JB4NUXFROzI.md` -> `Terrain Tiles - Neighborhood Directions and Expansion Sequence for Bloomville Annglora.md`
-- `TerrainPlane GameObject Specifications__1ocydM32o6mtYz75MRdQit6T_YbnkI4IYF4bJhD1652w.md` -> `TerrainPlane GameObject Specifications1ocydM32o6mtYz75MRdQit6TYbnkI4IYF4bJhD1652w.md`
-- `The main tasks of the Player as the Music Executive__1vmVbDFT3zYbEqXW7kQDUkfrecfTmrkZukZzXS-2XHAY.md` -> `The main tasks of the Player as the Music Executive.md`
-- `The Origin and History of Sheet Music__1arl8jVXZRRnnigEFpTu3A3nZtr4Q6E-bmKV81ur-1t4.md` -> `The Origin and History of Sheet Music.md`
-- `THE ORIGIN AND HISTORY SERIES__1an7Ray7U8t8Rj7ZaMVPUOWM9Ztcamd_AEgjXf5-F8kc.md` -> `THE ORIGIN AND HISTORY SERIES1an7Ray7U8t8Rj7ZaMVPUOWM9ZtcamdAEgjXf5-F8kc.md`
-- `The other side - song lyrics - track__1bSNjz7p2BSPcUEgIfFqbTmf-A47k1h96dg6wnTKh9iI.md` -> `The other side - song lyrics - track.md`
-- `the paradise you promised - lyrics song track__1AMff3l1JCM9EHfqitU1WS3F05JzE4FYx12fSTjkVFOA.md` -> `the paradise you promised - lyrics song track.md`
-- `THE SHOW WILL STOP.__1IpWE4Puo9WPYLBa-ZEwTTX8VfmYCcjp1dyC1NpkQBv8.md` -> `THE SHOW WILL STOP.md`
-- `The Wrong Help - song lyrics - track__1kmhZ5XsppQjQdKpqDYpD1WEo5mMLn-V0IEcLRaBpQU0.md` -> `The Wrong Help - song lyrics - track.md`
-- `thematic ideas for the content in Topoda Charts-__1qdt1EmeowglOm5Z4IEbvVfjj3N8MBvG9UCiKoRnxEtw.md` -> `thematic ideas for the content in Topoda Charts-.md`
-- `this time its over song lyrics track__1Nq41YbCa83HLg3BCM32fhgi0k4Yh4kqlGvdZyFOrn-E.md` -> `this time its over song lyrics track.md`
-- `Ticks to level up skill__1gTA_ACXIqYRj_r1kezByRShIdHCkxhnFD8_XxnDn1JQ.md` -> `Ticks to level up skill1gTAACXIqYRjr1kezByRShIdHCkxhnFD8XxnDn1JQ.md`
-- `Tighter song lyrics track__1TPXRY-AG3BgBgGtZGhtZ1hW2yXCGEm-OiynASAsPSXA.md` -> `Tighter song lyrics track.md`
-- `TikTok__1y8o1ywyKfehPiYsnsZxbuUJ_xJUXVivyGYkNCsHsymc.md` -> `TikTok1y8o1ywyKfehPiYsnsZxbuUJxJUXVivyGYkNCsHsymc.md`
-- `Time and Ticks for Content Creation in Record Label Simulator__1PCJ7ZuCewrt_BIxvut9jthwCRvYUMRiT__SfTndJnIU.md` -> `Time and Ticks for Content Creation in Record Label Simulator1PCJ7ZuCewrtBIxvut9jthwCRvYUMRiT.md`
-- `Time to create in topoda charts__1Krdi2prrQ8V7A3m1ftysgR-iDIFXG8k3wD4sByk9kAQ.md` -> `Time to create in topoda charts.md`
-- `Timeline of Events in Record Label Simulator's Pre-game Simulation__1IBq9VhwVwNPQEkzgLkyfDqo8RCYCoaacMFeoypZ3Eks.md` -> `Timeline of Events in Record Label Simulators Pre-game Simulation.md`
-- `Tools lyrics song track__1dfNS6xju8UP51thnKJLu5Cir4P56ML3yXY4vArwFdZY.md` -> `Tools lyrics song track.md`
-- `Topoda Charts Alphabet and Vocabulary__1w8Ckywf238fHBFn36Zwj-FJSRDw25Yx4nKjYboTCXIs.md` -> `Topoda Charts Alphabet and Vocabulary.md`
-- `TOPODA CHARTS MAGAZINE-NEWS ARTICLE__1Aa97P34cYkHQ75VkHq1MD1-AFdlfF1USBJsWTwb2YZM.md` -> `TOPODA CHARTS MAGAZINE-NEWS ARTICLE.md`
-- `Topoda Charts Prompts for ChatGPT__1n-ZR2FsH3pw4lTaptrjUkPe2hDFj4p5WF1cw0hlC77U.md` -> `Topoda Charts Prompts for ChatGPT.md`
-- `TOPODA CHARTS- SONGWRITERS INSPIRATION__1-q5dMo5zQ1yhxGq3y3E2Ed_MmQNNtRGMtZYqMY_qDow.md` -> `TOPODA CHARTS- SONGWRITERS INSPIRATION1-q5dMo5zQ1yhxGq3y3E2EdMmQNNtRGMtZYqMYqDow.md`
-- `TopodaCharts.GameTime Namespace__1tjIvm0ldCysAZfLIv9Qcfn859s2LcMtvcPQp13qx-Xk.md` -> `TopodaChartsGameTime Namespace.md`
-- `Total Ticks for 1 in-game hour = 3600 - 10,000,000 (ticks per second) = 36,000,000,000 ticks__1FuGnXBQHQLYT9XRaIF5Dz9sklQXzMPh6tQL42_M0kms.md` -> `Total Ticks for 1 in-game hour 3600 - 10000000 (ticks per second) 36000000000 ticks1FuGnXBQHQLYT9XRaIF5Dz9sklQXzMPh6tQL42M0kms.md`
-- `Track Creation Capacity in Record Label Simulator__1MWtt3xTd1AaJ6o-j1l91hR8VUpEyy1uI4L4PJWUS3jQ.md` -> `Track Creation Capacity in Record Label Simulator.md`
-- `Tracklist Released Music__1jquVPgOXIt4_vJYlXBdYwn8eCXbec0AkdUu8x-auKQg.md` -> `Tracklist Released Music1jquVPgOXIt4vJYlXBdYwn8eCXbec0AkdUu8x-auKQg.md`
-- `Tracklist Structure of Projects in Record Label Simulator__1me3tvpXdIUZK7kvVzhrpYkPSyVHxk8CM7NS-3uQjQmg.md` -> `Tracklist Structure of Projects in Record Label Simulator.md`
-- `Tracks & Projects Pricing for Content in Record Label Simulator__1nrnCRiVArBhOskx6EnI41_PQWyMitPeOiNtfYEUljDw.md` -> `Tracks Projects Pricing for Content in Record Label Simulator1nrnCRiVArBhOskx6EnI41PQWyMitPeOiNtfYEUljDw.md`
-- `Trends and their involvement in the origin of subcultures in the three countries of the Topoda Charts Game__1moyBQpNXdFFg5OT-cgZUj8I-PiK_BZzFRgM9_b4z9fA.md` -> `Trends and their involvement in the origin of subcultures in the three countries of the Topoda Charts Game1moyBQpNXdFFg5OT-cgZUj8I-PiKBZzFRgM9b4z9fA.md`
-- `Truth-worthiness property for IDs__1bvez-EeJPimjkHVUw3C93Yh2kx4CFphbdZMTJye3n_Q.md` -> `Truth-worthiness property for IDs1bvez-EeJPimjkHVUw3C93Yh2kx4CFphbdZMTJye3nQ.md`
-- `Udio song idea__1c_gSuNry1CX8X49QnkPJk9fAyD5QvcGkdz5YaLUdpSc.md` -> `Udio song idea1cgSuNry1CX8X49QnkPJk9fAyD5QvcGkdz5YaLUdpSc.md`
-- `Udio Tracklist__13H7rtr0HEz4XRa2pZFQOMXnAVjunaaEpoP7vGxsHxMw.md` -> `Udio Tracklist.md`
-- `UI Elements displayed on screen of the Record Label Simulator Video Game Application__1hXwS4r1vsE9t26iM8eWAt7ggx7zfFhc29Jhg9zxSYZc.md` -> `UI Elements displayed on screen of the Record Label Simulator Video Game Application.md`
-- `Understanding the Game’s ECS Architecture and Lifecycles in Unity 6.md` -> `Understanding the Games ECS Architecture and Lifecycles in Unity 6.md`
-- `ungovernable lyrics song track__1XCsurpd1GIFbP6SgV9NkSdAub4V4tyXRuJ6i2MeYUCE.md` -> `ungovernable lyrics song track.md`
-- `Unique Selling Points of Record Label Simulator-__1oc60tQO43eGLyahXTWt6vNNxo_9mI7JuzUroYdaoKzY.md` -> `Unique Selling Points of Record Label Simulator-1oc60tQO43eGLyahXTWt6vNNxo9mI7JuzUroYdaoKzY.md`
-- `Unity Muse Pre-Training Text Message Conversation ChatGPT__1whB1G7aZ-FI7M9rUDr1eXo0CMWNKXrl8ybDOXI9nsdk.md` -> `Unity Muse Pre-Training Text Message Conversation ChatGPT.md`
-- `Unity Prefab Inventory System__1zviyVjGUqQRuGRJnZs2BxHOFqoqv_tVmUz2_wu0h0gE.md` -> `Unity Prefab Inventory System1zviyVjGUqQRuGRJnZs2BxHOFqoqvtVmUz2wu0h0gE.md`
-- `Untitled song - lyrics - track__1_NhOeciwckLFStzoig-o0km_vWnqA7gnvzMLog75K6w.md` -> `Untitled song - lyrics - track1NhOeciwckLFStzoig-o0kmvWnqA7gnvzMLog75K6w.md`
-- `Untitled song - track lyrics__1Zs8HDOU2QF8J2RvhePa576bK4AV1M_elUBd_FRrJdt8.md` -> `Untitled song - track lyrics1Zs8HDOU2QF8J2RvhePa576bK4AV1MelUBdFRrJdt8.md`
-- `Untitled Song Lyrics - Track__1dPDM7eSeApyYOc0Clb0Iu8vB2MeSGxQe7kQNsgAlorQ.md` -> `Untitled Song Lyrics - Track.md`
-- `untitled song lyrics - track__1Wk2Dr5sEIA20iN5BXaXaeJcIwNXOIIY3s1enMrXkDIw.md` -> `untitled song lyrics - track-2.md`
-- `Untitled Song lyrics - track__1WsAhQAzkp5Ta8IBZ1ZwKTpljeDL1YtUxW4zRSfxUU1Y.md` -> `Untitled Song lyrics - track-3.md`
-- `Untitled song lyrics track__1hiNsOMzGzmEw4Aogtp4tFMz1yyZgHfpNKG5ci7Sf9Dk.md` -> `Untitled song lyrics track.md`
-- `untitled song lyrics__1vBt4pkSls1ciGcLDWSBh5DeJj8wcIIdFQwQvOcyLJck.md` -> `untitled song lyrics.md`
-- `untitled song track__1tKhn8XqTdtA5_oHvRKPg8cv4AnzU1HGmiNsc-Ajrqxo.md` -> `untitled song track1tKhn8XqTdtA5oHvRKPg8cv4AnzU1HGmiNsc-Ajrqxo.md`
-- `UserBenchmarks PC Stats Specs__1lTPZJReZmzlRQGrcGUdC1eQra8N5hx97EVW0fVBpJc8.md` -> `UserBenchmarks PC Stats Specs.md`
-- `Vault__17s5gV3-CLWLi2EOogNKE-oG5TK3IqUQVV0mY2xrKKX4.md` -> `Vault.md`
-- `Venue and member stats__1L4Ns-8ItgoMLj51BH31UrqcHkSU5QpwKUT2kr4O9CQs.md` -> `Venue and member stats.md`
-- `Venues, Floors, and Seat Capacities__1dcUYbbOEFv30Sv-CowZEumncnOvkDy9LK1mUL3w7ZN8.md` -> `Venues Floors and Seat Capacities.md`
-- `version numbering and naming for Record Label Simulator__1YevRubKvkouFHiQ9HHp9OP49b_ht0OPAvJpyI3EXr6Y.md` -> `version numbering and naming for Record Label Simulator1YevRubKvkouFHiQ9HHp9OP49bht0OPAvJpyI3EXr6Y.md`
-- `Video game genres of Record Label Simulator__1hYcr9ydnClXkVxk9UBJtM4wiD4lRrQXu0rZ2OmfTKfc.md` -> `Video game genres of Record Label Simulator.md`
-- `Videos__1V3iTHFOuC0SJ7MMx6tlz8XdS39lwjjAgNSGj5VaCX8U.md` -> `Videos.md`
-- `Visual aesthetics for Record Label Simulator__1b5FZuCaQ1FiUqcy6BACoxSor15uXlj-yuuPS_dkgeSY.md` -> `Visual aesthetics for Record Label Simulator1b5FZuCaQ1FiUqcy6BACoxSor15uXlj-yuuPSdkgeSY.md`
-- `Visual concept ideas for art__19WxbZVWa8P94OlkfyHAdWjgdN-b8N0mJq7Ax_YYOzgk.md` -> `Visual concept ideas for art19WxbZVWa8P94OlkfyHAdWjgdN-b8N0mJq7AxYYOzgk.md`
-- `Visuals for themes in RLS FLAMP__1gszZJ5x4yv3IvA4BFM0eStqHG9MZnvMcwoByHjGmP2Q.md` -> `Visuals for themes in RLS FLAMP.md`
-- `Visuals of Themes and Moods in Record Label Simulator__1_vtiLUDwmrINYS-rWpBb_ptX8xQrzfKY2Y3G930IxlY.md` -> `Visuals of Themes and Moods in Record Label Simulator1vtiLUDwmrINYS-rWpBbptX8xQrzfKY2Y3G930IxlY.md`
-- `We Collided Still - song lyrics track__15eyXvAfnZRH0NQCqW4gWbtle0jLrR8tc0D5usXCTsZE.md` -> `We Collided Still - song lyrics track.md`
-- `WHAT ARE YOU HERE FOR- - song lyrics track [RAW VOW].md` -> `WHAT ARE YOU HERE FOR- - song lyrics track RAW VOW.md`
+- "ID__1-6HwXGKbxS4v5LBXSzK0hXF-vqMUu_KU1UMEmn9ODw0.md" -> "07-Engineering/id-drag-snippet.md"
+- "Record Label Simulator GDD - Part 5 of 20- Acts, Creators, and Audience Chunks.md" -> "01-Canon/record-label-simulator-gdd-acts-creators-and-audience-chunks.md"
 
 ## Secondary Cleanup: 2025-12-24T01:50:19
-- `---Record Label Simulator--- - Game Design Document1U2KL6f3-sXHhpfLbduWS2IsXnKWUHqcJBviKclBsq8.md` -> `---Record Label Simulator--- - Game Design Document1U2KL6f3-.md`
-- `--OCCUPATION- GUIDE--1vcoHUiAz5u47AB9N4RC2R6pny3Wc3dYp0DteivPcgE.md` -> `--OCCUPATION- GUIDE--.md`
-- `Acts Game Loop in Record Label Simulator1PElQk2GxZCvtgg6GmtarGFOCMPJIfnbiENEaXaAv8.md` -> `Acts Game Loop in Record Label.md`
-- `Age Group Generations Names in Record Label Simulator1QjR9-bbOSW13dsj-vOeiJ9SQYxj1m-L1jhJuIlIejI.md` -> `Age Group Generations Names in Record Label Simulator1QjR9-bbOSW13dsj-vOeiJ9SQYxj1m-.md`
-- `Album 01- Faint of Heart (DEBUT) - Track 01 Me and Myself Later (Lyrics)1fm0F0JwZJrXeJiknz3q2ElxmP6qcAemiKrsFU71Kw.md` -> `Album 01- Faint of Heart (DEBUT) - Track 01 Me and Myself Later (Lyrics).md`
-- `Alignment of Themes in Record Label Simulator11-IHm3YPUynF5x325ugIuShQxOYZY7QSqY3d4cEk0c.md` -> `Alignment of Themes in Record Label Simulator11-.md`
-- `Animation for when Charts Update1OTYqSw8kCNpDYF8oAnzcXHlWOjpD5YxCx9WmMSW48o.md` -> `Animation for when Charts.md`
-- `Anngloras subculture1XL-E9YXbmbFNYEk8ASECHXNjubF7YTqrIebrOJ73pk.md` -> `Anngloras subculture1XL-.md`
-- `Area slots in Record Label Simulator1aJc8b2zNXrQRYIrDjFwbGGJ1OvuvhTnfn7oMcTYB4.md` -> `Area slots in Record Label.md`
-- `Banned words for creative AI writing1h3gLwNmlU07uTmEInb14XAg10NP3qFtZqd92RjLAIQ.md` -> `Banned words for creative AI.md`
-- `Below is a structured document detailing the refined Cultural Reset mechanic and its integration into the Record Label Simulator1Q4r8uQlJitI1cDLmpKVIkw8MJHIa2XmaMwNDhv5Ibs.md` -> `Below is a structured document detailing the refined Cultural Reset mechanic and its integration into the Record Label.md`
-- `Blue - song lyrics track1EeXX3Cz24mq9ZU6eoNENwovcf8q4RSjUIDLTSEwcTw.md` -> `Blue - song lyrics.md`
-- `Breakdown of hours to max level up skills1gmtRucx8Ppzl3I2vmf3Gu1MKWfrqMrSsaM2sPdixyQ.md` -> `Breakdown of hours to max level up.md`
-- `BUFF Office13oOaVlHUlvUJKQoAIOdVtrPHL91TSZehYG8z0IDKg8.md` -> `BUFF.md`
-- `Calculation for Maximum Length and Width of the Terrain1SAJiOO5FOcK72FKj-hod2gjomKiNCpYWUeR4AhTLA.md` -> `Calculation for Maximum Length and Width of the Terrain1SAJiOO5FOcK72FKj-.md`
-- `Calendar Module in Record Label Simulator video game17FQrmGSR-9EK5LXb4eb2KbInYMLHx3BQz2ucaFvw8.md` -> `Calendar Module in Record Label Simulator video game17FQrmGSR-.md`
-- `Catharsis change of members1gl5imBSVnv-r5mrNVhrudvKWuyNYXW9QhXplOY7M0.md` -> `Catharsis change of members1gl5imBSVnv-.md`
-- `ChatGPT 4o - Memory (6-17-2024)1qzRzcSv9MsjttRHS1EX0wNnrfoF35EWnjvWdi4w15U.md` -> `ChatGPT 4o - Memory (6-17-2024).md`
-- `Children of Marc Hann Genevieve Mar1WGeHP0fjVqVG4WiFNn7BWMl5OfY6MBiQ1CC2wWviRk.md` -> `Children of Marc Hann Genevieve.md`
-- `Clothing material of each country in Record Label Simulator1cULq0smRAye6ShMHdi7VUgPTVlDHQEIGtjRb563Qjw.md` -> `Clothing material of each country in Record Label.md`
-- `Combinations of Broadcasting Studios in Record Label Simulator1Pib2XTrafmPxfbwmSPhjXyESf4w58HjsGOoIttR9Pw.md` -> `Combinations of Broadcasting Studios in Record Label.md`
-- `Combinations of Broadcasting Studios in Record Label Simulator1Ymlmxo6EBcihPC4pCWbRFdEpWXk7oyjzTRtbnjCwJQ.md` -> `Combinations of Broadcasting Studios in Record Label-2.md`
-- `Community Member Theme and Mood Development1FGrZrpvNq9liNJAHtIuhqSu2yqbu3GNaIhr8tABD0Q.md` -> `Community Member Theme and Mood.md`
-- `Connections supply and demand for topoda charts record label simulator1EG2Sbah8xijwcvMyFkqNiVR5y8bswYUzikHDLUdZ5M.md` -> `Connections supply and demand for topoda charts record label.md`
-- `Content Cycle- Schedule Announce Release Promote Discontinue (SARPD) for Record Label Simulator1bTwqvDYP2XHABVD5T6a2OJ-pJIVFdmCi72z54W4McU.md` -> `Content Cycle- Schedule Announce Release Promote Discontinue (SARPD) for Record Label Simulator1bTwqvDYP2XHABVD5T6a2OJ-.md`
-- `Content Shopping Center in Record Label Simulator1VgGzLwU4PoXKs6sO4LQcE8Sfys31NJgq1Gye61hoCQ.md` -> `Content Shopping Center in Record Label.md`
-- `Countries for inspiration of names in Topoda Charts In-Game Universe1LbZOG-TwMOpfjLKCla63bftt8KuNzzi8uMBCQWKWYA.md` -> `Countries for inspiration of names in Topoda Charts In-Game Universe1LbZOG-.md`
-- `Countries Parameters and Relationships - Gaia Nations Overview1Oz3O9bQm4VIyfXaunRhAQiS6vT7RrzKELLejfR0cQ.md` -> `Countries Parameters and Relationships - Gaia Nations.md`
-- `Country of Record Label Simulator In-Game Universe- Crowlya Kingdom of Crowlya1n4xe1rd6NJ20DM3oL1YXsyt0Q45wOmwotuH3N2fqQ.md` -> `Country of Record Label Simulator In-Game Universe- Crowlya Kingdom of.md`
-- `COURSE OF ACTION FOR Record Label Simulator1wlaydfgjoMHjh4IhWl355CFOXtHj26yN4G1UJcK7oA.md` -> `COURSE OF ACTION FOR Record Label.md`
-- `Courtroom Sketch1V3uvr5pciqr9pxVEIrzdOiUvFruRNCRUnA1KXnkRY.md` -> `Courtroom.md`
-- `Covers (Acts promoting not-owned Tracks) in Record Label Simulator1Dqv1ZTmS41GJMcT4d7hFchOHn8Si88Vrs8BKsNIFWI.md` -> `Covers (Acts promoting not-owned Tracks) in Record Label.md`
-- `CREATOR CARD- INTERVIEWEE1JAYbbRoOvytYk8ku1YL2j8bY6dKgnKFdOdqsFTo2zI.md` -> `CREATOR CARD-.md`
-- `CREATOR ID ERA DRIVE AND EMOTIONS in TOPODA CHARTS1GZeVTpNbYAmvNX-x4SCSLFcJAnVFOqCsxLLDGDiLjw.md` -> `CREATOR ID ERA DRIVE AND EMOTIONS in TOPODA CHARTS1GZeVTpNbYAmvNX-.md`
-- `CREATOR IDS PROPERTIES in Record Label Simulator1nQbzTsm6WlX20WYVv-npJW4H0mZ9yvgKbrwG5jsbB4.md` -> `CREATOR IDS PROPERTIES in Record Label Simulator1nQbzTsm6WlX20WYVv-.md`
-- `CREATOR IDs Properties1w44ub8SK73oIhEfc2KF-cxlCSaud5O0tHqYPc8HpBQ.md` -> `CREATOR IDs Properties1w44ub8SK73oIhEfc2KF-.md`
-- `Creator- Prima Donna1Zvq-ypyAHMpdAWGuXojPqd6XM6fcAOQhrOu8gTPNM.md` -> `Creator- Prima Donna1Zvq-.md`
-- `Creators and members catharsis points1ga0dE6ichCpsxsyv7L-5SvQtDTAzkx3sBieH8MjxW8.md` -> `Creators and members catharsis points1ga0dE6ichCpsxsyv7L-.md`
-- `Critics Councils in Record Label Simulator1dgyt5tA-vCdGvcitP7Hlm7pD4Ow7N4t7FrrZstEOrA.md` -> `Critics Councils in Record Label Simulator1dgyt5tA-.md`
-- `Detailed Revenue Breakdown (Capacities 1000 to 300000) Arenas and Stadiums1Z8Jll3b7Ov-TGpsRYM2XJLkoJJX8I5xC9apuX4PrI.md` -> `Detailed Revenue Breakdown (Capacities 1000 to 300000) Arenas and Stadiums1Z8Jll3b7Ov-.md`
-- `Dominican phrases to use in-game for Record Label Simulator NPC dialogue1Rb4P9uwH6jHmc2lC3KdKMWGtHjWSvwtFX9qJKxDbIo.md` -> `Dominican phrases to use in-game for Record Label Simulator NPC.md`
-- `Email Template- Quest1883vb01mBsdtyvJlFcQv1eqSUSxn187gyVkSqDrmg.md` -> `Email Template-.md`
-- `Example Breakdown- Digital Streaming15zE4zxx7xAAzlg1LhojYRotRLiq2TL0siafpQoXqo.md` -> `Example Breakdown- Digital.md`
-- `Expanded and Integrated Stamina System Explanation1gjxUdGB0hEHEXPcUJQdSx8EhvQoBnQd1aMl9YQns.md` -> `Expanded and Integrated Stamina System.md`
-- `EXPLAINS HOW THEMES ARE SATISFIED BY REACHING CERTAIN GOALS1wDTGMLzxfVvujnOLhrBcYwRIhm1Gb-0PR4bFj5yMjg.md` -> `EXPLAINS HOW THEMES ARE SATISFIED BY REACHING CERTAIN GOALS1wDTGMLzxfVvujnOLhrBcYwRIhm1Gb-.md`
-- `Explanation of Terrain Features and Building Navigation1K2abmf6NT-ASLQ0ozu8mNAzA6r6dNUYYjW5t3VWOYo.md` -> `Explanation of Terrain Features and Building Navigation1K2abmf6NT-.md`
-- `eyeriS Broadcasting Corporation (eBC)1rv4jQmbi-CKe5rqn99fBjKrc4kexnElhsOFTuomZv4.md` -> `eyeriS Broadcasting Corporation (eBC)1rv4jQmbi-.md`
-- `Festivals in Record Label Simulator1ePtwbvlHweTj0JvAYczevJR3LufQy7eXDSjUZyCPs.md` -> `Festivals in Record Label.md`
-- `FINDING CREATORS in Record Label Simulator1y45NgoYgBeVaWLCR0I9LE2nNtFOlxOnyKSUi28M97g.md` -> `FINDING CREATORS in Record Label.md`
-- `Format - Formatting Paragraph Styles1UvZStaN2qsQMs9rrKDkwwPffUMZ0jEk5rQ2x3cYhuU.md` -> `Format - Formatting Paragraph.md`
-- `Game Concept- Capital City Tile Layouts1cQzqmqVtRb6kT5yEWR8iUF8Yj9rNaIuFSHysok4TR0.md` -> `Game Concept- Capital City Tile.md`
-- `Game Concept- Content Types in Record Label Simulator1sDfk1SDmpYlRZlx9byn8PtaU4AsPzWSHTvndxJgg.md` -> `Game Concept- Content Types in Record Label.md`
-- `Game Concept- Promotional Efforts for Content1yEAk3tUnmqoLvoVW94WZ0WnnsCb6i19kh6USrZbiw4.md` -> `Game Concept- Promotional Efforts for.md`
-- `Game Design Document of Record Label Simulator1zRgxowK2J-14c0ZnVNfaTF12siOD4IgPsqvVo7wm10.md` -> `Game Design Document of Record Label Simulator1zRgxowK2J-.md`
-- `Game Loop in -Record Label Simulator-1TPKdYCQD4ZMUSbPyELH0o68GBLnZ5LRJClSLtGGg3o.md` -> `Game Loop in -Record Label Simulator-.md`
-- `Game Mechanic- Rollout Strategy of the Era of an Act in Record Label Simulator17w8icwIcPQbXkFUmLolFsvY6DU7PujqftjdoVTjABA.md` -> `Game Mechanic- Rollout Strategy of the Era of an Act in Record Label.md`
-- `Gameplay Feature Report for Record Label Simulator- Artist Immortalization System1BRQPnrzsJ-cLJDo4BHBL1onravst6Drtd8aKvpylc.md` -> `Gameplay Feature Report for Record Label Simulator- Artist Immortalization System1BRQPnrzsJ-.md`
-- `Government Permits and Upgrades-1u1Worn1sIyjO57FpAmryfaxfLwgcd55EjuKjnTIT0.md` -> `Government Permits and Upgrades-.md`
-- `Hey - song lyrics - track1ZBxuZ7tWCiR9bNV9i5Ax7bYFFx74n04gDUCy1Ddz9o.md` -> `Hey - song lyrics -.md`
-- `Hostage Song lyrics track1UH1a-mX9V9Zw1EJ3CVx4PxoCXYjNMfpXm842r0lgi0.md` -> `Hostage Song lyrics track1UH1a-.md`
-- `How to adopt a modular code workflow for your team1UtrpQvPUS59BWdD8pTUzUcYuyvKk2f4bfj672PU6Y.md` -> `How to adopt a modular code workflow for your.md`
-- `I Fear song lyrics track13Tz70BXWwnCVs6x55MbvZAdlobw1F4OofG3tmgBE5o.md` -> `I Fear song lyrics.md`
-- `I Mattered - song lyrics track version 215qSVVjK9l6UstuvbLr37LGviGoWtbjKRvC4lhIwbLw.md` -> `I Mattered - song lyrics track version.md`
-- `i walk alone1aoK90-C4WyvAdU1QpwVLqTLUnk81PyNjY3dmEK07JI.md` -> `i walk alone1aoK90-.md`
-- `ID1-6HwXGKbxS4v5LBXSzK0hXF-vqMUuKU1UMEmn9ODw0.md` -> `ID1-6HwXGKbxS4v5LBXSzK0hXF-.md`
-- `Images of Marc Hann1CfEozIgWBnSlLTXxKr.md` -> `Images of Marc.md`
-- `Important Unity DOTS YouTube videos1fcFSjZHcwUyNYMXZenjjbcgxmlhRasN6yKbwHYm7tk.md` -> `Important Unity DOTS YouTube.md`
-- `In-Game Economy and Transactions1mTujX27OsWeaqia53m2oGs8Jno-hE6vBcHeRzy0jJ8.md` -> `In-Game Economy and Transactions1mTujX27OsWeaqia53m2oGs8Jno-.md`
-- `In-Game Item- Content - Concert DVD13QjWCgnWg6Qcu0gS2nsdunCzbrL4tw-1EmSgzUf38.md` -> `In-Game Item- Content - Concert DVD13QjWCgnWg6Qcu0gS2nsdunCzbrL4tw-.md`
-- `In-Game Time Control Mechanics for Record Label Simulator1Ee8bx3jXY3BqXZK-Awp9F2ynsdpdU7CJ4zJ2uqwNgs.md` -> `In-Game Time Control Mechanics for Record Label Simulator1Ee8bx3jXY3BqXZK-.md`
-- `In-Game Time Controller Script1Mf8nFAFBtTfH6iSnB0s6VzdpPwPEnLCR2Ko2Xw1sgM.md` -> `In-Game Time Controller.md`
-- `Infested By You - Lyrics134Z66Hau6qedJn7xHyJM2xzkXIhT3z7ZfL6CL23g0.md` -> `Infested By You -.md`
-- `Initial Simulation of -Era- of an -Act- in the Pre-game Simulation Stage1euFf0MxfsV01sEOZWv9kla5S3E0CETjPnr2s3VgQ.md` -> `Initial Simulation of -Era- of an -Act- in the Pre-game Simulation.md`
-- `Interview about Taylor Swifts Eras Tour1NfPk6mPR8EBxiTGKlqzeOqCf-WRkSZw5TB8ExokXNM.md` -> `Interview about Taylor Swifts Eras Tour1NfPk6mPR8EBxiTGKlqzeOqCf-.md`
-- `inventory mechanics in Record Label Simulator1skFyYeB1K6BA09c1xTaR9uioNUPukBiBHTkBhE66s.md` -> `inventory mechanics in Record Label.md`
-- `kaylers shadow16lrG9VmdZ4T2SARCvklP1gifaa2NxW876fDjoUaXNM.md` -> `kaylers.md`
-- `Last name of recording artists18e4tqlMjzvfFf9r4s0Mun8XDht8Q4TuzWCd0suPBCU.md` -> `Last name of recording.md`
-- `Last names of songwriters18JXPhxoMlrqmKddtQ5v1vm1VZHF3OtaIecN9XnUuU.md` -> `Last names of.md`
-- `Life stages of songwriter creator cards1NJilOFV4Sxv0aDEMPOBXLNAszNL2zl7N3GIv30LiyM.md` -> `Life stages of songwriter creator.md`
-- `Light origin and FLAMP icons design14VhUX3o3V0OdCR4rFPHhEBMF8XScITPkz2ooJFkJPs.md` -> `Light origin and FLAMP icons.md`
-- `Limits of consumption of audience chunks1OcdaR9nIxcN0J6QJsWvz6SxDlwJQZ3gifsLneMzaAU.md` -> `Limits of consumption of audience.md`
-- `List of data to choose from in the properties of Record Label Simulator IDs1y4PsjEoV439iyLu1jyu5YmIGebeQuU8AD1eM4hyqo.md` -> `List of data to choose from in the properties of Record Label Simulator.md`
-- `Love Note song lyrics track1XENXfROvB0ePPo0C8MbTVQZmy7Ux2lNpvBSONc81VE.md` -> `Love Note song lyrics.md`
-- `Lucky Charm song lyrics track11cgnAxFMyPHbSvKMgR8Q-qXHwgiARnW0DpaHlPZuY.md` -> `Lucky Charm song lyrics track11cgnAxFMyPHbSvKMgR8Q-.md`
-- `Lyrical theme (lyricist) and performance mood (performer) in Record Label Simulator1e5PNXmH8CGrhzIZqdA7psSfoZvJCVd6f8Y0c9wCjFQ.md` -> `Lyrical theme (lyricist) and performance mood (performer) in Record Label.md`
-- `Map of Earth159gRdhaE93xO2nzkPxMRr0Ll5xewcc77cpbRJmFfk.md` -> `Map of.md`
-- `Mariah Noya - Marcs Mother in Record Label Simulator1GJkcPL1eyhG1QpvJApbgJC5zNhF6X1SMsHcIpXZ1eo.md` -> `Mariah Noya - Marcs Mother in Record Label.md`
-- `Markdown Guidelines for Unity GameObjects and Entities1QvNnFQ-9jXYFJPh2fHo7vUq9Emgj6N22I569qJwtjY.md` -> `Markdown Guidelines for Unity GameObjects and Entities1QvNnFQ-.md`
-- `master recording1zpgjdGLm0z9EDxOQ4hQtxA-40ZOfreElj4rU02TME.md` -> `master recording1zpgjdGLm0z9EDxOQ4hQtxA-.md`
-- `Member and Structure Dynamics in -Record Label Simulator-1wBtBXNr1yMA6r0LDjKUlOZGJiZzWXobQ4Qe8MF2EM.md` -> `Member and Structure Dynamics in -Record Label Simulator-.md`
-- `Message- If youre good at everything youre specially good at nothing1ZlRVQ7bBoIwV-nRnOx0mA74Z64bQDFX3H7SZNmdqrs.md` -> `Message- If youre good at everything youre specially good at nothing1ZlRVQ7bBoIwV-.md`
-- `Mike Hawk - Topoda Charts Artist1Srh8yqpZ714om-gQFIGuHwDmhHr87VJFIcnKwm9xc.md` -> `Mike Hawk - Topoda Charts Artist1Srh8yqpZ714om-.md`
-- `Miserable - Quote (Dialogue)1W56gaWNxIeFNlHTiLm73WwTjWuO6P61SQs3js3Mt1M.md` -> `Miserable - Quote (Dialogue).md`
-- `Modifier - Substance Name- Dispatch Dust (faster speed lower quality)1dyc3nY1LSK9262gAVogX1ero1L1ZdxPwGGLptxjaA.md` -> `Modifier - Substance Name- Dispatch Dust (faster speed lower quality).md`
-- `Modifier - Substance Name- Sensory Sage (slower speed higher quality)1BaZXvqkQoip1VthCUOrjSYYW72YiMuYjV21CYS5p4.md` -> `Modifier - Substance Name- Sensory Sage (slower speed higher quality).md`
-- `Modular creation of items in Studios Academies Sets and Venues1S7ztjkQYXbzxz9E4clbj0xkTTwNgXfDALhddnx5cI.md` -> `Modular creation of items in Studios Academies Sets and.md`
-- `Mood of tracks in Record Label simulator1Jx5gP4lx2FQExFjeom2pY3FGYBCqqN1o3uOyeA5O0.md` -> `Mood of tracks in Record Label.md`
-- `Name Origin Ethnicity Culture and Demonyms of countries in Record Label Simulator1NOknDeDvhoIpppmOqzGDy4SB510Rvlwo8CZVONgbyA.md` -> `Name Origin Ethnicity Culture and Demonyms of countries in Record Label.md`
-- `negative prompts for leonardoai1hbDAvMHh3IMc3mTogEzXXlTtf8MiOXdE3B9qSt5Ae4.md` -> `negative prompts for.md`
-- `No Winning Side - Song Lyrics - Track1Q6rmsNqwjMrX0nlBS7tlVEieOxQLlcWEnKH0Rf8Eg.md` -> `No Winning Side - Song Lyrics -.md`
-- `One thousand members of a community in Record Label Simulator-TOPODA CHARTS10Ia3jYkyLKJ2eqMLMvwfJgwikMMb1CwaZCWhaIsXUY.md` -> `One thousand members of a community in Record Label Simulator-TOPODA.md`
-- `Open song lyrics track12a-LZCg9udaqnVDdMxtytlMVa64MzTaj6gGvRrcCPA.md` -> `Open song lyrics track12a-.md`
-- `Opening Scene1Ni-2DEXlzD57inxvvpia8PUwUAImhcaJTKFu4LuBjM.md` -> `Opening Scene1Ni-.md`
-- `Pessimist Puppet1jlVzkvI8uRYfQ6Soj69htwXEYc0UlFNDnZLGV19cLk.md` -> `Pessimist.md`
-- `Phonomarks - Writing System of Topoda Charts In-Game Universe1oqcZykWh64OYzsNtNSH7wJ0E4jeCnqgiwIpnYoz7oE.md` -> `Phonomarks - Writing System of Topoda Charts In-Game.md`
-- `Player ceo game progression1IurNkmMzPttkWSuh2c7-ZP-LyiJoX6tFZV3q71sPmY.md` -> `Player ceo game progression1IurNkmMzPttkWSuh2c7-ZP-.md`
-- `Poem Structure Rules13qTNSMLmGvUNbuUhCgHWYuE9LhrbGCvAqlEiDQXxU.md` -> `Poem Structure.md`
-- `PR list to assign Contents quality1Th5lne1pvyUOV3m927zEtcyxY6Ne7n9qPIgcp7YzA.md` -> `PR list to assign Contents.md`
-- `PRE-Era Stage Definition of Record Label Simulation Game Mechanic14F-z6mJ2VEK-OWPAHXp3E7k-5Bk3Na9onAq8elM3U.md` -> `PRE-Era Stage Definition of Record Label Simulation Game Mechanic14F-z6mJ2VEK-OWPAHXp3E7k-.md`
-- `Preliminary Tools Items and Content Concept for Record Label Simulator video game1h5gzWwckYbEgfZJkXhsiAoU2d5iutRUjln86rSow.md` -> `Preliminary Tools Items and Content Concept for Record Label Simulator video.md`
-- `Pressing Plant in Record Label Simulator10BWRRfT49aDxZSokASuG734jKjJLLdc8yRrswCiwr0.md` -> `Pressing Plant in Record Label.md`
-- `random ass song lyrics track1NqDkihaVy0KvXpD1nEuzbRFr7RBcJ9orMJEmB1p9Sc.md` -> `random ass song lyrics.md`
-- `record label micromanaging strategy simulator game for PC in Unity1ht0UaPphi-6gCJ3ENWkRGxyK-OhpWOBr2tBplSEoZ8.md` -> `record label micromanaging strategy simulator game for PC in Unity1ht0UaPphi-6gCJ3ENWkRGxyK-.md`
-- `Record Label Simulator - CHARTS COLUMNS DEFINITION1I5ORorwhWjuROEmtSNexkZ34QB5nqGeMJTS3XIPYBQ.md` -> `Record Label Simulator - CHARTS COLUMNS.md`
-- `Record Label Simulator - Country Profiles1-1ffhn6JnfA7S1FZn3ZmpOgAUy1DH2tj9BzvmwLpOs.md` -> `Record Label Simulator - Country Profiles1-.md`
-- `Record Label Simulator - CREATOR ID SKILLS- PRODUCER1okSkcYcRyeY-6G6uB9VfYdbqvgYVpp9911w4v0dTuI.md` -> `Record Label Simulator - CREATOR ID SKILLS- PRODUCER1okSkcYcRyeY-.md`
-- `Record Label Simulator - CREATOR ID SKILLS- SONGWRITER14k1F-Y46y7elsKcvZH5GWx8k9kiaoVCr4wyltVBwI8.md` -> `Record Label Simulator - CREATOR ID SKILLS- SONGWRITER14k1F-.md`
-- `Record Label Simulator - FREEDOM LOYALTY AMBITION MORALITY and POWER as the Themes of Sheet Music1b9ihP8OoWXvrORJ5ojVjHndIpTSlID0biG0IsMQwE.md` -> `Record Label Simulator - FREEDOM LOYALTY AMBITION MORALITY and POWER as the Themes of Sheet.md`
-- `Record Label Simulator - Game Design - Solution for Track Names Tracklist and Data Storage1Y-ZLnqMH1JM5g0Zx6FOk447Bm2MXhraYSnzDZXFhSc.md` -> `Record Label Simulator - Game Design - Solution for Track Names Tracklist and Data Storage1Y-.md`
-- `Record Label Simulator - Gameplay and In-Game Concepts to define1lXqUcWkl6uW6m0KwbiZWu1BB59Z0bf3HT21m7i2ERY.md` -> `Record Label Simulator - Gameplay and In-Game Concepts to.md`
-- `Record Label Simulator - Gameplay Mechanic- Signing Artists (Acquiring CREATORS and GUIDERS (deprecated) CARDS)19BUpXyCqIgIhwJKryfvGd5AXELe4EUcDmkZByL5Us0.md` -> `Record Label Simulator - Gameplay Mechanic- Signing Artists (Acquiring CREATORS and GUIDERS (deprecated) CARDS).md`
-- `Record Label Simulator - Marc Hann (CEO-Music Executive) Genevive Mar (Creator Songwriter ID)1dWxnuMNwygaYWn4yIK5r5jewFSpbmJRGsRVRHCWQ.md` -> `Record Label Simulator - Marc Hann (CEO-Music Executive) Genevive Mar (Creator Songwriter ID).md`
-- `Record Label Simulator - Player Scenario15ttfr28-Ij5K7WTBBOSCx-5jcn0KDe2ZbX5VKOCVJM.md` -> `Record Label Simulator - Player Scenario15ttfr28-Ij5K7WTBBOSCx-.md`
-- `Record Label Simulator - Republic of Bytenza (Gaia Nations Canon)17hNcdRWNLiH-6vc0eQ0mvZcRm03t9pmSecjhVlIEc.md` -> `Record Label Simulator - Republic of Bytenza (Gaia Nations Canon)17hNcdRWNLiH-.md`
-- `Record Label Simulator - Sheet Music Creation Process14bxOuzClQmDTJAbkvzi3Bx8vNTyA28ZKLH60sNUFc.md` -> `Record Label Simulator - Sheet Music Creation.md`
-- `Record Label Simulator - UI Design19h8fOFyzyVRyeC5liohIwIYtS5WhrWtMCwzIvkuNcI.md` -> `Record Label Simulator - UI.md`
-- `Record Label Simulator Concept19FFEJ4TxUBKNEUhoZ5gabK0dmHZLso5gpZMDkzFGU.md` -> `Record Label Simulator.md`
-- `Record Label Simulator In-Game World Structure1hFRMD8xQezAdJ9IYf-N0QEgUAi6f9D4bZqXLi0G1TI.md` -> `Record Label Simulator In-Game World Structure1hFRMD8xQezAdJ9IYf-.md`
-- `Record Label Simulator Patch Notes for Unity Editor1xs9w8HuUDrFODnaLmdi0hkLPC3jGjnSEpqh4UWUhZ0.md` -> `Record Label Simulator Patch Notes for Unity.md`
-- `Record Label Simulator RLS Naming Evolution1E55UQjSU5rOA-ZT211Q7u-rEPW5h0syNXzdIMrMSWY.md` -> `Record Label Simulator RLS Naming Evolution1E55UQjSU5rOA-ZT211Q7u-.md`
-- `Record Label Simulator RLS The Goddesses of Gaia1uhgUSdUZXovRSzs1CUEKCDJc8KRFdeasaQKVE5iQYc.md` -> `Record Label Simulator RLS The Goddesses of.md`
-- `Record label simulator Videogame In-Game Story Mode- Storyline1A9Mxql0MpTpGRnYhggF9KIjMAO8jm3NJclrf8N8Kg.md` -> `Record label simulator Videogame In-Game Story Mode-.md`
-- `Record Label Simulator- Buildings Creator IDs and Inventory Items1YDVWYwJXBoPWZQpBxSe-hHdSQCBrx88msF8o0jNID0.md` -> `Record Label Simulator- Buildings Creator IDs and Inventory Items1YDVWYwJXBoPWZQpBxSe-.md`
-- `Record Label Simulator- Game Concept Overview1V5HsPCD0WDVx8EBpWsD4deZC4U50EpWULo4RgBEsbo.md` -> `Record Label Simulator- Game Concept.md`
-- `Record Label Simulator- Game Overview1V-9Yk06GsPTjsXbFc9ylrHoVoiFWdoK0kG6KW3NSs4.md` -> `Record Label Simulator- Game Overview1V-.md`
-- `Record Label Simulator- In-Game Entities1xZj-VZtCv9xq-hAyCrpPG8n5suyrb4AfqDafDmyZhs.md` -> `Record Label Simulator- In-Game Entities1xZj-VZtCv9xq-.md`
-- `Record Label Simulator- In-Game Quest Albums- Songs Names13PeUrByI9AyY9C5XjieeBlCFi7OFFM3Owoas61p0Y.md` -> `Record Label Simulator- In-Game Quest Albums- Songs.md`
-- `Record Label Simulator- LOCALIZATION16miHu6Y78MqndE2bstrghCHjd0RG0KBnn9OUtk19Aw.md` -> `Record Label Simulator-.md`
-- `Record Label Simulator- Maintenance Cost of Facilities1-H5zZgmA5TrsxkncUwLjpO1SjHtCyQuixTfsYUAsk.md` -> `Record Label Simulator- Maintenance Cost of Facilities1-.md`
-- `Record Label Simulator- Preliminary Quality Assignment1BeBrzsxk8ig2Myie8C1o37KFI-uosMtf5fpPB8CWdQ.md` -> `Record Label Simulator- Preliminary Quality Assignment1BeBrzsxk8ig2Myie8C1o37KFI-.md`
-- `Record Label Simulator- Press Tours1vENuLzC8lofueVECkJG1eCHGvf4HNmfKjpqCmHFk.md` -> `Record Label Simulator- Press.md`
-- `Residence rental cost 4 year period1fGRoStMpT-LsFXldy-7M91KyXXE8bkUlyWYSxzlZs.md` -> `Residence rental cost 4 year period1fGRoStMpT-LsFXldy-.md`
-- `RLS Population Evolution System1xcCx2kd16POO5UleXqgPS3UAegDDRo19inq7carOEw.md` -> `RLS Population Evolution.md`
-- `RLS Topodangle Canon Spec1SZEieijiENM1u7GLL9IwJYkkIbGRFKWavFX6JxAZPo.md` -> `RLS Topodangle Canon.md`
-- `Slots of songwriter IDs in recording studio structures to create sheet music1bl1UCixafecT-i7Zea6yMeqEd59f1e6GJkyO8kFpz8.md` -> `Slots of songwriter IDs in recording studio structures to create sheet music1bl1UCixafecT-.md`
-- `So Cruel - song lyrics track13VOzHc2fv5lksgZMV58ZgWxosFR-DfR4X0ogwD61Ds.md` -> `So Cruel - song lyrics track13VOzHc2fv5lksgZMV58ZgWxosFR-.md`
-- `Solace In Solitude dialogue for Record Label Simulator quests1ncoq9s2mlcfCTeO2SW6Ai3Kfad47zo4QSUz3jT4Hfc.md` -> `Solace In Solitude dialogue for Record Label Simulator.md`
-- `Something to Prove lyrics song track1HIPT5GbM2aARdLH5knjC2ELMHw4AWJiEM3CihQH9ag.md` -> `Something to Prove lyrics song.md`
-- `Something to Work With Song lyrics track1feWmLBsAfVH8AkxcP9cXDAxKTYeO4JtfRoGBy0J5xE.md` -> `Something to Work With Song lyrics.md`
-- `song lyrics - track1abr5uUG-FkCHlBGcJZdzAuY1NWP9PMwv7htgnBNQE.md` -> `song lyrics - track1abr5uUG-.md`
-- `Song Lyrics track - His Kiss14H1fEo1HP4yzfXNFdkzWPOixjBFbXjMDfZPAlnM40.md` -> `Song Lyrics track - His.md`
-- `song lyrics track - no winning side1A2Vcpopn5kBfUMJfQdFOIOyqAUTQSDAvQEpBYGLx8k.md` -> `song lyrics track - no winning.md`
-- `Song lyrics track11UmQH6d3gjBKCdkQwANJdOGraoTOP6ENzz5d017kzA.md` -> `Song lyrics.md`
-- `Song lyrics track1a6gmNMunDgsuTCafHqmMMavPQAyHKvn4aTF8sVs3Rg.md` -> `Song lyrics-2.md`
-- `song lyrics track1akz5k7yxe645V7ccuIiZyrLNoFP4a1h06WZ5EaixlI.md` -> `song lyrics-3.md`
-- `song lyrics track1ce1vfuj0xsvnOztZaIuuT38jVXAbbHMBzRissPXrNI.md` -> `song lyrics-4.md`
-- `song lyrics track1p8ClAgeUHCq2IyRS2989PC1TyuNpIb1VP7LP0Eq6es.md` -> `song lyrics-5.md`
-- `song lyrics track1wlmZEmxJtMQ2wiHiGo1fiXzXf1UTSKhd7VzoYjeXQ0.md` -> `song lyrics-6.md`
-- `song lyrics track1yz9eFaUcmn-5GRNvsJh27sr9QEYSTviOVmIhSsqLU.md` -> `song lyrics track1yz9eFaUcmn-.md`
-- `Song- SOS1C3Ryr2NWhz3IBohKU9LIwa7L0aUofBwS9LirZ8o16A.md` -> `Song-.md`
-- `Speed movement of community members based on wealth level1K-xeYj6buGdV4sebixYWIBhg3UvurhflM3elqFSGOg.md` -> `Speed movement of community members based on wealth level1K-.md`
-- `Stamina Recharge Mechanic in -Record Label Simulator-1QjJUHard3Cjbl6jfMcd3YNiJtsbrGdk73KYaneNbQs.md` -> `Stamina Recharge Mechanic in -Record Label Simulator-.md`
-- `STORY MODE IDEA for Record Label Simulator1xj4nE5LZVy-619Cq88d9A0WtO3k92mhNpGzTooSyL8.md` -> `STORY MODE IDEA for Record Label Simulator1xj4nE5LZVy-.md`
-- `Streaming contracts in topoda charts1FzuC7XzJroPKuVYRipROWCavDQhUWpRwkmt1f8rOEA.md` -> `Streaming contracts in topoda.md`
-- `Studios Academies Sets and Venues1L5nOVnWOGwzv4fJF58ppCrp3DlucsDDPvDx40Ubrnc.md` -> `Studios Academies Sets and.md`
-- `Sub-genres to explore in Topoda Charts Record Label Simulator1zxRyi4VKrqTkXN7OpzDajtSUyvzzqlSRaxZBkmdM4.md` -> `Sub-genres to explore in Topoda Charts Record Label.md`
-- `Subcultures in topoda charts1NvdMchj8rLnq215Z9TYQXqynmANUHn3eP2Qu3C49dY.md` -> `Subcultures in topoda.md`
-- `Target Audience for Record Label Simulator1Bu17DtbbTcdu3tyoeNBAi6dDWtu2nqiYSBkLQHOiac.md` -> `Target Audience for Record Label.md`
-- `Template of Prompts for Record Label Simulator (made with LeonardoAI)126pQgZUHfW6lF8Y-6OL9hOpmSXX7uOERok1Po1jz0g.md` -> `Template of Prompts for Record Label Simulator (made with LeonardoAI)126pQgZUHfW6lF8Y-.md`
-- `TerrainPlane GameObject Specifications1ocydM32o6mtYz75MRdQit6TYbnkI4IYF4bJhD1652w.md` -> `TerrainPlane GameObject.md`
-- `Ticks to level up skill1gTAACXIqYRjr1kezByRShIdHCkxhnFD8XxnDn1JQ.md` -> `Ticks to level up.md`
-- `TikTok1y8o1ywyKfehPiYsnsZxbuUJxJUXVivyGYkNCsHsymc.md` -> `Untitled.md`
-- `Time and Ticks for Content Creation in Record Label Simulator1PCJ7ZuCewrtBIxvut9jthwCRvYUMRiT.md` -> `Time and Ticks for Content Creation in Record Label.md`
-- `TOPODA CHARTS- SONGWRITERS INSPIRATION1-q5dMo5zQ1yhxGq3y3E2EdMmQNNtRGMtZYqMYqDow.md` -> `TOPODA CHARTS- SONGWRITERS INSPIRATION1-.md`
-- `Total Ticks for 1 in-game hour 3600 - 10000000 (ticks per second) 36000000000 ticks1FuGnXBQHQLYT9XRaIF5Dz9sklQXzMPh6tQL42M0kms.md` -> `Total Ticks for 1 in-game hour 3600 - 10000000 (ticks per second) 36000000000.md`
-- `Tracks Projects Pricing for Content in Record Label Simulator1nrnCRiVArBhOskx6EnI41PQWyMitPeOiNtfYEUljDw.md` -> `Tracks Projects Pricing for Content in Record Label.md`
-- `Truth-worthiness property for IDs1bvez-EeJPimjkHVUw3C93Yh2kx4CFphbdZMTJye3nQ.md` -> `Truth-worthiness property for IDs1bvez-.md`
-- `Udio song idea1cgSuNry1CX8X49QnkPJk9fAyD5QvcGkdz5YaLUdpSc.md` -> `Udio song.md`
-- `Unique Selling Points of Record Label Simulator-1oc60tQO43eGLyahXTWt6vNNxo9mI7JuzUroYdaoKzY.md` -> `Unique Selling Points of Record Label Simulator-.md`
-- `Unity Prefab Inventory System1zviyVjGUqQRuGRJnZs2BxHOFqoqvtVmUz2wu0h0gE.md` -> `Unity Prefab Inventory.md`
-- `Untitled song - lyrics - track1NhOeciwckLFStzoig-o0kmvWnqA7gnvzMLog75K6w.md` -> `Untitled song - lyrics - track1NhOeciwckLFStzoig-.md`
-- `Untitled song - track lyrics1Zs8HDOU2QF8J2RvhePa576bK4AV1MelUBdFRrJdt8.md` -> `Untitled song - track.md`
-- `version numbering and naming for Record Label Simulator1YevRubKvkouFHiQ9HHp9OP49bht0OPAvJpyI3EXr6Y.md` -> `version numbering and naming for Record Label.md`
-- `Visual concept ideas for art19WxbZVWa8P94OlkfyHAdWjgdN-b8N0mJq7AxYYOzgk.md` -> `Visual concept ideas for art19WxbZVWa8P94OlkfyHAdWjgdN-.md`
-- `Visuals of Themes and Moods in Record Label Simulator1vtiLUDwmrINYS-rWpBbptX8xQrzfKY2Y3G930IxlY.md` -> `Visuals of Themes and Moods in Record Label Simulator1vtiLUDwmrINYS-.md`
 
 ## Phase 2 - 2025-12-24T02:03:06.8530780-04:00
 
-- "---Record Label Simulator--- - Game Design Document1U2KL6f3-.md" -> "02-UI\\---Record Label Simulator--- - Game Design.md"
-- "--Identities-- --OCCUPATIONS--.md" -> "06-Characters\\--Identities-- --OCCUPATIONS.md"
-- "--OCCUPATION- GUIDE--.md" -> "02-UI\\--OCCUPATION- GUIDE.md"
-- "45 content media genres in record label simulator full names- theme mood.md" -> "05-Content\\45 content media genres in record label simulator full names- theme mood.md"
-- "5 years later.md" -> "99-Archive\\5 years later.md"
-- "Act.md" -> "06-Characters\\Act.md"
-- "Action Verbs and Their Parameters in -Record Label Simulator-.md" -> "06-Characters\\Action Verbs and Their Parameters in -Record Label Simulator.md"
-- "Acts Game Loop in Record Label.md" -> "06-Characters\\Acts Game Loop in Record Label.md"
-- "Adapt - Song lyrics track1Dkwi-EgdOqvVUUcRlAb3DocvztUFZyqWzL-NzxU-s.md" -> "05-Content\\Adapt - Song lyrics.md"
-- "Age Group Generations Names in Record Label Simulator1QjR9-bbOSW13dsj-vOeiJ9SQYxj1m-.md" -> "03-Systems\\Age Group Generations Names in Record Label.md"
-- "Ahora no quieres ms.md" -> "02-UI\\Ahora no quieres ms.md"
-- "AI Staff for Bard Roleplay.md" -> "06-Characters\\AI Staff for Bard Roleplay.md"
-- "AI team at Topoda Charts-.md" -> "03-Systems\\AI team at Topoda Charts.md"
-- "Aim for a -T- Rating- Crafting an Inspiring Journey of Resilience and Support for Record Label Simulator.md" -> "99-Archive\\Aim for a -T- Rating- Crafting an Inspiring Journey of Resilience and Support for Record Label Simulator.md"
-- "Album 01- Faint of Heart (DEBUT) - Track 01 Me and Myself Later (Lyrics).md" -> "05-Content\\Album 01- Faint of Heart (DEBUT) - Track 01 Me and Myself Later (Lyrics).md"
-- "Algorithm initialization of Record Label simulator.md" -> "99-Archive\\Algorithm initialization of Record Label simulator.md"
-- "Alignment of Themes in Record Label Simulator11-.md" -> "02-UI\\Alignment of Themes in Record Label.md"
-- "All those times I tried to leave you song lyrics track.md" -> "03-Systems\\All those times I tried to leave you song lyrics track.md"
-- "Angry at myself - song lyrics - track.md" -> "05-Content\\Angry at myself - song lyrics - track.md"
-- "Animation for when Charts.md" -> "03-Systems\\Animation for when Charts.md"
-- "ANNGLORAN CREATOR HISTORY OF CONTENT GENRES.md" -> "04-World\\ANNGLORAN CREATOR HISTORY OF CONTENT GENRES.md"
-- "Anngloras subculture1XL-.md" -> "99-Archive\\Anngloras.md"
-- "Apple iPhone Notes.md" -> "99-Archive\\Apple iPhone Notes.md"
-- "Area slots in Record Label.md" -> "99-Archive\\Area slots in Record Label.md"
-- "Areas and Facilities Mechanics for Record Label Simulator.md" -> "03-Systems\\Areas and Facilities Mechanics for Record Label Simulator.md"
-- "Audience Community and Community Chunk Game Mechanics.md" -> "03-Systems\\Audience Community and Community Chunk Game Mechanics.md"
-- "Audience in record label simulator.md" -> "99-Archive\\Audience in record label simulator.md"
-- "Banned words for creative AI.md" -> "99-Archive\\Banned words for creative AI.md"
-- "Below is a structured document detailing the refined Cultural Reset mechanic and its integration into the Record Label.md" -> "03-Systems\\Below is a structured document detailing the refined Cultural Reset mechanic and its integration into the Record Label.md"
-- "Blue - song lyrics.md" -> "05-Content\\Blue - song lyrics.md"
-- "Boy.md" -> "99-Archive\\Boy.md"
-- "Breakdown of hours to max level up.md" -> "99-Archive\\Breakdown of hours to max level up.md"
-- "BUFF.md" -> "99-Archive\\BUFF.md"
-- "Buffs (Bonuses )and add ons provided by GUIDE IDs in topoda charts17FtmJhhBzlA5YrpQud-Nv9RoxYgw0xGkoN-pXzEcpw.md" -> "02-UI\\Buffs (Bonuses )and add ons provided by GUIDE IDs in topoda.md"
-- "Calculation for Maximum Length and Width of the Terrain1SAJiOO5FOcK72FKj-.md" -> "99-Archive\\Calculation for Maximum Length and Width of the.md"
-- "Calendar Module in Record Label Simulator video game17FQrmGSR-.md" -> "03-Systems\\Calendar Module in Record Label Simulator video.md"
-- "Capsule to ID Animation in -Record Label Simulator-1W-IQ-qcpoJNL8XDMEnoT7-xLMP-MuEETMVDudAE-k.md" -> "99-Archive\\Capsule to ID Animation in -Record Label.md"
-- "Card roles in topoda charts.md" -> "03-Systems\\Card roles in topoda charts.md"
-- "Cards as entities inventory items currency etc.md" -> "99-Archive\\Cards as entities inventory items currency etc.md"
-- "Catharsis change of members1gl5imBSVnv-.md" -> "99-Archive\\Catharsis change of.md"
-- "Catharsis Mechanic of Members.md" -> "03-Systems\\Catharsis Mechanic of Members.md"
-- "CEO 12 Requests - Annual Winners Scoring and No-Ties Policy (Gaia).md" -> "03-Systems\\CEO 12 Requests - Annual Winners Scoring and No-Ties Policy (Gaia).md"
-- "CEOs uncle as difficulty setting and investor.md" -> "06-Characters\\CEOs uncle as difficulty setting and investor.md"
-- "Character content Genre Preferences and Global Trends in Record Label Simulator.md" -> "03-Systems\\Character content Genre Preferences and Global Trends in Record Label Simulator.md"
-- "Chart Competition in Record Label Simulator.md" -> "03-Systems\\Chart Competition in Record Label Simulator.md"
-- "Chart System Rules and Exceptions for Record Label Simulator.md" -> "03-Systems\\Chart System Rules and Exceptions for Record Label Simulator.md"
-- "Charts records and milestones accounts for eyeriSocial1U4QQ-r2mh6XRkdZMX0aiojDeYShvDyCVm-9ljp-VuU.md" -> "03-Systems\\Charts records and milestones accounts for.md"
-- "ChatGPT 4o - Memory (6-17-2024).md" -> "99-Archive\\ChatGPT 4o - Memory (6-17-2024).md"
-- "Children of Marc Hann Genevieve.md" -> "06-Characters\\Children of Marc Hann Genevieve.md"
-- "Chords and Instruments.md" -> "99-Archive\\Chords and Instruments.md"
-- "Cities- Skylines II Mod- Record Labels.md" -> "99-Archive\\Cities- Skylines II Mod- Record Labels.md"
-- "classes for slots in game topoda charts1KuZzGP7gwYmiEiRBkBN6sJHu-FOb1V8-Zc9dbMdwSQ.md" -> "04-World\\classes for slots in game topoda.md"
-- "Classes in Unity for Topoda Charts.md" -> "03-Systems\\Classes in Unity for Topoda Charts.md"
-- "Clothing material of each country in Record Label.md" -> "04-World\\Clothing material of each country in Record Label.md"
-- "Cloud Storage (Player Inventory) in Record Label Simulator.md" -> "07-Engineering\\Cloud Storage (Player Inventory) in Record Label Simulator.md"
-- "Color Assignment of Moods in Record Label Simulator.md" -> "02-UI\\Color Assignment of Moods in Record Label Simulator.md"
-- "Colors of Record Label Simulator Lyrical Themes for Tracks.md" -> "02-UI\\Colors of Record Label Simulator Lyrical Themes for Tracks.md"
-- "Combinations of Broadcasting Studios in Record Label-2.md" -> "04-World\\Combinations of Broadcasting Studios in Record Label-2.md"
-- "Combinations of Broadcasting Studios in Record Label.md" -> "04-World\\Combinations of Broadcasting Studios in Record Label.md"
-- "comfort album1NKUdMr1tQKOSWQioPXNGj-EufRMqm-EqR2bxUYU7KM.md" -> "99-Archive\\comfort.md"
-- "Commentary on the Revised Population Dynamics Document.md" -> "03-Systems\\Commentary on the Revised Population Dynamics Document.md"
-- "Communities of Topoda Charts.md" -> "03-Systems\\Communities of Topoda Charts.md"
-- "Community Member Theme and Mood.md" -> "05-Content\\Community Member Theme and Mood.md"
-- "Community Members in Record Label Simulator.md" -> "06-Characters\\Community Members in Record Label Simulator.md"
-- "Complete Demo Recording Creation Process for Recording Artist in -Record Label Simulator-.md" -> "99-Archive\\Complete Demo Recording Creation Process for Recording Artist in -Record Label Simulator.md"
-- "Complete Sheet Music Creation Process in -Record Label Simulator-.md" -> "99-Archive\\Complete Sheet Music Creation Process in -Record Label Simulator.md"
-- "Complete Song Creation Process.md" -> "05-Content\\Complete Song Creation Process.md"
-- "Components of Community Members in Record Label Simulator.md" -> "06-Characters\\Components of Community Members in Record Label Simulator.md"
-- "Components of Content- Themes.md" -> "05-Content\\Components of Content- Themes.md"
-- "Comprehensive Documentation for Record Label Simulator.md" -> "99-Archive\\Comprehensive Documentation for Record Label Simulator.md"
-- "Concept about players goal to succeed at the game.md" -> "99-Archive\\Concept about players goal to succeed at the game.md"
-- "Connections supply and demand for topoda charts record label.md" -> "03-Systems\\Connections supply and demand for topoda charts record label.md"
-- "constructors in unity for Record Label Simulator.md" -> "07-Engineering\\constructors in unity for Record Label Simulator.md"
-- "Content Cycle- Schedule Announce Release Promote Discontinue (SARPD) for Record Label Simulator1bTwqvDYP2XHABVD5T6a2OJ-.md" -> "03-Systems\\Content Cycle- Schedule Announce Release Promote Discontinue (SARPD) for Record Label.md"
-- "Content produced on demand1UkI3x1ujJhM2qLKx401e-0TZcZ0t411ZOUh-BMjODQ.md" -> "99-Archive\\Content produced on.md"
-- "Content Shopping Center in Record Label.md" -> "99-Archive\\Content Shopping Center in Record Label.md"
-- "Content Types and Their Purposes in Record Label Simulator.md" -> "99-Archive\\Content Types and Their Purposes in Record Label Simulator.md"
-- "Content.md" -> "99-Archive\\Content.md"
-- "Cool inspiring phrases for record label simulator.md" -> "99-Archive\\Cool inspiring phrases for record label simulator.md"
-- "Copy of Combinations of Broadcasting Studios in Record Label Simulator.md" -> "04-World\\Copy of Combinations of Broadcasting Studios in Record Label Simulator.md"
-- "Copy of Love Note song lyrics track.md" -> "05-Content\\Copy of Love Note song lyrics track.md"
-- "Copy of Project Design Doc GDOC.md" -> "02-UI\\Copy of Project Design Doc GDOC.md"
-- "Copy of Record Label Simulator - MVP Gameplay Overview (December 5 2025 version).md" -> "01-Canon\\Copy of Record Label Simulator - MVP Gameplay Overview (December 5 2025 version).md"
-- "Corporations in Record Label Simulator.md" -> "99-Archive\\Corporations in Record Label Simulator.md"
-- "Countries for inspiration of names in Topoda Charts In-Game Universe1LbZOG-.md" -> "03-Systems\\Countries for inspiration of names in Topoda Charts In-Game.md"
-- "Countries Parameters and Relationships - Gaia Nations.md" -> "04-World\\Countries Parameters and Relationships - Gaia Nations.md"
-- "Country of Record Label Simulator In-Game Universe- Annglora Commonwealth of Annglora.md" -> "04-World\\Country of Record Label Simulator In-Game Universe- Annglora Commonwealth of Annglora.md"
-- "Country of Record Label Simulator In-Game Universe- Crowlya Kingdom of.md" -> "04-World\\Country of Record Label Simulator In-Game Universe- Crowlya Kingdom of.md"
-- "COURSE OF ACTION FOR Record Label.md" -> "06-Characters\\COURSE OF ACTION FOR Record Label.md"
-- "Courtroom.md" -> "99-Archive\\Courtroom.md"
-- "Covers (Acts promoting not-owned Tracks) in Record Label.md" -> "05-Content\\Covers (Acts promoting not-owned Tracks) in Record Label.md"
-- "Create fake social media for game feedback from NPC in Record Label Simulator In-Game Universe.md" -> "06-Characters\\Create fake social media for game feedback from NPC in Record Label Simulator In-Game Universe.md"
-- "CREATOR CARD-.md" -> "06-Characters\\CREATOR CARD.md"
-- "CREATOR ID ERA DRIVE AND EMOTIONS in TOPODA CHARTS1GZeVTpNbYAmvNX-.md" -> "03-Systems\\CREATOR ID ERA DRIVE AND EMOTIONS in TOPODA.md"
-- "CREATOR IDS PROPERTIES in Record Label Simulator1nQbzTsm6WlX20WYVv-.md" -> "06-Characters\\CREATOR IDS PROPERTIES in Record Label.md"
-- "CREATOR IDs Properties1w44ub8SK73oIhEfc2KF-.md" -> "06-Characters\\CREATOR IDs.md"
-- "Creator resources.md" -> "06-Characters\\Creator resources.md"
-- "Creator- Prima Donna1Zvq-.md" -> "06-Characters\\Creator- Prima.md"
-- "Creators and members catharsis points1ga0dE6ichCpsxsyv7L-.md" -> "06-Characters\\Creators and members catharsis.md"
-- "Critics Councils in Record Label Simulator1dgyt5tA-.md" -> "99-Archive\\Critics Councils in Record Label.md"
-- "Currencies by Country in Gaia1YyDwbjnnNRLcyKPqBgsuvaAJjC2oYo-bkRZ-oMggGI.md" -> "04-World\\Currencies by Country in.md"
-- "Currency System - Minted Metals and Polished Minerals in Record Label Simulator.md" -> "03-Systems\\Currency System - Minted Metals and Polished Minerals in Record Label Simulator.md"
-- "Daily Routine.md" -> "99-Archive\\Daily Routine.md"
-- "Debugging.md" -> "99-Archive\\Debugging.md"
-- "Default demo album for Topoda Charts Gameplay Tutorial1M3Gu0x9EggiDEmtwyoVXqBU5UIoZe8SNd3inoTT-qA.md" -> "03-Systems\\Default demo album for Topoda Charts Gameplay.md"
-- "Definition of what Sheet Music forms in the Record Label Simulator.md" -> "99-Archive\\Definition of what Sheet Music forms in the Record Label Simulator.md"
-- "Detailed Revenue Breakdown (Capacities 1000 to 300000) Arenas and Stadiums1Z8Jll3b7Ov-.md" -> "99-Archive\\Detailed Revenue Breakdown (Capacities 1000 to 300000) Arenas and.md"
-- "dialogue - Record Label Simulator.md" -> "06-Characters\\dialogue - Record Label Simulator.md"
-- "Dialogue for Quests for Record Label Simulator.md" -> "03-Systems\\Dialogue for Quests for Record Label Simulator.md"
-- "Dialogue for Record Label Simulator.md" -> "06-Characters\\Dialogue for Record Label Simulator.md"
-- "Dialogue.md" -> "06-Characters\\Dialogue.md"
-- "Directory of Entities.md" -> "99-Archive\\Directory of Entities.md"
-- "do you mean it- - song lyrics track RAW VOW.md" -> "05-Content\\do you mean it- - song lyrics track RAW VOW.md"
-- "Dominican phrases to use in-game for Record Label Simulator NPC.md" -> "06-Characters\\Dominican phrases to use in-game for Record Label Simulator NPC.md"
-- "Donations to institutions in Record Label Simulator.md" -> "04-World\\Donations to institutions in Record Label Simulator.md"
-- "dont call it love yet - song lyrics track RAW VOW.md" -> "05-Content\\dont call it love yet - song lyrics track RAW VOW.md"
-- "Dont wanna remember song lyrics track.md" -> "05-Content\\Dont wanna remember song lyrics track.md"
-- "Drive-Wide Terminology Cleanup Scripts - Reproducible Run Rules Logging Standard (Docs Sheets).md" -> "07-Engineering\\Drive-Wide Terminology Cleanup Scripts - Reproducible Run Rules Logging Standard (Docs Sheets).md"
-- "Drives and entities that affect each factor in Record Label Simulator.md" -> "06-Characters\\Drives and entities that affect each factor in Record Label Simulator.md"
-- "Drives and their pairings.md" -> "99-Archive\\Drives and their pairings.md"
-- "Email Template-.md" -> "08-Reference\\Email Template.md"
-- "Emotion feeling mood state.md" -> "05-Content\\Emotion feeling mood state.md"
-- "EMOTIONS ASSOCIATED WITH THEMES.md" -> "05-Content\\EMOTIONS ASSOCIATED WITH THEMES.md"
-- "Engagement Consumerism Metrics in Record Label Simulator.md" -> "99-Archive\\Engagement Consumerism Metrics in Record Label Simulator.md"
-- "Entities Components and Systems in Record Label Simulator.md" -> "03-Systems\\Entities Components and Systems in Record Label Simulator.md"
-- "Eras in Record Label Simulator.md" -> "03-Systems\\Eras in Record Label Simulator.md"
-- "Even song lyrics track.md" -> "05-Content\\Even song lyrics track.md"
-- "Example Breakdown- 30000 Physical Sales Revenue in Record Label Simulator.md" -> "08-Reference\\Example Breakdown- 30000 Physical Sales Revenue in Record Label Simulator.md"
-- "Example Breakdown- Digital.md" -> "08-Reference\\Example Breakdown- Digital.md"
-- "Examples of Prompts for LeonardoAI Phoenix model.md" -> "08-Reference\\Examples of Prompts for LeonardoAI Phoenix model.md"
-- "Examples of real-life songs inspiring theme and mood of in-game content genres.md" -> "05-Content\\Examples of real-life songs inspiring theme and mood of in-game content genres.md"
-- "Expanded and Integrated Stamina System.md" -> "03-Systems\\Expanded and Integrated Stamina System.md"
-- "EXPLAINS HOW THEMES ARE SATISFIED BY REACHING CERTAIN GOALS1wDTGMLzxfVvujnOLhrBcYwRIhm1Gb-.md" -> "05-Content\\EXPLAINS HOW THEMES ARE SATISFIED BY REACHING CERTAIN.md"
-- "Explanation of Alignment of Content Projects Acts Eras and Record Label in Record Label Simulator video game project.md" -> "02-UI\\Explanation of Alignment of Content Projects Acts Eras and Record Label in Record Label Simulator video game project.md"
-- "Explanation of Terrain Features and Building Navigation1K2abmf6NT-.md" -> "02-UI\\Explanation of Terrain Features and Building.md"
-- "Expression Points (EXP) in Record Label Simulator.md" -> "99-Archive\\Expression Points (EXP) in Record Label Simulator.md"
-- "eyeriS Broadcasting Corporation (eBC)1rv4jQmbi-.md" -> "99-Archive\\eyeriS Broadcasting Corporation (eBC).md"
-- "eyeriS Broadcasting Corporation (eBC)1Tw1UtkURgJQX8sATtD6hInzujv-aDuo4FvVT3b-FGo.md" -> "99-Archive\\eyeriS Broadcasting Corporation (eBC)-2.md"
-- "eyeriSocial Handles Mentions and Inactive Accounts.md" -> "06-Characters\\eyeriSocial Handles Mentions and Inactive Accounts.md"
-- "eyeriSocial Post Template - Record Label Simulator.md" -> "08-Reference\\eyeriSocial Post Template - Record Label Simulator.md"
-- "eyeriSocial record-post ordering rule.md" -> "99-Archive\\eyeriSocial record-post ordering rule.md"
-- "Fake Article- The Symphony of Man and Machine- Merging Human and AI Artists in Music Tycoon Gaming Record Label Simulator.md" -> "99-Archive\\Fake Article- The Symphony of Man and Machine- Merging Human and AI Artists in Music Tycoon Gaming Record Label Simulator.md"
-- "Family Tree with Headings and Subheadings19dstjB1iFT4Pf1hH-wI88Oa1mnBR5VZGJ3ARGw-qeM.md" -> "99-Archive\\Family Tree with Headings and.md"
-- "Fatima Berry.md" -> "99-Archive\\Fatima Berry.md"
-- "Festivals in Record Label.md" -> "99-Archive\\Festivals in Record Label.md"
-- "Financial Flow and Strategy for Broadcasts.md" -> "99-Archive\\Financial Flow and Strategy for Broadcasts.md"
-- "FINDING CREATORS in Record Label.md" -> "06-Characters\\FINDING CREATORS in Record Label.md"
-- "Five CREATORS with the FLAMP themes related names - Record Label Simulator.md" -> "05-Content\\Five CREATORS with the FLAMP themes related names - Record Label Simulator.md"
-- "five key traits for modeling subcultures in Topoda Charts.md" -> "03-Systems\\five key traits for modeling subcultures in Topoda Charts.md"
-- "flushing out the dirty water.md" -> "99-Archive\\flushing out the dirty water.md"
-- "Format - Formatting Paragraph.md" -> "08-Reference\\Format - Formatting Paragraph.md"
-- "From Sheet Music to Track- Step-by-Step in Record Label Simulator1FMoTCJzz9M4LwPkiFUR40TDafmpaXFo2n-npMKn0x0.md" -> "05-Content\\From Sheet Music to Track- Step-by-Step in Record Label.md"
-- "Full content Genre Concept in the Game.md" -> "05-Content\\Full content Genre Concept in the Game.md"
-- "Gaia Countries and Currencies.md" -> "04-World\\Gaia Countries and Currencies.md"
-- "Gaia Pantheon Matrix.md" -> "04-World\\Gaia Pantheon Matrix.md"
-- "Gaia Time Zone Overview (Using Standard or Elsewhere) in Record Company Simulator.md" -> "01-Canon\\Gaia Time Zone Overview (Using Standard or Elsewhere) in Record Company Simulator.md"
-- "Game Concept- Capital City Tile.md" -> "04-World\\Game Concept- Capital City Tile.md"
-- "Game Concept- Content Types in Record Label.md" -> "99-Archive\\Game Concept- Content Types in Record Label.md"
-- "Game Concept- Organizations in Record Label Simulator.md" -> "99-Archive\\Game Concept- Organizations in Record Label Simulator.md"
-- "Game Concept- Promotional Efforts for.md" -> "03-Systems\\Game Concept- Promotional Efforts for.md"
-- "Game Concept- Roles Occupations Action Verbs of Characters in Record Label Simulators Game Design.md" -> "02-UI\\Game Concept- Roles Occupations Action Verbs of Characters in Record Label Simulators Game Design.md"
-- "Game Design Document of Record Label Simulator1zRgxowK2J-.md" -> "01-Canon\\Game Design Document of Record Label.md"
-- "Game design Record Label Simulator (6-23-2024).md" -> "02-UI\\Game design Record Label Simulator (6-23-2024).md"
-- "Game Development Roadmap for Record Label Simulator.md" -> "99-Archive\\Game Development Roadmap for Record Label Simulator.md"
-- "Game Loop in -Record Label Simulator-.md" -> "99-Archive\\Game Loop in -Record Label Simulator.md"
-- "Game Mechanic- Rollout Strategy of the Era of an Act in Record Label.md" -> "03-Systems\\Game Mechanic- Rollout Strategy of the Era of an Act in Record Label.md"
-- "Game save progress in RLS.md" -> "99-Archive\\Game save progress in RLS.md"
-- "Game Simulation Mechanics.md" -> "03-Systems\\Game Simulation Mechanics.md"
-- "Game Start - Record Label Simulator.md" -> "99-Archive\\Game Start - Record Label Simulator.md"
-- "Gameplay Feature Report for Record Label Simulator- Artist Immortalization System1BRQPnrzsJ-.md" -> "99-Archive\\Gameplay Feature Report for Record Label Simulator- Artist Immortalization.md"
-- "Gameplay overview1V1uAAxTJfTu8zKXVd4rlgLkTYg6cPF0zQiq-hInO7U.md" -> "99-Archive\\Gameplay.md"
-- "Genevive Song Lyrics.md" -> "05-Content\\Genevive Song Lyrics.md"
-- "Global Demographic Evolution- Growth and Control Guidelines.md" -> "02-UI\\Global Demographic Evolution- Growth and Control Guidelines.md"
-- "Glossary of important word definitions.md" -> "01-Canon\\Glossary of important word definitions.md"
-- "Glossary.md" -> "01-Canon\\Glossary.md"
-- "Goals to win the game before the year 3000.md" -> "99-Archive\\Goals to win the game before the year 3000.md"
-- "Government Permits and Upgrades-.md" -> "99-Archive\\Government Permits and Upgrades.md"
-- "Hate.md" -> "99-Archive\\Hate.md"
-- "He dances on - Song Lyrics - Track.md" -> "05-Content\\He dances on - Song Lyrics - Track.md"
-- "Heres the revised set of content genres excluding 5 of the Boring categories and a corresponding list of 40 unique creators (20 female and 20 male)-.md" -> "05-Content\\Heres the revised set of content genres excluding 5 of the Boring categories and a corresponding list of 40 unique creators (20 female and 20 male).md"
-- "Hey - song lyrics -.md" -> "05-Content\\Hey - song lyrics.md"
-- "High-Level Game Design Overview- Record Label Simulator.md" -> "01-Canon\\High-Level Game Design Overview- Record Label Simulator.md"
-- "History of Annglora.md" -> "04-World\\History of Annglora.md"
-- "HMMM Mechanic.md" -> "03-Systems\\HMMM Mechanic.md"
-- "Honorary Title- -Chameleon-.md" -> "99-Archive\\Honorary Title- -Chameleon.md"
-- "Hostage Song lyrics track1UH1a-.md" -> "05-Content\\Hostage Song lyrics.md"
-- "Hours to level up to 10.md" -> "99-Archive\\Hours to level up to 10.md"
-- "How Come Lyrics track song.md" -> "05-Content\\How Come Lyrics track song.md"
-- "How to adopt a modular code workflow for your.md" -> "07-Engineering\\How to adopt a modular code workflow for your.md"
-- "How To Assign Physical Address to Areas in Record Label Simulator.md" -> "99-Archive\\How To Assign Physical Address to Areas in Record Label Simulator.md"
-- "How To Determine Theme Mood (and content Genre) of Content in Record Label Simulator.md" -> "05-Content\\How To Determine Theme Mood (and content Genre) of Content in Record Label Simulator.md"
-- "How to implement Save-Load mechanism with Odin Serializer and SQLite4Unity3d.md" -> "99-Archive\\How to implement Save-Load mechanism with Odin Serializer and.md"
-- "Hype in Record Label Simulator.md" -> "99-Archive\\Hype in Record Label Simulator.md"
-- "i dont want peace - song lyrics track RAW VOW.md" -> "05-Content\\i dont want peace - song lyrics track RAW VOW.md"
-- "I Fear song lyrics.md" -> "05-Content\\I Fear song lyrics.md"
-- "I Hate You by Woodz in Spanish Version.md" -> "99-Archive\\I Hate You by Woodz in Spanish Version.md"
-- "I Know That You Want My (feat Genevieve).md" -> "99-Archive\\I Know That You Want My (feat Genevieve).md"
-- "I Mattered - song lyrics - track.md" -> "05-Content\\I Mattered - song lyrics - track.md"
-- "I Mattered - song lyrics track version.md" -> "05-Content\\I Mattered - song lyrics track version.md"
-- "i walk alone1aoK90-.md" -> "99-Archive\\i walk.md"
-- "IDs and ID slots on Studios Academies Sets and Venues.md" -> "99-Archive\\IDs and ID slots on Studios Academies Sets and Venues.md"
-- "Im Making A Record Label Simulator Game1piyH3FPB3y5rIaChhkNy-hiZBrOSSznpxwxtgwgUj8.md" -> "99-Archive\\Im Making A Record Label Simulator.md"
-- "Images for eyeriSocial posts.md" -> "99-Archive\\Images for eyeriSocial posts.md"
-- "Images of Marc.md" -> "06-Characters\\Images of Marc.md"
-- "Imagine this is a fake scenario between you and I.md" -> "99-Archive\\Imagine this is a fake scenario between you and I.md"
-- "Important (Backend Keys etc).md" -> "99-Archive\\Important (Backend Keys etc).md"
-- "Important Unity DOTS YouTube.md" -> "07-Engineering\\Important Unity DOTS YouTube.md"
-- "In Record Label Simulator (RLS) what are the players actual responsibilities and actions moment-to-moment and what outcomes are they driving.md" -> "06-Characters\\In Record Label Simulator (RLS) what are the players actual responsibilities and actions moment-to-moment and what outcomes are they driving.md"
-- "In Record Label Simulator (RLS) what does Chief Executive Officer (CEO) - music executive mean and what does that role do inside the game.md" -> "06-Characters\\In Record Label Simulator (RLS) what does Chief Executive Officer (CEO) - music executive mean and what does that role do inside the game.md"
-- "In-Game Audience Mechanic in Record Label Simulator.md" -> "03-Systems\\In-Game Audience Mechanic in Record Label Simulator.md"
-- "In-Game Charts in Gaia.md" -> "03-Systems\\In-Game Charts in Gaia.md"
-- "In-Game Economy and Transactions1mTujX27OsWeaqia53m2oGs8Jno-.md" -> "03-Systems\\In-Game Economy and.md"
-- "In-Game Item- Content - Concert DVD13QjWCgnWg6Qcu0gS2nsdunCzbrL4tw-.md" -> "99-Archive\\In-Game Item- Content - Concert.md"
-- "In-Game Time Control Mechanics for Record Label Simulator1Ee8bx3jXY3BqXZK-.md" -> "03-Systems\\In-Game Time Control Mechanics for Record Label.md"
-- "In-Game Time Controller.md" -> "03-Systems\\In-Game Time Controller.md"
-- "In-Game World Initial Simulation for Record Label Simulator.md" -> "03-Systems\\In-Game World Initial Simulation for Record Label Simulator.md"
-- "Incentive for Social Media Content Sharing (TikTok Reels Shorts) in Record Label Simulator.md" -> "99-Archive\\Incentive for Social Media Content Sharing (TikTok Reels Shorts) in Record Label Simulator.md"
-- "Income and Expenses of Members in Record Label Simulator.md" -> "06-Characters\\Income and Expenses of Members in Record Label Simulator.md"
-- "Infested By You -.md" -> "99-Archive\\Infested By You.md"
-- "Initial Concept of how Tracks gain Properties in-game.md" -> "05-Content\\Initial Concept of how Tracks gain Properties in-game.md"
-- "Initial Development Phase for Audience Chunks in Record Label Simulator by Topoda Charts.md" -> "03-Systems\\Initial Development Phase for Audience Chunks in Record Label Simulator by Topoda Charts.md"
-- "Initial Prompt for KeyMate ChatGPT.md" -> "08-Reference\\Initial Prompt for KeyMate ChatGPT.md"
-- "Initial Simulation of -Era- of an -Act- in the Pre-game Simulation.md" -> "03-Systems\\Initial Simulation of -Era- of an -Act- in the Pre-game Simulation.md"
-- "Initial State (Before Simulation) of Record Label Simulator.md" -> "03-Systems\\Initial State (Before Simulation) of Record Label Simulator.md"
-- "Inspiration parody of historic figures related to the history of the Dominican Republic1Xz13RJzfYhDUjOL4EXGt4jjVd37HRdV1ITJL4N-Zh8.md" -> "04-World\\Inspiration parody of historic figures related to the history of the Dominican.md"
-- "Instruments for Moods and Themes (Music Genres) - Background music for RLS.md" -> "05-Content\\Instruments for Moods and Themes (Music Genres) - Background music for RLS.md"
-- "Interaction between in-game entities in Record Label Simulator.md" -> "03-Systems\\Interaction between in-game entities in Record Label Simulator.md"
-- "Interview about Taylor Swifts Eras Tour1NfPk6mPR8EBxiTGKlqzeOqCf-.md" -> "03-Systems\\Interview about Taylor Swifts Eras.md"
-- "Interview style like The Guardian for Olivia Rodrigos album Guts1yOD6U7z7lHB2ltOfPDwN9eyxA-veMFFEJA93NCpd3o.md" -> "05-Content\\Interview style like The Guardian for Olivia Rodrigos album.md"
-- "inventory mechanics in Record Label.md" -> "03-Systems\\inventory mechanics in Record Label.md"
-- "Items in Record Label Simulator.md" -> "99-Archive\\Items in Record Label Simulator.md"
-- "JavaScript Relevant Learning for Record Label Simulator Development.md" -> "07-Engineering\\JavaScript Relevant Learning for Record Label Simulator Development.md"
-- "kaylers.md" -> "99-Archive\\kaylers.md"
-- "Last name of recording.md" -> "99-Archive\\Last name of recording.md"
-- "Last names and marriage proposals in Record Label Simulator.md" -> "99-Archive\\Last names and marriage proposals in Record Label Simulator.md"
-- "Last names of.md" -> "99-Archive\\Last names of.md"
-- "Lease and construction cost of studio structures1f8pQ5ALS8mb0pPqjTIJIEKwJNrr-AvqDbs2wd0zozg.md" -> "03-Systems\\Lease and construction cost of studio.md"
-- "Leasing Process in -Record Label Simulator-.md" -> "99-Archive\\Leasing Process in -Record Label Simulator.md"
-- "Let It Out.md" -> "99-Archive\\Let It Out.md"
-- "Life stages of songwriter creator.md" -> "05-Content\\Life stages of songwriter creator.md"
-- "Light origin and FLAMP icons.md" -> "99-Archive\\Light origin and FLAMP icons.md"
-- "Limits of consumption of audience.md" -> "99-Archive\\Limits of consumption of audience.md"
-- "List of data to choose from in the properties of Record Label Simulator.md" -> "99-Archive\\List of data to choose from in the properties of Record Label Simulator.md"
-- "List of Record Labels in Record Label Simulator.md" -> "99-Archive\\List of Record Labels in Record Label Simulator.md"
-- "Loan and Interest Rate System in Record Label Simulator.md" -> "03-Systems\\Loan and Interest Rate System in Record Label Simulator.md"
-- "look at me (intro) - song lyrics track RAW VOW.md" -> "05-Content\\look at me (intro) - song lyrics track RAW VOW.md"
-- "Love Note song lyrics.md" -> "05-Content\\Love Note song lyrics.md"
-- "Lucky Charm song lyrics track11cgnAxFMyPHbSvKMgR8Q-.md" -> "05-Content\\Lucky Charm song lyrics.md"
-- "Lyrical theme (lyricist) and performance mood (performer) in Record Label.md" -> "05-Content\\Lyrical theme (lyricist) and performance mood (performer) in Record Label.md"
-- "Magnetic - song lyrics track.md" -> "05-Content\\Magnetic - song lyrics track.md"
-- "Main Character of Record Label Simulator - Marc Hann- Protagonist (Occupation- Music Executive).md" -> "06-Characters\\Main Character of Record Label Simulator - Marc Hann- Protagonist (Occupation- Music Executive).md"
-- "Main Character of Topoda Charts In-Game Universe Story Mode Videogame - EVIL ENTITY- AKITO from Crowlya1CHxk9Hnk179GORpyo-wz-fFUoFmFZBUhwzi3XkAV34.md" -> "03-Systems\\Main Character of Topoda Charts In-Game Universe Story Mode Videogame - EVIL ENTITY- AKITO from.md"
-- "Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Genevive Mar- Love Interest1wEPQX7cgqFKjeQz7ivauciX3Klr6-rWayOoBc5mEo.md" -> "03-Systems\\Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Genevive Mar- Love.md"
-- "Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Irene Strongbow- Creator of eyeriSocial.md" -> "03-Systems\\Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Irene Strongbow- Creator of eyeriSocial.md"
-- "Map of Bloomville (Capital City of Annglora) in Record Label Simulator.md" -> "04-World\\Map of Bloomville (Capital City of Annglora) in Record Label Simulator.md"
-- "Map of.md" -> "99-Archive\\Map of.md"
-- "Mariah Noya - Marcs Mother in Record Label.md" -> "06-Characters\\Mariah Noya - Marcs Mother in Record Label.md"
-- "Markdown Guidelines for Unity GameObjects and Entities1QvNnFQ-.md" -> "02-UI\\Markdown Guidelines for Unity GameObjects and.md"
-- "master recording1zpgjdGLm0z9EDxOQ4hQtxA-.md" -> "99-Archive\\master.md"
-- "Maximum Number of Creator IDs Concurrently Signed by Record Label in RLS.md" -> "06-Characters\\Maximum Number of Creator IDs Concurrently Signed by Record Label in RLS.md"
-- "Member and Structure Dynamics in -Record Label Simulator-.md" -> "06-Characters\\Member and Structure Dynamics in -Record Label Simulator.md"
-- "Member Personnel Occupation Wage.md" -> "06-Characters\\Member Personnel Occupation Wage.md"
-- "Member Rating Mechanism in -Record Label Simulator-.md" -> "06-Characters\\Member Rating Mechanism in -Record Label Simulator.md"
-- "Member Transition in Record Label Simulator.md" -> "06-Characters\\Member Transition in Record Label Simulator.md"
-- "Member Traveling Speed in Record Label Simulator.md" -> "06-Characters\\Member Traveling Speed in Record Label Simulator.md"
-- "Menu scenes.md" -> "99-Archive\\Menu scenes.md"
-- "Message- If youre good at everything youre specially good at nothing1ZlRVQ7bBoIwV-.md" -> "99-Archive\\Message- If youre good at everything youre specially good at.md"
-- "Mike Hawk - Topoda Charts Artist1Srh8yqpZ714om-.md" -> "03-Systems\\Mike Hawk - Topoda Charts.md"
-- "Miserable - Quote (Dialogue).md" -> "03-Systems\\Miserable - Quote (Dialogue).md"
-- "Modifier - Revamper.md" -> "99-Archive\\Modifier - Revamper.md"
-- "Modifier - Substance Name- Dispatch Dust (faster speed lower quality).md" -> "99-Archive\\Modifier - Substance Name- Dispatch Dust (faster speed lower quality).md"
-- "Modifier - Substance Name- Sensory Sage (slower speed higher quality).md" -> "99-Archive\\Modifier - Substance Name- Sensory Sage (slower speed higher quality).md"
-- "modifiers in record label simulator.md" -> "99-Archive\\modifiers in record label simulator.md"
-- "Modular creation of items in Studios Academies Sets and.md" -> "99-Archive\\Modular creation of items in Studios Academies Sets and.md"
-- "Module Calendar.md" -> "03-Systems\\Module Calendar.md"
-- "Mood of tracks in Record Label.md" -> "05-Content\\Mood of tracks in Record Label.md"
-- "Mood preference weights in Record Label Simulator- ANNGLoRA.md" -> "05-Content\\Mood preference weights in Record Label Simulator- ANNGLoRA.md"
-- "Mood preference weights in Record Label Simulator- BYTENZA.md" -> "05-Content\\Mood preference weights in Record Label Simulator- BYTENZA.md"
-- "Mood preference weights in Record Label Simulator- CROWLYA.md" -> "05-Content\\Mood preference weights in Record Label Simulator- CROWLYA.md"
-- "Moods in Record Label Simulator (with Vibe Energy Finish and Lighting).md" -> "05-Content\\Moods in Record Label Simulator (with Vibe Energy Finish and Lighting).md"
-- "Most chart-topping single of the year- game mechanics.md" -> "03-Systems\\Most chart-topping single of the year- game mechanics.md"
-- "MUSIC EXECUTIVE in Record Label Simulator.md" -> "99-Archive\\MUSIC EXECUTIVE in Record Label Simulator.md"
-- "Music Theory Learning for Topoda Charts1Z5ved8PbuzwnMf-3oxrWjKHCaBNroKuQ-RACbR0F4.md" -> "04-World\\Music Theory Learning for Topoda.md"
-- "MVP for Simulator Strategy Record Label Mobile Game.md" -> "01-Canon\\MVP for Simulator Strategy Record Label Mobile Game.md"
-- "Mythology of Record Label Simulator based on Dominican folklore.md" -> "04-World\\Mythology of Record Label Simulator based on Dominican folklore.md"
-- "Name Origin Ethnicity Culture and Demonyms of countries in Record Label.md" -> "04-World\\Name Origin Ethnicity Culture and Demonyms of countries in Record Label.md"
-- "Namespaces and classes in Unity.md" -> "07-Engineering\\Namespaces and classes in Unity.md"
-- "Natural Hair Colors in Humans of Record Label Simulator In-Game Universe.md" -> "02-UI\\Natural Hair Colors in Humans of Record Label Simulator In-Game Universe.md"
-- "negative prompts for.md" -> "08-Reference\\negative prompts for.md"
-- "Negotiating Skill in Record Label Simulator.md" -> "99-Archive\\Negotiating Skill in Record Label Simulator.md"
-- "New years tradition in Annglora.md" -> "99-Archive\\New years tradition in Annglora.md"
-- "No Winning Side - Song Lyrics -.md" -> "05-Content\\No Winning Side - Song Lyrics.md"
-- "Nobodys Coming - Song Lyrics - Track.md" -> "05-Content\\Nobodys Coming - Song Lyrics - Track.md"
-- "Olivia Popes Debut Album-.md" -> "05-Content\\Olivia Popes Debut Album.md"
-- "One of Those Days song lyrics track.md" -> "05-Content\\One of Those Days song lyrics track.md"
-- "One thousand members of a community in Record Label Simulator-TOPODA.md" -> "04-World\\One thousand members of a community in Record Label Simulator-TOPODA.md"
-- "Open song lyrics track12a-.md" -> "05-Content\\Open song lyrics track12a.md"
-- "Opening Scene1Ni-.md" -> "99-Archive\\Opening Scene1Ni.md"
-- "Optimal Stamina Usage and Long-Term Effects in -Record Label Simulator-1S4bJ7OGIWjI9L75g3aPLyX5fbrilT-roRIiVP5Kx1I.md" -> "99-Archive\\Optimal Stamina Usage and Long-Term Effects in -Record Label.md"
-- "Organizations in Record Label Simulator- Institutions vs Companies.md" -> "99-Archive\\Organizations in Record Label Simulator- Institutions vs Companies.md"
-- "Out of Boredom - Song Lyrics - Track.md" -> "05-Content\\Out of Boredom - Song Lyrics - Track.md"
-- "Paparazzi in Topoda Charts.md" -> "03-Systems\\Paparazzi in Topoda Charts.md"
-- "Parody names of real-life musicians.md" -> "99-Archive\\Parody names of real-life musicians.md"
-- "Pessimist.md" -> "99-Archive\\Pessimist.md"
-- "Phonomarks - Writing System of Topoda Charts In-Game.md" -> "03-Systems\\Phonomarks - Writing System of Topoda Charts In-Game.md"
-- "pick a side - song lyrics track RAW VOW.md" -> "05-Content\\pick a side - song lyrics track RAW VOW.md"
-- "Placeholder Scenario for Gameplay in Record Label Simulator.md" -> "99-Archive\\Placeholder Scenario for Gameplay in Record Label Simulator.md"
-- "Plan for when Record Label Simulator Webpage is ready for publishing.md" -> "99-Archive\\Plan for when Record Label Simulator Webpage is ready for publishing.md"
-- "Player ceo game progression1IurNkmMzPttkWSuh2c7-ZP-.md" -> "06-Characters\\Player ceo game.md"
-- "Poem Structure.md" -> "99-Archive\\Poem Structure.md"
-- "Poem written by Marc Hann for Record Label Simulator.md" -> "06-Characters\\Poem written by Marc Hann for Record Label Simulator.md"
-- "Politics Lottery song lyrics track.md" -> "05-Content\\Politics Lottery song lyrics track.md"
-- "PR list to assign Contents.md" -> "99-Archive\\PR list to assign Contents.md"
-- "PRE-Era Stage Definition of Record Label Simulation Game Mechanic14F-z6mJ2VEK-OWPAHXp3E7k-.md" -> "03-Systems\\PRE-Era Stage Definition of Record Label Simulation Game.md"
-- "Preliminary Tools Items and Content Concept for Record Label Simulator video.md" -> "99-Archive\\Preliminary Tools Items and Content Concept for Record Label Simulator video.md"
-- "Pressing Plant in Record Label.md" -> "99-Archive\\Pressing Plant in Record Label.md"
-- "Pricing and Track Limits for All Formats of Projects in Record Label Simulator.md" -> "03-Systems\\Pricing and Track Limits for All Formats of Projects in Record Label Simulator.md"
-- "Project Naming Document.md" -> "05-Content\\Project Naming Document.md"
-- "Project proposal.md" -> "05-Content\\Project proposal.md"
-- "Properties of Content in Record Label Simulator.md" -> "99-Archive\\Properties of Content in Record Label Simulator.md"
-- "Properties of creator ID in Record Label Simulator.md" -> "06-Characters\\Properties of creator ID in Record Label Simulator.md"
-- "Prototype Tasks for Record Label Simulator1GCo4o1hl7WsLtk0zrjhtyHc0jo0CWZ4qypXpk-vk58.md" -> "99-Archive\\Prototype Tasks for Record Label.md"
-- "Purpose of Song Creation in Record Label Simulator.md" -> "05-Content\\Purpose of Song Creation in Record Label Simulator.md"
-- "quality.md" -> "99-Archive\\quality.md"
-- "Radio stations.md" -> "99-Archive\\Radio stations.md"
-- "random ass song lyrics.md" -> "05-Content\\random ass song lyrics.md"
-- "RAW VOW Profile.md" -> "99-Archive\\RAW VOW Profile.md"
-- "Recipe items in topoda charts.md" -> "03-Systems\\Recipe items in topoda charts.md"
-- "Recipes.md" -> "99-Archive\\Recipes.md"
-- "Record Label ERA- Stages of Grief.md" -> "03-Systems\\Record Label ERA- Stages of Grief.md"
-- "record label micromanaging strategy simulator game for PC in Unity1ht0UaPphi-6gCJ3ENWkRGxyK-.md" -> "99-Archive\\record label micromanaging strategy simulator game for PC in.md"
-- "Record Label Simulator - Alignment Color System Notes.md" -> "02-UI\\Record Label Simulator - Alignment Color System Notes.md"
-- "Record Label Simulator - Bygone Eras.md" -> "03-Systems\\Record Label Simulator - Bygone Eras.md"
-- "Record Label Simulator - Character Dialogue.md" -> "06-Characters\\Record Label Simulator - Character Dialogue.md"
-- "Record Label Simulator - Chart Evolution Framework.md" -> "03-Systems\\Record Label Simulator - Chart Evolution Framework.md"
-- "Record Label Simulator - CHARTS COLUMNS.md" -> "03-Systems\\Record Label Simulator - CHARTS COLUMNS.md"
-- "Record Label Simulator - COMPLETED.md" -> "99-Archive\\Record Label Simulator - COMPLETED.md"
-- "Record Label Simulator - Country Parameters for Image Prompts.md" -> "04-World\\Record Label Simulator - Country Parameters for Image Prompts.md"
-- "Record Label Simulator - Country Profiles1-.md" -> "04-World\\Record Label Simulator - Country.md"
-- "Record Label Simulator - CRAFT Institute.md" -> "99-Archive\\Record Label Simulator - CRAFT Institute.md"
-- "Record Label Simulator - Creator Card Image Prompts (LeonardoAI).md" -> "06-Characters\\Record Label Simulator - Creator Card Image Prompts (LeonardoAI).md"
-- "Record Label Simulator - CREATOR ID SKILLS- PRODUCER1okSkcYcRyeY-.md" -> "06-Characters\\Record Label Simulator - CREATOR ID SKILLS.md"
-- "Record Label Simulator - CREATOR ID SKILLS- Recording Artist.md" -> "06-Characters\\Record Label Simulator - CREATOR ID SKILLS- Recording Artist.md"
-- "Record Label Simulator - CREATOR ID SKILLS- SONGWRITER14k1F-.md" -> "06-Characters\\Record Label Simulator - CREATOR ID SKILLS-2.md"
-- "Record Label Simulator - Creator IDs (Cards).md" -> "06-Characters\\Record Label Simulator - Creator IDs (Cards).md"
-- "Record Label Simulator - Creator IDs- Gameplay Parameters.md" -> "06-Characters\\Record Label Simulator - Creator IDs- Gameplay Parameters.md"
-- "Record Label Simulator - DLC.md" -> "99-Archive\\Record Label Simulator - DLC.md"
-- "Record Label Simulator - Documentation Governance.md" -> "99-Archive\\Record Label Simulator - Documentation Governance.md"
-- "Record Label Simulator - ducky and slowy1RKVb4smzvghclk7maGMTog-IhZOCRfcWHFj0REUyY.md" -> "99-Archive\\Record Label Simulator - ducky and.md"
-- "Record Label Simulator - ECS Foundations and Performance Architecture.md" -> "07-Engineering\\Record Label Simulator - ECS Foundations and Performance Architecture.md"
-- "Record Label Simulator - FREEDOM LOYALTY AMBITION MORALITY and POWER as the Themes of Sheet.md" -> "05-Content\\Record Label Simulator - FREEDOM LOYALTY AMBITION MORALITY and POWER as the Themes of Sheet.md"
-- "Record Label Simulator - Gaias World Overview.md" -> "01-Canon\\Record Label Simulator - Gaias World Overview.md"
-- "Record Label Simulator - Game Design - Solution for Track Names Tracklist and Data Storage1Y-.md" -> "02-UI\\Record Label Simulator - Game Design - Solution for Track Names Tracklist and Data.md"
-- "Record Label Simulator - Game Economy Pricing Models.md" -> "03-Systems\\Record Label Simulator - Game Economy Pricing Models.md"
-- "Record Label Simulator - Game Overview.md" -> "01-Canon\\Record Label Simulator - Game Overview.md"
-- "Record Label Simulator - Gameplay and In-Game Concepts to.md" -> "99-Archive\\Record Label Simulator - Gameplay and In-Game Concepts to.md"
-- "Record Label Simulator - Gameplay Mechanic - Fusion Profile - In-Game content Genres1szSoJceHi6S-LAGDuAaiQffOJjtWGZEXqhX1qkYWJo.md" -> "03-Systems\\Record Label Simulator - Gameplay Mechanic - Fusion Profile - In-Game content.md"
-- "Record Label Simulator - Gameplay Mechanic- Signing Artists (Acquiring CREATORS and GUIDERS (deprecated) CARDS).md" -> "02-UI\\Record Label Simulator - Gameplay Mechanic- Signing Artists (Acquiring CREATORS and GUIDERS (deprecated) CARDS).md"
-- "Record Label Simulator - Gameplay Mechanic- Turns.md" -> "03-Systems\\Record Label Simulator - Gameplay Mechanic- Turns.md"
-- "Record Label Simulator - Gameplay Mechanics- IDs.md" -> "03-Systems\\Record Label Simulator - Gameplay Mechanics- IDs.md"
-- "Record Label Simulator - GLOSSARY.md" -> "01-Canon\\Record Label Simulator - GLOSSARY.md"
-- "Record Label Simulator - Guide AI.md" -> "02-UI\\Record Label Simulator - Guide AI.md"
-- "Record Label Simulator - IN-GAME AUDIENCE.md" -> "99-Archive\\Record Label Simulator - IN-GAME AUDIENCE.md"
-- "Record Label Simulator - In-Game Story Mode- Storyline Quests.md" -> "03-Systems\\Record Label Simulator - In-Game Story Mode- Storyline Quests.md"
-- "Record Label Simulator - Institutions and Companies.md" -> "99-Archive\\Record Label Simulator - Institutions and Companies.md"
-- "Record Label Simulator - Introduction and Vision.md" -> "01-Canon\\Record Label Simulator - Introduction and Vision.md"
-- "Record Label Simulator - Language Naming Canon.md" -> "04-World\\Record Label Simulator - Language Naming Canon.md"
-- "Record Label Simulator - Marc Hann (CEO-Music Executive) Genevive Mar (Creator Songwriter ID).md" -> "05-Content\\Record Label Simulator - Marc Hann (CEO-Music Executive) Genevive Mar (Creator Songwriter ID).md"
-- "Record Label Simulator - MVP Gameplay Overview (December 5 2025 version).md" -> "01-Canon\\Record Label Simulator - MVP Gameplay Overview (December 5 2025 version).md"
-- "Record Label Simulator - PLAYER OCCUPATION- MUSIC EXECUTIVE.md" -> "06-Characters\\Record Label Simulator - PLAYER OCCUPATION- MUSIC EXECUTIVE.md"
-- "Record Label Simulator - Player Scenario15ttfr28-Ij5K7WTBBOSCx-.md" -> "99-Archive\\Record Label Simulator - Player.md"
-- "Record Label Simulator - Pre-Alpha Design Overview (v 001).md" -> "01-Canon\\Record Label Simulator - Pre-Alpha Design Overview (v 001).md"
-- "Record Label Simulator - Properties of Audience Chunks.md" -> "99-Archive\\Record Label Simulator - Properties of Audience Chunks.md"
-- "Record Label Simulator - Records (Awards) and Certifications (Milestones) for In-Game Achievements for finishing Quests.md" -> "03-Systems\\Record Label Simulator - Records (Awards) and Certifications (Milestones) for In-Game Achievements for finishing Quests.md"
-- "Record Label Simulator - Republic of Bytenza (Gaia Nations Canon)17hNcdRWNLiH-.md" -> "04-World\\Record Label Simulator - Republic of Bytenza (Gaia Nations Canon).md"
-- "Record Label Simulator - Script Types in Unity MonoBehaviour ScriptableObject etc.md" -> "07-Engineering\\Record Label Simulator - Script Types in Unity MonoBehaviour ScriptableObject etc.md"
-- "Record Label Simulator - Sheet Music Creation.md" -> "99-Archive\\Record Label Simulator - Sheet Music Creation.md"
-- "Record Label Simulator - Simulation Timeline and Milestones.md" -> "03-Systems\\Record Label Simulator - Simulation Timeline and Milestones.md"
-- "Record Label Simulator - Text Formatting Guide for In-Game Terminology-2.md" -> "02-UI\\Record Label Simulator - Text Formatting Guide for In-Game.md"
-- "Record Label Simulator - Text Formatting Guide for In-Game Terminology.md" -> "02-UI\\Record Label Simulator - Text Formatting Guide for In-Game Terminology.md"
-- "Record Label Simulator - UI and UX Design System.md" -> "02-UI\\Record Label Simulator - UI and UX Design System.md"
-- "Record Label Simulator - UI.md" -> "02-UI\\Record Label Simulator - UI.md"
-- "Record Label Simulator - YouTube.md" -> "99-Archive\\Record Label Simulator - YouTube.md"
-- "Record Label Simulator (RLS) CEO 12 Requests Annual Winner Protocol.md" -> "03-Systems\\Record Label Simulator (RLS) CEO 12 Requests Annual Winner Protocol.md"
-- "Record Label Simulator (RLS) Charts - Simplified Sizes (Player-Facing).md" -> "03-Systems\\Record Label Simulator (RLS) Charts - Simplified Sizes (Player-Facing).md"
-- "Record Label Simulator (RLS) GDD- Charting Systems Feedback Loops and Geographic Nuances (Nations and Regions).md" -> "01-Canon\\Record Label Simulator (RLS) GDD- Charting Systems Feedback Loops and Geographic Nuances (Nations and Regions).md"
-- "Record Label Simulator (RLS) GDD- Data Architecture and Simulation Flow.md" -> "01-Canon\\Record Label Simulator (RLS) GDD- Data Architecture and Simulation Flow.md"
-- "Record Label Simulator Benjamin Hart Narrator.md" -> "99-Archive\\Record Label Simulator Benjamin Hart Narrator.md"
-- "Record Label Simulator BRAND SPONSORSHIPS.md" -> "99-Archive\\Record Label Simulator BRAND SPONSORSHIPS.md"
-- "Record Label Simulator Canon Decision- Player Identity and Quest Issuance.md" -> "03-Systems\\Record Label Simulator Canon Decision- Player Identity and Quest Issuance.md"
-- "Record Label Simulator Canon Update- Archived Content Terminology.md" -> "04-World\\Record Label Simulator Canon Update- Archived Content Terminology.md"
-- "Record Label Simulator Creators Community Chamber Structure.md" -> "06-Characters\\Record Label Simulator Creators Community Chamber Structure.md"
-- "Record Label Simulator GDD - Part 10 of 20- Era Planning and Execution.md" -> "01-Canon\\Record Label Simulator GDD - Part 10 of 20- Era Planning and Execution.md"
-- "Record Label Simulator GDD - Part 11 of 20- Institutions and Corporations.md" -> "01-Canon\\Record Label Simulator GDD - Part 11 of 20- Institutions and Corporations.md"
-- "Record Label Simulator GDD - Part 14 of 20- Studio Management and Leasing Options.md" -> "01-Canon\\Record Label Simulator GDD - Part 14 of 20- Studio Management and Leasing Options.md"
-- "Record Label Simulator GDD - Part 16 of 20- Critics Councils and Alignment.md" -> "01-Canon\\Record Label Simulator GDD - Part 16 of 20- Critics Councils and Alignment.md"
-- "Record Label Simulator GDD - Part 17 of 20- Audience Chunk Preferences and Engagement.md" -> "01-Canon\\Record Label Simulator GDD - Part 17 of 20- Audience Chunk Preferences and Engagement.md"
-- "Record Label Simulator GDD - Part 18 of 20- Post-MVP Expansions and Advanced Features.md" -> "01-Canon\\Record Label Simulator GDD - Part 18 of 20- Post-MVP Expansions and Advanced Features.md"
-- "Record Label Simulator GDD - Part 19 of 20- Endgame and Replayability Systems.md" -> "01-Canon\\Record Label Simulator GDD - Part 19 of 20- Endgame and Replayability Systems.md"
-- "Record Label Simulator GDD - Part 5 of 20- Acts Creators and Audience Chunks.md" -> "01-Canon\\Record Label Simulator GDD - Part 5 of 20- Acts Creators and Audience Chunks.md"
-- "Record Label Simulator GDD - Part 6 of 20- Content Creation Pipeline.md" -> "01-Canon\\Record Label Simulator GDD - Part 6 of 20- Content Creation Pipeline.md"
-- "Record Label Simulator GDD - Part 7 of 20- Promotional Strategies and Tools.md" -> "01-Canon\\Record Label Simulator GDD - Part 7 of 20- Promotional Strategies and Tools.md"
-- "Record Label Simulator GDD - Part 8 of 20- Trends and Audience Dynamics.md" -> "01-Canon\\Record Label Simulator GDD - Part 8 of 20- Trends and Audience Dynamics.md"
-- "Record Label Simulator GDD - Part 9 of 20- Record Label Management and Expansion.md" -> "01-Canon\\Record Label Simulator GDD - Part 9 of 20- Record Label Management and Expansion.md"
-- "Record Label Simulator GDD Finalization and Scalability Framework (Enhanced).md" -> "01-Canon\\Record Label Simulator GDD Finalization and Scalability Framework (Enhanced).md"
-- "Record Label Simulator GDD Snippet- Key Game Concepts (Alignment Mood Theme content Genre Quality).md" -> "01-Canon\\Record Label Simulator GDD Snippet- Key Game Concepts (Alignment Mood Theme content Genre Quality).md"
-- "Record Label Simulator General Creator Parameters.md" -> "03-Systems\\Record Label Simulator General Creator Parameters.md"
-- "Record Label Simulator How To Sign a Creator System.md" -> "03-Systems\\Record Label Simulator How To Sign a Creator System.md"
-- "Record Label Simulator In-Game Characters.md" -> "06-Characters\\Record Label Simulator In-Game Characters.md"
-- "Record Label Simulator In-Game World Structure1hFRMD8xQezAdJ9IYf-.md" -> "04-World\\Record Label Simulator In-Game World.md"
-- "Record Label Simulator Known Characters.md" -> "06-Characters\\Record Label Simulator Known Characters.md"
-- "Record Label Simulator Main Characters Lore Canon.md" -> "04-World\\Record Label Simulator Main Characters Lore Canon.md"
-- "Record Label Simulator Marc Hann Quotes Cleaned.md" -> "06-Characters\\Record Label Simulator Marc Hann Quotes Cleaned.md"
-- "Record Label Simulator Novel Season 1 Episodes 1-812HwLpjoc9bRIO7zRIyvZEJ1ftjq93enYIBeM4bIN-M.md" -> "99-Archive\\Record Label Simulator Novel Season 1 Episodes.md"
-- "Record Label Simulator Patch Notes for Unity.md" -> "07-Engineering\\Record Label Simulator Patch Notes for Unity.md"
-- "Record Label Simulator Pre-Game Simulation Plan.md" -> "03-Systems\\Record Label Simulator Pre-Game Simulation Plan.md"
-- "Record Label Simulator RLS ABCD Overview.md" -> "01-Canon\\Record Label Simulator RLS ABCD Overview.md"
-- "Record Label Simulator RLS Alejandro Montenegro.md" -> "99-Archive\\Record Label Simulator RLS Alejandro Montenegro.md"
-- "Record Label Simulator RLS Naming Evolution1E55UQjSU5rOA-ZT211Q7u-.md" -> "05-Content\\Record Label Simulator RLS Naming.md"
-- "Record Label Simulator RLS Pop and Cultural Instruments for Udio Prompts.md" -> "08-Reference\\Record Label Simulator RLS Pop and Cultural Instruments for Udio Prompts.md"
-- "Record Label Simulator RLS The Bells of Gaia.md" -> "04-World\\Record Label Simulator RLS The Bells of Gaia.md"
-- "Record Label Simulator RLS The Goddesses of.md" -> "99-Archive\\Record Label Simulator RLS The Goddesses of.md"
-- "Record Label Simulator Specifications-.md" -> "01-Canon\\Record Label Simulator Specifications.md"
-- "Record label simulator Videogame In-Game Story Mode- Storyline1In8CFqRwnWCjD9jxrIbZlNAAb0M-nGXks3Kvy2JZY.md" -> "99-Archive\\Record label simulator Videogame In-Game Story Mode.md"
-- "Record label simulator Videogame In-Game Story Mode-.md" -> "99-Archive\\Record label simulator Videogame In-Game Story Mode-2.md"
-- "Record Label Simulator- Buildings Creator IDs and Inventory Items1YDVWYwJXBoPWZQpBxSe-.md" -> "02-UI\\Record Label Simulator- Buildings Creator IDs and Inventory.md"
-- "Record Label Simulator- Community Members and Sectors Overview.md" -> "01-Canon\\Record Label Simulator- Community Members and Sectors Overview.md"
-- "Record Label Simulator- Game Concept.md" -> "99-Archive\\Record Label Simulator- Game Concept.md"
-- "Record Label Simulator- Game Overview1V-.md" -> "99-Archive\\Record Label Simulator- Game.md"
-- "Record Label Simulator- In-Game Concept.md" -> "99-Archive\\Record Label Simulator- In-Game Concept.md"
-- "Record Label Simulator- In-Game Entities1xZj-VZtCv9xq-.md" -> "99-Archive\\Record Label Simulator- In-Game.md"
-- "Record Label Simulator- In-Game Quest Albums- Songs.md" -> "03-Systems\\Record Label Simulator- In-Game Quest Albums- Songs.md"
-- "Record Label Simulator- In-Game Visualizer Design Documentation1p9P9uonedcGLoqhSuwoM1dFxydtcMubbg2hJEw-1hk.md" -> "02-UI\\Record Label Simulator- In-Game Visualizer Design.md"
-- "Record Label Simulator- Investment and Revenue Model.md" -> "99-Archive\\Record Label Simulator- Investment and Revenue Model.md"
-- "Record Label Simulator- Maintenance Cost of Facilities1-.md" -> "99-Archive\\Record Label Simulator- Maintenance Cost of.md"
-- "Record Label Simulator- Preliminary Quality Assignment1BeBrzsxk8ig2Myie8C1o37KFI-.md" -> "99-Archive\\Record Label Simulator- Preliminary Quality.md"
-- "Record Label Simulator- Press.md" -> "99-Archive\\Record Label Simulator- Press.md"
-- "Record Label Simulator- Sheet Music.md" -> "99-Archive\\Record Label Simulator- Sheet Music.md"
-- "Record Label Simulator-.md" -> "99-Archive\\Record Label Simulator.md"
-- "Record Label Simulator-Sheet Music Preliminary Content.md" -> "99-Archive\\Record Label Simulator-Sheet Music Preliminary Content.md"
-- "Record Label Simulator-Sheet Music System.md" -> "03-Systems\\Record Label Simulator-Sheet Music System.md"
-- "Record Label Simulator-Topodangle Visual Feedback System VFX v1.md" -> "02-UI\\Record Label Simulator-Topodangle Visual Feedback System VFX v1.md"
-- "Record Label Simulator.md" -> "99-Archive\\Record Label Simulator-2.md"
-- "Record Label Simulator1UBxkOIzph4nQxsa9KEEKE-W6DBWm0bpVQgbv4ox-NY.md" -> "99-Archive\\Record Label.md"
-- "Record Labels Responsibilities Regarding Critics and Awards.md" -> "99-Archive\\Record Labels Responsibilities Regarding Critics and Awards.md"
-- "Recording Studio Structure and Slot Management in Record Label Simulator.md" -> "99-Archive\\Recording Studio Structure and Slot Management in Record Label Simulator.md"
-- "Refined Country-Specific Transaction Models.md" -> "04-World\\Refined Country-Specific Transaction Models.md"
-- "Residence rental cost 4 year period1fGRoStMpT-LsFXldy-.md" -> "99-Archive\\Residence rental cost 4 year.md"
-- "Revenue allocation from organizations.md" -> "99-Archive\\Revenue allocation from organizations.md"
-- "RLS Awards System.md" -> "03-Systems\\RLS Awards System.md"
-- "RLS Lore Consistency Tracker Retcon Index.md" -> "04-World\\RLS Lore Consistency Tracker Retcon Index.md"
-- "RLS Population Evolution.md" -> "03-Systems\\RLS Population Evolution.md"
-- "RLS Topodangle Canon.md" -> "04-World\\RLS Topodangle Canon.md"
-- "Rls-prototype.md" -> "99-Archive\\Rls-prototype.md"
-- "RLSCustomInstructionsAssistantandUnity.md" -> "07-Engineering\\RLSCustomInstructionsAssistantandUnity.md"
-- "RLSGameInfoLoreandMechanics.md" -> "03-Systems\\RLSGameInfoLoreandMechanics.md"
-- "Road to development Unity Muse conversation essay summary.md" -> "07-Engineering\\Road to development Unity Muse conversation essay summary.md"
-- "Rollout Strategy Husk System.md" -> "03-Systems\\Rollout Strategy Husk System.md"
-- "Scars - song lyrics - track.md" -> "05-Content\\Scars - song lyrics - track.md"
-- "Scene setup.md" -> "99-Archive\\Scene setup.md"
-- "Scores for each emotion in Record Label Simulator- Bytenza.md" -> "99-Archive\\Scores for each emotion in Record Label Simulator- Bytenza.md"
-- "Scores for each emotion in Record Label Simulator- Crowlya.md" -> "99-Archive\\Scores for each emotion in Record Label Simulator- Crowlya.md"
-- "Scripts Formatting in Record Label Simulator Unity Project.md" -> "05-Content\\Scripts Formatting in Record Label Simulator Unity Project.md"
-- "Selfish Stupid Nigga.md" -> "99-Archive\\Selfish Stupid Nigga.md"
-- "Server-Sided Logic in Cloud Code for Record Label Simulator1662pPa5Jcd7DddoGgfhI95FWVCel-XTfBP1VGVR4Xc.md" -> "07-Engineering\\Server-Sided Logic in Cloud Code for Record Label.md"
-- "Set of negative emotions for community songwriter creator IDs.md" -> "05-Content\\Set of negative emotions for community songwriter creator IDs.md"
-- "Sheet Music (Item- Content) in RLS.md" -> "99-Archive\\Sheet Music (Item- Content) in RLS.md"
-- "Simulation of Currency Flow between Organizations.md" -> "03-Systems\\Simulation of Currency Flow between Organizations.md"
-- "Slots of songwriter IDs in recording studio structures to create sheet music1bl1UCixafecT-.md" -> "05-Content\\Slots of songwriter IDs in recording studio structures to create sheet.md"
-- "Smear Campaign.md" -> "99-Archive\\Smear Campaign.md"
-- "so above it all song lyrics track name.md" -> "05-Content\\so above it all song lyrics track name.md"
-- "So Cruel - song lyrics track13VOzHc2fv5lksgZMV58ZgWxosFR-.md" -> "05-Content\\So Cruel - song lyrics.md"
-- "Software development proposal.md" -> "99-Archive\\Software development proposal.md"
-- "Solace In Solitude dialogue for Record Label Simulator.md" -> "06-Characters\\Solace In Solitude dialogue for Record Label Simulator.md"
-- "Something to Prove lyrics song.md" -> "05-Content\\Something to Prove lyrics song.md"
-- "Something to Work With Song lyrics.md" -> "05-Content\\Something to Work With Song lyrics.md"
-- "song lyrics - track-2.md" -> "05-Content\\song lyrics - track-2.md"
-- "song lyrics - track.md" -> "05-Content\\song lyrics - track.md"
-- "song lyrics - track1abr5uUG-.md" -> "05-Content\\song lyrics.md"
-- "song lyrics - track1dDBxTLkMJQDjhkEofg3QHBYdrgV-WCbpBjz1YWrTWQ.md" -> "05-Content\\song lyrics-2.md"
-- "Song Lyrics track - His.md" -> "05-Content\\Song Lyrics track - His.md"
-- "song lyrics track - no winning.md" -> "05-Content\\song lyrics track - no winning.md"
-- "Song lyrics track songwriting analysis report.md" -> "05-Content\\Song lyrics track songwriting analysis report.md"
-- "Song lyrics track-2.md" -> "05-Content\\Song lyrics track-2.md"
-- "song lyrics track-3.md" -> "05-Content\\song lyrics track-3.md"
-- "song lyrics track-4.md" -> "05-Content\\song lyrics track-4.md"
-- "Song lyrics track-5.md" -> "05-Content\\Song lyrics track-5.md"
-- "song lyrics track-6.md" -> "05-Content\\song lyrics track-6.md"
-- "song lyrics track-7.md" -> "05-Content\\song lyrics track-7.md"
-- "Song Lyrics Track.md" -> "05-Content\\Song Lyrics Track.md"
-- "Song lyrics track1-k8ngUdL3r5GDxdpL0h-XrawxYXWmGajG8qZGYTSl0.md" -> "05-Content\\Song lyrics-3.md"
-- "song lyrics track12pPtX1TIXJUQ-Tm8om4QVuYCmRCHs-TXOpnGH4D7MA.md" -> "05-Content\\song lyrics-4.md"
-- "song lyrics track1F-TAzVugfqJUblyIT73DkFVlCy3LHe1-ozreFBhLlk.md" -> "05-Content\\song lyrics-5.md"
-- "song lyrics track1yz9eFaUcmn-.md" -> "05-Content\\song lyrics-6.md"
-- "Song lyrics-2.md" -> "05-Content\\Song lyrics-2-2.md"
-- "song lyrics-3.md" -> "05-Content\\song lyrics-3-2.md"
-- "song lyrics-4.md" -> "05-Content\\song lyrics-4-2.md"
-- "song lyrics-5.md" -> "05-Content\\song lyrics-5-2.md"
-- "song lyrics-6.md" -> "05-Content\\song lyrics-6-2.md"
-- "Song lyrics.md" -> "05-Content\\Song lyrics-7.md"
-- "Song-.md" -> "05-Content\\Song.md"
-- "Songwriter creator ID.md" -> "05-Content\\Songwriter creator ID.md"
-- "Songwriting Session with Songwriter ID in Recording Studio Structure.md" -> "05-Content\\Songwriting Session with Songwriter ID in Recording Studio Structure.md"
-- "Speed movement of community members based on wealth level1K-.md" -> "06-Characters\\Speed movement of community members based on wealth level1K.md"
-- "Split of catharsis between creators in a song - Record Label Simulator.md" -> "05-Content\\Split of catharsis between creators in a song - Record Label Simulator.md"
-- "Stages of Pre-game Simulation for Record Label Simulator.md" -> "03-Systems\\Stages of Pre-game Simulation for Record Label Simulator.md"
-- "Stamina in Record Label Company Simulator.md" -> "99-Archive\\Stamina in Record Label Company Simulator.md"
-- "Stamina in RLS.md" -> "99-Archive\\Stamina in RLS.md"
-- "Stamina Recharge Mechanic in -Record Label Simulator-.md" -> "03-Systems\\Stamina Recharge Mechanic in -Record Label Simulator.md"
-- "Stay - Song lyrics track.md" -> "05-Content\\Stay - Song lyrics track.md"
-- "Still song lyrics track.md" -> "05-Content\\Still song lyrics track.md"
-- "STORY MODE IDEA for Record Label Simulator1xj4nE5LZVy-.md" -> "99-Archive\\STORY MODE IDEA for Record Label.md"
-- "Streaming contracts in topoda.md" -> "04-World\\Streaming contracts in topoda.md"
-- "Structure Leasing and Management in -Record Label Simulator-.md" -> "99-Archive\\Structure Leasing and Management in -Record Label Simulator.md"
-- "Structures in Record Label Simulator1IBBU0XYggeSp-0bXNCiRiBwko-4yosYc7h5Rk-RkA4.md" -> "99-Archive\\Structures in Record Label.md"
-- "Studios Academies Sets and.md" -> "99-Archive\\Studios Academies Sets and.md"
-- "Sub-genres to explore in Topoda Charts Record Label.md" -> "03-Systems\\Sub-genres to explore in Topoda Charts Record Label.md"
-- "Subcultures in topoda.md" -> "04-World\\Subcultures in topoda.md"
-- "Table of Content for Entities and Terms.md" -> "99-Archive\\Table of Content for Entities and Terms.md"
-- "Target Audience for Record Label.md" -> "99-Archive\\Target Audience for Record Label.md"
-- "Template Contract Email for Player.md" -> "06-Characters\\Template Contract Email for Player.md"
-- "Template for creating stanza songwriting writing poem.md" -> "05-Content\\Template for creating stanza songwriting writing poem.md"
-- "Template of Prompts for Record Label Simulator (made with LeonardoAI)126pQgZUHfW6lF8Y-.md" -> "08-Reference\\Template of Prompts for Record Label Simulator (made with LeonardoAI).md"
-- "Template prompt for generation of game assets for emotions which is a feedback mechanism for the player of the Record Label Simulator.md" -> "03-Systems\\Template prompt for generation of game assets for emotions which is a feedback mechanism for the player of the Record Label Simulator.md"
-- "Template Receipt Email.md" -> "08-Reference\\Template Receipt Email.md"
-- "Tempo and instrumentation of themes and moods in Record Label Simulator.md" -> "05-Content\\Tempo and instrumentation of themes and moods in Record Label Simulator.md"
-- "Terrain Generation Priority in Record Label Simulator17SrZzmSnyK-kDVl6YAzD-JFKBWe8fk6GmpG1vdn-I.md" -> "03-Systems\\Terrain Generation Priority in Record Label.md"
-- "Terrain in record label simulator.md" -> "99-Archive\\Terrain in record label simulator.md"
-- "Terrain Tiles - Neighborhood Directions and Expansion Sequence for Bloomville Annglora.md" -> "99-Archive\\Terrain Tiles - Neighborhood Directions and Expansion Sequence for Bloomville Annglora.md"
-- "TerrainPlane GameObject.md" -> "07-Engineering\\TerrainPlane GameObject.md"
-- "The key visual elements of each theme are as follows-.md" -> "02-UI\\The key visual elements of each theme are as follows.md"
-- "The main tasks of the Player as the Music Executive.md" -> "99-Archive\\The main tasks of the Player as the Music Executive.md"
-- "The Origin and History of Sheet Music.md" -> "04-World\\The Origin and History of Sheet Music.md"
-- "THE ORIGIN AND HISTORY SERIES1an7Ray7U8t8Rj7ZaMVPUOWM9ZtcamdAEgjXf5-F8kc.md" -> "04-World\\THE ORIGIN AND HISTORY.md"
-- "The other side - song lyrics - track.md" -> "05-Content\\The other side - song lyrics - track.md"
-- "the paradise you promised - lyrics song track.md" -> "05-Content\\the paradise you promised - lyrics song track.md"
-- "THE SHOW WILL STOP.md" -> "99-Archive\\THE SHOW WILL STOP.md"
-- "The Wrong Help - song lyrics - track.md" -> "05-Content\\The Wrong Help - song lyrics - track.md"
-- "thematic ideas for the content in Topoda Charts-.md" -> "03-Systems\\thematic ideas for the content in Topoda Charts.md"
-- "THEME vs CONCEPT.md" -> "05-Content\\THEME vs CONCEPT.md"
-- "THINGS TO REMEMBER BEFORE OFFICIALLY STARTING DEVELOPMENT OF Record Label Simulator.md" -> "06-Characters\\THINGS TO REMEMBER BEFORE OFFICIALLY STARTING DEVELOPMENT OF Record Label Simulator.md"
-- "this time its over song lyrics track.md" -> "03-Systems\\this time its over song lyrics track.md"
-- "Ticks to level up.md" -> "99-Archive\\Ticks to level up.md"
-- "Tighter song lyrics track.md" -> "05-Content\\Tighter song lyrics track.md"
-- "Time and Ticks for Content Creation in Record Label.md" -> "03-Systems\\Time and Ticks for Content Creation in Record Label.md"
-- "Time Progression System for Record Label Simulator.md" -> "03-Systems\\Time Progression System for Record Label Simulator.md"
-- "Time to create in topoda charts.md" -> "03-Systems\\Time to create in topoda charts.md"
-- "Timeline of Events in Record Label Simulators Pre-game Simulation.md" -> "03-Systems\\Timeline of Events in Record Label Simulators Pre-game Simulation.md"
-- "Title- Balancing Global Trends and Local Markets in the Record Label Simulator.md" -> "03-Systems\\Title- Balancing Global Trends and Local Markets in the Record Label Simulator.md"
-- "TODO- simulate gameplay design of Record Label Simulator.md" -> "02-UI\\TODO- simulate gameplay design of Record Label Simulator.md"
-- "Tools lyrics song track.md" -> "05-Content\\Tools lyrics song track.md"
-- "TOPODA CHARTS - CHART PARAMETERS AND WEIGHS.md" -> "03-Systems\\TOPODA CHARTS - CHART PARAMETERS AND WEIGHS.md"
-- "Topoda Charts Alphabet and Vocabulary.md" -> "03-Systems\\Topoda Charts Alphabet and Vocabulary.md"
-- "TOPODA CHARTS MAGAZINE-NEWS ARTICLE.md" -> "03-Systems\\TOPODA CHARTS MAGAZINE-NEWS ARTICLE.md"
-- "Topoda Charts Prompts for ChatGPT.md" -> "03-Systems\\Topoda Charts Prompts for ChatGPT.md"
-- "TOPODA CHARTS- SONGWRITERS INSPIRATION1-.md" -> "03-Systems\\TOPODA CHARTS- SONGWRITERS.md"
-- "TopodaCharts website structure.md" -> "03-Systems\\TopodaCharts website structure.md"
-- "TopodaChartsGameTime Namespace.md" -> "03-Systems\\TopodaChartsGameTime Namespace.md"
-- "Total Ticks for 1 in-game hour 3600 - 10000000 (ticks per second) 36000000000.md" -> "99-Archive\\Total Ticks for 1 in-game hour 3600 - 10000000 (ticks per second) 36000000000.md"
-- "Track Creation Capacity in Record Label Simulator.md" -> "04-World\\Track Creation Capacity in Record Label Simulator.md"
-- "Tracklist Released Music1jquVPgOXIt4vJYlXBdYwn8eCXbec0AkdUu8x-auKQg.md" -> "03-Systems\\Tracklist Released.md"
-- "Tracklist Structure of Projects in Record Label Simulator.md" -> "05-Content\\Tracklist Structure of Projects in Record Label Simulator.md"
-- "Tracks Projects Pricing for Content in Record Label.md" -> "03-Systems\\Tracks Projects Pricing for Content in Record Label.md"
-- "TRANCE - THE THIRTEENTH ALBUM.md" -> "05-Content\\TRANCE - THE THIRTEENTH ALBUM.md"
-- "Trend Analysis- The 30-70 Pricing Dynamic.md" -> "03-Systems\\Trend Analysis- The 30-70 Pricing Dynamic.md"
-- "Trends and their involvement in the origin of subcultures in the three countries of the Topoda Charts Game1moyBQpNXdFFg5OT-cgZUj8I-PiKBZzFRgM9b4z9fA.md" -> "03-Systems\\Trends and their involvement in the origin of subcultures in the three countries of the Topoda Charts.md"
-- "Truth-worthiness property for IDs1bvez-.md" -> "99-Archive\\Truth-worthiness property for IDs1bvez.md"
-- "Udio song.md" -> "05-Content\\Udio song.md"
-- "Udio Tracklist.md" -> "05-Content\\Udio Tracklist.md"
-- "Uh-oh - Song Lyrics Track.md" -> "05-Content\\Uh-oh - Song Lyrics Track.md"
-- "UI Elements displayed on screen of the Record Label Simulator Video Game Application.md" -> "02-UI\\UI Elements displayed on screen of the Record Label Simulator Video Game Application.md"
-- "Understanding the Games ECS Architecture and Lifecycles in Unity 6.md" -> "07-Engineering\\Understanding the Games ECS Architecture and Lifecycles in Unity 6.md"
-- "ungovernable lyrics song track.md" -> "05-Content\\ungovernable lyrics song track.md"
-- "Unique Selling Points of Record Label Simulator-.md" -> "99-Archive\\Unique Selling Points of Record Label Simulator.md"
-- "Unity Muse Chat history Version- Unity 6 Preview (6000.md" -> "04-World\\Unity Muse Chat history Version- Unity 6 Preview (6000.md"
-- "Unity Muse Pre-Training Text Message Conversation ChatGPT.md" -> "07-Engineering\\Unity Muse Pre-Training Text Message Conversation ChatGPT.md"
-- "Unity Prefab Inventory.md" -> "07-Engineering\\Unity Prefab Inventory.md"
-- "Untitled document.md" -> "99-Archive\\Untitled document.md"
-- "Untitled song - lyrics - track1NhOeciwckLFStzoig-.md" -> "05-Content\\Untitled song - lyrics.md"
-- "Untitled song - track.md" -> "05-Content\\Untitled song - track.md"
-- "untitled song lyrics - track-2.md" -> "05-Content\\untitled song lyrics - track-2.md"
-- "Untitled Song lyrics - track-3.md" -> "05-Content\\Untitled Song lyrics - track-3.md"
-- "Untitled Song Lyrics - Track.md" -> "05-Content\\Untitled Song Lyrics - Track.md"
-- "Untitled song lyrics track.md" -> "05-Content\\Untitled song lyrics track.md"
-- "untitled song lyrics.md" -> "05-Content\\untitled song lyrics.md"
-- "untitled song track1tKhn8XqTdtA5oHvRKPg8cv4AnzU1HGmiNsc-Ajrqxo.md" -> "05-Content\\untitled song.md"
-- "Untitled.md" -> "99-Archive\\Untitled.md"
-- "UserBenchmarks PC Stats Specs.md" -> "07-Engineering\\UserBenchmarks PC Stats Specs.md"
-- "UX Design for Topoda Charts.md" -> "02-UI\\UX Design for Topoda Charts.md"
-- "Vault.md" -> "99-Archive\\Vault.md"
-- "Venue and member stats.md" -> "06-Characters\\Venue and member stats.md"
-- "Venues Floors and Seat Capacities.md" -> "99-Archive\\Venues Floors and Seat Capacities.md"
-- "version numbering and naming for Record Label.md" -> "05-Content\\version numbering and naming for Record Label.md"
-- "Video game genres of Record Label Simulator.md" -> "05-Content\\Video game genres of Record Label Simulator.md"
-- "Video Game Specifications- Genres of Record Label Simulator.md" -> "01-Canon\\Video Game Specifications- Genres of Record Label Simulator.md"
-- "Videos.md" -> "99-Archive\\Videos.md"
-- "Visual aesthetics for Record Label Simulator1b5FZuCaQ1FiUqcy6BACoxSor15uXlj-yuuPSdkgeSY.md" -> "02-UI\\Visual aesthetics for Record Label.md"
-- "Visual concept ideas for art19WxbZVWa8P94OlkfyHAdWjgdN-.md" -> "02-UI\\Visual concept ideas for.md"
-- "Visuals for themes in RLS FLAMP.md" -> "02-UI\\Visuals for themes in RLS FLAMP.md"
-- "Visuals of Themes and Moods in Record Label Simulator1vtiLUDwmrINYS-.md" -> "02-UI\\Visuals of Themes and Moods in Record Label.md"
-- "We Collided Still - song lyrics track.md" -> "05-Content\\We Collided Still - song lyrics track.md"
-- "WHAT ARE YOU HERE FOR- - song lyrics track RAW VOW.md" -> "05-Content\\WHAT ARE YOU HERE FOR- - song lyrics track RAW VOW.md"
-- "What is a Creator.md" -> "06-Characters\\What is a Creator.md"
-- "What is a Record Label.md" -> "99-Archive\\What is a Record Label.md"
-- "What is Record Label Simulator (RLS).md" -> "99-Archive\\What is Record Label Simulator (RLS).md"
-- "Winning and Losing Conditions in Record Label Simulator.md" -> "99-Archive\\Winning and Losing Conditions in Record Label Simulator.md"
+- "Record Label Simulator GDD - Part 10 of 20- Era Planning and Execution.md" -> "01-Canon/record-label-simulator-gdd-era-planning-and-execution.md"
+- "Record Label Simulator GDD - Part 11 of 20- Institutions and Corporations.md" -> "01-Canon/record-label-simulator-gdd-institutions-and-corporations.md"
+- "Record Label Simulator GDD - Part 14 of 20- Studio Management and Leasing Options.md" -> "01-Canon/record-label-simulator-gdd-studio-management-and-leasing-options.md"
+- "Record Label Simulator GDD - Part 16 of 20- Critics Councils and Alignment.md" -> "01-Canon/record-label-simulator-gdd-critics-councils-and-alignment.md"
+- "Record Label Simulator GDD - Part 17 of 20- Audience Chunk Preferences and Engagement.md" -> "01-Canon/record-label-simulator-gdd-audience-chunk-preferences-and-engagement.md"
+- "Record Label Simulator GDD - Part 18 of 20- Post-MVP Expansions and Advanced Features.md" -> "01-Canon/record-label-simulator-gdd-post-mvp-expansions-and-advanced-features.md"
+- "Record Label Simulator GDD - Part 19 of 20- Endgame and Replayability Systems.md" -> "01-Canon/record-label-simulator-gdd-endgame-and-replayability-systems.md"
+- "Record Label Simulator GDD - Part 6 of 20- Content Creation Pipeline.md" -> "01-Canon/record-label-simulator-gdd-content-creation-pipeline.md"
+- "Record Label Simulator GDD - Part 7 of 20- Promotional Strategies and Tools.md" -> "01-Canon/record-label-simulator-gdd-promotional-strategies-and-tools.md"
+- "Record Label Simulator GDD - Part 8 of 20- Trends and Audience Dynamics.md" -> "01-Canon/record-label-simulator-gdd-trends-and-audience-dynamics.md"
+- "Record Label Simulator GDD - Part 9 of 20- Record Label Management and Expansion.md" -> "01-Canon/record-label-simulator-gdd-record-label-management-and-expansion.md"
 
 ## Phase 2 - follow-up (ID snippet)
-- "ID1-6HwXGKbxS4v5LBXSzK0hXF-.md" -> "07-Engineering\ID Drag Snippet.md"
 
 ## Phase 2 - follow-up (governance move)
-- "99-Archive\\Record Label Simulator - Documentation Governance.md" -> "01-Canon\\Record Label Simulator - Documentation Governance.md"
 
 ## Phase 3 - 2025-12-24T02:29:15.1877933-04:00
-- "Unity Prefab Inventory.md" -> "7-Engineering\Web Inventory Item Registry.md"
-- "Record Label Simulator - Script Types in Unity MonoBehaviour ScriptableObject etc.md" -> "7-Engineering\Web Module Types and Data Assets.md"
-- "Understanding the Games ECS Architecture and Lifecycles in Unity 6.md" -> "7-Engineering\Web ECS Architecture and Lifecycles.md"
-- "TerrainPlane GameObject.md" -> "7-Engineering\World Surface Representation (Web).md"
-- "Record Label Simulator Patch Notes for Unity.md" -> "7-Engineering\Record Label Simulator - Web Build Notes.md"
-- "RLSCustomInstructionsAssistantandUnity.md" -> "7-Engineering\Record Label Simulator - Assistant and Web Project Instructions.md"
-- "Classes in Unity for Topoda Charts.md" -> "7-Engineering\Topoda Charts Web Modules.md"
-- "Markdown Guidelines for Unity GameObjects and.md" -> "2-UI\Markdown Guidelines for Web Entities.md"
-- "Scripts Formatting in Record Label Simulator Unity Project.md" -> "7-Engineering\Scripts Formatting in Record Label Simulator Web Project.md"
 
 
 ## Phase 4 - 2025-12-24T02:43:26.5192298-04:00
-- "Record Label Simulator GDD - Part 10 of 20- Era Planning and Execution.md" -> "01-Canon\Record Label Simulator GDD - Era Planning and Execution.md"
-- "Record Label Simulator GDD - Part 11 of 20- Institutions and Corporations.md" -> "01-Canon\Record Label Simulator GDD - Institutions and Corporations.md"
-- "Record Label Simulator GDD - Part 14 of 20- Studio Management and Leasing Options.md" -> "01-Canon\Record Label Simulator GDD - Studio Management and Leasing Options.md"
-- "Record Label Simulator GDD - Part 16 of 20- Critics Councils and Alignment.md" -> "01-Canon\Record Label Simulator GDD - Critics Councils and Alignment.md"
-- "Record Label Simulator GDD - Part 17 of 20- Audience Chunk Preferences and Engagement.md" -> "01-Canon\Record Label Simulator GDD - Audience Chunk Preferences and Engagement.md"
-- "Record Label Simulator GDD - Part 18 of 20- Post-MVP Expansions and Advanced Features.md" -> "01-Canon\Record Label Simulator GDD - Post-MVP Expansions and Advanced Features.md"
-- "Record Label Simulator GDD - Part 19 of 20- Endgame and Replayability Systems.md" -> "01-Canon\Record Label Simulator GDD - Endgame and Replayability Systems.md"
-- "Record Label Simulator GDD - Part 5 of 20- Acts Creators and Audience Chunks.md" -> "01-Canon\Record Label Simulator GDD - Acts Creators and Audience Chunks.md"
-- "Record Label Simulator GDD - Part 6 of 20- Content Creation Pipeline.md" -> "01-Canon\Record Label Simulator GDD - Content Creation Pipeline.md"
-- "Record Label Simulator GDD - Part 7 of 20- Promotional Strategies and Tools.md" -> "01-Canon\Record Label Simulator GDD - Promotional Strategies and Tools.md"
-- "Record Label Simulator GDD - Part 8 of 20- Trends and Audience Dynamics.md" -> "01-Canon\Record Label Simulator GDD - Trends and Audience Dynamics.md"
-- "Record Label Simulator GDD - Part 9 of 20- Record Label Management and Expansion.md" -> "01-Canon\Record Label Simulator GDD - Record Label Management and Expansion.md"
 
 ## Phase 5 - 2025-12-24 (Lore + Content Subfolders)
 - Bulk move: all files with "lyrics" in the filename moved to `04-World\Lore\Lyrics\`
 - Bulk move: all files with "dialogue" in the filename moved to `04-World\Lore\Dialogue\`
-- "02-UI\Ahora no quieres ms.md" -> "04-World\Lore\Lyrics\Ahora No Quieres Mas.md"
-- "06-Characters\Children of Marc Hann Genevieve.md" -> "04-World\Lore\Characters\Children of Marc Hann Genevieve.md"
-- "06-Characters\Creator- Prima.md" -> "04-World\Lore\Characters\Creator - Prima.md"
-- "06-Characters\Images of Marc.md" -> "04-World\Lore\Characters\Images of Marc.md"
-- "06-Characters\Main Character of Record Label Simulator - Marc Hann- Protagonist (Occupation- Music Executive).md" -> "04-World\Lore\Characters\Main Character - Marc Hann.md"
-- "06-Characters\Mariah Noya - Marcs Mother in Record Label.md" -> "04-World\Lore\Characters\Mariah Noya - Marcs Mother.md"
-- "06-Characters\Poem written by Marc Hann for Record Label Simulator.md" -> "04-World\Lore\Characters\Poem by Marc Hann.md"
-- "06-Characters\Record Label Simulator In-Game Characters.md" -> "04-World\Lore\Characters\In-Game Characters.md"
-- "06-Characters\Record Label Simulator Known Characters.md" -> "04-World\Lore\Characters\Known Characters.md"
-- "06-Characters\Record Label Simulator Marc Hann Quotes Cleaned.md" -> "04-World\Lore\Characters\Marc Hann Quotes.md"
-- "06-Characters\Dominican phrases to use in-game for Record Label Simulator NPC.md" -> "04-World\Lore\Worldbuilding\Dominican Phrases for NPCs.md"
-- "06-Characters\Create fake social media for game feedback from NPC in Record Label Simulator In-Game Universe.md" -> "04-World\Lore\Story\NPC Social Media Feedback Mockups.md"
-- "06-Characters\AI Staff for Bard Roleplay.md" -> "04-World\Lore\Story\AI Staff for Bard Roleplay.md"
-- "04-World\Record Label Simulator - Language Naming Canon.md" -> "04-World\Lore\Names\Language Naming Canon.md"
-- "04-World\Name Origin Ethnicity Culture and Demonyms of countries in Record Label.md" -> "04-World\Lore\Names\Name Origins and Demonyms by Country.md"
-- "99-Archive\Last names and marriage proposals in Record Label Simulator.md" -> "04-World\Lore\Names\Last Names and Marriage Proposals.md"
-- "99-Archive\Last name of recording.md" -> "04-World\Lore\Names\Recording Artist Last Names.md"
-- "99-Archive\Last names of.md" -> "04-World\Lore\Names\Songwriter Last Names.md"
-- "04-World\ANNGLORAN CREATOR HISTORY OF CONTENT GENRES.md" -> "04-World\Lore\Worldbuilding\ANNGLORAN CREATOR HISTORY OF CONTENT GENRES.md"
-- "04-World\Gaia Pantheon Matrix.md" -> "04-World\Lore\Worldbuilding\Gaia Pantheon Matrix.md"
-- "04-World\Game Concept- Capital City Tile.md" -> "04-World\Lore\Worldbuilding\Game Concept- Capital City Tile.md"
-- "04-World\History of Annglora.md" -> "04-World\Lore\Worldbuilding\History of Annglora.md"
-- "04-World\Inspiration parody of historic figures related to the history of the Dominican.md" -> "04-World\Lore\Worldbuilding\Inspiration parody of historic figures related to the history of the Dominican.md"
-- "04-World\Map of Bloomville (Capital City of Annglora) in Record Label Simulator.md" -> "04-World\Lore\Worldbuilding\Map of Bloomville (Capital City of Annglora) in Record Label Simulator.md"
-- "04-World\Mythology of Record Label Simulator based on Dominican folklore.md" -> "04-World\Lore\Worldbuilding\Mythology of Record Label Simulator based on Dominican folklore.md"
-- "04-World\Record Label Simulator - Republic of Bytenza (Gaia Nations Canon).md" -> "04-World\Lore\Worldbuilding\Record Label Simulator - Republic of Bytenza (Gaia Nations Canon).md"
-- "04-World\Record Label Simulator Canon Update- Archived Content Terminology.md" -> "04-World\Lore\Worldbuilding\Record Label Simulator Canon Update- Archived Content Terminology.md"
-- "04-World\Record Label Simulator In-Game World.md" -> "04-World\Lore\Worldbuilding\Record Label Simulator In-Game World.md"
-- "04-World\Record Label Simulator Main Characters Lore Canon.md" -> "04-World\Lore\Worldbuilding\Record Label Simulator Main Characters Lore Canon.md"
-- "04-World\Record Label Simulator RLS The Bells of Gaia.md" -> "04-World\Lore\Worldbuilding\Record Label Simulator RLS The Bells of Gaia.md"
-- "04-World\RLS Lore Consistency Tracker Retcon Index.md" -> "04-World\Lore\Worldbuilding\RLS Lore Consistency Tracker Retcon Index.md"
-- "04-World\RLS Topodangle Canon.md" -> "04-World\Lore\Worldbuilding\RLS Topodangle Canon.md"
-- "04-World\The Origin and History of Sheet Music.md" -> "04-World\Lore\Worldbuilding\The Origin and History of Sheet Music.md"
-- "04-World\THE ORIGIN AND HISTORY.md" -> "04-World\Lore\Worldbuilding\THE ORIGIN AND HISTORY.md"
-- "05-Content\Record Label Simulator - Marc Hann (CEO-Music Executive) Genevive Mar (Creator Songwriter ID).md" -> "04-World\Lore\Characters\Marc Hann and Genevive Mar.md"
-- "05-Content\45 content media genres in record label simulator full names- theme mood.md" -> "05-Content\Genres\45 content media genres in record label simulator full names- theme mood.md"
-- "05-Content\Full content Genre Concept in the Game.md" -> "05-Content\Genres\Full content Genre Concept in the Game.md"
-- "05-Content\Heres the revised set of content genres excluding 5 of the Boring categories and a corresponding list of 40 unique creators (20 female and 20 male).md" -> "05-Content\Genres\Heres the revised set of content genres excluding 5 of the Boring categories and a corresponding list of 40 unique creators (20 female and 20 male).md"
-- "05-Content\Examples of real-life songs inspiring theme and mood of in-game content genres.md" -> "05-Content\Genres\Examples of real-life songs inspiring theme and mood of in-game content genres.md"
-- "05-Content\Video game genres of Record Label Simulator.md" -> "05-Content\Genres\Video game genres of Record Label Simulator.md"
-- "05-Content\Community Member Theme and Mood.md" -> "05-Content\Themes-Moods\Community Member Theme and Mood.md"
-- "05-Content\Components of Content- Themes.md" -> "05-Content\Themes-Moods\Components of Content- Themes.md"
-- "05-Content\Emotion feeling mood state.md" -> "05-Content\Themes-Moods\Emotion feeling mood state.md"
-- "05-Content\EMOTIONS ASSOCIATED WITH THEMES.md" -> "05-Content\Themes-Moods\EMOTIONS ASSOCIATED WITH THEMES.md"
-- "05-Content\How To Determine Theme Mood (and content Genre) of Content in Record Label Simulator.md" -> "05-Content\Themes-Moods\How To Determine Theme Mood (and content Genre) of Content in Record Label Simulator.md"
-- "05-Content\Initial Concept of how Tracks gain Properties in-game.md" -> "05-Content\Themes-Moods\Initial Concept of how Tracks gain Properties in-game.md"
-- "05-Content\Instruments for Moods and Themes (Music Genres) - Background music for RLS.md" -> "05-Content\Themes-Moods\Instruments for Moods and Themes (Music Genres) - Background music for RLS.md"
-- "05-Content\Lyrical theme (lyricist) and performance mood (performer) in Record Label.md" -> "05-Content\Themes-Moods\Lyrical theme (lyricist) and performance mood (performer) in Record Label.md"
-- "05-Content\Mood of tracks in Record Label.md" -> "05-Content\Themes-Moods\Mood of tracks in Record Label.md"
-- "05-Content\Mood preference weights in Record Label Simulator- ANNGLoRA.md" -> "05-Content\Themes-Moods\Mood preference weights in Record Label Simulator- ANNGLoRA.md"
-- "05-Content\Mood preference weights in Record Label Simulator- BYTENZA.md" -> "05-Content\Themes-Moods\Mood preference weights in Record Label Simulator- BYTENZA.md"
-- "05-Content\Mood preference weights in Record Label Simulator- CROWLYA.md" -> "05-Content\Themes-Moods\Mood preference weights in Record Label Simulator- CROWLYA.md"
-- "05-Content\Moods in Record Label Simulator (with Vibe Energy Finish and Lighting).md" -> "05-Content\Themes-Moods\Moods in Record Label Simulator (with Vibe Energy Finish and Lighting).md"
-- "05-Content\Record Label Simulator - FREEDOM LOYALTY AMBITION MORALITY and POWER as the Themes of Sheet.md" -> "05-Content\Themes-Moods\Record Label Simulator - FREEDOM LOYALTY AMBITION MORALITY and POWER as the Themes of Sheet.md"
-- "05-Content\Set of negative emotions for community songwriter creator IDs.md" -> "05-Content\Themes-Moods\Set of negative emotions for community songwriter creator IDs.md"
-- "05-Content\Tempo and instrumentation of themes and moods in Record Label Simulator.md" -> "05-Content\Themes-Moods\Tempo and instrumentation of themes and moods in Record Label Simulator.md"
-- "05-Content\THEME vs CONCEPT.md" -> "05-Content\Themes-Moods\THEME vs CONCEPT.md"
-- "05-Content\EXPLAINS HOW THEMES ARE SATISFIED BY REACHING CERTAIN.md" -> "05-Content\Themes-Moods\EXPLAINS HOW THEMES ARE SATISFIED BY REACHING CERTAIN.md"
-- "05-Content\Record Label Simulator RLS Naming.md" -> "05-Content\Naming\Record Label Simulator RLS Naming.md"
-- "05-Content\Project Naming Document.md" -> "05-Content\Naming\Project Naming Document.md"
-- "05-Content\version numbering and naming for Record Label.md" -> "05-Content\Naming\version numbering and naming for Record Label.md"
-- "05-Content\Five CREATORS with the FLAMP themes related names - Record Label Simulator.md" -> "05-Content\Naming\Five CREATORS with the FLAMP themes related names - Record Label Simulator.md"
-- "05-Content\Project proposal.md" -> "05-Content\Projects\Project proposal.md"
-- "05-Content\Olivia Popes Debut Album.md" -> "05-Content\Projects\Olivia Popes Debut Album.md"
-- "05-Content\TRANCE - THE THIRTEENTH ALBUM.md" -> "05-Content\Projects\TRANCE - THE THIRTEENTH ALBUM.md"
-- "05-Content\Tracklist Structure of Projects in Record Label Simulator.md" -> "05-Content\Tracklists\Tracklist Structure of Projects in Record Label Simulator.md"
-- "05-Content\Udio Tracklist.md" -> "05-Content\Tracklists\Udio Tracklist.md"
-- "05-Content\Song.md" -> "05-Content\Tracks\Song.md"
-- "05-Content\Udio song.md" -> "05-Content\Tracks\Udio song.md"
-- "05-Content\Untitled song - track.md" -> "05-Content\Tracks\Untitled song - track.md"
-- "05-Content\untitled song.md" -> "05-Content\Tracks\untitled song.md"
-- "05-Content\Complete Song Creation Process.md" -> "05-Content\Guides\Complete Song Creation Process.md"
-- "05-Content\From Sheet Music to Track- Step-by-Step in Record Label.md" -> "05-Content\Guides\From Sheet Music to Track- Step-by-Step in Record Label.md"
-- "05-Content\Purpose of Song Creation in Record Label Simulator.md" -> "05-Content\Guides\Purpose of Song Creation in Record Label Simulator.md"
-- "05-Content\Songwriting Session with Songwriter ID in Recording Studio Structure.md" -> "05-Content\Guides\Songwriting Session with Songwriter ID in Recording Studio Structure.md"
-- "05-Content\Slots of songwriter IDs in recording studio structures to create sheet.md" -> "05-Content\Guides\Slots of songwriter IDs in recording studio structures to create sheet.md"
-- "05-Content\Life stages of songwriter creator.md" -> "05-Content\Guides\Life stages of songwriter creator.md"
-- "05-Content\Songwriter creator ID.md" -> "05-Content\Guides\Songwriter creator ID.md"
-- "05-Content\Split of catharsis between creators in a song - Record Label Simulator.md" -> "05-Content\Guides\Split of catharsis between creators in a song - Record Label Simulator.md"
-- "05-Content\Covers (Acts promoting not-owned Tracks) in Record Label.md" -> "05-Content\Guides\Covers (Acts promoting not-owned Tracks) in Record Label.md"
-- "05-Content\Template for creating stanza songwriting writing poem.md" -> "05-Content\Guides\Template for creating stanza songwriting writing poem.md"
-- "05-Content\Interview style like The Guardian for Olivia Rodrigos album.md" -> "05-Content\Guides\Interview style like The Guardian for Olivia Rodrigos album.md"
-- "99-Archive\Family Tree with Headings and.md" -> "04-World\Lore\Characters\Family Tree.md"
-- "99-Archive\Fatima Berry.md" -> "04-World\Lore\Characters\Fatima Berry.md"
-- "99-Archive\Record Label Simulator Benjamin Hart Narrator.md" -> "04-World\Lore\Story\Benjamin Hart Narrator.md"
-- "99-Archive\Record Label Simulator Novel Season 1 Episodes.md" -> "04-World\Lore\Story\Novel Season 1 Episodes.md"
-- "99-Archive\Record Label Simulator RLS Alejandro Montenegro.md" -> "04-World\Lore\Characters\Alejandro Montenegro.md"
-- "99-Archive\Record Label Simulator RLS The Goddesses of.md" -> "04-World\Lore\Worldbuilding\RLS The Goddesses.md"
-- "99-Archive\Record label simulator Videogame In-Game Story Mode.md" -> "04-World\Lore\Story\Story Mode Draft.md"
-- "99-Archive\STORY MODE IDEA for Record Label.md" -> "04-World\Lore\Story\Story Mode Idea.md"
-- "99-Archive\Opening Scene1Ni.md" -> "04-World\Lore\Story\Opening Scene.md"
-- "99-Archive\New years tradition in Annglora.md" -> "04-World\Lore\Worldbuilding\New Years Tradition in Annglora.md"
-- "99-Archive\Fake Article- The Symphony of Man and Machine- Merging Human and AI Artists in Music Tycoon Gaming Record Label Simulator.md" -> "04-World\Lore\Story\Fake Article - The Symphony of Man and Machine.md"
-- "99-Archive\Record Label Simulator - ducky and.md" -> "04-World\Lore\Story\Ducky and Notes.md"
-- "99-Archive\Parody names of real-life musicians.md" -> "04-World\Lore\Names\Parody Musician Names.md"
-- "99-Archive\In-Game Item- Content - Concert.md" -> "05-Content\Guides\Concert DVDs.md"
-- "99-Archive\Complete Demo Recording Creation Process for Recording Artist in -Record Label Simulator.md" -> "05-Content\Guides\Complete Demo Recording Creation Process.md"
-- "99-Archive\Complete Sheet Music Creation Process in -Record Label Simulator.md" -> "05-Content\Guides\Complete Sheet Music Creation Process.md"
-- "99-Archive\Definition of what Sheet Music forms in the Record Label Simulator.md" -> "05-Content\Guides\Sheet Music Definition.md"
-- "99-Archive\Poem Structure.md" -> "04-World\Lore\Lyrics\Poem Structure.md"
-- "99-Archive\Light origin and FLAMP icons.md" -> "02-UI\Light Origin and FLAMP Icons.md"
-- "99-Archive\Images for eyeriSocial posts.md" -> "08-Reference\Images for eyeriSocial Posts.md"
-- "99-Archive\eyeriSocial record-post ordering rule.md" -> "03-Systems\eyeriSocial Post Ordering Rule.md"
-- "99-Archive\Banned words for creative AI.md" -> "08-Reference\Banned Words for Creative AI.md"
-- "99-Archive\Untitled document.md" -> "02-UI\RLS Color Grid Rule.md"
-- "99-Archive\kaylers.md" -> "04-World\Lore\Lyrics\Kaylers - Lyrics Notes.md"
-- "99-Archive\Untitled.md" -> "08-Reference\TikTok Scheduling Notes.md"
-- "99-Archive\Record Label Simulator - CRAFT Institute.md" -> "03-Systems\Institutions\CRAFT Institute.md"
-- "99-Archive\Organizations in Record Label Simulator- Institutions vs Companies.md" -> "03-Systems\Institutions\Institutions vs Companies.md"
-- "99-Archive\Record Label Simulator- Investment and Revenue Model.md" -> "03-Systems\Economy\Investment and Revenue Model.md"
-- "99-Archive\Revenue allocation from organizations.md" -> "03-Systems\Economy\Revenue Allocation from Organizations.md"
-- "99-Archive\Financial Flow and Strategy for Broadcasts.md" -> "03-Systems\Economy\Financial Flow and Strategy for Broadcasts.md"
-- "99-Archive\Residence rental cost 4 year.md" -> "03-Systems\Economy\Residence Rental Cost 4 Year.md"
-- "99-Archive\Detailed Revenue Breakdown (Capacities 1000 to 300000) Arenas and.md" -> "03-Systems\Economy\Detailed Revenue Breakdown - Arenas and Venues.md"
-- "99-Archive\Record Label Simulator BRAND SPONSORSHIPS.md" -> "03-Systems\Economy\Brand Sponsorships.md"
-- "99-Archive\Recording Studio Structure and Slot Management in Record Label Simulator.md" -> "03-Systems\Infrastructure\Recording Studio Structure and Slot Management.md"
-- "99-Archive\Studios Academies Sets and.md" -> "03-Systems\Infrastructure\Studios Academies Sets and Venues.md"
-- "99-Archive\Structures in Record Label.md" -> "03-Systems\Infrastructure\Structures in Record Label.md"
-- "99-Archive\Structure Leasing and Management in -Record Label Simulator.md" -> "03-Systems\Infrastructure\Structure Leasing and Management.md"
-- "99-Archive\Area slots in Record Label.md" -> "03-Systems\Infrastructure\Area Slots.md"
-- "99-Archive\Venues Floors and Seat Capacities.md" -> "03-Systems\Infrastructure\Venues Floors and Seat Capacities.md"
-- "99-Archive\Pressing Plant in Record Label.md" -> "03-Systems\Infrastructure\Pressing Plant.md"
-- "99-Archive\How To Assign Physical Address to Areas in Record Label Simulator.md" -> "03-Systems\Infrastructure\Physical Address Assignment for Areas.md"
-- "99-Archive\Leasing Process in -Record Label Simulator.md" -> "03-Systems\Infrastructure\Leasing Process.md"
-- "99-Archive\Audience in record label simulator.md" -> "03-Systems\Audience\Audience Overview.md"
-- "99-Archive\Record Label Simulator - IN-GAME AUDIENCE.md" -> "03-Systems\Audience\In-Game Audience.md"
-- "99-Archive\Record Label Simulator - Properties of Audience Chunks.md" -> "03-Systems\Audience\Audience Chunk Properties.md"
-- "99-Archive\Target Audience for Record Label.md" -> "03-Systems\Audience\Target Audience.md"
-- "99-Archive\Record Label Simulator - Institutions and Companies.md" -> "03-Systems\Institutions\Institutions and Companies.md"
-- "99-Archive\Corporations in Record Label Simulator.md" -> "03-Systems\Institutions\Corporations.md"
-- "99-Archive\Critics Councils in Record Label.md" -> "03-Systems\Institutions\Critics Councils.md"
-- "99-Archive\Record Labels Responsibilities Regarding Critics and Awards.md" -> "03-Systems\Institutions\Record Label Responsibilities - Critics and Awards.md"
-- "99-Archive\List of Record Labels in Record Label Simulator.md" -> "04-World\Lore\Names\Record Label Names.md"
-- "99-Archive\Boy.md" -> "04-World\Lore\Lyrics\Boy.md"
-- "99-Archive\comfort.md" -> "04-World\Lore\Lyrics\comfort.md"
-- "99-Archive\Hate.md" -> "04-World\Lore\Lyrics\Hate.md"
-- "99-Archive\I Hate You by Woodz in Spanish Version.md" -> "04-World\Lore\Lyrics\I Hate You by Woodz in Spanish Version.md"
-- "99-Archive\I Know That You Want My (feat Genevieve).md" -> "04-World\Lore\Lyrics\I Know That You Want My (feat Genevieve).md"
-- "99-Archive\i walk.md" -> "04-World\Lore\Lyrics\i walk.md"
-- "99-Archive\Infested By You.md" -> "04-World\Lore\Lyrics\Infested By You.md"
-- "99-Archive\Let It Out.md" -> "04-World\Lore\Lyrics\Let It Out.md"
-- "99-Archive\Pessimist.md" -> "04-World\Lore\Lyrics\Pessimist.md"
-- "99-Archive\Selfish Stupid Nigga.md" -> "04-World\Lore\Lyrics\Selfish Stupid Nigga.md"
-- "99-Archive\RAW VOW Profile.md" -> "04-World\Lore\Story\RAW VOW Profile.md"
-- "99-Archive\THE SHOW WILL STOP.md" -> "04-World\Lore\Story\THE SHOW WILL STOP.md"
-- "99-Archive\Message- If youre good at everything youre specially good at.md" -> "04-World\Lore\Story\Message - If Youre Good at Everything.md"
-- "99-Archive\Imagine this is a fake scenario between you and I.md" -> "04-World\Lore\Story\Fake Scenario Between You and I.md"
-- "99-Archive\5 years later.md" -> "04-World\Lore\Story\5 Years Later.md"
-- "99-Archive\Courtroom.md" -> "04-World\Lore\Story\Courtroom.md"
-- "99-Archive\Daily Routine.md" -> "04-World\Lore\Story\Daily Routine.md"
-- "07-Engineering\How to adopt a modular code workflow for your.md" -> "07-Engineering\Modular Code Workflow for the Web App.md"
-- "07-Engineering\Namespaces and classes in Unity.md" -> "07-Engineering\Namespaces and Classes in TypeScript.md"
-- "07-Engineering\constructors in unity for Record Label Simulator.md" -> "07-Engineering\Constructor Patterns for TypeScript Models.md"
+- "02-UI/Ahora no quieres ms.md" -> "04-World/Lore/Lyrics/ahora-no-quieres-mas.md"
+- "06-Characters/Children of Marc Hann Genevieve.md" -> "04-World/Lore/Characters/children-of-marc-hann-genevieve.md"
+- "06-Characters/Creator- Prima.md" -> "04-World/Lore/Characters/creator-prima.md"
+- "06-Characters/Images of Marc.md" -> "04-World/Lore/Characters/images-of-marc.md"
+- "06-Characters/Main Character of Record Label Simulator - Marc Hann- Protagonist (Occupation- Music Executive).md" -> "04-World/Lore/Characters/main-character-marc-hann.md"
+- "06-Characters/Mariah Noya - Marcs Mother in Record Label.md" -> "04-World/Lore/Characters/mariah-noya-marcs-mother.md"
+- "06-Characters/Poem written by Marc Hann for Record Label Simulator.md" -> "04-World/Lore/Characters/poem-by-marc-hann.md"
+- "06-Characters/Record Label Simulator In-Game Characters.md" -> "04-World/Lore/Characters/in-game-characters.md"
+- "06-Characters/Record Label Simulator Known Characters.md" -> "04-World/Lore/Characters/known-characters.md"
+- "06-Characters/Record Label Simulator Marc Hann Quotes Cleaned.md" -> "04-World/Lore/Characters/marc-hann-quotes.md"
+- "06-Characters/Dominican phrases to use in-game for Record Label Simulator NPC.md" -> "04-World/Lore/Worldbuilding/dominican-phrases-for-npcs.md"
+- "06-Characters/Create fake social media for game feedback from NPC in Record Label Simulator In-Game Universe.md" -> "04-World/Lore/Story/npc-social-media-feedback-mockups.md"
+- "06-Characters/AI Staff for Bard Roleplay.md" -> "04-World/Lore/Story/ai-staff-for-bard-roleplay.md"
+- "04-World/Record Label Simulator - Language Naming Canon.md" -> "04-World/Lore/Names/language-naming-canon.md"
+- "04-World/Name Origin Ethnicity Culture and Demonyms of countries in Record Label.md" -> "04-World/Lore/Names/name-origins-and-demonyms-by-country.md"
+- "99-Archive/Last names and marriage proposals in Record Label Simulator.md" -> "04-World/Lore/Names/last-names-and-marriage-proposals.md"
+- "99-Archive/Last name of recording.md" -> "04-World/Lore/Names/recording-artist-last-names.md"
+- "99-Archive/Last names of.md" -> "04-World/Lore/Names/songwriter-last-names.md"
+- "04-World/ANNGLORAN CREATOR HISTORY OF CONTENT GENRES.md" -> "04-World/Lore/Worldbuilding/anngloran-creator-history-of-content-genres.md"
+- "04-World/Gaia Pantheon Matrix.md" -> "04-World/Lore/Worldbuilding/gaia-pantheon-matrix.md"
+- "04-World/Game Concept- Capital City Tile.md" -> "04-World/Lore/Worldbuilding/game-concept-capital-city-tile.md"
+- "04-World/History of Annglora.md" -> "04-World/Lore/Worldbuilding/history-of-annglora.md"
+- "04-World/Inspiration parody of historic figures related to the history of the Dominican.md" -> "04-World/Lore/Worldbuilding/inspiration-parody-of-historic-figures-related-to-the-history-of-the-dominican.md"
+- "04-World/Mythology of Record Label Simulator based on Dominican folklore.md" -> "04-World/Lore/Worldbuilding/mythology-of-record-label-simulator-based-on-dominican-folklore.md"
+- "04-World/Record Label Simulator - Republic of Bytenza (Gaia Nations Canon).md" -> "04-World/Lore/Worldbuilding/record-label-simulator-republic-of-bytenza-gaia-nations-canon.md"
+- "04-World/Record Label Simulator Canon Update- Archived Content Terminology.md" -> "04-World/Lore/Worldbuilding/record-label-simulator-canon-update-archived-content-terminology.md"
+- "04-World/Record Label Simulator In-Game World.md" -> "04-World/Lore/Worldbuilding/record-label-simulator-in-game-world.md"
+- "04-World/Record Label Simulator Main Characters Lore Canon.md" -> "04-World/Lore/Worldbuilding/record-label-simulator-main-characters-lore-canon.md"
+- "04-World/Record Label Simulator RLS The Bells of Gaia.md" -> "04-World/Lore/Worldbuilding/record-label-simulator-rls-the-bells-of-gaia.md"
+- "04-World/RLS Lore Consistency Tracker Retcon Index.md" -> "04-World/Lore/Worldbuilding/rls-lore-consistency-tracker-retcon-index.md"
+- "04-World/RLS Topodangle Canon.md" -> "04-World/Lore/Worldbuilding/rls-topodangle-canon.md"
+- "04-World/The Origin and History of Sheet Music.md" -> "04-World/Lore/Worldbuilding/the-origin-and-history-of-sheet-music.md"
+- "04-World/THE ORIGIN AND HISTORY.md" -> "04-World/Lore/Worldbuilding/the-origin-and-history.md"
+- "05-Content/Record Label Simulator - Marc Hann (CEO-Music Executive) Genevive Mar (Creator Songwriter ID).md" -> "04-World/Lore/Characters/marc-hann-and-genevive-mar.md"
+- "05-Content/45 content media genres in record label simulator full names- theme mood.md" -> "05-Content/Genres/45-content-media-genres-in-record-label-simulator-full-names-theme-mood.md"
+- "05-Content/Full content Genre Concept in the Game.md" -> "05-Content/Genres/full-content-genre-concept-in-the-game.md"
+- "05-Content/Heres the revised set of content genres excluding 5 of the Boring categories and a corresponding list of 40 unique creators (20 female and 20 male).md" -> "05-Content/Genres/heres-the-revised-set-of-content-genres-excluding-5-of-the-boring-categories-and-a-corresponding-list-of-40-unique-creators-20-female-and-20-male.md"
+- "05-Content/Examples of real-life songs inspiring theme and mood of in-game content genres.md" -> "05-Content/Genres/examples-of-real-life-songs-inspiring-theme-and-mood-of-in-game-content-genres.md"
+- "05-Content/Video game genres of Record Label Simulator.md" -> "05-Content/Genres/video-game-genres-of-record-label-simulator.md"
+- "05-Content/Community Member Theme and Mood.md" -> "05-Content/Themes-Moods/community-member-theme-and-mood.md"
+- "05-Content/Components of Content- Themes.md" -> "05-Content/Themes-Moods/components-of-content-themes.md"
+- "05-Content/Emotion feeling mood state.md" -> "05-Content/Themes-Moods/emotion-feeling-mood-state.md"
+- "05-Content/EMOTIONS ASSOCIATED WITH THEMES.md" -> "05-Content/Themes-Moods/emotions-associated-with-themes.md"
+- "05-Content/How To Determine Theme Mood (and content Genre) of Content in Record Label Simulator.md" -> "05-Content/Themes-Moods/how-to-determine-theme-mood-and-content-genre-of-content-in-record-label-simulator.md"
+- "05-Content/Initial Concept of how Tracks gain Properties in-game.md" -> "05-Content/Themes-Moods/initial-concept-of-how-tracks-gain-properties-in-game.md"
+- "05-Content/Instruments for Moods and Themes (Music Genres) - Background music for RLS.md" -> "05-Content/Themes-Moods/instruments-for-moods-and-themes-music-genres-background-music-for-rls.md"
+- "05-Content/Lyrical theme (lyricist) and performance mood (performer) in Record Label.md" -> "05-Content/Themes-Moods/lyrical-theme-lyricist-and-performance-mood-performer-in-record-label.md"
+- "05-Content/Mood of tracks in Record Label.md" -> "05-Content/Themes-Moods/mood-of-tracks-in-record-label.md"
+- "05-Content/Mood preference weights in Record Label Simulator- ANNGLoRA.md" -> "05-Content/Themes-Moods/mood-preference-weights-in-record-label-simulator-annglora.md"
+- "05-Content/Mood preference weights in Record Label Simulator- BYTENZA.md" -> "05-Content/Themes-Moods/mood-preference-weights-in-record-label-simulator-bytenza.md"
+- "05-Content/Mood preference weights in Record Label Simulator- CROWLYA.md" -> "05-Content/Themes-Moods/mood-preference-weights-in-record-label-simulator-crowlya.md"
+- "05-Content/Moods in Record Label Simulator (with Vibe Energy Finish and Lighting).md" -> "05-Content/Themes-Moods/moods-in-record-label-simulator-with-vibe-energy-finish-and-lighting.md"
+- "05-Content/Record Label Simulator - FREEDOM LOYALTY AMBITION MORALITY and POWER as the Themes of Sheet.md" -> "05-Content/Themes-Moods/record-label-simulator-freedom-loyalty-ambition-morality-and-power-as-the-themes-of-sheet.md"
+- "05-Content/Set of negative emotions for community songwriter creator IDs.md" -> "05-Content/Themes-Moods/set-of-negative-emotions-for-community-songwriter-creator-ids.md"
+- "05-Content/Tempo and instrumentation of themes and moods in Record Label Simulator.md" -> "05-Content/Themes-Moods/tempo-and-instrumentation-of-themes-and-moods-in-record-label-simulator.md"
+- "05-Content/THEME vs CONCEPT.md" -> "05-Content/Themes-Moods/theme-vs-concept.md"
+- "05-Content/EXPLAINS HOW THEMES ARE SATISFIED BY REACHING CERTAIN.md" -> "05-Content/Themes-Moods/explains-how-themes-are-satisfied-by-reaching-certain.md"
+- "05-Content/Record Label Simulator RLS Naming.md" -> "05-Content/Naming/record-label-simulator-rls-naming.md"
+- "05-Content/Project Naming Document.md" -> "05-Content/Naming/project-naming-document.md"
+- "05-Content/version numbering and naming for Record Label.md" -> "05-Content/Naming/version-numbering-and-naming-for-record-label.md"
+- "05-Content/Five CREATORS with the FLAMP themes related names - Record Label Simulator.md" -> "05-Content/Naming/five-creators-with-the-flamp-themes-related-names-record-label-simulator.md"
+- "05-Content/Project proposal.md" -> "05-Content/Projects/project-proposal.md"
+- "05-Content/Olivia Popes Debut Album.md" -> "05-Content/Projects/olivia-popes-debut-album.md"
+- "05-Content/TRANCE - THE THIRTEENTH ALBUM.md" -> "05-Content/Projects/trance-the-thirteenth-album.md"
+- "05-Content/Tracklist Structure of Projects in Record Label Simulator.md" -> "05-Content/Tracklists/tracklist-structure-of-projects-in-record-label-simulator.md"
+- "05-Content/Udio Tracklist.md" -> "05-Content/Tracklists/udio-tracklist.md"
+- "05-Content/Song.md" -> "05-Content/Tracks/song.md"
+- "05-Content/Udio song.md" -> "05-Content/Tracks/udio-song.md"
+- "05-Content/Untitled song - track.md" -> "05-Content/Tracks/untitled-song-track.md"
+- "05-Content/untitled song.md" -> "05-Content/Tracks/untitled-song.md"
+- "05-Content/Complete Song Creation Process.md" -> "05-Content/Guides/complete-song-creation-process.md"
+- "05-Content/From Sheet Music to Track- Step-by-Step in Record Label.md" -> "05-Content/Guides/from-sheet-music-to-track-step-by-step-in-record-label.md"
+- "05-Content/Purpose of Song Creation in Record Label Simulator.md" -> "05-Content/Guides/purpose-of-song-creation-in-record-label-simulator.md"
+- "05-Content/Songwriting Session with Songwriter ID in Recording Studio Structure.md" -> "05-Content/Guides/songwriting-session-with-songwriter-id-in-recording-studio-structure.md"
+- "05-Content/Slots of songwriter IDs in recording studio structures to create sheet.md" -> "05-Content/Guides/slots-of-songwriter-ids-in-recording-studio-structures-to-create-sheet.md"
+- "05-Content/Life stages of songwriter creator.md" -> "05-Content/Guides/life-stages-of-songwriter-creator.md"
+- "05-Content/Songwriter creator ID.md" -> "05-Content/Guides/songwriter-creator-id.md"
+- "05-Content/Split of catharsis between creators in a song - Record Label Simulator.md" -> "05-Content/Guides/split-of-catharsis-between-creators-in-a-song-record-label-simulator.md"
+- "05-Content/Covers (Acts promoting not-owned Tracks) in Record Label.md" -> "05-Content/Guides/covers-acts-promoting-not-owned-tracks-in-record-label.md"
+- "05-Content/Template for creating stanza songwriting writing poem.md" -> "05-Content/Guides/template-for-creating-stanza-songwriting-writing-poem.md"
+- "05-Content/Interview style like The Guardian for Olivia Rodrigos album.md" -> "05-Content/Guides/interview-style-like-the-guardian-for-olivia-rodrigos-album.md"
+- "99-Archive/Family Tree with Headings and.md" -> "04-World/Lore/Characters/family-tree.md"
+- "99-Archive/Fatima Berry.md" -> "04-World/Lore/Characters/fatima-berry.md"
+- "99-Archive/Record Label Simulator Benjamin Hart Narrator.md" -> "04-World/Lore/Story/benjamin-hart-narrator.md"
+- "99-Archive/Record Label Simulator Novel Season 1 Episodes.md" -> "04-World/Lore/Story/novel-season-1-episodes.md"
+- "99-Archive/Record Label Simulator RLS Alejandro Montenegro.md" -> "04-World/Lore/Characters/alejandro-montenegro.md"
+- "99-Archive/Record Label Simulator RLS The Goddesses of.md" -> "04-World/Lore/Worldbuilding/rls-the-goddesses.md"
+- "99-Archive/Record label simulator Videogame In-Game Story Mode.md" -> "04-World/Lore/Story/story-mode-draft.md"
+- "99-Archive/STORY MODE IDEA for Record Label.md" -> "04-World/Lore/Story/story-mode-idea.md"
+- "99-Archive/Opening Scene1Ni.md" -> "04-World/Lore/Story/opening-scene.md"
+- "99-Archive/New years tradition in Annglora.md" -> "04-World/Lore/Worldbuilding/new-years-tradition-in-annglora.md"
+- "99-Archive/Fake Article- The Symphony of Man and Machine- Merging Human and AI Artists in Music Tycoon Gaming Record Label Simulator.md" -> "04-World/Lore/Story/fake-article-the-symphony-of-man-and-machine.md"
+- "99-Archive/Record Label Simulator - ducky and.md" -> "04-World/Lore/Story/ducky-and-notes.md"
+- "99-Archive/Parody names of real-life musicians.md" -> "04-World/Lore/Names/parody-musician-names.md"
+- "99-Archive/In-Game Item- Content - Concert.md" -> "05-Content/Guides/concert-dvds.md"
+- "99-Archive/Complete Demo Recording Creation Process for Recording Artist in -Record Label Simulator.md" -> "05-Content/Guides/complete-demo-recording-creation-process.md"
+- "99-Archive/Complete Sheet Music Creation Process in -Record Label Simulator.md" -> "05-Content/Guides/complete-sheet-music-creation-process.md"
+- "99-Archive/Definition of what Sheet Music forms in the Record Label Simulator.md" -> "05-Content/Guides/sheet-music-definition.md"
+- "99-Archive/Poem Structure.md" -> "04-World/Lore/Lyrics/poem-structure.md"
+- "99-Archive/Light origin and FLAMP icons.md" -> "02-UI/light-origin-and-flamp-icons.md"
+- "99-Archive/Images for eyeriSocial posts.md" -> "08-Reference/images-for-eyerisocial-posts.md"
+- "99-Archive/eyeriSocial record-post ordering rule.md" -> "03-Systems/eyerisocial-post-ordering-rule.md"
+- "99-Archive/Banned words for creative AI.md" -> "08-Reference/banned-words-for-creative-ai.md"
+- "99-Archive/Untitled document.md" -> "02-UI/rls-color-grid-rule.md"
+- "99-Archive/kaylers.md" -> "04-World/Lore/Lyrics/kaylers-lyrics-notes.md"
+- "99-Archive/Untitled.md" -> "08-Reference/tiktok-scheduling-notes.md"
+- "99-Archive/Record Label Simulator - CRAFT Institute.md" -> "03-Systems/Institutions/craft-institute.md"
+- "99-Archive/Organizations in Record Label Simulator- Institutions vs Companies.md" -> "03-Systems/Institutions/institutions-vs-companies.md"
+- "99-Archive/Record Label Simulator- Investment and Revenue Model.md" -> "03-Systems/Economy/Revenue/economy-investment-and-revenue-model.md"
+- "99-Archive/Revenue allocation from organizations.md" -> "03-Systems/Economy/Transactions/economy-revenue-allocation-by-organization.md"
+- "99-Archive/Financial Flow and Strategy for Broadcasts.md" -> "03-Systems/Economy/Revenue/economy-broadcast-financial-flow-and-strategy.md"
+- "99-Archive/Residence rental cost 4 year.md" -> "03-Systems/Economy/Costs/economy-residence-rental-costs-4-year.md"
+- "99-Archive/Detailed Revenue Breakdown (Capacities 1000 to 300000) Arenas and.md" -> "03-Systems/Economy/Revenue/economy-arena-and-stadium-revenue-breakdown.md"
+- "99-Archive/Record Label Simulator BRAND SPONSORSHIPS.md" -> "03-Systems/Economy/Revenue/economy-brand-sponsorships.md"
+- "99-Archive/Recording Studio Structure and Slot Management in Record Label Simulator.md" -> "03-Systems/Infrastructure/recording-studio-structure-and-slot-management.md"
+- "99-Archive/Studios Academies Sets and.md" -> "03-Systems/Infrastructure/studios-academies-sets-and-venues.md"
+- "99-Archive/Structures in Record Label.md" -> "03-Systems/Infrastructure/structures-in-record-label.md"
+- "99-Archive/Structure Leasing and Management in -Record Label Simulator.md" -> "03-Systems/Infrastructure/structure-leasing-and-management.md"
+- "99-Archive/Area slots in Record Label.md" -> "03-Systems/Infrastructure/area-slots.md"
+- "99-Archive/Venues Floors and Seat Capacities.md" -> "03-Systems/Infrastructure/venues-floors-and-seat-capacities.md"
+- "99-Archive/Pressing Plant in Record Label.md" -> "03-Systems/Infrastructure/pressing-plant.md"
+- "99-Archive/How To Assign Physical Address to Areas in Record Label Simulator.md" -> "03-Systems/Infrastructure/physical-address-assignment-for-areas.md"
+- "99-Archive/Leasing Process in -Record Label Simulator.md" -> "03-Systems/Infrastructure/leasing-process.md"
+- "99-Archive/Audience in record label simulator.md" -> "03-Systems/Audience/audience-overview.md"
+- "99-Archive/Record Label Simulator - IN-GAME AUDIENCE.md" -> "03-Systems/Audience/in-game-audience.md"
+- "99-Archive/Record Label Simulator - Properties of Audience Chunks.md" -> "03-Systems/Audience/audience-chunk-properties.md"
+- "99-Archive/Target Audience for Record Label.md" -> "03-Systems/Audience/target-audience.md"
+- "99-Archive/Record Label Simulator - Institutions and Companies.md" -> "03-Systems/Institutions/institutions-and-companies.md"
+- "99-Archive/Corporations in Record Label Simulator.md" -> "03-Systems/Institutions/corporations.md"
+- "99-Archive/Critics Councils in Record Label.md" -> "03-Systems/Institutions/critics-councils.md"
+- "99-Archive/Record Labels Responsibilities Regarding Critics and Awards.md" -> "03-Systems/Institutions/record-label-responsibilities-critics-and-awards.md"
+- "99-Archive/List of Record Labels in Record Label Simulator.md" -> "04-World/Lore/Names/record-label-names.md"
+- "99-Archive/Boy.md" -> "04-World/Lore/Lyrics/boy.md"
+- "99-Archive/comfort.md" -> "04-World/Lore/Lyrics/comfort.md"
+- "99-Archive/Hate.md" -> "04-World/Lore/Lyrics/hate.md"
+- "99-Archive/I Hate You by Woodz in Spanish Version.md" -> "04-World/Lore/Lyrics/i-hate-you-by-woodz-in-spanish-version.md"
+- "99-Archive/I Know That You Want My (feat Genevieve).md" -> "04-World/Lore/Lyrics/i-know-that-you-want-my-feat-genevieve.md"
+- "99-Archive/i walk.md" -> "04-World/Lore/Lyrics/i-walk.md"
+- "99-Archive/Infested By You.md" -> "04-World/Lore/Lyrics/infested-by-you.md"
+- "99-Archive/Let It Out.md" -> "04-World/Lore/Lyrics/let-it-out.md"
+- "99-Archive/Pessimist.md" -> "04-World/Lore/Lyrics/pessimist.md"
+- "99-Archive/Selfish Stupid Nigga.md" -> "04-World/Lore/Lyrics/selfish-stupid-nigga.md"
+- "99-Archive/RAW VOW Profile.md" -> "04-World/Lore/Story/raw-vow-profile.md"
+- "99-Archive/THE SHOW WILL STOP.md" -> "04-World/Lore/Story/the-show-will-stop.md"
+- "99-Archive/Message- If youre good at everything youre specially good at.md" -> "04-World/Lore/Story/message-if-youre-good-at-everything.md"
+- "99-Archive/Imagine this is a fake scenario between you and I.md" -> "04-World/Lore/Story/fake-scenario-between-you-and-i.md"
+- "99-Archive/5 years later.md" -> "04-World/Lore/Story/5-years-later.md"
+- "99-Archive/Courtroom.md" -> "04-World/Lore/Story/courtroom.md"
+- "99-Archive/Daily Routine.md" -> "04-World/Lore/Story/daily-routine.md"
+- "07-Engineering/How to adopt a modular code workflow for your.md" -> "07-Engineering/modular-code-workflow-for-the-web-app.md"
+- "07-Engineering/Namespaces and classes in Unity.md" -> "07-Engineering/namespaces-and-classes-in-typescript.md"
+- "07-Engineering/constructors in unity for Record Label Simulator.md" -> "07-Engineering/constructor-patterns-for-typescript-models.md"
 
 
 ## Phase 6 - 2025-12-24 (Economy Reorg)
-- "03-Systems/Economy/Brand Sponsorships.md" -> "03-Systems/Economy/Revenue/Economy - Brand Sponsorships.md"
-- "03-Systems/Economy/Detailed Revenue Breakdown - Arenas and Venues.md" -> "03-Systems/Economy/Revenue/Economy - Arena and Stadium Revenue Breakdown.md"
-- "03-Systems/Economy/Financial Flow and Strategy for Broadcasts.md" -> "03-Systems/Economy/Revenue/Economy - Broadcast Financial Flow and Strategy.md"
-- "03-Systems/Economy/Investment and Revenue Model.md" -> "03-Systems/Economy/Revenue/Economy - Investment and Revenue Model.md"
-- "03-Systems/Economy/Residence Rental Cost 4 Year.md" -> "03-Systems/Economy/Costs/Economy - Residence Rental Costs (4-Year).md"
-- "03-Systems/Economy/Revenue Allocation from Organizations.md" -> "03-Systems/Economy/Transactions/Economy - Revenue Allocation by Organization.md"
-- "03-Systems/In-Game Economy and.md" -> "03-Systems/Economy/Transactions/Economy - In-Game Transactions Flow.md"
-- "03-Systems/Record Label Simulator - Game Economy Pricing Models.md" -> "03-Systems/Economy/Pricing/Economy - Pricing Models (Further Refined).md"
-- "03-Systems/Tracks Projects Pricing for Content in Record Label.md" -> "03-Systems/Economy/Pricing/Economy - Track and Project Pricing Table.md"
-- "03-Systems/Pricing and Track Limits for All Formats of Projects in Record Label Simulator.md" -> "03-Systems/Economy/Pricing/Economy - Pricing and Track Limits by Format.md"
-- "03-Systems/Trend Analysis- The 30-70 Pricing Dynamic.md" -> "03-Systems/Economy/Pricing/Economy - 30-70 Pricing Dynamic.md"
-- "03-Systems/Loan and Interest Rate System in Record Label Simulator.md" -> "03-Systems/Economy/Loans/Economy - Loan and Interest Rate System.md"
-- "03-Systems/Currency System - Minted Metals and Polished Minerals in Record Label Simulator.md" -> "03-Systems/Economy/Currency/Economy - Currency System (Minted Metals and Polished Minerals).md"
-- "03-Systems/Simulation of Currency Flow between Organizations.md" -> "03-Systems/Economy/Transactions/Economy - Currency Flow Simulation.md"
-- "03-Systems/Lease and construction cost of studio.md" -> "03-Systems/Economy/Costs/Economy - Studio Lease and Construction Costs.md"
-- "04-World/Streaming contracts in topoda.md" -> "03-Systems/Economy/Revenue/Economy - Streaming Contract Duration Rules.md"
-- "04-World/Refined Country-Specific Transaction Models.md" -> "03-Systems/Economy/Country-Models/Economy - Country Transaction Models.md"
-- "99-Archive/Record Label Simulator- Maintenance Cost of.md" -> "03-Systems/Economy/Costs/Economy - Facility Maintenance Costs.md"
-- Merge: "04-World/Currencies by Country in.md" + "04-World/Gaia Countries and Currencies.md" -> "03-Systems/Economy/Currency/Economy - Country Currencies and Acronyms.md"
+- "03-Systems/In-Game Economy and.md" -> "03-Systems/Economy/Transactions/economy-in-game-transactions-flow.md"
+- "03-Systems/Record Label Simulator - Game Economy Pricing Models.md" -> "03-Systems/Economy/Pricing/economy-pricing-models-further-refined.md"
+- "03-Systems/Tracks Projects Pricing for Content in Record Label.md" -> "03-Systems/Economy/Pricing/economy-track-and-project-pricing-table.md"
+- "03-Systems/Pricing and Track Limits for All Formats of Projects in Record Label Simulator.md" -> "03-Systems/Economy/Pricing/economy-pricing-and-track-limits-by-format.md"
+- "03-Systems/Trend Analysis- The 30-70 Pricing Dynamic.md" -> "03-Systems/Economy/Pricing/economy-30-70-pricing-dynamic.md"
+- "03-Systems/Loan and Interest Rate System in Record Label Simulator.md" -> "03-Systems/Economy/Loans/economy-loan-and-interest-rate-system.md"
+- "03-Systems/Currency System - Minted Metals and Polished Minerals in Record Label Simulator.md" -> "03-Systems/Economy/Currency/economy-currency-system-minted-metals-and-polished-minerals.md"
+- "03-Systems/Simulation of Currency Flow between Organizations.md" -> "03-Systems/Economy/Transactions/economy-currency-flow-simulation.md"
+- "03-Systems/Lease and construction cost of studio.md" -> "03-Systems/Economy/Costs/economy-studio-lease-and-construction-costs.md"
+- "04-World/Streaming contracts in topoda.md" -> "03-Systems/Economy/Revenue/economy-streaming-contract-duration-rules.md"
+- "04-World/Refined Country-Specific Transaction Models.md" -> "03-Systems/Economy/Country-Models/economy-country-transaction-models.md"
+- "99-Archive/Record Label Simulator- Maintenance Cost of.md" -> "03-Systems/Economy/Costs/economy-facility-maintenance-costs.md"
+- "04-World/Currencies by Country in.md" -> "03-Systems/Economy/Currency/economy-country-currencies-and-acronyms.md"
 - New: "03-Systems/Economy/Index.md"
+
+## Added to cover current files
+- "01-Canon/Copy of Record Label Simulator - MVP Gameplay Overview (December 5 2025 version).md" -> "01-Canon/copy-of-record-label-simulator-mvp-gameplay-overview-december-5-2025-version.md"
+- "01-Canon/Gaia Time Zone Overview (Using Standard or Elsewhere) in Record Company Simulator.md" -> "01-Canon/gaia-time-zone-overview-using-standard-or-elsewhere-in-record-company-simulator.md"
+- "01-Canon/Game Design Document of Record Label.md" -> "01-Canon/game-design-document-of-record-label.md"
+- "01-Canon/Glossary.md" -> "01-Canon/glossary.md"
+- "01-Canon/High-Level Game Design Overview- Record Label Simulator.md" -> "01-Canon/high-level-game-design-overview-record-label-simulator.md"
+- "01-Canon/MVP for Simulator Strategy Record Label Mobile Game.md" -> "01-Canon/mvp-for-simulator-strategy-record-label-mobile-game.md"
+- "01-Canon/Record Label Simulator (RLS) GDD- Charting Systems Feedback Loops and Geographic Nuances (Nations and Regions).md" -> "01-Canon/record-label-simulator-rls-gdd-charting-systems-feedback-loops-and-geographic-nuances-nations-and-regions.md"
+- "01-Canon/Record Label Simulator (RLS) GDD- Data Architecture and Simulation Flow.md" -> "01-Canon/record-label-simulator-rls-gdd-data-architecture-and-simulation-flow.md"
+- "01-Canon/Record Label Simulator - Documentation Governance.md" -> "01-Canon/record-label-simulator-documentation-governance.md"
+- "01-Canon/Record Label Simulator - GLOSSARY.md" -> "01-Canon/record-label-simulator-glossary.md"
+- "01-Canon/Record Label Simulator - Gaias World Overview.md" -> "01-Canon/record-label-simulator-gaias-world-overview.md"
+- "01-Canon/Record Label Simulator - Game Overview.md" -> "01-Canon/record-label-simulator-game-overview.md"
+- "01-Canon/Record Label Simulator - Introduction and Vision.md" -> "01-Canon/record-label-simulator-introduction-and-vision.md"
+- "01-Canon/Record Label Simulator - MVP Gameplay Overview (December 5 2025 version).md" -> "01-Canon/record-label-simulator-mvp-gameplay-overview-december-5-2025-version.md"
+- "01-Canon/Record Label Simulator - Pre-Alpha Design Overview (v 001).md" -> "01-Canon/record-label-simulator-pre-alpha-design-overview-v-001.md"
+- "01-Canon/Record Label Simulator GDD Finalization and Scalability Framework (Enhanced).md" -> "01-Canon/record-label-simulator-gdd-finalization-and-scalability-framework-enhanced.md"
+- "01-Canon/Record Label Simulator GDD Snippet- Key Game Concepts (Alignment Mood Theme content Genre Quality).md" -> "01-Canon/record-label-simulator-gdd-snippet-key-game-concepts-alignment-mood-theme-content-genre-quality.md"
+- "01-Canon/Record Label Simulator RLS ABCD Overview.md" -> "01-Canon/record-label-simulator-rls-abcd-overview.md"
+- "01-Canon/Record Label Simulator Specifications.md" -> "01-Canon/record-label-simulator-specifications.md"
+- "01-Canon/Record Label Simulator- Community Members and Sectors Overview.md" -> "01-Canon/record-label-simulator-community-members-and-sectors-overview.md"
+- "01-Canon/Video Game Specifications- Genres of Record Label Simulator.md" -> "01-Canon/video-game-specifications-genres-of-record-label-simulator.md"
+- "02-UI/---Record Label Simulator--- - Game Design.md" -> "02-UI/record-label-simulator-game-design.md"
+- "02-UI/--OCCUPATION- GUIDE.md" -> "02-UI/occupation-guide.md"
+- "02-UI/Alignment of Themes in Record Label.md" -> "02-UI/alignment-of-themes-in-record-label.md"
+- "02-UI/Buffs (Bonuses )and add ons provided by GUIDE IDs in topoda.md" -> "02-UI/buffs-bonuses-and-add-ons-provided-by-guide-ids-in-topoda.md"
+- "02-UI/Color Assignment of Moods in Record Label Simulator.md" -> "02-UI/color-assignment-of-moods-in-record-label-simulator.md"
+- "02-UI/Colors of Record Label Simulator Lyrical Themes for Tracks.md" -> "02-UI/colors-of-record-label-simulator-lyrical-themes-for-tracks.md"
+- "02-UI/Copy of Project Design Doc GDOC.md" -> "02-UI/copy-of-project-design-doc-gdoc.md"
+- "02-UI/Explanation of Alignment of Content Projects Acts Eras and Record Label in Record Label Simulator video game project.md" -> "02-UI/explanation-of-alignment-of-content-projects-acts-eras-and-record-label-in-record-label-simulator-video-game-project.md"
+- "02-UI/Explanation of Terrain Features and Building.md" -> "02-UI/explanation-of-terrain-features-and-building.md"
+- "02-UI/Game Concept- Roles Occupations Action Verbs of Characters in Record Label Simulators Game Design.md" -> "02-UI/game-concept-roles-occupations-action-verbs-of-characters-in-record-label-simulators-game-design.md"
+- "02-UI/Game design Record Label Simulator (6-23-2024).md" -> "02-UI/game-design-record-label-simulator-6-23-2024.md"
+- "02-UI/Global Demographic Evolution- Growth and Control Guidelines.md" -> "02-UI/global-demographic-evolution-growth-and-control-guidelines.md"
+- "02-UI/Markdown Guidelines for Web Entities.md" -> "02-UI/markdown-guidelines-for-web-entities.md"
+- "02-UI/Natural Hair Colors in Humans of Record Label Simulator In-Game Universe.md" -> "02-UI/natural-hair-colors-in-humans-of-record-label-simulator-in-game-universe.md"
+- "02-UI/Record Label Simulator - Alignment Color System Notes.md" -> "02-UI/record-label-simulator-alignment-color-system-notes.md"
+- "02-UI/Record Label Simulator - Game Design - Solution for Track Names Tracklist and Data.md" -> "02-UI/record-label-simulator-game-design-solution-for-track-names-tracklist-and-data.md"
+- "02-UI/Record Label Simulator - Gameplay Mechanic- Signing Artists (Acquiring CREATORS and GUIDERS (deprecated) CARDS).md" -> "02-UI/record-label-simulator-gameplay-mechanic-signing-artists-acquiring-creators-and-guiders-deprecated-cards.md"
+- "02-UI/Record Label Simulator - Guide AI.md" -> "02-UI/record-label-simulator-guide-ai.md"
+- "02-UI/Record Label Simulator - Text Formatting Guide for In-Game Terminology.md" -> "02-UI/record-label-simulator-text-formatting-guide-for-in-game-terminology.md"
+- "02-UI/Record Label Simulator - Text Formatting Guide for In-Game.md" -> "02-UI/record-label-simulator-text-formatting-guide-for-in-game.md"
+- "02-UI/Record Label Simulator - UI and UX Design System.md" -> "02-UI/record-label-simulator-ui-and-ux-design-system.md"
+- "02-UI/Record Label Simulator - UI.md" -> "02-UI/record-label-simulator-ui.md"
+- "02-UI/Record Label Simulator- Buildings Creator IDs and Inventory.md" -> "02-UI/record-label-simulator-buildings-creator-ids-and-inventory.md"
+- "02-UI/Record Label Simulator- In-Game Visualizer Design.md" -> "02-UI/record-label-simulator-in-game-visualizer-design.md"
+- "02-UI/Record Label Simulator-Topodangle Visual Feedback System VFX v1.md" -> "02-UI/record-label-simulator-topodangle-visual-feedback-system-vfx-v1.md"
+- "02-UI/TODO- simulate gameplay design of Record Label Simulator.md" -> "02-UI/todo-simulate-gameplay-design-of-record-label-simulator.md"
+- "02-UI/The key visual elements of each theme are as follows.md" -> "02-UI/the-key-visual-elements-of-each-theme-are-as-follows.md"
+- "02-UI/UI Elements displayed on screen of the Record Label Simulator Video Game Application.md" -> "02-UI/ui-elements-displayed-on-screen-of-the-record-label-simulator-video-game-application.md"
+- "02-UI/UX Design for Topoda Charts.md" -> "02-UI/ux-design-for-topoda-charts.md"
+- "02-UI/Visual aesthetics for Record Label.md" -> "02-UI/visual-aesthetics-for-record-label.md"
+- "02-UI/Visual concept ideas for.md" -> "02-UI/visual-concept-ideas-for.md"
+- "02-UI/Visuals for themes in RLS FLAMP.md" -> "02-UI/visuals-for-themes-in-rls-flamp.md"
+- "02-UI/Visuals of Themes and Moods in Record Label.md" -> "02-UI/visuals-of-themes-and-moods-in-record-label.md"
+- "03-Systems/AI team at Topoda Charts.md" -> "03-Systems/ai-team-at-topoda-charts.md"
+- "03-Systems/Age Group Generations Names in Record Label.md" -> "03-Systems/age-group-generations-names-in-record-label.md"
+- "03-Systems/Animation for when Charts.md" -> "03-Systems/animation-for-when-charts.md"
+- "03-Systems/Areas and Facilities Mechanics for Record Label Simulator.md" -> "03-Systems/areas-and-facilities-mechanics-for-record-label-simulator.md"
+- "03-Systems/Audience Community and Community Chunk Game Mechanics.md" -> "03-Systems/audience-community-and-community-chunk-game-mechanics.md"
+- "03-Systems/Below is a structured document detailing the refined Cultural Reset mechanic and its integration into the Record Label.md" -> "03-Systems/below-is-a-structured-document-detailing-the-refined-cultural-reset-mechanic-and-its-integration-into-the-record-label.md"
+- "03-Systems/CEO 12 Requests - Annual Winners Scoring and No-Ties Policy (Gaia).md" -> "03-Systems/ceo-12-requests-annual-winners-scoring-and-no-ties-policy-gaia.md"
+- "03-Systems/CREATOR ID ERA DRIVE AND EMOTIONS in TOPODA.md" -> "03-Systems/creator-id-era-drive-and-emotions-in-topoda.md"
+- "03-Systems/Calendar Module in Record Label Simulator video.md" -> "03-Systems/calendar-module-in-record-label-simulator-video.md"
+- "03-Systems/Card roles in topoda charts.md" -> "03-Systems/card-roles-in-topoda-charts.md"
+- "03-Systems/Catharsis Mechanic of Members.md" -> "03-Systems/catharsis-mechanic-of-members.md"
+- "03-Systems/Character content Genre Preferences and Global Trends in Record Label Simulator.md" -> "03-Systems/character-content-genre-preferences-and-global-trends-in-record-label-simulator.md"
+- "03-Systems/Chart Competition in Record Label Simulator.md" -> "03-Systems/chart-competition-in-record-label-simulator.md"
+- "03-Systems/Chart System Rules and Exceptions for Record Label Simulator.md" -> "03-Systems/chart-system-rules-and-exceptions-for-record-label-simulator.md"
+- "03-Systems/Charts records and milestones accounts for.md" -> "03-Systems/charts-records-and-milestones-accounts-for.md"
+- "03-Systems/Commentary on the Revised Population Dynamics Document.md" -> "03-Systems/commentary-on-the-revised-population-dynamics-document.md"
+- "03-Systems/Communities of Topoda Charts.md" -> "03-Systems/communities-of-topoda-charts.md"
+- "03-Systems/Connections supply and demand for topoda charts record label.md" -> "03-Systems/connections-supply-and-demand-for-topoda-charts-record-label.md"
+- "03-Systems/Content Cycle- Schedule Announce Release Promote Discontinue (SARPD) for Record Label.md" -> "03-Systems/content-cycle-schedule-announce-release-promote-discontinue-sarpd-for-record-label.md"
+- "03-Systems/Countries for inspiration of names in Topoda Charts In-Game.md" -> "03-Systems/countries-for-inspiration-of-names-in-topoda-charts-in-game.md"
+- "03-Systems/Default demo album for Topoda Charts Gameplay.md" -> "03-Systems/default-demo-album-for-topoda-charts-gameplay.md"
+- "03-Systems/Economy/Index.md" -> "03-Systems/Economy/index.md"
+- "03-Systems/Economy/Revenue/Economy - Topoda Charts Battle Pass.md" -> "03-Systems/Economy/Revenue/economy-topoda-charts-battle-pass.md"
+- "03-Systems/Entities Components and Systems in Record Label Simulator.md" -> "03-Systems/entities-components-and-systems-in-record-label-simulator.md"
+- "03-Systems/Eras in Record Label Simulator.md" -> "03-Systems/eras-in-record-label-simulator.md"
+- "03-Systems/Expanded and Integrated Stamina System.md" -> "03-Systems/expanded-and-integrated-stamina-system.md"
+- "03-Systems/Game Concept- Promotional Efforts for.md" -> "03-Systems/game-concept-promotional-efforts-for.md"
+- "03-Systems/Game Mechanic- Rollout Strategy of the Era of an Act in Record Label.md" -> "03-Systems/game-mechanic-rollout-strategy-of-the-era-of-an-act-in-record-label.md"
+- "03-Systems/Game Simulation Mechanics.md" -> "03-Systems/game-simulation-mechanics.md"
+- "03-Systems/HMMM Mechanic.md" -> "03-Systems/hmmm-mechanic.md"
+- "03-Systems/In-Game Audience Mechanic in Record Label Simulator.md" -> "03-Systems/in-game-audience-mechanic-in-record-label-simulator.md"
+- "03-Systems/In-Game Charts in Gaia.md" -> "03-Systems/in-game-charts-in-gaia.md"
+- "03-Systems/In-Game Time Control Mechanics for Record Label.md" -> "03-Systems/in-game-time-control-mechanics-for-record-label.md"
+- "03-Systems/In-Game Time Controller.md" -> "03-Systems/in-game-time-controller.md"
+- "03-Systems/In-Game World Initial Simulation for Record Label Simulator.md" -> "03-Systems/in-game-world-initial-simulation-for-record-label-simulator.md"
+- "03-Systems/Initial Development Phase for Audience Chunks in Record Label Simulator by Topoda Charts.md" -> "03-Systems/initial-development-phase-for-audience-chunks-in-record-label-simulator-by-topoda-charts.md"
+- "03-Systems/Initial Simulation of -Era- of an -Act- in the Pre-game Simulation.md" -> "03-Systems/initial-simulation-of-era-of-an-act-in-the-pre-game-simulation.md"
+- "03-Systems/Initial State (Before Simulation) of Record Label Simulator.md" -> "03-Systems/initial-state-before-simulation-of-record-label-simulator.md"
+- "03-Systems/Interaction between in-game entities in Record Label Simulator.md" -> "03-Systems/interaction-between-in-game-entities-in-record-label-simulator.md"
+- "03-Systems/Interview about Taylor Swifts Eras.md" -> "03-Systems/interview-about-taylor-swifts-eras.md"
+- "03-Systems/Main Character of Topoda Charts In-Game Universe Story Mode Videogame - EVIL ENTITY- AKITO from.md" -> "03-Systems/main-character-of-topoda-charts-in-game-universe-story-mode-videogame-evil-entity-akito-from.md"
+- "03-Systems/Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Genevive Mar- Love.md" -> "03-Systems/main-character-of-topoda-charts-in-game-universe-story-mode-videogame-genevive-mar-love.md"
+- "03-Systems/Main Character of Topoda Charts In-Game Universe Story Mode Videogame - Irene Strongbow- Creator of eyeriSocial.md" -> "03-Systems/main-character-of-topoda-charts-in-game-universe-story-mode-videogame-irene-strongbow-creator-of-eyerisocial.md"
+- "03-Systems/Mike Hawk - Topoda Charts.md" -> "03-Systems/mike-hawk-topoda-charts.md"
+- "03-Systems/Module Calendar.md" -> "03-Systems/module-calendar.md"
+- "03-Systems/Most chart-topping single of the year- game mechanics.md" -> "03-Systems/most-chart-topping-single-of-the-year-game-mechanics.md"
+- "03-Systems/PRE-Era Stage Definition of Record Label Simulation Game.md" -> "03-Systems/pre-era-stage-definition-of-record-label-simulation-game.md"
+- "03-Systems/Paparazzi in Topoda Charts.md" -> "03-Systems/paparazzi-in-topoda-charts.md"
+- "03-Systems/Phonomarks - Writing System of Topoda Charts In-Game.md" -> "03-Systems/phonomarks-writing-system-of-topoda-charts-in-game.md"
+- "03-Systems/RLS Awards System.md" -> "03-Systems/rls-awards-system.md"
+- "03-Systems/RLS Population Evolution.md" -> "03-Systems/rls-population-evolution.md"
+- "03-Systems/RLSGameInfoLoreandMechanics.md" -> "03-Systems/rlsgameinfoloreandmechanics.md"
+- "03-Systems/Recipe items in topoda charts.md" -> "03-Systems/recipe-items-in-topoda-charts.md"
+- "03-Systems/Record Label ERA- Stages of Grief.md" -> "03-Systems/record-label-era-stages-of-grief.md"
+- "03-Systems/Record Label Simulator (RLS) CEO 12 Requests Annual Winner Protocol.md" -> "03-Systems/record-label-simulator-rls-ceo-12-requests-annual-winner-protocol.md"
+- "03-Systems/Record Label Simulator (RLS) Charts - Simplified Sizes (Player-Facing).md" -> "03-Systems/record-label-simulator-rls-charts-simplified-sizes-player-facing.md"
+- "03-Systems/Record Label Simulator - Bygone Eras.md" -> "03-Systems/record-label-simulator-bygone-eras.md"
+- "03-Systems/Record Label Simulator - CHARTS COLUMNS.md" -> "03-Systems/record-label-simulator-charts-columns.md"
+- "03-Systems/Record Label Simulator - Chart Evolution Framework.md" -> "03-Systems/record-label-simulator-chart-evolution-framework.md"
+- "03-Systems/Record Label Simulator - Gameplay Mechanic - Fusion Profile - In-Game content.md" -> "03-Systems/record-label-simulator-gameplay-mechanic-fusion-profile-in-game-content.md"
+- "03-Systems/Record Label Simulator - Gameplay Mechanic- Turns.md" -> "03-Systems/record-label-simulator-gameplay-mechanic-turns.md"
+- "03-Systems/Record Label Simulator - Gameplay Mechanics- IDs.md" -> "03-Systems/record-label-simulator-gameplay-mechanics-ids.md"
+- "03-Systems/Record Label Simulator - In-Game Story Mode- Storyline Quests.md" -> "03-Systems/record-label-simulator-in-game-story-mode-storyline-quests.md"
+- "03-Systems/Record Label Simulator - Records (Awards) and Certifications (Milestones) for In-Game Achievements for finishing Quests.md" -> "03-Systems/record-label-simulator-records-awards-and-certifications-milestones-for-in-game-achievements-for-finishing-quests.md"
+- "03-Systems/Record Label Simulator - Simulation Timeline and Milestones.md" -> "03-Systems/record-label-simulator-simulation-timeline-and-milestones.md"
+- "03-Systems/Record Label Simulator Canon Decision- Player Identity and Quest Issuance.md" -> "03-Systems/record-label-simulator-canon-decision-player-identity-and-quest-issuance.md"
+- "03-Systems/Record Label Simulator General Creator Parameters.md" -> "03-Systems/record-label-simulator-general-creator-parameters.md"
+- "03-Systems/Record Label Simulator How To Sign a Creator System.md" -> "03-Systems/record-label-simulator-how-to-sign-a-creator-system.md"
+- "03-Systems/Record Label Simulator Pre-Game Simulation Plan.md" -> "03-Systems/record-label-simulator-pre-game-simulation-plan.md"
+- "03-Systems/Record Label Simulator- In-Game Quest Albums- Songs.md" -> "03-Systems/record-label-simulator-in-game-quest-albums-songs.md"
+- "03-Systems/Record Label Simulator-Sheet Music System.md" -> "03-Systems/record-label-simulator-sheet-music-system.md"
+- "03-Systems/Rollout Strategy Husk System.md" -> "03-Systems/rollout-strategy-husk-system.md"
+- "03-Systems/Stages of Pre-game Simulation for Record Label Simulator.md" -> "03-Systems/stages-of-pre-game-simulation-for-record-label-simulator.md"
+- "03-Systems/Stamina Recharge Mechanic in -Record Label Simulator.md" -> "03-Systems/stamina-recharge-mechanic-in-record-label-simulator.md"
+- "03-Systems/Sub-genres to explore in Topoda Charts Record Label.md" -> "03-Systems/sub-genres-to-explore-in-topoda-charts-record-label.md"
+- "03-Systems/TOPODA CHARTS - CHART PARAMETERS AND WEIGHS.md" -> "03-Systems/topoda-charts-chart-parameters-and-weighs.md"
+- "03-Systems/TOPODA CHARTS MAGAZINE-NEWS ARTICLE.md" -> "03-Systems/topoda-charts-magazine-news-article.md"
+- "03-Systems/TOPODA CHARTS- SONGWRITERS.md" -> "03-Systems/topoda-charts-songwriters.md"
+- "03-Systems/Template prompt for generation of game assets for emotions which is a feedback mechanism for the player of the Record Label Simulator.md" -> "03-Systems/template-prompt-for-generation-of-game-assets-for-emotions-which-is-a-feedback-mechanism-for-the-player-of-the-record-label-simulator.md"
+- "03-Systems/Terrain Generation Priority in Record Label.md" -> "03-Systems/terrain-generation-priority-in-record-label.md"
+- "03-Systems/Time Progression System for Record Label Simulator.md" -> "03-Systems/time-progression-system-for-record-label-simulator.md"
+- "03-Systems/Time and Ticks for Content Creation in Record Label.md" -> "03-Systems/time-and-ticks-for-content-creation-in-record-label.md"
+- "03-Systems/Time to create in topoda charts.md" -> "03-Systems/time-to-create-in-topoda-charts.md"
+- "03-Systems/Timeline of Events in Record Label Simulators Pre-game Simulation.md" -> "03-Systems/timeline-of-events-in-record-label-simulators-pre-game-simulation.md"
+- "03-Systems/Title- Balancing Global Trends and Local Markets in the Record Label Simulator.md" -> "03-Systems/title-balancing-global-trends-and-local-markets-in-the-record-label-simulator.md"
+- "03-Systems/Topoda Charts Alphabet and Vocabulary.md" -> "03-Systems/topoda-charts-alphabet-and-vocabulary.md"
+- "03-Systems/Topoda Charts Prompts for ChatGPT.md" -> "03-Systems/topoda-charts-prompts-for-chatgpt.md"
+- "03-Systems/TopodaCharts website structure.md" -> "03-Systems/topodacharts-website-structure.md"
+- "03-Systems/TopodaChartsGameTime Namespace.md" -> "03-Systems/topodachartsgametime-namespace.md"
+- "03-Systems/Tracklist Released.md" -> "03-Systems/tracklist-released.md"
+- "03-Systems/Trends and their involvement in the origin of subcultures in the three countries of the Topoda Charts.md" -> "03-Systems/trends-and-their-involvement-in-the-origin-of-subcultures-in-the-three-countries-of-the-topoda-charts.md"
+- "03-Systems/five key traits for modeling subcultures in Topoda Charts.md" -> "03-Systems/five-key-traits-for-modeling-subcultures-in-topoda-charts.md"
+- "03-Systems/inventory mechanics in Record Label.md" -> "03-Systems/inventory-mechanics-in-record-label.md"
+- "03-Systems/thematic ideas for the content in Topoda Charts.md" -> "03-Systems/thematic-ideas-for-the-content-in-topoda-charts.md"
+- "04-World/Clothing material of each country in Record Label.md" -> "04-World/clothing-material-of-each-country-in-record-label.md"
+- "04-World/Combinations of Broadcasting Studios in Record Label-2.md" -> "04-World/combinations-of-broadcasting-studios-in-record-label-2.md"
+- "04-World/Combinations of Broadcasting Studios in Record Label.md" -> "04-World/combinations-of-broadcasting-studios-in-record-label.md"
+- "04-World/Copy of Combinations of Broadcasting Studios in Record Label Simulator.md" -> "04-World/copy-of-combinations-of-broadcasting-studios-in-record-label-simulator.md"
+- "04-World/Countries Parameters and Relationships - Gaia Nations.md" -> "04-World/countries-parameters-and-relationships-gaia-nations.md"
+- "04-World/Country of Record Label Simulator In-Game Universe- Annglora Commonwealth of Annglora.md" -> "04-World/country-of-record-label-simulator-in-game-universe-annglora-commonwealth-of-annglora.md"
+- "04-World/Country of Record Label Simulator In-Game Universe- Crowlya Kingdom of.md" -> "04-World/country-of-record-label-simulator-in-game-universe-crowlya-kingdom-of.md"
+- "04-World/Donations to institutions in Record Label Simulator.md" -> "04-World/donations-to-institutions-in-record-label-simulator.md"
+- "04-World/Lore/Dialogue/Dialogue for Quests for Record Label Simulator.md" -> "04-World/Lore/Dialogue/dialogue-for-quests-for-record-label-simulator.md"
+- "04-World/Lore/Dialogue/Dialogue for Record Label Simulator.md" -> "04-World/Lore/Dialogue/dialogue-for-record-label-simulator.md"
+- "04-World/Lore/Dialogue/Dialogue.md" -> "04-World/Lore/Dialogue/dialogue.md"
+- "04-World/Lore/Dialogue/Miserable - Quote (Dialogue).md" -> "04-World/Lore/Dialogue/miserable-quote-dialogue.md"
+- "04-World/Lore/Dialogue/Record Label Simulator - Character Dialogue.md" -> "04-World/Lore/Dialogue/record-label-simulator-character-dialogue.md"
+- "04-World/Lore/Dialogue/Solace In Solitude dialogue for Record Label Simulator.md" -> "04-World/Lore/Dialogue/solace-in-solitude-dialogue-for-record-label-simulator.md"
+- "04-World/Lore/Dialogue/dialogue - Record Label Simulator.md" -> "04-World/Lore/Dialogue/dialogue-record-label-simulator.md"
+- "04-World/Lore/Lyrics/Adapt - Song lyrics.md" -> "04-World/Lore/Lyrics/adapt-song-lyrics.md"
+- "04-World/Lore/Lyrics/Album 01- Faint of Heart (DEBUT) - Track 01 Me and Myself Later (Lyrics).md" -> "04-World/Lore/Lyrics/album-01-faint-of-heart-debut-track-01-me-and-myself-later-lyrics.md"
+- "04-World/Lore/Lyrics/All those times I tried to leave you song lyrics track.md" -> "04-World/Lore/Lyrics/all-those-times-i-tried-to-leave-you-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Angry at myself - song lyrics - track.md" -> "04-World/Lore/Lyrics/angry-at-myself-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Blue - song lyrics.md" -> "04-World/Lore/Lyrics/blue-song-lyrics.md"
+- "04-World/Lore/Lyrics/Copy of Love Note song lyrics track.md" -> "04-World/Lore/Lyrics/copy-of-love-note-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Dont wanna remember song lyrics track.md" -> "04-World/Lore/Lyrics/dont-wanna-remember-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Even song lyrics track.md" -> "04-World/Lore/Lyrics/even-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Genevive Song Lyrics.md" -> "04-World/Lore/Lyrics/genevive-song-lyrics.md"
+- "04-World/Lore/Lyrics/He dances on - Song Lyrics - Track.md" -> "04-World/Lore/Lyrics/he-dances-on-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Hey - song lyrics.md" -> "04-World/Lore/Lyrics/hey-song-lyrics.md"
+- "04-World/Lore/Lyrics/Hostage Song lyrics.md" -> "04-World/Lore/Lyrics/hostage-song-lyrics.md"
+- "04-World/Lore/Lyrics/How Come Lyrics track song.md" -> "04-World/Lore/Lyrics/how-come-lyrics-track-song.md"
+- "04-World/Lore/Lyrics/I Fear song lyrics.md" -> "04-World/Lore/Lyrics/i-fear-song-lyrics.md"
+- "04-World/Lore/Lyrics/I Mattered - song lyrics - track.md" -> "04-World/Lore/Lyrics/i-mattered-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/I Mattered - song lyrics track version.md" -> "04-World/Lore/Lyrics/i-mattered-song-lyrics-track-version.md"
+- "04-World/Lore/Lyrics/Love Note song lyrics.md" -> "04-World/Lore/Lyrics/love-note-song-lyrics.md"
+- "04-World/Lore/Lyrics/Lucky Charm song lyrics.md" -> "04-World/Lore/Lyrics/lucky-charm-song-lyrics.md"
+- "04-World/Lore/Lyrics/Magnetic - song lyrics track.md" -> "04-World/Lore/Lyrics/magnetic-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/No Winning Side - Song Lyrics.md" -> "04-World/Lore/Lyrics/no-winning-side-song-lyrics.md"
+- "04-World/Lore/Lyrics/Nobodys Coming - Song Lyrics - Track.md" -> "04-World/Lore/Lyrics/nobodys-coming-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/One of Those Days song lyrics track.md" -> "04-World/Lore/Lyrics/one-of-those-days-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Open song lyrics track12a.md" -> "04-World/Lore/Lyrics/open-song-lyrics-track12a.md"
+- "04-World/Lore/Lyrics/Out of Boredom - Song Lyrics - Track.md" -> "04-World/Lore/Lyrics/out-of-boredom-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Politics Lottery song lyrics track.md" -> "04-World/Lore/Lyrics/politics-lottery-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Scars - song lyrics - track.md" -> "04-World/Lore/Lyrics/scars-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/So Cruel - song lyrics.md" -> "04-World/Lore/Lyrics/so-cruel-song-lyrics.md"
+- "04-World/Lore/Lyrics/Something to Prove lyrics song.md" -> "04-World/Lore/Lyrics/something-to-prove-lyrics-song.md"
+- "04-World/Lore/Lyrics/Something to Work With Song lyrics.md" -> "04-World/Lore/Lyrics/something-to-work-with-song-lyrics.md"
+- "04-World/Lore/Lyrics/Song Lyrics Track.md" -> "04-World/Lore/Lyrics/song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Song Lyrics track - His.md" -> "04-World/Lore/Lyrics/song-lyrics-track-his.md"
+- "04-World/Lore/Lyrics/Song lyrics track songwriting analysis report.md" -> "04-World/Lore/Lyrics/song-lyrics-track-songwriting-analysis-report.md"
+- "04-World/Lore/Lyrics/Song lyrics track-2.md" -> "04-World/Lore/Lyrics/song-lyrics-track-2.md"
+- "04-World/Lore/Lyrics/Song lyrics track-5.md" -> "04-World/Lore/Lyrics/song-lyrics-track-5.md"
+- "04-World/Lore/Lyrics/Song lyrics-2-2.md" -> "04-World/Lore/Lyrics/song-lyrics-2-2.md"
+- "04-World/Lore/Lyrics/Song lyrics-3.md" -> "04-World/Lore/Lyrics/song-lyrics-3.md"
+- "04-World/Lore/Lyrics/Song lyrics-7.md" -> "04-World/Lore/Lyrics/song-lyrics-7.md"
+- "04-World/Lore/Lyrics/Stay - Song lyrics track.md" -> "04-World/Lore/Lyrics/stay-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Still song lyrics track.md" -> "04-World/Lore/Lyrics/still-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/The Wrong Help - song lyrics - track.md" -> "04-World/Lore/Lyrics/the-wrong-help-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/The other side - song lyrics - track.md" -> "04-World/Lore/Lyrics/the-other-side-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Tighter song lyrics track.md" -> "04-World/Lore/Lyrics/tighter-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Tools lyrics song track.md" -> "04-World/Lore/Lyrics/tools-lyrics-song-track.md"
+- "04-World/Lore/Lyrics/Uh-oh - Song Lyrics Track.md" -> "04-World/Lore/Lyrics/uh-oh-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Untitled Song Lyrics - Track.md" -> "04-World/Lore/Lyrics/untitled-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/Untitled Song lyrics - track-3.md" -> "04-World/Lore/Lyrics/untitled-song-lyrics-track-3.md"
+- "04-World/Lore/Lyrics/Untitled song - lyrics.md" -> "04-World/Lore/Lyrics/untitled-song-lyrics.md"
+- "04-World/Lore/Lyrics/Untitled song lyrics track.md" -> "04-World/Lore/Lyrics/untitled-song-lyrics-track-variant.md"
+- "04-World/Lore/Lyrics/WHAT ARE YOU HERE FOR- - song lyrics track RAW VOW.md" -> "04-World/Lore/Lyrics/what-are-you-here-for-song-lyrics-track-raw-vow.md"
+- "04-World/Lore/Lyrics/We Collided Still - song lyrics track.md" -> "04-World/Lore/Lyrics/we-collided-still-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/do you mean it- - song lyrics track RAW VOW.md" -> "04-World/Lore/Lyrics/do-you-mean-it-song-lyrics-track-raw-vow.md"
+- "04-World/Lore/Lyrics/dont call it love yet - song lyrics track RAW VOW.md" -> "04-World/Lore/Lyrics/dont-call-it-love-yet-song-lyrics-track-raw-vow.md"
+- "04-World/Lore/Lyrics/i dont want peace - song lyrics track RAW VOW.md" -> "04-World/Lore/Lyrics/i-dont-want-peace-song-lyrics-track-raw-vow.md"
+- "04-World/Lore/Lyrics/look at me (intro) - song lyrics track RAW VOW.md" -> "04-World/Lore/Lyrics/look-at-me-intro-song-lyrics-track-raw-vow.md"
+- "04-World/Lore/Lyrics/pick a side - song lyrics track RAW VOW.md" -> "04-World/Lore/Lyrics/pick-a-side-song-lyrics-track-raw-vow.md"
+- "04-World/Lore/Lyrics/random ass song lyrics.md" -> "04-World/Lore/Lyrics/random-ass-song-lyrics.md"
+- "04-World/Lore/Lyrics/so above it all song lyrics track name.md" -> "04-World/Lore/Lyrics/so-above-it-all-song-lyrics-track-name.md"
+- "04-World/Lore/Lyrics/song lyrics - track-2.md" -> "04-World/Lore/Lyrics/song-lyrics-track-2-variant.md"
+- "04-World/Lore/Lyrics/song lyrics - track.md" -> "04-World/Lore/Lyrics/song-lyrics-track-variant.md"
+- "04-World/Lore/Lyrics/song lyrics track - no winning.md" -> "04-World/Lore/Lyrics/song-lyrics-track-no-winning.md"
+- "04-World/Lore/Lyrics/song lyrics track-3.md" -> "04-World/Lore/Lyrics/song-lyrics-track-3.md"
+- "04-World/Lore/Lyrics/song lyrics track-4.md" -> "04-World/Lore/Lyrics/song-lyrics-track-4.md"
+- "04-World/Lore/Lyrics/song lyrics track-6.md" -> "04-World/Lore/Lyrics/song-lyrics-track-6.md"
+- "04-World/Lore/Lyrics/song lyrics track-7.md" -> "04-World/Lore/Lyrics/song-lyrics-track-7.md"
+- "04-World/Lore/Lyrics/song lyrics-2.md" -> "04-World/Lore/Lyrics/song-lyrics-2.md"
+- "04-World/Lore/Lyrics/song lyrics-3-2.md" -> "04-World/Lore/Lyrics/song-lyrics-3-2.md"
+- "04-World/Lore/Lyrics/song lyrics-4-2.md" -> "04-World/Lore/Lyrics/song-lyrics-4-2.md"
+- "04-World/Lore/Lyrics/song lyrics-4.md" -> "04-World/Lore/Lyrics/song-lyrics-4.md"
+- "04-World/Lore/Lyrics/song lyrics-5-2.md" -> "04-World/Lore/Lyrics/song-lyrics-5-2.md"
+- "04-World/Lore/Lyrics/song lyrics-5.md" -> "04-World/Lore/Lyrics/song-lyrics-5.md"
+- "04-World/Lore/Lyrics/song lyrics-6-2.md" -> "04-World/Lore/Lyrics/song-lyrics-6-2.md"
+- "04-World/Lore/Lyrics/song lyrics-6.md" -> "04-World/Lore/Lyrics/song-lyrics-6.md"
+- "04-World/Lore/Lyrics/song lyrics.md" -> "04-World/Lore/Lyrics/song-lyrics.md"
+- "04-World/Lore/Lyrics/the paradise you promised - lyrics song track.md" -> "04-World/Lore/Lyrics/the-paradise-you-promised-lyrics-song-track.md"
+- "04-World/Lore/Lyrics/this time its over song lyrics track.md" -> "04-World/Lore/Lyrics/this-time-its-over-song-lyrics-track.md"
+- "04-World/Lore/Lyrics/ungovernable lyrics song track.md" -> "04-World/Lore/Lyrics/ungovernable-lyrics-song-track.md"
+- "04-World/Lore/Lyrics/untitled song lyrics - track-2.md" -> "04-World/Lore/Lyrics/untitled-song-lyrics-track-2.md"
+- "04-World/Lore/Lyrics/untitled song lyrics.md" -> "04-World/Lore/Lyrics/untitled-song-lyrics-variant.md"
+- "04-World/Lore/README.md" -> "04-World/Lore/readme.md"
+- "04-World/Music Theory Learning for Topoda.md" -> "04-World/music-theory-learning-for-topoda.md"
+- "04-World/One thousand members of a community in Record Label Simulator-TOPODA.md" -> "04-World/one-thousand-members-of-a-community-in-record-label-simulator-topoda.md"
+- "04-World/Record Label Simulator - Country Parameters for Image Prompts.md" -> "04-World/record-label-simulator-country-parameters-for-image-prompts.md"
+- "04-World/Record Label Simulator - Country.md" -> "04-World/record-label-simulator-country.md"
+- "04-World/Subcultures in topoda.md" -> "04-World/subcultures-in-topoda.md"
+- "04-World/Track Creation Capacity in Record Label Simulator.md" -> "04-World/track-creation-capacity-in-record-label-simulator.md"
+- "04-World/classes for slots in game topoda.md" -> "04-World/classes-for-slots-in-game-topoda.md"
+- "06-Characters/--Identities-- --OCCUPATIONS.md" -> "06-Characters/identities-occupations.md"
+- "06-Characters/Act.md" -> "06-Characters/act.md"
+- "06-Characters/Action Verbs and Their Parameters in -Record Label Simulator.md" -> "06-Characters/action-verbs-and-their-parameters-in-record-label-simulator.md"
+- "06-Characters/Acts Game Loop in Record Label.md" -> "06-Characters/acts-game-loop-in-record-label.md"
+- "06-Characters/CEOs uncle as difficulty setting and investor.md" -> "06-Characters/ceos-uncle-as-difficulty-setting-and-investor.md"
+- "06-Characters/COURSE OF ACTION FOR Record Label.md" -> "06-Characters/course-of-action-for-record-label.md"
+- "06-Characters/CREATOR CARD.md" -> "06-Characters/creator-card.md"
+- "06-Characters/CREATOR IDS PROPERTIES in Record Label.md" -> "06-Characters/creator-ids-properties-in-record-label.md"
+- "06-Characters/CREATOR IDs.md" -> "06-Characters/creator-ids.md"
+- "06-Characters/Community Members in Record Label Simulator.md" -> "06-Characters/community-members-in-record-label-simulator.md"
+- "06-Characters/Components of Community Members in Record Label Simulator.md" -> "06-Characters/components-of-community-members-in-record-label-simulator.md"
+- "06-Characters/Creator resources.md" -> "06-Characters/creator-resources.md"
+- "06-Characters/Creators and members catharsis.md" -> "06-Characters/creators-and-members-catharsis.md"
+- "06-Characters/Drives and entities that affect each factor in Record Label Simulator.md" -> "06-Characters/drives-and-entities-that-affect-each-factor-in-record-label-simulator.md"
+- "06-Characters/FINDING CREATORS in Record Label.md" -> "06-Characters/finding-creators-in-record-label.md"
+- "06-Characters/In Record Label Simulator (RLS) what are the players actual responsibilities and actions moment-to-moment and what outcomes are they driving.md" -> "06-Characters/in-record-label-simulator-rls-what-are-the-players-actual-responsibilities-and-actions-moment-to-moment-and-what-outcomes-are-they-driving.md"
+- "06-Characters/In Record Label Simulator (RLS) what does Chief Executive Officer (CEO) - music executive mean and what does that role do inside the game.md" -> "06-Characters/in-record-label-simulator-rls-what-does-chief-executive-officer-ceo-music-executive-mean-and-what-does-that-role-do-inside-the-game.md"
+- "06-Characters/Income and Expenses of Members in Record Label Simulator.md" -> "06-Characters/income-and-expenses-of-members-in-record-label-simulator.md"
+- "06-Characters/Maximum Number of Creator IDs Concurrently Signed by Record Label in RLS.md" -> "06-Characters/maximum-number-of-creator-ids-concurrently-signed-by-record-label-in-rls.md"
+- "06-Characters/Member Personnel Occupation Wage.md" -> "06-Characters/member-personnel-occupation-wage.md"
+- "06-Characters/Member Rating Mechanism in -Record Label Simulator.md" -> "06-Characters/member-rating-mechanism-in-record-label-simulator.md"
+- "06-Characters/Member Transition in Record Label Simulator.md" -> "06-Characters/member-transition-in-record-label-simulator.md"
+- "06-Characters/Member Traveling Speed in Record Label Simulator.md" -> "06-Characters/member-traveling-speed-in-record-label-simulator.md"
+- "06-Characters/Member and Structure Dynamics in -Record Label Simulator.md" -> "06-Characters/member-and-structure-dynamics-in-record-label-simulator.md"
+- "06-Characters/Player ceo game.md" -> "06-Characters/player-ceo-game.md"
+- "06-Characters/Properties of creator ID in Record Label Simulator.md" -> "06-Characters/properties-of-creator-id-in-record-label-simulator.md"
+- "06-Characters/Record Label Simulator - CREATOR ID SKILLS- Recording Artist.md" -> "06-Characters/record-label-simulator-creator-id-skills-recording-artist.md"
+- "06-Characters/Record Label Simulator - CREATOR ID SKILLS-2.md" -> "06-Characters/record-label-simulator-creator-id-skills-2.md"
+- "06-Characters/Record Label Simulator - CREATOR ID SKILLS.md" -> "06-Characters/record-label-simulator-creator-id-skills.md"
+- "06-Characters/Record Label Simulator - Creator Card Image Prompts (LeonardoAI).md" -> "06-Characters/record-label-simulator-creator-card-image-prompts-leonardoai.md"
+- "06-Characters/Record Label Simulator - Creator IDs (Cards).md" -> "06-Characters/record-label-simulator-creator-ids-cards.md"
+- "06-Characters/Record Label Simulator - Creator IDs- Gameplay Parameters.md" -> "06-Characters/record-label-simulator-creator-ids-gameplay-parameters.md"
+- "06-Characters/Record Label Simulator - PLAYER OCCUPATION- MUSIC EXECUTIVE.md" -> "06-Characters/record-label-simulator-player-occupation-music-executive.md"
+- "06-Characters/Record Label Simulator Creators Community Chamber Structure.md" -> "06-Characters/record-label-simulator-creators-community-chamber-structure.md"
+- "06-Characters/Speed movement of community members based on wealth level1K.md" -> "06-Characters/speed-movement-of-community-members-based-on-wealth-level1k.md"
+- "06-Characters/THINGS TO REMEMBER BEFORE OFFICIALLY STARTING DEVELOPMENT OF Record Label Simulator.md" -> "06-Characters/things-to-remember-before-officially-starting-development-of-record-label-simulator.md"
+- "06-Characters/Template Contract Email for Player.md" -> "06-Characters/template-contract-email-for-player.md"
+- "06-Characters/Venue and member stats.md" -> "06-Characters/venue-and-member-stats.md"
+- "06-Characters/What is a Creator.md" -> "06-Characters/what-is-a-creator.md"
+- "06-Characters/eyeriSocial Handles Mentions and Inactive Accounts.md" -> "06-Characters/eyerisocial-handles-mentions-and-inactive-accounts.md"
+- "07-Engineering/Cloud Storage (Player Inventory) in Record Label Simulator.md" -> "07-Engineering/cloud-storage-player-inventory-in-record-label-simulator.md"
+- "07-Engineering/Drive-Wide Terminology Cleanup Scripts - Reproducible Run Rules Logging Standard (Docs Sheets).md" -> "07-Engineering/drive-wide-terminology-cleanup-scripts-reproducible-run-rules-logging-standard-docs-sheets.md"
+- "07-Engineering/JavaScript Relevant Learning for Record Label Simulator Development.md" -> "07-Engineering/javascript-relevant-learning-for-record-label-simulator-development.md"
+- "07-Engineering/Record Label Simulator - Assistant and Web Project Instructions.md" -> "07-Engineering/record-label-simulator-assistant-and-web-project-instructions.md"
+- "07-Engineering/Record Label Simulator - ECS Foundations and Performance Architecture.md" -> "07-Engineering/record-label-simulator-ecs-foundations-and-performance-architecture.md"
+- "07-Engineering/Record Label Simulator - Web Build Notes.md" -> "07-Engineering/record-label-simulator-web-build-notes.md"
+- "07-Engineering/Scripts Formatting in Record Label Simulator Web Project.md" -> "07-Engineering/scripts-formatting-in-record-label-simulator-web-project.md"
+- "07-Engineering/Server-Sided Logic in Cloud Code for Record Label.md" -> "07-Engineering/server-sided-logic-in-cloud-code-for-record-label.md"
+- "07-Engineering/Topoda Charts Web Modules.md" -> "07-Engineering/topoda-charts-web-modules.md"
+- "07-Engineering/UserBenchmarks PC Stats Specs.md" -> "07-Engineering/userbenchmarks-pc-stats-specs.md"
+- "07-Engineering/Web ECS Architecture and Lifecycles.md" -> "07-Engineering/web-ecs-architecture-and-lifecycles.md"
+- "07-Engineering/Web Inventory Item Registry.md" -> "07-Engineering/web-inventory-item-registry.md"
+- "07-Engineering/Web Module Types and Data Assets.md" -> "07-Engineering/web-module-types-and-data-assets.md"
+- "07-Engineering/World Surface Representation (Web).md" -> "07-Engineering/world-surface-representation-web.md"
+- "08-Reference/Email Template.md" -> "08-Reference/email-template.md"
+- "08-Reference/Example Breakdown- 30000 Physical Sales Revenue in Record Label Simulator.md" -> "08-Reference/example-breakdown-30000-physical-sales-revenue-in-record-label-simulator.md"
+- "08-Reference/Example Breakdown- Digital.md" -> "08-Reference/example-breakdown-digital.md"
+- "08-Reference/Examples of Prompts for LeonardoAI Phoenix model.md" -> "08-Reference/examples-of-prompts-for-leonardoai-phoenix-model.md"
+- "08-Reference/Format - Formatting Paragraph.md" -> "08-Reference/format-formatting-paragraph.md"
+- "08-Reference/Initial Prompt for KeyMate ChatGPT.md" -> "08-Reference/initial-prompt-for-keymate-chatgpt.md"
+- "08-Reference/Record Label Simulator RLS Pop and Cultural Instruments for Udio Prompts.md" -> "08-Reference/record-label-simulator-rls-pop-and-cultural-instruments-for-udio-prompts.md"
+- "08-Reference/Template Receipt Email.md" -> "08-Reference/template-receipt-email.md"
+- "08-Reference/Template of Prompts for Record Label Simulator (made with LeonardoAI).md" -> "08-Reference/template-of-prompts-for-record-label-simulator-made-with-leonardoai.md"
+- "08-Reference/eyeriSocial Post Template - Record Label Simulator.md" -> "08-Reference/eyerisocial-post-template-record-label-simulator.md"
+- "08-Reference/negative prompts for.md" -> "08-Reference/negative-prompts-for.md"
+- "99-Archive/Aim for a -T- Rating- Crafting an Inspiring Journey of Resilience and Support for Record Label Simulator.md" -> "99-Archive/aim-for-a-t-rating-crafting-an-inspiring-journey-of-resilience-and-support-for-record-label-simulator.md"
+- "99-Archive/Algorithm initialization of Record Label simulator.md" -> "99-Archive/algorithm-initialization-of-record-label-simulator.md"
+- "99-Archive/Anngloras.md" -> "99-Archive/anngloras.md"
+- "99-Archive/Apple iPhone Notes.md" -> "99-Archive/apple-iphone-notes.md"
+- "99-Archive/BUFF.md" -> "99-Archive/buff.md"
+- "99-Archive/Breakdown of hours to max level up.md" -> "99-Archive/breakdown-of-hours-to-max-level-up.md"
+- "99-Archive/Cards as entities inventory items currency etc.md" -> "99-Archive/cards-as-entities-inventory-items-currency-etc.md"
+- "99-Archive/Catharsis change of.md" -> "99-Archive/catharsis-change-of.md"
+- "99-Archive/Chords and Instruments.md" -> "99-Archive/chords-and-instruments.md"
+- "99-Archive/Cities- Skylines II Mod- Record Labels.md" -> "99-Archive/cities-skylines-ii-mod-record-labels.md"
+- "99-Archive/Comprehensive Documentation for Record Label Simulator.md" -> "99-Archive/comprehensive-documentation-for-record-label-simulator.md"
+- "99-Archive/Concept about players goal to succeed at the game.md" -> "99-Archive/concept-about-players-goal-to-succeed-at-the-game.md"
+- "99-Archive/Content Shopping Center in Record Label.md" -> "99-Archive/content-shopping-center-in-record-label.md"
+- "99-Archive/Content Types and Their Purposes in Record Label Simulator.md" -> "99-Archive/content-types-and-their-purposes-in-record-label-simulator.md"
+- "99-Archive/Content produced on.md" -> "99-Archive/content-produced-on.md"
+- "99-Archive/Content.md" -> "99-Archive/content.md"
+- "99-Archive/Cool inspiring phrases for record label simulator.md" -> "99-Archive/cool-inspiring-phrases-for-record-label-simulator.md"
+- "99-Archive/Directory of Entities.md" -> "99-Archive/directory-of-entities.md"
+- "99-Archive/Drives and their pairings.md" -> "99-Archive/drives-and-their-pairings.md"
+- "99-Archive/Engagement Consumerism Metrics in Record Label Simulator.md" -> "99-Archive/engagement-consumerism-metrics-in-record-label-simulator.md"
+- "99-Archive/Expression Points (EXP) in Record Label Simulator.md" -> "99-Archive/expression-points-exp-in-record-label-simulator.md"
+- "99-Archive/Festivals in Record Label.md" -> "99-Archive/festivals-in-record-label.md"
+- "99-Archive/Game Concept- Content Types in Record Label.md" -> "99-Archive/game-concept-content-types-in-record-label.md"
+- "99-Archive/Game Concept- Organizations in Record Label Simulator.md" -> "99-Archive/game-concept-organizations-in-record-label-simulator.md"
+- "99-Archive/Game Development Roadmap for Record Label Simulator.md" -> "99-Archive/game-development-roadmap-for-record-label-simulator.md"
+- "99-Archive/Game Start - Record Label Simulator.md" -> "99-Archive/game-start-record-label-simulator.md"
+- "99-Archive/Game save progress in RLS.md" -> "99-Archive/game-save-progress-in-rls.md"
+- "99-Archive/Gameplay Feature Report for Record Label Simulator- Artist Immortalization.md" -> "99-Archive/gameplay-feature-report-for-record-label-simulator-artist-immortalization.md"
+- "99-Archive/Gameplay.md" -> "99-Archive/gameplay.md"
+- "99-Archive/Goals to win the game before the year 3000.md" -> "99-Archive/goals-to-win-the-game-before-the-year-3000.md"
+- "99-Archive/Government Permits and Upgrades.md" -> "99-Archive/government-permits-and-upgrades.md"
+- "99-Archive/Honorary Title- -Chameleon.md" -> "99-Archive/honorary-title-chameleon.md"
+- "99-Archive/Hours to level up to 10.md" -> "99-Archive/hours-to-level-up-to-10.md"
+- "99-Archive/Hype in Record Label Simulator.md" -> "99-Archive/hype-in-record-label-simulator.md"
+- "99-Archive/IDs and ID slots on Studios Academies Sets and Venues.md" -> "99-Archive/ids-and-id-slots-on-studios-academies-sets-and-venues.md"
+- "99-Archive/Im Making A Record Label Simulator.md" -> "99-Archive/im-making-a-record-label-simulator.md"
+- "99-Archive/Important (Backend Keys etc).md" -> "99-Archive/important-backend-keys-etc.md"
+- "99-Archive/Incentive for Social Media Content Sharing (TikTok Reels Shorts) in Record Label Simulator.md" -> "99-Archive/incentive-for-social-media-content-sharing-tiktok-reels-shorts-in-record-label-simulator.md"
+- "99-Archive/Items in Record Label Simulator.md" -> "99-Archive/items-in-record-label-simulator.md"
+- "99-Archive/Limits of consumption of audience.md" -> "99-Archive/limits-of-consumption-of-audience.md"
+- "99-Archive/List of data to choose from in the properties of Record Label Simulator.md" -> "99-Archive/list-of-data-to-choose-from-in-the-properties-of-record-label-simulator.md"
+- "99-Archive/MUSIC EXECUTIVE in Record Label Simulator.md" -> "99-Archive/music-executive-in-record-label-simulator.md"
+- "99-Archive/Map of.md" -> "99-Archive/map-of.md"
+- "99-Archive/Menu scenes.md" -> "99-Archive/menu-scenes.md"
+- "99-Archive/Modifier - Revamper.md" -> "99-Archive/modifier-revamper.md"
+- "99-Archive/Modifier - Substance Name- Dispatch Dust (faster speed lower quality).md" -> "99-Archive/modifier-substance-name-dispatch-dust-faster-speed-lower-quality.md"
+- "99-Archive/Modifier - Substance Name- Sensory Sage (slower speed higher quality).md" -> "99-Archive/modifier-substance-name-sensory-sage-slower-speed-higher-quality.md"
+- "99-Archive/Modular creation of items in Studios Academies Sets and.md" -> "99-Archive/modular-creation-of-items-in-studios-academies-sets-and.md"
+- "99-Archive/Negotiating Skill in Record Label Simulator.md" -> "99-Archive/negotiating-skill-in-record-label-simulator.md"
+- "99-Archive/Optimal Stamina Usage and Long-Term Effects in -Record Label.md" -> "99-Archive/optimal-stamina-usage-and-long-term-effects-in-record-label.md"
+- "99-Archive/PR list to assign Contents.md" -> "99-Archive/pr-list-to-assign-contents.md"
+- "99-Archive/Placeholder Scenario for Gameplay in Record Label Simulator.md" -> "99-Archive/placeholder-scenario-for-gameplay-in-record-label-simulator.md"
+- "99-Archive/Plan for when Record Label Simulator Webpage is ready for publishing.md" -> "99-Archive/plan-for-when-record-label-simulator-webpage-is-ready-for-publishing.md"
+- "99-Archive/Preliminary Tools Items and Content Concept for Record Label Simulator video.md" -> "99-Archive/preliminary-tools-items-and-content-concept-for-record-label-simulator-video.md"
+- "99-Archive/Properties of Content in Record Label Simulator.md" -> "99-Archive/properties-of-content-in-record-label-simulator.md"
+- "99-Archive/Prototype Tasks for Record Label.md" -> "99-Archive/prototype-tasks-for-record-label.md"
+- "99-Archive/Radio stations.md" -> "99-Archive/radio-stations.md"
+- "99-Archive/Recipes.md" -> "99-Archive/recipes.md"
+- "99-Archive/Record Label Simulator - DLC.md" -> "99-Archive/record-label-simulator-dlc.md"
+- "99-Archive/Record Label Simulator - Gameplay and In-Game Concepts to.md" -> "99-Archive/record-label-simulator-gameplay-and-in-game-concepts-to.md"
+- "99-Archive/Record Label Simulator - Player.md" -> "99-Archive/record-label-simulator-player.md"
+- "99-Archive/Record Label Simulator - Sheet Music Creation.md" -> "99-Archive/record-label-simulator-sheet-music-creation.md"
+- "99-Archive/Record Label Simulator - YouTube.md" -> "99-Archive/record-label-simulator-youtube.md"
+- "99-Archive/Record Label Simulator- Game Concept.md" -> "99-Archive/record-label-simulator-game-concept.md"
+- "99-Archive/Record Label Simulator- In-Game Concept.md" -> "99-Archive/record-label-simulator-in-game-concept.md"
+- "99-Archive/Record Label Simulator- In-Game.md" -> "99-Archive/record-label-simulator-in-game.md"
+- "99-Archive/Record Label Simulator- Preliminary Quality.md" -> "99-Archive/record-label-simulator-preliminary-quality.md"
+- "99-Archive/Record Label Simulator- Press.md" -> "99-Archive/record-label-simulator-press.md"
+- "99-Archive/Record Label Simulator- Sheet Music.md" -> "99-Archive/record-label-simulator-sheet-music.md"
+- "99-Archive/Record Label Simulator-Sheet Music Preliminary Content.md" -> "99-Archive/record-label-simulator-sheet-music-preliminary-content.md"
+- "99-Archive/Record Label Simulator.md" -> "99-Archive/record-label-simulator.md"
+- "99-Archive/Record Label.md" -> "99-Archive/record-label.md"
+- "99-Archive/Scene setup.md" -> "99-Archive/scene-setup.md"
+- "99-Archive/Scores for each emotion in Record Label Simulator- Bytenza.md" -> "99-Archive/scores-for-each-emotion-in-record-label-simulator-bytenza.md"
+- "99-Archive/Scores for each emotion in Record Label Simulator- Crowlya.md" -> "99-Archive/scores-for-each-emotion-in-record-label-simulator-crowlya.md"
+- "99-Archive/Sheet Music (Item- Content) in RLS.md" -> "99-Archive/sheet-music-item-content-in-rls.md"
+- "99-Archive/Smear Campaign.md" -> "99-Archive/smear-campaign.md"
+- "99-Archive/Software development proposal.md" -> "99-Archive/software-development-proposal.md"
+- "99-Archive/Stamina in RLS.md" -> "99-Archive/stamina-in-rls.md"
+- "99-Archive/Stamina in Record Label Company Simulator.md" -> "99-Archive/stamina-in-record-label-company-simulator.md"
+- "99-Archive/Table of Content for Entities and Terms.md" -> "99-Archive/table-of-content-for-entities-and-terms.md"
+- "99-Archive/Terrain Tiles - Neighborhood Directions and Expansion Sequence for Bloomville Annglora.md" -> "99-Archive/terrain-tiles-neighborhood-directions-and-expansion-sequence-for-bloomville-annglora.md"
+- "99-Archive/Terrain in record label simulator.md" -> "99-Archive/terrain-in-record-label-simulator.md"
+- "99-Archive/The main tasks of the Player as the Music Executive.md" -> "99-Archive/the-main-tasks-of-the-player-as-the-music-executive.md"
+- "99-Archive/Ticks to level up.md" -> "99-Archive/ticks-to-level-up.md"
+- "99-Archive/Total Ticks for 1 in-game hour 3600 - 10000000 (ticks per second) 36000000000.md" -> "99-Archive/total-ticks-for-1-in-game-hour-3600-10000000-ticks-per-second-36000000000.md"
+- "99-Archive/Truth-worthiness property for IDs1bvez.md" -> "99-Archive/truth-worthiness-property-for-ids1bvez.md"
+- "99-Archive/Unique Selling Points of Record Label Simulator.md" -> "99-Archive/unique-selling-points-of-record-label-simulator.md"
+- "99-Archive/Vault.md" -> "99-Archive/vault.md"
+- "99-Archive/Videos.md" -> "99-Archive/videos.md"
+- "99-Archive/What is Record Label Simulator (RLS).md" -> "99-Archive/what-is-record-label-simulator-rls.md"
+- "99-Archive/What is a Record Label.md" -> "99-Archive/what-is-a-record-label.md"
+- "99-Archive/Winning and Losing Conditions in Record Label Simulator.md" -> "99-Archive/winning-and-losing-conditions-in-record-label-simulator.md"
+- "99-Archive/eyeriS Broadcasting Corporation (eBC).md" -> "99-Archive/eyeris-broadcasting-corporation-ebc.md"
+- "99-Archive/flushing out the dirty water.md" -> "99-Archive/flushing-out-the-dirty-water.md"
+- "99-Archive/master.md" -> "99-Archive/master.md"
+- "99-Archive/modifiers in record label simulator.md" -> "99-Archive/modifiers-in-record-label-simulator.md"
+- "99-Archive/quality.md" -> "99-Archive/quality.md"
+- "Index.md" -> "index.md"
