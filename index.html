@@ -36,6 +36,19 @@
       <div id="difficultyHint" class="tiny"></div>
     </div>
     <div class="field">
+      <label for="startTheme1">Starting Preferences</label>
+      <div class="tiny">Pick two Themes and two Moods to seed early Creator preferences.</div>
+      <div class="input-row">
+        <select id="startTheme1" aria-label="Starting theme 1"></select>
+        <select id="startTheme2" aria-label="Starting theme 2"></select>
+      </div>
+      <div class="input-row">
+        <select id="startMood1" aria-label="Starting mood 1"></select>
+        <select id="startMood2" aria-label="Starting mood 2"></select>
+      </div>
+      <div class="tiny">Trends remain hidden until gameplay begins.</div>
+    </div>
+    <div class="field">
       <label for="autoSaveToggle">Auto Save</label>
       <div class="toggle-row">
         <input id="autoSaveToggle" type="checkbox" aria-label="Auto save toggle">
@@ -867,7 +880,7 @@
             <button id="createActBtn" type="button">Create Act</button>
           </div>
           <div class="subhead">Creator Roster</div>
-          <div id="creatorList" class="list"></div>
+            <div id="creatorList" class="list ccc-market-grid"></div>
           <div class="tiny">Drag Creator IDs into slots, or tap after selecting a slot.</div>
         </div>
       </div>

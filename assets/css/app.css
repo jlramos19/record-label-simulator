@@ -667,6 +667,21 @@ body::before {
   display: grid;
   gap: 8px;
 }
+.ccc-market-item--failed {
+  border-color: rgba(225, 92, 92, 0.6);
+  background: rgba(48, 18, 18, 0.75);
+  box-shadow: 0 0 0 1px rgba(225, 92, 92, 0.2);
+}
+.ccc-market-item--failed .item-title {
+  color: var(--danger);
+}
+.ccc-market-list button:disabled {
+  background: rgba(120, 120, 120, 0.35);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(120, 120, 120, 0.45);
+  cursor: not-allowed;
+  filter: none;
+}
 .trend-filters {
   display: grid;
   gap: 10px;

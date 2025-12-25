@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `rls-cache-${CACHE_VERSION}`;
 const ASSETS = [
   ".",
@@ -11,6 +11,7 @@ const ASSETS = [
   "assets/js/dist/app/csv.js",
   "assets/js/dist/app/db.js",
   "assets/js/dist/app/promo_types.js",
+  "assets/js/dist/app/chartWorker.js",
   "assets/js/data/constants.js",
   "assets/js/data/names.js",
   "assets/js/data/tracklist.js",
@@ -38,14 +39,32 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  const request = event.request;
+
+  if (request.mode === "navigate" || request.destination === "document") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match("index.html")))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return response;
-      });
+    caches.match(request).then((cached) => {
+      const fetchPromise = fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() => cached);
+      return cached || fetchPromise;
     })
   );
 });

@@ -10,6 +10,9 @@
 - Time displays down to the hour for players; finer-grain timing is internal.
 - Events trigger on cadence (weekly charts, yearly population refresh).
 
+## Patch Notes (2025-12-25)
+- Creator roster now groups signed Creator IDs into Songwriter, Performer, and Producer columns to match the CCC layout.
+
 ## Patch Notes (2025-12-24)
 - Charts view now shows a week-range selector with a chart history modal and snapshot export support.
 - Global chart stays locked until 100 entries exist; regional/national charts show N/A for empty ranks.

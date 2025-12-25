@@ -229,9 +229,10 @@ const run = async () => {
       ]
     });
 
+    const page = await browser.newPage();
     const pages = await browser.pages();
-    const page = pages[0] || (await browser.newPage());
-    for (const extra of pages.slice(1)) {
+    for (const extra of pages) {
+      if (extra === page) continue;
       try {
         await extra.close();
       } catch {
@@ -240,6 +241,9 @@ const run = async () => {
     }
 
     await maximizeWindow(page);
+
+    await page.setBypassServiceWorker(true);
+    await page.setCacheEnabled(false);
 
     page.on("console", async (msg) => {
       const handles = msg.args();

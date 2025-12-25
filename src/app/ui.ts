@@ -103,7 +103,8 @@ const {
   listGameModes,
   DEFAULT_GAME_MODE,
   listGameDifficulties,
-  DEFAULT_GAME_DIFFICULTY
+  DEFAULT_GAME_DIFFICULTY,
+  shakeElement
 } = game;
 
 const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
@@ -116,6 +117,7 @@ const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
 const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
 const GAME_MODE_KEY = "rls_game_mode_v1";
 const GAME_DIFFICULTY_KEY = "rls_game_difficulty_v1";
+const START_PREFS_KEY = "rls_start_prefs_v1";
 let activeRoute = DEFAULT_ROUTE;
 let hasMountedRoute = false;
 let chartHistoryRequestId = 0;
@@ -383,6 +385,85 @@ function syncDifficultySelect() {
       if (hint) hint.textContent = nextDifficulty?.description || "";
     });
   }
+}
+
+function loadStartPreferences() {
+  if (typeof localStorage === "undefined") return null;
+  const raw = localStorage.getItem(START_PREFS_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) || null;
+  } catch {
+    return null;
+  }
+}
+
+function saveStartPreferences(prefs) {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(START_PREFS_KEY, JSON.stringify(prefs));
+}
+
+function normalizeStartPreferences(prefs = {}) {
+  const themePool = Array.isArray(THEMES) ? THEMES : [];
+  const moodPool = Array.isArray(MOODS) ? MOODS : [];
+  const themes = Array.isArray(prefs.themes) ? prefs.themes.filter((theme) => themePool.includes(theme)) : [];
+  const moods = Array.isArray(prefs.moods) ? prefs.moods.filter((mood) => moodPool.includes(mood)) : [];
+  const uniqueThemes = [...new Set(themes)];
+  const uniqueMoods = [...new Set(moods)];
+  if (uniqueThemes.length < 2) {
+    uniqueThemes.push(...pickDistinct(themePool.filter((theme) => !uniqueThemes.includes(theme)), 2 - uniqueThemes.length));
+  }
+  if (uniqueMoods.length < 2) {
+    uniqueMoods.push(...pickDistinct(moodPool.filter((mood) => !uniqueMoods.includes(mood)), 2 - uniqueMoods.length));
+  }
+  return { themes: uniqueThemes.slice(0, 2), moods: uniqueMoods.slice(0, 2) };
+}
+
+function syncStartPreferenceSelects() {
+  const theme1 = $("startTheme1");
+  const theme2 = $("startTheme2");
+  const mood1 = $("startMood1");
+  const mood2 = $("startMood2");
+  if (!theme1 || !theme2 || !mood1 || !mood2) return;
+  theme1.innerHTML = THEMES.map((theme) => `<option value="${theme}">${theme}</option>`).join("");
+  theme2.innerHTML = THEMES.map((theme) => `<option value="${theme}">${theme}</option>`).join("");
+  mood1.innerHTML = MOODS.map((mood) => `<option value="${mood}">${mood}</option>`).join("");
+  mood2.innerHTML = MOODS.map((mood) => `<option value="${mood}">${mood}</option>`).join("");
+
+  const stored = normalizeStartPreferences(loadStartPreferences() || {});
+  const apply = (next) => {
+    const normalized = normalizeStartPreferences(next);
+    theme1.value = normalized.themes[0];
+    theme2.value = normalized.themes[1];
+    mood1.value = normalized.moods[0];
+    mood2.value = normalized.moods[1];
+    saveStartPreferences(normalized);
+  };
+  apply(stored);
+
+  const onChange = () => apply({
+    themes: [theme1.value, theme2.value],
+    moods: [mood1.value, mood2.value]
+  });
+  [theme1, theme2, mood1, mood2].forEach((select) => {
+    if (select.dataset.bound) return;
+    select.dataset.bound = "1";
+    select.addEventListener("change", onChange);
+  });
+}
+
+function getSelectedStartPreferences() {
+  const theme1 = $("startTheme1");
+  const theme2 = $("startTheme2");
+  const mood1 = $("startMood1");
+  const mood2 = $("startMood2");
+  if (!theme1 || !theme2 || !mood1 || !mood2) {
+    return normalizeStartPreferences(loadStartPreferences() || {});
+  }
+  return normalizeStartPreferences({
+    themes: [theme1.value, theme2.value],
+    moods: [mood1.value, mood2.value]
+  });
 }
 
 function panelByKey(key) {
@@ -1136,8 +1217,8 @@ function bindGlobalHandlers() {
   on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
   on("playBtn", "click", () => { setTimeSpeed("play"); });
   on("fastBtn", "click", () => { setTimeSpeed("fast"); });
-  on("skipDayBtn", "click", () => { advanceHours(24); });
-  on("skipWeekBtn", "click", () => { advanceHours(WEEK_HOURS); });
+  on("skipDayBtn", "click", () => { void advanceHours(24); });
+  on("skipWeekBtn", "click", () => { void advanceHours(WEEK_HOURS); });
   on("skipTimeBtn", "click", () => {
     const now = new Date(state.time.epochMs);
     if ($("skipDateInput")) $("skipDateInput").value = now.toISOString().slice(0, 10);
@@ -1388,7 +1469,7 @@ function bindGlobalHandlers() {
   };
   const slotList = $("slotList");
   if (slotList) {
-    slotList.addEventListener("click", (e) => {
+    slotList.addEventListener("click", async (e) => {
       const card = e.target.closest(".slot-card");
       if (!card) return;
       const slot = Number(card.dataset.slotIndex);
@@ -1410,7 +1491,7 @@ function bindGlobalHandlers() {
           logEvent("No saved game in this slot. Create a new label first.", "warn");
           return;
         }
-        loadSlot(slot, false);
+        await loadSlot(slot, false);
         exitMenuToGame();
         return;
       }
@@ -1419,7 +1500,8 @@ function bindGlobalHandlers() {
         if (!ok) return;
         const mode = getSelectedGameModeId();
         const difficulty = getSelectedGameDifficultyId();
-        loadSlot(slot, true, { mode, difficulty });
+        const startPreferences = getSelectedStartPreferences();
+        await loadSlot(slot, true, { mode, difficulty, startPreferences });
         exitMenuToGame();
       }
     });
@@ -1784,7 +1866,7 @@ function bindViewHandlers(route, root) {
   if (marketList) {
     marketList.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-sign]");
-      if (!btn) return;
+      if (!btn || btn.disabled) return;
       signCreatorById(btn.dataset.sign);
     });
   }
@@ -1887,7 +1969,7 @@ function bindViewHandlers(route, root) {
       const parsed = JSON.parse(text);
       resetState(parsed);
       refreshSelectOptions();
-      computeCharts();
+      await computeCharts();
       renderAll();
       saveToActiveSlot();
       logEvent(`Loaded save file into Slot ${session.activeSlot}.`);
@@ -3146,12 +3228,22 @@ function handleReleaseAction(e) {
 function signCreatorById(id) {
   const index = state.marketCreators.findIndex((c) => c.id === id);
   if (index === -1) return;
-  const cost = state.marketCreators[index].signCost || 0;
-  if (state.label.cash < cost) {
-    logEvent("Not enough cash to sign this creator.", "warn");
+  const creator = state.marketCreators[index];
+  const dayIndex = Math.floor(state.time.epochMs / (HOUR_MS * 24));
+  if (creator.signFailedDay === dayIndex) {
+    logEvent("Contract review pending. Check back after the daily refresh.", "warn");
     return;
   }
-  const creator = state.marketCreators.splice(index, 1)[0];
+  const cost = creator.signCost || 0;
+  if (state.label.cash < cost) {
+    creator.signFailedDay = dayIndex;
+    logEvent("Not enough cash to sign this creator.", "warn");
+    renderAll();
+    const card = document.querySelector(`[data-ccc-creator="${creator.id}"]`);
+    if (card) shakeElement(card);
+    return;
+  }
+  state.marketCreators.splice(index, 1);
   state.label.cash -= cost;
   creator.signCost = undefined;
   state.creators.push(normalizeCreator(creator));
@@ -3164,7 +3256,7 @@ function signCreatorById(id) {
   renderAll();
 }
 
-export function initUI() {
+export async function initUI() {
   ensureSlotDropdowns();
   updateSlotDropdowns();
   ensureSocialDetailModal();
@@ -3182,7 +3274,7 @@ export function initUI() {
     if (data) {
       resetState(data);
       refreshSelectOptions();
-      computeCharts();
+      await computeCharts();
       renderAll();
       closeMainMenu();
       startGameLoop();
@@ -3192,6 +3284,7 @@ export function initUI() {
   openMainMenu();
   syncGameModeSelect();
   syncDifficultySelect();
+  syncStartPreferenceSelects();
 }
 
 function setupPanelControls() {
@@ -3474,7 +3567,7 @@ function runTimeJump(totalHours, label) {
     cancelBtn.addEventListener("click", cancelHandler, { once: true });
   }
 
-  const step = () => {
+  const step = async () => {
     if (cancelled) {
       logEvent("Time skip canceled.", "warn");
       closeSkipProgress();
@@ -3483,7 +3576,7 @@ function runTimeJump(totalHours, label) {
     }
     const remaining = totalHours - completed;
     const stepHours = Math.min(chunkSize, remaining);
-    advanceHours(stepHours);
+    await advanceHours(stepHours);
     completed += stepHours;
     setSkipProgress(totalHours, completed, label);
     if (completed >= totalHours) {

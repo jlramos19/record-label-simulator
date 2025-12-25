@@ -64,6 +64,7 @@
 - `Default view: Charts.`
 - `Views: Charts, Create, Releases, Promotion, Roster, Creator Community Chamber (CCC), Logs/Debug.`
 - `Create view uses stage buttons (Sheet/Demo/Master) with studio slot columns (5 slots per column; 3/2/1 for Songwriter/Performer/Producer).`
+- `Roster view groups Creator IDs into Songwriter/Performer/Producer columns, mirroring the CCC layout.`
 - `Hidden panels have zero layout footprint.`
 - `Mini panels collapse into a dock (tab/pill), not a full panel shell.`
 - `Charts view shows a week-range selector; clicking it opens a chart-history calendar/modal.`

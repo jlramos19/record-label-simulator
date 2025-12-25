@@ -343,6 +343,8 @@ function makeDefaultState() {
             cash: startingCash,
             wallet: { cash: startingCash },
             fans: 0,
+            focusThemes: [],
+            focusMoods: [],
             country: "Annglora"
         },
         studio: { slots: STARTING_STUDIO_SLOTS, inUse: 0 },
@@ -1788,9 +1790,59 @@ function postEraComplete(era) {
         order: 2
     });
 }
-function makeCreator(role, existingNames, country) {
-    const themes = pickDistinct(THEMES, 2);
-    const moods = pickDistinct(MOODS, 2);
+const ALIGNMENT_THEME_PRIORITIES = {
+    Safe: ["Freedom", "Morality"],
+    Neutral: ["Loyalty"],
+    Risky: ["Ambition", "Power"]
+};
+function uniqueList(list) {
+    return [...new Set((list || []).filter((item) => typeof item === "string" && item.trim()))];
+}
+function fillDistinct(list, pool, count) {
+    const picks = list.slice(0, count);
+    if (picks.length >= count)
+        return picks;
+    const available = pool.filter((item) => !picks.includes(item));
+    if (available.length) {
+        picks.push(...pickDistinct(available, Math.min(count - picks.length, available.length)));
+    }
+    return picks.slice(0, count);
+}
+function normalizeStartPreferences(preferences = {}) {
+    const themes = fillDistinct(uniqueList(preferences.themes).filter((theme) => THEMES.includes(theme)), THEMES, 2);
+    const moods = fillDistinct(uniqueList(preferences.moods).filter((mood) => MOODS.includes(mood)), MOODS, 2);
+    return { themes, moods };
+}
+function pickPreferredThemes({ alignment, focusThemes } = {}) {
+    const aligned = ALIGNMENT_THEME_PRIORITIES[alignment] || [];
+    const alignmentThemes = uniqueList(aligned).filter((theme) => THEMES.includes(theme));
+    const focus = uniqueList(focusThemes).filter((theme) => THEMES.includes(theme));
+    const combined = uniqueList([...alignmentThemes, ...focus]);
+    if (!combined.length)
+        return pickDistinct(THEMES, 2);
+    const picks = [];
+    if (alignmentThemes.length) {
+        picks.push(...pickDistinct(alignmentThemes, 1));
+    }
+    const remaining = combined.filter((theme) => !picks.includes(theme));
+    return fillDistinct(picks, remaining.length ? remaining : THEMES, 2);
+}
+function pickPreferredMoods(focusMoods) {
+    const preferred = uniqueList(focusMoods).filter((mood) => MOODS.includes(mood));
+    if (!preferred.length)
+        return pickDistinct(MOODS, 2);
+    if (preferred.length >= 2)
+        return pickDistinct(preferred, 2);
+    return fillDistinct(preferred, MOODS, 2);
+}
+function makeCreator(role, existingNames, country, options = {}) {
+    const alignment = ALIGNMENTS.includes(options.alignment) ? options.alignment : "";
+    const hasThemePrefs = alignment || (Array.isArray(options.focusThemes) && options.focusThemes.length);
+    const hasMoodPrefs = Array.isArray(options.focusMoods) && options.focusMoods.length;
+    const themes = hasThemePrefs
+        ? pickPreferredThemes({ alignment, focusThemes: options.focusThemes })
+        : pickDistinct(THEMES, 2);
+    const moods = hasMoodPrefs ? pickPreferredMoods(options.focusMoods) : pickDistinct(MOODS, 2);
     const existing = existingNames
         || [...state.creators.map((creator) => creator.name), ...state.marketCreators.map((creator) => creator.name)];
     const origin = country || pickOne(NATIONS);
@@ -1974,19 +2026,19 @@ function seedActs() {
         memberIds: members
     }));
 }
-function buildMarketCreators() {
+function buildMarketCreators(options = {}) {
     const list = [];
     const existing = () => [...state.creators.map((creator) => creator.name), ...list.map((creator) => creator.name)];
     MARKET_ROLES.forEach((role) => {
         for (let i = 0; i < MARKET_MIN_PER_ROLE; i += 1) {
-            const creator = normalizeCreator(makeCreator(role, existing()));
+            const creator = normalizeCreator(makeCreator(role, existing(), null, options));
             creator.signCost = computeSignCost(creator);
             list.push(creator);
         }
     });
     return list;
 }
-function ensureMarketCreators() {
+function ensureMarketCreators(options = {}) {
     if (!Array.isArray(state.marketCreators))
         state.marketCreators = [];
     if (!Array.isArray(state.creators))
@@ -1997,7 +2049,7 @@ function ensureMarketCreators() {
         const current = state.marketCreators.filter((creator) => creator.role === role).length;
         const missing = Math.max(0, MARKET_MIN_PER_ROLE - current);
         for (let i = 0; i < missing; i += 1) {
-            const creator = normalizeCreator(makeCreator(role, existing()));
+            const creator = normalizeCreator(makeCreator(role, existing(), null, options));
             creator.signCost = computeSignCost(creator);
             state.marketCreators.push(creator);
         }
@@ -3410,6 +3462,186 @@ function buildChartSnapshot(scope, entries) {
         }))
     };
 }
+let chartWorker = null;
+let chartWorkerRequestId = 0;
+const chartWorkerRequests = new Map();
+function rejectChartWorkerRequests(error) {
+    chartWorkerRequests.forEach((entry) => entry.reject(error));
+    chartWorkerRequests.clear();
+}
+function getChartWorker() {
+    if (chartWorker || typeof Worker === "undefined")
+        return chartWorker;
+    try {
+        chartWorker = new Worker(new URL("./chartWorker.js", import.meta.url), { type: "module" });
+        chartWorker.addEventListener("message", (event) => {
+            const message = event?.data || {};
+            const pending = chartWorkerRequests.get(message.id);
+            if (!pending)
+                return;
+            chartWorkerRequests.delete(message.id);
+            if (message.type === "chartsComputed" || message.type === "snapshotsPersisted") {
+                pending.resolve(message.payload);
+                return;
+            }
+            pending.reject(new Error("Unknown chart worker response."));
+        });
+        chartWorker.addEventListener("messageerror", (event) => {
+            console.error("Chart worker message error:", event);
+            rejectChartWorkerRequests(new Error("Chart worker message error."));
+        });
+        chartWorker.addEventListener("error", (event) => {
+            console.error("Chart worker error:", event);
+            rejectChartWorkerRequests(new Error("Chart worker error."));
+        });
+    }
+    catch (error) {
+        console.error("Chart worker init failed:", error);
+        chartWorker = null;
+    }
+    return chartWorker;
+}
+function requestChartWorker(type, payload) {
+    const worker = getChartWorker();
+    if (!worker)
+        return Promise.reject(new Error("Chart worker unavailable."));
+    chartWorkerRequestId += 1;
+    const id = chartWorkerRequestId;
+    return new Promise((resolve, reject) => {
+        chartWorkerRequests.set(id, { resolve, reject });
+        worker.postMessage({ type, id, payload });
+    });
+}
+function queueChartSnapshotPersistence(snapshots) {
+    if (!Array.isArray(snapshots) || !snapshots.length)
+        return false;
+    const worker = getChartWorker();
+    if (worker) {
+        requestChartWorker("persistSnapshots", { snapshots }).catch(() => {
+            snapshots.forEach((snapshot) => {
+                storeChartSnapshot(snapshot).catch(() => { });
+            });
+        });
+        return true;
+    }
+    snapshots.forEach((snapshot) => {
+        storeChartSnapshot(snapshot).catch(() => { });
+    });
+    return true;
+}
+function buildChartWorkerPayload() {
+    const trackMap = new Map();
+    const tracks = [];
+    state.marketTracks.forEach((track) => {
+        const key = trackKey(track);
+        trackMap.set(key, track);
+        tracks.push({
+            key,
+            quality: track.quality,
+            alignment: track.alignment,
+            theme: track.theme,
+            mood: track.mood,
+            genre: track.genre,
+            promoWeeks: track.promoWeeks,
+            weeksOnChart: track.weeksOnChart
+        });
+    });
+    const nationWeights = {};
+    const regionWeights = {};
+    NATIONS.forEach((nation) => {
+        nationWeights[nation] = chartWeightsForNation(nation);
+    });
+    REGION_DEFS.forEach((region) => {
+        regionWeights[region.id] = chartWeightsForRegion(region.id);
+    });
+    return {
+        payload: {
+            tracks,
+            nations: NATIONS,
+            regionIds: REGION_DEFS.map((region) => region.id),
+            chartSizes: CHART_SIZES,
+            weights: {
+                global: chartWeightsForGlobal(),
+                nations: nationWeights,
+                regions: regionWeights
+            },
+            profiles: { nations: NATION_PROFILES, regions: REGION_PROFILES },
+            trends: state.trends,
+            defaultWeights: CHART_WEIGHTS
+        },
+        trackMap
+    };
+}
+function applyChartWorkerResults(result, trackMap) {
+    const charts = result?.charts || {};
+    const globalScores = [];
+    NATIONS.forEach((nation) => {
+        const prev = state.charts.nations[nation] || [];
+        const ordered = Array.isArray(charts.nations?.[nation]) ? charts.nations[nation] : [];
+        state.charts.nations[nation] = ordered.map((entry, index) => {
+            const track = trackMap.get(entry.key);
+            if (!track)
+                return null;
+            const prevEntry = prev.find((p) => trackKey(p.track) === entry.key);
+            const history = updateChartHistory(track, nation, index + 1);
+            return {
+                rank: index + 1,
+                lastRank: prevEntry ? prevEntry.rank : null,
+                peak: history.peak,
+                woc: history.weeks,
+                track,
+                score: entry.score,
+                metrics: entry.metrics
+            };
+        }).filter(Boolean);
+    });
+    REGION_DEFS.forEach((region) => {
+        const prev = state.charts.regions[region.id] || [];
+        const ordered = Array.isArray(charts.regions?.[region.id]) ? charts.regions[region.id] : [];
+        state.charts.regions[region.id] = ordered.map((entry, index) => {
+            const track = trackMap.get(entry.key);
+            if (!track)
+                return null;
+            const prevEntry = prev.find((p) => trackKey(p.track) === entry.key);
+            const history = updateChartHistory(track, region.id, index + 1);
+            return {
+                rank: index + 1,
+                lastRank: prevEntry ? prevEntry.rank : null,
+                peak: history.peak,
+                woc: history.weeks,
+                track,
+                score: entry.score,
+                metrics: entry.metrics
+            };
+        }).filter(Boolean);
+    });
+    const prevGlobal = state.charts.global || [];
+    const orderedGlobal = Array.isArray(charts.global) ? charts.global : [];
+    state.charts.global = orderedGlobal.map((entry, index) => {
+        const track = trackMap.get(entry.key);
+        if (!track)
+            return null;
+        const prevEntry = prevGlobal.find((p) => trackKey(p.track) === entry.key);
+        const history = updateChartHistory(track, "global", index + 1);
+        return {
+            rank: index + 1,
+            lastRank: prevEntry ? prevEntry.rank : null,
+            peak: history.peak,
+            woc: history.weeks,
+            track,
+            score: entry.score,
+            metrics: entry.metrics
+        };
+    }).filter(Boolean);
+    (result?.globalScores || []).forEach((entry) => {
+        const track = trackMap.get(entry.key);
+        if (!track)
+            return;
+        globalScores.push({ track, score: entry.score, metrics: entry.metrics });
+    });
+    persistChartHistorySnapshots();
+    return { globalScores };
+}
 function persistChartHistorySnapshots() {
     const week = weekIndex() + 1;
     if (state.meta.chartHistoryLastWeek === week)
@@ -3422,12 +3654,11 @@ function persistChartHistorySnapshots() {
     REGION_DEFS.forEach((region) => {
         snapshots.push(buildChartSnapshot(`region:${region.id}`, state.charts.regions[region.id] || []));
     });
-    snapshots.forEach((snapshot) => {
-        storeChartSnapshot(snapshot).catch(() => { });
-    });
-    state.meta.chartHistoryLastWeek = week;
+    if (queueChartSnapshotPersistence(snapshots)) {
+        state.meta.chartHistoryLastWeek = week;
+    }
 }
-function computeCharts() {
+function computeChartsLocal() {
     const nationScores = {};
     const regionScores = {};
     const nationWeights = {};
@@ -3508,6 +3739,22 @@ function computeCharts() {
     });
     persistChartHistorySnapshots();
     return { globalScores };
+}
+async function computeCharts() {
+    const worker = getChartWorker();
+    if (!worker)
+        return computeChartsLocal();
+    const { payload, trackMap } = buildChartWorkerPayload();
+    try {
+        const result = await requestChartWorker("computeCharts", payload);
+        if (!result?.charts)
+            return computeChartsLocal();
+        return applyChartWorkerResults(result, trackMap);
+    }
+    catch (error) {
+        console.error("Chart worker failed, falling back to main thread:", error);
+        return computeChartsLocal();
+    }
 }
 function buildGenreRanking(totals) {
     const entries = [];
@@ -4111,14 +4358,14 @@ function maybeRunAutoRollout() {
         return;
     state.meta.autoRollout.lastCheckedAt = state.time.epochMs;
 }
-function weeklyUpdate() {
+async function weeklyUpdate() {
     const week = weekIndex() + 1;
     ensureMarketCreators();
     processCreatorInactivity();
     processRivalCreatorInactivity();
     recruitRivalCreators();
     generateRivalReleases();
-    const { globalScores } = computeCharts();
+    const { globalScores } = await computeCharts();
     const labelScores = computeLabelScoresFromCharts();
     updateCumulativeLabelPoints(labelScores);
     updateRivalMomentum(labelScores);
@@ -4138,13 +4385,13 @@ function weeklyUpdate() {
     checkWinLoss(labelScores);
     renderAll();
 }
-function onYearTick(year) {
+async function onYearTick(year) {
     // Annual snapshot and deterministic tie-resolution for awards
     logEvent(`Year ${year} tick.`);
     refreshPopulationSnapshot(year);
     logEvent(`Population update: Year ${year}.`);
     // Recompute charts and label scores to determine annual leader
-    const { globalScores } = computeCharts();
+    const { globalScores } = await computeCharts();
     const labelScores = computeLabelScoresFromCharts();
     updateCumulativeLabelPoints(labelScores);
     captureSeedCalibration(year, labelScores);
@@ -4181,7 +4428,7 @@ function onYearTick(year) {
     // Persist snapshot
     saveToActiveSlot();
 }
-function runYearTicksIfNeeded(year) {
+async function runYearTicksIfNeeded(year) {
     const current = typeof year === "number" ? year : currentYear();
     if (typeof state.time.lastYear === "undefined") {
         state.time.lastYear = current;
@@ -4191,7 +4438,7 @@ function runYearTicksIfNeeded(year) {
         return;
     for (let y = state.time.lastYear + 1; y <= current; y += 1) {
         try {
-            onYearTick(y);
+            await onYearTick(y);
         }
         catch (e) {
             console.error("onYearTick error:", e);
@@ -4199,7 +4446,7 @@ function runYearTicksIfNeeded(year) {
     }
     state.time.lastYear = current;
 }
-function runHourlyTick() {
+async function runHourlyTick() {
     const prevDayIndex = Math.floor(state.time.epochMs / DAY_MS);
     state.time.totalHours += 1;
     state.time.epochMs += HOUR_MS;
@@ -4214,21 +4461,34 @@ function runHourlyTick() {
     const currentWeek = weekIndex();
     if (currentWeek > state.lastWeekIndex) {
         state.lastWeekIndex = currentWeek;
-        weeklyUpdate();
+        await weeklyUpdate();
     }
-    runYearTicksIfNeeded(currentYear());
+    await runYearTicksIfNeeded(currentYear());
 }
-function advanceHours(hours) {
+let advanceHoursQueue = Promise.resolve();
+async function advanceHours(hours) {
     if (state.meta.gameOver)
         return;
     if (!Number.isFinite(hours) || hours <= 0)
         return;
-    for (let i = 0; i < hours; i += 1) {
-        runHourlyTick();
-    }
-    renderTime();
+    advanceHoursQueue = advanceHoursQueue.then(async () => {
+        if (state.meta.gameOver)
+            return;
+        for (let i = 0; i < hours; i += 1) {
+            try {
+                await runHourlyTick();
+            }
+            catch (error) {
+                console.error("runHourlyTick error:", error);
+            }
+        }
+        renderTime();
+    }).catch((error) => {
+        console.error("advanceHours error:", error);
+    });
+    return advanceHoursQueue;
 }
-function maybeSyncPausedLiveChanges(now) {
+async function maybeSyncPausedLiveChanges(now) {
     if (state.time.speed !== "pause")
         return;
     if (!session.activeSlot)
@@ -4255,11 +4515,11 @@ function maybeSyncPausedLiveChanges(now) {
     if (prevView)
         state.ui.activeView = prevView;
     refreshSelectOptions();
-    computeCharts();
+    await computeCharts();
     renderAll({ save: false });
     session.lastSlotPayload = raw;
 }
-function tick(now) {
+async function tick(now) {
     if (state.time.lastTick === null || Number.isNaN(state.time.lastTick)) {
         state.time.lastTick = now;
         requestAnimationFrame(tick);
@@ -4276,10 +4536,10 @@ function tick(now) {
         state.time.acc += dt;
         while (state.time.acc >= secPerHour) {
             state.time.acc -= secPerHour;
-            advanceHours(1);
+            await advanceHours(1);
         }
     }
-    maybeSyncPausedLiveChanges(now);
+    await maybeSyncPausedLiveChanges(now);
     maybeAutoSave();
     requestAnimationFrame(tick);
 }
@@ -4373,13 +4633,21 @@ function resetState(nextState) {
 function seedNewGame(options = {}) {
     const mode = applyGameMode(options.mode || DEFAULT_GAME_MODE);
     applyDifficulty(options.difficulty || DEFAULT_GAME_DIFFICULTY, { resetCash: true });
+    const startPrefs = normalizeStartPreferences(options.startPreferences || {});
+    state.label.focusThemes = startPrefs.themes;
+    state.label.focusMoods = startPrefs.moods;
+    const creatorSeedOptions = {
+        focusThemes: state.label.focusThemes,
+        focusMoods: state.label.focusMoods,
+        alignment: state.label.alignment
+    };
     const baseCreators = [];
     ["Songwriter", "Performer", "Producer"].forEach((role) => {
-        baseCreators.push(makeCreator(role, baseCreators.map((creator) => creator.name)));
+        baseCreators.push(makeCreator(role, baseCreators.map((creator) => creator.name), null, creatorSeedOptions));
     });
     state.creators = baseCreators;
-    state.marketCreators = buildMarketCreators();
-    ensureMarketCreators();
+    state.marketCreators = buildMarketCreators(creatorSeedOptions);
+    ensureMarketCreators(creatorSeedOptions);
     state.rivals = buildRivals();
     state.trends = seedTrends();
     state.trendRanking = state.trends.slice();
@@ -4400,23 +4668,32 @@ function seedNewGame(options = {}) {
     syncLabelWallets();
     logEvent("Welcome back, CEO. Your label awaits.");
 }
-function loadSlot(index, forceNew = false, options = {}) {
-    const data = forceNew ? null : getSlotData(index);
-    resetState(data);
-    if (!data)
-        seedNewGame({ mode: options.mode, difficulty: options.difficulty });
-    session.activeSlot = index;
-    session.lastSlotPayload = localStorage.getItem(slotKey(index));
-    markUiLogStart();
-    sessionStorage.setItem("rls_active_slot", String(index));
-    refreshSelectOptions();
-    computeCharts();
-    renderAll();
-    if (!data && typeof window !== "undefined" && typeof window.resetViewLayout === "function") {
-        window.resetViewLayout();
+async function loadSlot(index, forceNew = false, options = {}) {
+    try {
+        const data = forceNew ? null : getSlotData(index);
+        resetState(data);
+        if (!data)
+            seedNewGame({
+                mode: options.mode,
+                difficulty: options.difficulty,
+                startPreferences: options.startPreferences
+            });
+        session.activeSlot = index;
+        session.lastSlotPayload = localStorage.getItem(slotKey(index));
+        markUiLogStart();
+        sessionStorage.setItem("rls_active_slot", String(index));
+        refreshSelectOptions();
+        await computeCharts();
+        renderAll();
+        if (!data && typeof window !== "undefined" && typeof window.resetViewLayout === "function") {
+            window.resetViewLayout();
+        }
+        closeMainMenu();
+        startGameLoop();
     }
-    closeMainMenu();
-    startGameLoop();
+    catch (error) {
+        console.error("loadSlot error:", error);
+    }
 }
 function deleteSlot(index) {
     localStorage.removeItem(slotKey(index));
@@ -4785,6 +5062,12 @@ function normalizeState() {
         state.population.campaignSplitStage = null;
     if (state.label && !state.label.country)
         state.label.country = "Annglora";
+    if (state.label) {
+        if (!Array.isArray(state.label.focusThemes))
+            state.label.focusThemes = [];
+        if (!Array.isArray(state.label.focusMoods))
+            state.label.focusMoods = [];
+    }
     normalizeTrendScope();
     if (state.label) {
         state.label.cash = Math.round(state.label.cash ?? 0);
@@ -6265,18 +6548,22 @@ function renderCreatorAvatar(creator) {
 }
 function renderCreators() {
     const busyIds = getBusyCreatorIds("In Progress");
-    const list = state.creators.map((creator) => {
-        const busy = busyIds.has(creator.id);
-        const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
-        const skillGrade = scoreGrade(creator.skill);
-        const roleText = roleLabel(creator.role);
-        const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
-        const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
-        const nationalityPill = renderNationalityPill(creator.country);
-        const memberships = state.acts.filter((act) => act.memberIds.includes(creator.id)).map((act) => act.name);
-        const actText = memberships.length ? memberships.join(", ") : "No Act";
-        return `
-      <div class="list-item" data-entity-type="creator" data-entity-id="${creator.id}" data-entity-name="${creator.name}" draggable="true">
+    const pool = state.creators || [];
+    const columns = MARKET_ROLES.map((role) => {
+        const roleLabelText = roleLabel(role);
+        const roleCreators = pool.filter((creator) => creator.role === role);
+        const list = roleCreators.map((creator) => {
+            const busy = busyIds.has(creator.id);
+            const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
+            const skillGrade = scoreGrade(creator.skill);
+            const roleText = roleLabel(creator.role);
+            const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
+            const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
+            const nationalityPill = renderNationalityPill(creator.country);
+            const memberships = state.acts.filter((act) => act.memberIds.includes(creator.id)).map((act) => act.name);
+            const actText = memberships.length ? memberships.join(", ") : "No Act";
+            return `
+        <div class="list-item" data-entity-type="creator" data-entity-id="${creator.id}" data-entity-name="${creator.name}" draggable="true">
           <div class="list-row">
             <div class="creator-card">
               ${renderCreatorAvatar(creator)}
@@ -6297,8 +6584,23 @@ function renderCreators() {
         </div>
         </div>
       `;
+        });
+        const emptyMsg = pool.length
+            ? `No ${roleLabelText} Creator IDs signed.`
+            : "No Creator IDs signed.";
+        return `
+      <div class="ccc-market-column" data-role="${role}">
+        <div class="ccc-market-head">
+          <div class="ccc-market-title">${roleLabelText}s</div>
+          <div class="tiny muted">${roleCreators.length} signed</div>
+        </div>
+        <div class="list ccc-market-list">
+          ${list.length ? list.join("") : `<div class="muted">${emptyMsg}</div>`}
+        </div>
+      </div>
+    `;
     });
-    $("creatorList").innerHTML = list.length ? list.join("") : `<div class="muted">No creators signed.</div>`;
+    $("creatorList").innerHTML = columns.join("");
 }
 function renderMarket() {
     ensureMarketCreators();
@@ -6313,6 +6615,7 @@ function renderMarket() {
         input.checked = filters[key] !== false;
     });
     const pool = state.marketCreators || [];
+    const dayIndex = Math.floor(state.time.epochMs / DAY_MS);
     const columns = MARKET_ROLES.map((role) => {
         const roleLabelText = roleLabel(role);
         const roleCreators = pool.filter((creator) => creator.role === role);
@@ -6320,8 +6623,11 @@ function renderMarket() {
             const skillGrade = scoreGrade(creator.skill);
             const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
             const nationalityPill = renderNationalityPill(creator.country);
+            const isFailed = creator.signFailedDay === dayIndex;
+            const itemClass = `list-item${isFailed ? " ccc-market-item--failed" : ""}`;
+            const buttonState = isFailed ? " disabled" : "";
             return `
-        <div class="list-item">
+        <div class="${itemClass}" data-ccc-creator="${creator.id}">
           <div class="list-row">
             <div class="creator-card">
               ${renderCreatorAvatar(creator)}
@@ -6333,7 +6639,7 @@ function renderMarket() {
                 <div class="time-row">${nationalityPill}</div>
               </div>
             </div>
-            <button type="button" data-sign="${creator.id}">Sign ${formatMoney(creator.signCost || 0)}</button>
+            <button type="button" data-sign="${creator.id}"${buttonState}>Sign ${formatMoney(creator.signCost || 0)}</button>
           </div>
         </div>
       `;
@@ -7620,4 +7926,4 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, normalizeCreator, postCreatorSigned, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderActiveCampaigns, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, assignToSlot, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };
+export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, normalizeCreator, postCreatorSigned, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderActiveCampaigns, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, assignToSlot, shakeElement, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };
