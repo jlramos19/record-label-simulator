@@ -1,13 +1,13 @@
-# Stamina and Hourly Ticks
+# Stamina and Quarter-Hour Ticks
 
-This document defines how stamina depletion, recharge, and overuse are processed on the hourly tick in the MVP.
+This document defines how stamina depletion, recharge, and overuse are processed on the quarter-hour tick in the MVP.
 
-## A) Hourly tick contract
+## A) Quarter-hour tick contract
 
-- The hourly tick is the only place where stamina changes (regen + depletion).
-- Each in-game hour triggers exactly one `applyHourlyResourceTick` call.
-- Idle recharge rule: creators who are not in an active work order gain +50 stamina per full in-game hour (clamped to `STAMINA_MAX`).
-- Depletion visibility rule: stamina spent on multi-hour work is applied per hour (not only in a lump at start or completion). The hourly slices must sum to the stage stamina cost.
+- The quarter-hour tick is the only place where stamina changes (regen + depletion).
+- Each in-game hour triggers exactly four `applyQuarterHourResourceTick` calls (one per quarter-hour).
+- Idle recharge rule: creators who are not in an active work order gain `STAMINA_REGEN_PER_HOUR` per hour, distributed deterministically across the four quarter-hour ticks.
+- Depletion visibility rule: stamina spent on multi-hour work is applied per quarter-hour (not only in a lump at start or completion). The quarter slices must sum to the stage stamina cost (`totalTicks = ceil(hours * 4)`).
 
 ## B) Daily usage + overuse strike contract
 
@@ -29,7 +29,7 @@ This document defines how stamina depletion, recharge, and overuse are processed
 
 ## D) Debugging method (repeatable)
 
-1) Add per-hour audit logs (regen totals, spend totals, overuse strike events).
+1) Add per-hour audit logs (regen totals, spend totals, overuse strike events) aggregated from quarter-hour slices.
 2) Reproduce in a controlled scenario (single producer, queue multiple masters).
-3) Verify per-hour deltas and daily counters reset at 12AM.
+3) Verify per-hour totals and daily counters reset at 12AM.
 4) Only then adjust recommendation/auto-assign logic to avoid overuse.
