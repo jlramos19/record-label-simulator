@@ -4838,12 +4838,15 @@ function runAutoPromoForPlayer() {
   if (!era || era.status !== "Active") return;
   const market = state.marketTracks.find((entry) => entry.id === track.marketId);
   if (!market || (market.promoWeeks || 0) > 0) return;
-  const selectedTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
+  const rawTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
     ? state.ui.promoTypes
     : [state.ui?.promoType || DEFAULT_PROMO_TYPE];
-  const budget = computeAutoPromoBudget(state.label.cash, autoPromoBudgetPct());
+  const selectedTypes = Array.from(new Set(rawTypes));
+  if (!selectedTypes.length) return;
+  const walletCash = state.label.wallet?.cash ?? state.label.cash;
+  const budget = computeAutoPromoBudget(walletCash, autoPromoBudgetPct());
   const totalCost = budget * selectedTypes.length;
-  if (!budget || state.label.cash < totalCost) return;
+  if (!budget || walletCash < totalCost || state.label.cash < totalCost) return;
   const facilityNeeds = promoFacilityNeeds(selectedTypes);
   for (const [facilityId, count] of Object.entries(facilityNeeds)) {
     const availability = getPromoFacilityAvailability(facilityId);
@@ -4889,8 +4892,9 @@ function runAutoPromoForRivals() {
   state.rivals.forEach((rival) => {
     const market = pickRivalAutoPromoTrack(rival);
     if (!market) return;
-    const budget = computeAutoPromoBudget(rival.cash, pct);
-    if (!budget || rival.cash < budget) return;
+    const walletCash = rival.wallet?.cash ?? rival.cash;
+    const budget = computeAutoPromoBudget(walletCash, pct);
+    if (!budget || walletCash < budget || rival.cash < budget) return;
     const promoType = AUTO_PROMO_RIVAL_TYPE;
     const facilityId = getPromoFacilityForType(promoType);
     if (facilityId) {
@@ -5294,6 +5298,11 @@ function normalizeState() {
   if (!state.ui.promoType) state.ui.promoType = DEFAULT_PROMO_TYPE;
   if (!Array.isArray(state.ui.promoTypes) || !state.ui.promoTypes.length) {
     state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
+  } else {
+    state.ui.promoTypes = state.ui.promoTypes.filter(Boolean);
+    if (!state.ui.promoTypes.length) {
+      state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
+    }
   }
   if (!state.ui.genreTheme) state.ui.genreTheme = "All";
   if (!state.ui.genreMood) state.ui.genreMood = "All";

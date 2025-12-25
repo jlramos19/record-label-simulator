@@ -8,6 +8,9 @@ Auto promo uses a fixed percentage of the label wallet cash to fund promo pushes
 - When multiple promo types are selected, the auto promo budget applies per type and total spend scales with the number of types.
 - Promo weeks still scale from budget using the existing 1-4 week rule.
 
+## Timing
+- Auto promo checks run during the weekly charts update after promo weeks age.
+
 ## Player rules
 - Auto promo is toggled in the Promotions view.
 - Auto promo uses the track assigned to the Promo Push slot.
