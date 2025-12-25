@@ -1162,10 +1162,10 @@ function setPromoBudgetToBaseCost(root, typeIds) {
   if (!input) return;
   const baseCost = promoBudgetBaseCostForTypes(typeIds);
   const raw = Number(input.value);
-  const hasValid = Number.isFinite(raw) && raw >= PROMO_BUDGET_MIN;
+  const hasValue = Number.isFinite(raw);
   const autoBudget = input.dataset.promoBudgetAuto !== "false";
   input.min = String(PROMO_BUDGET_MIN);
-  if (!hasValid || autoBudget) {
+  if (!hasValue || autoBudget) {
     input.value = String(baseCost);
     input.dataset.promoBudgetAuto = "true";
   }
