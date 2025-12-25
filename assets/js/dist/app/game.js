@@ -8120,6 +8120,8 @@ function renderTrackHistoryPanel(activeTab) {
     const fallbackEra = !focusEra && activeEras.length === 1 ? activeEras[0] : null;
     const targetEra = focusEra || fallbackEra;
     if (!targetEra) {
+        panel.dataset.historyKey = "";
+        panel.dataset.historyStatus = "";
         if (metaEl)
             metaEl.textContent = "Focus an active era to view chart history.";
         listEl.innerHTML = `<div class="muted">No active era selected.</div>`;
@@ -8129,6 +8131,8 @@ function renderTrackHistoryPanel(activeTab) {
     if (metaEl)
         metaEl.textContent = `${targetEra.name} | ${formatCount(tracks.length)} released tracks`;
     if (!tracks.length) {
+        panel.dataset.historyKey = "";
+        panel.dataset.historyStatus = "";
         listEl.innerHTML = `<div class="muted">No released tracks for ${targetEra.name} yet.</div>`;
         return;
     }
