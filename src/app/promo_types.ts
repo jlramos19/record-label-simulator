@@ -34,14 +34,24 @@ const getPromoTypeDetails = (typeId?: string) => {
   return PROMO_TYPE_DETAILS[DEFAULT_PROMO_TYPE];
 };
 
-const buildPromoHint = (typeId?: string) => {
+const getPromoTypeCosts = (typeId?: string, inflationMultiplier = 1) => {
   const details = getPromoTypeDetails(typeId);
-  return `Requirement: ${details.requirement} | Typical cost: ${formatMoney(details.cost)}`;
+  const baseCost = details.cost;
+  const adjustedCost = Math.round(baseCost * Math.max(1, inflationMultiplier));
+  return { baseCost, adjustedCost };
+};
+
+const buildPromoHint = (typeId?: string, inflationMultiplier = 1) => {
+  const details = getPromoTypeDetails(typeId);
+  const { baseCost, adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
+  const inflatedLabel = inflationMultiplier !== 1 ? ` | Inflation-adjusted: ${formatMoney(adjustedCost)}` : "";
+  return `Requirement: ${details.requirement} | Base: ${formatMoney(baseCost)}${inflatedLabel}`;
 };
 
 export {
   PROMO_TYPE_DETAILS,
   DEFAULT_PROMO_TYPE,
   getPromoTypeDetails,
+  getPromoTypeCosts,
   buildPromoHint
 };

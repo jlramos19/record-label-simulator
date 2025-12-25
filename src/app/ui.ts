@@ -2,7 +2,7 @@
 import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
-import { buildPromoHint, getPromoTypeDetails } from "./promo_types.js";
+import { buildPromoHint, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
 
 const {
   $,
@@ -953,12 +953,26 @@ function resetViewLayout() {
   renderPanelMenu();
 }
 
+function getPromoInflationMultiplier() {
+  const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
+  const baseYear = state.meta?.startYear || new Date(state.time?.startEpochMs || state.time?.epochMs || Date.now()).getUTCFullYear();
+  const yearsElapsed = Math.max(0, currentYear - baseYear);
+  const annualInflation = 0.02;
+  return Math.pow(1 + annualInflation, yearsElapsed);
+}
+
 function updatePromoTypeHint(root) {
   const scope = root || document;
   const select = scope.querySelector("#promoTypeSelect");
   const hint = scope.querySelector("#promoTypeHint");
   if (!select || !hint) return;
-  hint.textContent = buildPromoHint(select.value);
+  const inflationMultiplier = getPromoInflationMultiplier();
+  hint.textContent = buildPromoHint(select.value, inflationMultiplier);
+  const budgetInput = scope.querySelector("#promoBudget");
+  if (budgetInput) {
+    const { adjustedCost } = getPromoTypeCosts(select.value, inflationMultiplier);
+    budgetInput.placeholder = formatMoney(adjustedCost);
+  }
 }
 
 function bindGlobalHandlers() {

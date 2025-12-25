@@ -2,7 +2,7 @@
 import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
-import { buildPromoHint, getPromoTypeDetails } from "./promo_types.js";
+import { buildPromoHint, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
 const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE } = game;
 const ROUTES = ["charts", "create", "releases", "eras", "roster", "world", "logs"];
 const DEFAULT_ROUTE = "charts";
@@ -859,13 +859,26 @@ function resetViewLayout() {
     updateRoute(DEFAULT_ROUTE);
     renderPanelMenu();
 }
+function getPromoInflationMultiplier() {
+    const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
+    const baseYear = state.meta?.startYear || new Date(state.time?.startEpochMs || state.time?.epochMs || Date.now()).getUTCFullYear();
+    const yearsElapsed = Math.max(0, currentYear - baseYear);
+    const annualInflation = 0.02;
+    return Math.pow(1 + annualInflation, yearsElapsed);
+}
 function updatePromoTypeHint(root) {
     const scope = root || document;
     const select = scope.querySelector("#promoTypeSelect");
     const hint = scope.querySelector("#promoTypeHint");
     if (!select || !hint)
         return;
-    hint.textContent = buildPromoHint(select.value);
+    const inflationMultiplier = getPromoInflationMultiplier();
+    hint.textContent = buildPromoHint(select.value, inflationMultiplier);
+    const budgetInput = scope.querySelector("#promoBudget");
+    if (budgetInput) {
+        const { adjustedCost } = getPromoTypeCosts(select.value, inflationMultiplier);
+        budgetInput.placeholder = formatMoney(adjustedCost);
+    }
 }
 function bindGlobalHandlers() {
     const on = (id, event, handler) => {
