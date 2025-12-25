@@ -8826,8 +8826,11 @@ function renderAchievements() {
 }
 function renderQuests() {
     renderAchievements();
+    const questList = $("questList");
+    if (!questList)
+        return;
     if (!state.quests.length) {
-        $("questList").innerHTML = `<div class="muted">No active quests.</div>`;
+        questList.innerHTML = `<div class="muted">No active quests.</div>`;
         return;
     }
     const list = state.quests.map((quest) => {
@@ -8856,7 +8859,7 @@ function renderQuests() {
       </div>
     `;
     });
-    $("questList").innerHTML = list.join("");
+    questList.innerHTML = list.join("");
 }
 function renderSocialFeed() {
     const listEl = $("socialFeed");
