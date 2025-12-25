@@ -3715,7 +3715,7 @@ function paginateMarketTracks() {
     }
     return state.marketTracks;
 }
-function computeCharts(marketTracks = paginateMarketTracks()) {
+function computeChartsLocal(marketTracks = paginateMarketTracks()) {
     const nationScores = {};
     const regionScores = {};
     const nationWeights = {};
@@ -4431,7 +4431,7 @@ function weeklyUpdate() {
     processRivalCreatorInactivity();
     recruitRivalCreators();
     generateRivalReleases();
-    const { globalScores } = computeCharts();
+    const { globalScores } = computeChartsLocal();
     const labelScores = computeLabelScoresFromCharts();
     updateCumulativeLabelPoints(labelScores);
     updateRivalMomentum(labelScores);
@@ -4586,12 +4586,13 @@ async function maybeSyncPausedLiveChanges(now) {
     renderAll({ save: false });
     session.lastSlotPayload = raw;
 }
-function tick(now) {
+async function tick(now) {
     if (state.time.lastTick === null || Number.isNaN(state.time.lastTick)) {
         state.time.lastTick = now;
         requestAnimationFrame(tick);
         return;
     }
+    const frameStart = now;
     const dt = (now - state.time.lastTick) / 1000;
     state.time.lastTick = now;
     let secPerHour = Infinity;
