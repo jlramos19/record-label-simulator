@@ -24,6 +24,7 @@ Ledger snapshot fields:
 
 ## Notes
 - If there is not enough ledger data, the UI falls back to seeded trends until the first ledger window is available.
+- Seeded (2400) starts backfill the trend ledger from kickoff chart scores so Community trends populate immediately.
 
 ## Related
 - `docs/systems/time/weekly-timing.md`

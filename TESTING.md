@@ -43,5 +43,11 @@ runPopulationABTest({ startYear: 2025, endYear: 2075, runs: 10 })
 - Precondition (roster full): fill roster to 125 creators, click Sign; expect cash unchanged, sign remains enabled, error logged.
 - Midnight refresh: advance time across 12AM; expect sign lockouts cleared and CCC pool refreshed.
 
+8) Stamina hourly ticks
+- While time is running, confirm idle creators gain +50 stamina per in-game hour.
+- Start a 3-hour Master stage and verify stamina drops each in-game hour (not only at completion).
+- Confirm `staminaSpentToday` resets at 12AM.
+- Confirm an overuse strike fires at most once per creator per day.
+
 Notes:
 - Population constants live in `assets/js/data/constants.js`, app logic in `src/app/game.ts`.

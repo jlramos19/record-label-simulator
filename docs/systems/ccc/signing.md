@@ -6,7 +6,7 @@
 - Signing attempt: An executed offer that can be accepted or rejected by the Creator.
 - Precondition failure: A failed attempt that does not consume a signing attempt (insufficient funds, roster full, or invalid state).
 - Wallet (cash balance): `state.label.cash`, the funds available for signing costs.
-- Signing cost: A deterministic cost computed from creator role + skill and stored as `creator.signCost`.
+- Signing cost: A deterministic cost computed from creator role + skill + market pressure and stored as `creator.signCost`.
 
 ## Acceptance Criteria (MVP Rule)
 Creators resolve offers instantly using a single acceptance roll:
@@ -15,6 +15,7 @@ Creators resolve offers instantly using a single acceptance roll:
 - +5% if the Creator shares at least one preferred Mood with the label's focus Moods.
 - -8% if Creator skill >= 85.
 - +5% if Creator skill <= 60.
+- Market pressure adjusts acceptance (scarcity lowers acceptance; oversupply raises it).
 - Clamp to the 35% - 90% range.
 
 Accept if `random(0-1) < acceptanceChance`. This same rule applies to player and AI labels.

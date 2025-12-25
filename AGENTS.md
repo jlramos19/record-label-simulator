@@ -9,3 +9,4 @@
 - When you stage changes in git, draft a commit message for me to push to main on GitHub.
 - References: `docs/DECISIONS.md` and `docs/CONTRADICTIONS.md`.
 - Coordination: Other AI agents may work in this repo; coordinate changes, avoid overlapping edits, and stop to ask when conflicts appear.
+- Coordination addendum: If other agents made local changes that do not conflict with the task, incorporate them into the current pass.

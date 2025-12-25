@@ -11,9 +11,9 @@ const ALIGNMENTS = ["Safe", "Neutral", "Risky"];
 const ACT_TYPES = ["Solo Act", "Group Act"];
 
 const STAGES = [
-  { name: "Sheet", role: "Songwriter", hours: 1, cost: 500, stamina: 25, progress: 0.35 },
-  { name: "Demo", role: "Performer", hours: 2, cost: 800, stamina: 50, progress: 0.7 },
-  { name: "Master", role: "Producer", hours: 3, cost: 1200, stamina: 150, progress: 1.0 }
+  { name: "Sheet", role: "Songwriter", hours: 1, cost: 50, stamina: 25, progress: 0.35 },
+  { name: "Demo", role: "Performer", hours: 2, cost: 500, stamina: 50, progress: 0.7 },
+  { name: "Master", role: "Producer", hours: 3, cost: 2500, stamina: 150, progress: 1.0 }
 ];
 
 const TRACK_ROLE_LIMITS = {

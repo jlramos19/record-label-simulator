@@ -115,7 +115,7 @@
           <div class="muted">Assign Creator IDs, pick Theme/Mood, then run Sheet -> Demo -> Master stages.</div>
         </div>
         <div class="list-item">
-          <div class="item-title">Schedule release (Release Desk)</div>
+          <div class="item-title">Schedule release (Calendar)</div>
           <div class="muted">Choose distribution; Digital is fast, Physical or Both pays more.</div>
         </div>
         <div class="list-item">
@@ -240,7 +240,7 @@
 <div id="calendarModal" class="overlay" aria-hidden="true">
   <div class="overlay-card panel">
     <div class="card-head">
-      <h2>Release Calendar</h2>
+      <h2>Calendar List</h2>
       <button id="calendarClose" type="button" class="ghost">Close</button>
     </div>
     <div class="card-body">
@@ -422,9 +422,9 @@
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">edit_note</span>
           <span class="nav-label">Create</span>
         </a>
-        <a href="#/releases" data-route="releases" class="nav-item" aria-label="Releases" title="Releases">
-          <span class="material-symbols-rounded nav-icon" aria-hidden="true">album</span>
-          <span class="nav-label">Releases</span>
+        <a href="#/releases" data-route="releases" class="nav-item" aria-label="Calendar" title="Calendar">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">event</span>
+          <span class="nav-label">Calendar</span>
         </a>
         <a href="#/eras" data-route="eras" class="nav-item" aria-label="Eras" title="Eras">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">calendar_month</span>
@@ -465,7 +465,7 @@
           <div class="subhead">Quick Actions</div>
           <div class="dashboard-actions">
             <a href="#/create" class="ghost mini">New Track</a>
-            <a href="#/releases" class="ghost mini">Release Desk</a>
+            <a href="#/releases" class="ghost mini">Calendar</a>
             <a href="#/roster" class="ghost mini">Roster</a>
             <a href="#/eras" class="ghost mini">Eras</a>
           </div>
@@ -578,79 +578,122 @@
           <div id="createHelp" class="callout hidden">
             Quick start: tap an ID slot, assign Creator IDs, pick a Theme, then start sheet music. Acts are assigned later in Release Desk for release and promotion.
           </div>
-          <div class="stage-picker">
-            <div class="stage-title">Creation Stage</div>
-            <div class="stage-buttons stage-buttons--compact" role="group" aria-label="Creation stage selection">
-              <button type="button" class="ghost stage-btn" data-create-stage="all">All Stages</button>
-              <button type="button" class="ghost stage-btn" data-create-stage="sheet">Sheet Music</button>
-              <button type="button" class="ghost stage-btn" data-create-stage="demo">Demo Recording</button>
-              <button type="button" class="ghost stage-btn" data-create-stage="master">Master Recording</button>
-            </div>
-          </div>
-          <div class="subhead" data-stage="sheet,all">Track Details</div>
-          <div class="form-grid" data-stage="sheet,all">
-            <div class="field" data-stage="sheet">
-              <label for="trackTitle">Title</label>
-              <div class="input-row">
-                <input id="trackTitle" type="text" placeholder="Auto-generate if empty">
-                <button id="trackTitleRandom" type="button" class="ghost mini">Rnd</button>
+          <div class="create-stage-columns">
+            <section class="create-stage-column" data-create-column="sheet">
+              <button type="button" class="create-stage-toggle" data-create-stage="sheet" aria-pressed="false">
+                <span class="create-stage-title">Sheet Music</span>
+                <span id="createStageCountSheet" class="create-stage-count">(0)</span>
+              </button>
+              <div class="create-stage-body">
+                <div class="subhead">Track Details</div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="trackTitle">Title</label>
+                    <div class="input-row">
+                      <input id="trackTitle" type="text" placeholder="Auto-generate if empty">
+                      <button id="trackTitleRandom" type="button" class="ghost mini">Rnd</button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="projectName">Project</label>
+                    <div class="input-row">
+                      <input id="projectName" type="text" placeholder="Auto-generate if empty">
+                      <button id="projectNameRandom" type="button" class="ghost mini">Rnd</button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="projectTypeSelect">Content Type</label>
+                    <select id="projectTypeSelect">
+                      <option value="Single">Single</option>
+                      <option value="EP">EP</option>
+                      <option value="Album">Album</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="themeSelect">Theme</label>
+                    <select id="themeSelect"></select>
+                  </div>
+                  <div class="field">
+                    <label for="modifierSelect">Modifier Slot</label>
+                    <select id="modifierSelect"></select>
+                  </div>
+                </div>
+                <div class="subhead">Studios</div>
+                <div class="field">
+                  <label for="activeStudiosSelectSheet">Active Studios</label>
+                  <select id="activeStudiosSelectSheet"></select>
+                  <div id="activeStudiosMetaSheet" class="tiny muted">Up to 3 studios can run per stage.</div>
+                </div>
+                <div id="genrePreview" class="tiny">Planned Genre: -</div>
               </div>
-            </div>
-            <div class="field" data-stage="sheet">
-              <label for="projectName">Project</label>
-              <div class="input-row">
-                <input id="projectName" type="text" placeholder="Auto-generate if empty">
-                <button id="projectNameRandom" type="button" class="ghost mini">Rnd</button>
+              <div class="create-stage-actions">
+                <button id="startSheetBtn" type="button" class="primary stage-start-btn">Start Sheet Music</button>
               </div>
-            </div>
-            <div class="field" data-stage="sheet">
-              <label for="projectTypeSelect">Content Type</label>
-              <select id="projectTypeSelect">
-                <option value="Single">Single</option>
-                <option value="EP">EP</option>
-                <option value="Album">Album</option>
-              </select>
-            </div>
-            <div class="field" data-stage="sheet">
-              <label for="themeSelect">Theme</label>
-              <select id="themeSelect"></select>
-            </div>
-            <div class="field" data-stage="sheet">
-              <label for="modifierSelect">Modifier Slot</label>
-              <select id="modifierSelect"></select>
-            </div>
-          </div>
-          <div class="subhead">Stage Inputs</div>
-          <div class="form-grid">
-            <div class="field" data-stage="demo,all">
-              <label for="demoTrackSelect">Demo Track</label>
-              <select id="demoTrackSelect"></select>
-              <div id="demoTrackMeta" class="tiny muted"></div>
-            </div>
-            <div class="field" data-stage="master,all">
-              <label for="masterTrackSelect">Master Track</label>
-              <select id="masterTrackSelect"></select>
-              <div id="masterTrackMeta" class="tiny muted"></div>
-            </div>
-            <div class="field">
-              <label for="activeStudiosSelect">Active Studios</label>
-              <select id="activeStudiosSelect"></select>
-              <div id="activeStudiosMeta" class="tiny muted">Up to 3 studios can run per stage.</div>
-            </div>
-            <div class="field" data-stage="demo">
-              <label for="moodSelect">Mood</label>
-              <select id="moodSelect"></select>
-            </div>
-            <div class="field" data-stage="master">
-              <label for="trackAlignment">Content Alignment</label>
-              <select id="trackAlignment"></select>
-            </div>
+            </section>
+            <section class="create-stage-column" data-create-column="demo">
+              <button type="button" class="create-stage-toggle" data-create-stage="demo" aria-pressed="false">
+                <span class="create-stage-title">Demo Recording</span>
+                <span id="createStageCountDemo" class="create-stage-count">(0)</span>
+              </button>
+              <div class="create-stage-body">
+                <div class="subhead">Stage Inputs</div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="demoTrackSelect">Demo Track</label>
+                    <select id="demoTrackSelect"></select>
+                    <div id="demoTrackMeta" class="tiny muted"></div>
+                  </div>
+                  <div class="field">
+                    <label for="moodSelect">Mood</label>
+                    <select id="moodSelect"></select>
+                  </div>
+                </div>
+                <div class="subhead">Studios</div>
+                <div class="field">
+                  <label for="activeStudiosSelectDemo">Active Studios</label>
+                  <select id="activeStudiosSelectDemo"></select>
+                  <div id="activeStudiosMetaDemo" class="tiny muted">Up to 3 studios can run per stage.</div>
+                </div>
+              </div>
+              <div class="create-stage-actions">
+                <button id="startDemoBtn" type="button" class="primary stage-start-btn">Start Demo Recording</button>
+              </div>
+            </section>
+            <section class="create-stage-column" data-create-column="master">
+              <button type="button" class="create-stage-toggle" data-create-stage="master" aria-pressed="false">
+                <span class="create-stage-title">Master Recording</span>
+                <span id="createStageCountMaster" class="create-stage-count">(0)</span>
+              </button>
+              <div class="create-stage-body">
+                <div class="subhead">Stage Inputs</div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="masterTrackSelect">Master Track</label>
+                    <select id="masterTrackSelect"></select>
+                    <div id="masterTrackMeta" class="tiny muted"></div>
+                  </div>
+                  <div class="field">
+                    <label for="trackAlignment">Content Alignment</label>
+                    <select id="trackAlignment"></select>
+                  </div>
+                </div>
+                <div class="subhead">Studios</div>
+                <div class="field">
+                  <label for="activeStudiosSelectMaster">Active Studios</label>
+                  <select id="activeStudiosSelectMaster"></select>
+                  <div id="activeStudiosMetaMaster" class="tiny muted">Up to 3 studios can run per stage.</div>
+                </div>
+              </div>
+              <div class="create-stage-actions">
+                <button id="startMasterBtn" type="button" class="primary stage-start-btn">Start Master Recording</button>
+              </div>
+            </section>
           </div>
           <div class="subhead">Recommendation</div>
           <div id="trackRecommend" class="callout"></div>
           <div class="section-head">
             <div class="subhead">Creator Slots</div>
-            <div class="section-actions" data-stage="sheet,all">
+            <div class="section-actions">
               <button id="createAdvancedToggle" type="button" class="ghost mini">Advanced</button>
             </div>
           </div>
@@ -669,14 +712,7 @@
           <div class="actions">
             <button id="autoAssignBtn" type="button" class="ghost">Auto assign</button>
             <button id="trackRecommendAll" type="button" class="ghost">Recommend All</button>
-            <button id="startTrackBtn" type="button" class="primary" data-stage-mode="single">Start Sheet Music</button>
           </div>
-          <div class="actions pipeline-actions hidden" data-stage-mode="pipeline">
-            <button id="startSheetBtn" type="button" class="primary">Start Sheet Music</button>
-            <button id="startDemoBtn" type="button" class="ghost">Start Demo Recording</button>
-            <button id="startMasterBtn" type="button" class="ghost">Start Master Recording</button>
-          </div>
-          <div id="genrePreview" class="tiny" data-stage="sheet">Planned Genre: -</div>
           <div class="tiny">Base cost: $2500 total. Modifiers adjust cost and time; stages consume 1, 2, and 3 in-game hours.</div>
         </div>
       </div>
@@ -700,6 +736,34 @@
 <template id="view-releases">
   <div class="view view--releases">
     <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="calendar-view">
+        <div class="card-head">
+          <h2>Calendar</h2>
+          <div class="panel-tools">
+            <div id="calendarRangeLabel" class="tiny muted">Week -</div>
+            <button id="calendarBtn" type="button" class="ghost mini">Full List</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="tabs" id="calendarTabs">
+            <button class="tab active" data-calendar-tab="label" type="button">Label</button>
+            <button class="tab" data-calendar-tab="public" type="button">Public</button>
+            <button class="tab" data-calendar-tab="eras" type="button">Eras</button>
+          </div>
+          <div class="filter-row" id="calendarFilters">
+            <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
+            <label class="check-pill"><input type="checkbox" data-calendar-filter="labelReleased">Label Released</label>
+            <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalScheduled">Rival Scheduled</label>
+            <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
+          </div>
+          <div id="calendarGrid" class="calendar-grid-wrap"></div>
+          <div id="calendarEraList" class="list hidden"></div>
+          <div class="subhead">Upcoming</div>
+          <div id="calendarList" class="list"></div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
       <div class="panel card panel--scroll" data-panel="release-desk">
         <h2>Release Desk</h2>
         <div class="card-body">
@@ -720,8 +784,6 @@
           <div id="releaseQueueList" class="list"></div>
         </div>
       </div>
-    </section>
-    <aside class="view-side">
       <div class="panel card panel--scroll" data-panel="tracks">
         <h2>Tracks</h2>
         <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">
@@ -781,26 +843,6 @@
       </div>
     </section>
     <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="calendar">
-        <div class="card-head">
-          <h2>Calendar</h2>
-          <button id="calendarBtn" type="button" class="ghost">Open</button>
-        </div>
-        <div class="card-body">
-          <div class="tabs" id="calendarTabs">
-            <button class="tab active" data-calendar-tab="label" type="button">Label</button>
-            <button class="tab" data-calendar-tab="public" type="button">Public</button>
-            <button class="tab" data-calendar-tab="eras" type="button">Eras</button>
-          </div>
-          <div class="filter-row" id="calendarFilters">
-            <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
-            <label class="check-pill"><input type="checkbox" data-calendar-filter="labelReleased">Label Released</label>
-            <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalScheduled">Rival Scheduled</label>
-            <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
-          </div>
-          <div id="calendarList" class="list"></div>
-        </div>
-      </div>
       <div class="panel card panel--scroll" data-panel="tracks">
         <h2>Tracks</h2>
         <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">

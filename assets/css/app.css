@@ -995,6 +995,81 @@ select, input[type="text"], input[type="number"] {
     border-top: 1px solid var(--line);
   }
 }
+.create-stage-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+}
+.create-stage-column {
+  flex: 1 1 280px;
+  min-width: 240px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(15, 20, 28, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  resize: horizontal;
+  overflow: auto;
+}
+.create-stage-column.is-active {
+  border-color: rgba(244, 177, 90, 0.75);
+  box-shadow: 0 0 0 1px rgba(244, 177, 90, 0.35);
+}
+.create-stage-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(15, 20, 28, 0.75);
+  color: var(--text);
+  cursor: pointer;
+}
+.create-stage-toggle:focus-visible {
+  outline: 2px solid rgba(244, 177, 90, 0.6);
+  outline-offset: 2px;
+}
+.create-stage-column.is-active .create-stage-toggle {
+  border-color: rgba(244, 177, 90, 0.6);
+  background: rgba(244, 177, 90, 0.2);
+}
+.create-stage-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+.create-stage-count {
+  font-size: 11px;
+  color: var(--muted);
+}
+.create-stage-body {
+  display: grid;
+  gap: 10px;
+}
+.create-stage-column .form-grid {
+  grid-template-columns: 1fr;
+}
+.create-stage-actions {
+  margin-top: auto;
+  display: grid;
+  gap: 8px;
+}
+.stage-start-btn {
+  width: 100%;
+}
+@media (max-width: 860px) {
+  .create-stage-column {
+    resize: none;
+    min-width: 100%;
+  }
+}
 .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .tabs { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
 .tabs::-webkit-scrollbar { height: 6px; }
@@ -1195,6 +1270,9 @@ select, input[type="text"], input[type="number"] {
 .slot-role-group {
   display: grid;
   gap: 8px;
+}
+.slot-role-group.is-active .slot-group-label {
+  color: var(--accent);
 }
 .slot-group-head {
   display: flex;

@@ -3,7 +3,7 @@ import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
-const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
+const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, renderCreateStageControls, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderCalendarView, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
 const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
@@ -116,7 +116,7 @@ const PANEL_STATES = {
     expanded: "expanded",
     open: "open"
 };
-const MAIN_SURFACES = ["dashboard-overview", "charts", "create-track", "release-desk", "era-desk"];
+const MAIN_SURFACES = ["dashboard-overview", "charts", "create-track", "calendar-view", "release-desk", "era-desk"];
 const VIEW_PANEL_STATES = {
     open: "open",
     hidden: "hidden"
@@ -138,12 +138,12 @@ const VIEW_DEFAULTS = {
         "tracks": VIEW_PANEL_STATES.open
     },
     releases: {
+        "calendar-view": VIEW_PANEL_STATES.open,
         "release-desk": VIEW_PANEL_STATES.open,
         "tracks": VIEW_PANEL_STATES.open
     },
     eras: {
         "era-desk": VIEW_PANEL_STATES.open,
-        "calendar": VIEW_PANEL_STATES.open,
         "tracks": VIEW_PANEL_STATES.open
     },
     roster: {
@@ -1016,7 +1016,7 @@ function panelTitle(panel) {
 }
 function isCorePanel(panel) {
     const title = panelTitle(panel);
-    return title === "Gameplay Screen: Charts" || title === "Create Track" || title === "Release Desk";
+    return title === "Gameplay Screen: Charts" || title === "Create Track" || title === "Release Desk" || title === "Calendar";
 }
 function applyDefaultLayout() {
     resetViewLayout();
@@ -1212,8 +1212,8 @@ function bindGlobalHandlers() {
     on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
     on("playBtn", "click", () => { setTimeSpeed("play"); });
     on("fastBtn", "click", () => { setTimeSpeed("fast"); });
-    on("skipDayBtn", "click", () => { void advanceHours(24); });
-    on("skipWeekBtn", "click", () => { void advanceHours(WEEK_HOURS); });
+    on("skipDayBtn", "click", () => { void advanceHours(24, { renderHourly: false }); });
+    on("skipWeekBtn", "click", () => { void advanceHours(WEEK_HOURS, { renderHourly: false }); });
     on("skipTimeBtn", "click", () => {
         const now = new Date(state.time.epochMs);
         if ($("skipDateInput"))
@@ -1321,7 +1321,7 @@ function bindGlobalHandlers() {
     on("tutorialClose", "click", () => closeOverlay("tutorialModal"));
     on("calendarClose", "click", () => closeOverlay("calendarModal"));
     const refreshCalendar = () => {
-        renderCalendarList("calendarList", 4);
+        renderCalendarView();
         renderCalendarList("calendarFullList", 12);
     };
     document.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
@@ -1788,14 +1788,14 @@ function bindViewHandlers(route, root) {
     on("projectNameRandom", "click", () => {
         $("projectName").value = makeProjectTitle();
     });
-    const stageButtons = root.querySelector(".stage-buttons");
-    if (stageButtons) {
-        stageButtons.addEventListener("click", (e) => {
+    const stageColumns = root.querySelector(".create-stage-columns");
+    if (stageColumns) {
+        stageColumns.addEventListener("click", (e) => {
             const button = e.target.closest("[data-create-stage]");
             if (!button || button.disabled)
                 return;
             const stageId = button.dataset.createStage;
-            if (!stageId)
+            if (!stageId || !["sheet", "demo", "master"].includes(stageId))
                 return;
             state.ui.createStage = stageId;
             let target = state.ui.slotTarget;
@@ -1840,6 +1840,9 @@ function bindViewHandlers(route, root) {
     });
     on("modifierSelect", "change", () => {
         updateTrackRecommendation();
+    });
+    on("trackAlignment", "change", () => {
+        renderCreateStageControls();
     });
     on("recommendAllMode", "change", (e) => {
         state.ui.recommendAllMode = e.target.value;
@@ -2077,10 +2080,6 @@ function bindViewHandlers(route, root) {
     on("hubCreators", "click", () => openOverlay("harmonyModal"));
     on("hubItems", "click", () => openOverlay("harmonyModal"));
     on("hubCollabs", "click", () => openOverlay("harmonyModal"));
-    on("calendarBtn", "click", () => {
-        renderCalendarList("calendarFullList", 12);
-        openOverlay("calendarModal");
-    });
     on("studioOwnerFilter", "change", (e) => {
         state.ui.studioOwnerFilter = e.target.value || "all";
         renderStudiosList();
@@ -2335,15 +2334,12 @@ function updateTrackRecommendation() {
     const selectedModifier = getModifier(selectedModifierId);
     const recModifier = getModifier(rec.modifierId);
     const stage = state.ui.createStage || "sheet";
-    const stageForCalc = stage === "all" ? "sheet" : stage;
-    const stageLabel = stage === "all"
-        ? "Pipeline"
-        : stage === "demo"
-            ? "Demo Recording"
-            : stage === "master"
-                ? "Master Recording"
-                : "Sheet Music";
-    const stageIndex = stageForCalc === "demo" ? 1 : stageForCalc === "master" ? 2 : 0;
+    const stageLabel = stage === "demo"
+        ? "Demo Recording"
+        : stage === "master"
+            ? "Master Recording"
+            : "Sheet Music";
+    const stageIndex = stage === "demo" ? 1 : stage === "master" ? 2 : 0;
     const stageInfo = STAGES[stageIndex];
     const songwriterCount = getTrackSlotIds("Songwriter").length;
     const performerCount = getTrackSlotIds("Performer").length;
@@ -2411,6 +2407,7 @@ function updateTrackRecommendation() {
     ${warningHtml}
     <div class="tiny">${rec.reasons}</div>
   `;
+    renderCreateStageControls();
 }
 function applyTrackRecommendationPlan(rec, stage) {
     if (stage === "sheet") {
@@ -2439,8 +2436,7 @@ function assignAllCreatorsToSlots() {
 function recommendAllCreators() {
     const rec = recommendTrackPlan();
     const stage = state.ui.createStage || "sheet";
-    const stageForPlan = stage === "all" ? "sheet" : stage;
-    applyTrackRecommendationPlan(rec, stageForPlan);
+    applyTrackRecommendationPlan(rec, stage);
     const summary = assignAllCreatorsToSlots();
     renderSlots();
     saveToActiveSlot();
@@ -3670,7 +3666,7 @@ function runTimeJump(totalHours, label) {
         }
         const remaining = totalHours - completed;
         const stepHours = Math.min(chunkSize, remaining);
-        await advanceHours(stepHours);
+        await advanceHours(stepHours, { renderHourly: false, renderAfter: false });
         completed += stepHours;
         setSkipProgress(totalHours, completed, label);
         if (completed >= totalHours) {

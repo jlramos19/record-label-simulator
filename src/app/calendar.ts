@@ -1,0 +1,183 @@
+const DAY_MS = HOUR_MS * 24;
+const MAX_EVENTS_PER_DAY = 3;
+
+function formatShortDate(epochMs) {
+  const date = new Date(epochMs);
+  const month = MONTHS[date.getUTCMonth()] || "Month";
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  return `${month.slice(0, 3)} ${day}, ${year}`;
+}
+
+function formatDayLabel(epochMs) {
+  const date = new Date(epochMs);
+  const dayName = DAYS[date.getUTCDay()] || "Day";
+  return dayName.slice(0, 3);
+}
+
+function formatRangeLabel(startWeek, endWeek, startEpochMs, endEpochMs) {
+  const weekLabel = startWeek === endWeek ? `Week ${startWeek}` : `Weeks ${startWeek}-${endWeek}`;
+  return `${weekLabel} | ${formatShortDate(startEpochMs)} - ${formatShortDate(endEpochMs)}`;
+}
+
+function escapeAttr(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function toKebabCase(value) {
+  return String(value || "event")
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+}
+
+export function useCalendarProjection({
+  startEpochMs,
+  anchorWeekIndex,
+  pastWeeks = 0,
+  futureWeeks = 3,
+  tab = "label",
+  filters = {},
+  sources = {}
+}) {
+  const labelScheduled = Array.isArray(sources.labelScheduled) ? sources.labelScheduled : [];
+  const labelReleased = Array.isArray(sources.labelReleased) ? sources.labelReleased : [];
+  const rivalScheduled = Array.isArray(sources.rivalScheduled) ? sources.rivalScheduled : [];
+  const rivalReleased = Array.isArray(sources.rivalReleased) ? sources.rivalReleased : [];
+  const eras = Array.isArray(sources.eras) ? sources.eras : [];
+
+  const showLabel = tab === "label" || tab === "public";
+  const showRivals = tab === "public";
+  const activeEvents = [];
+
+  if (showLabel && filters.labelScheduled !== false) activeEvents.push(...labelScheduled);
+  if (showLabel && filters.labelReleased !== false) activeEvents.push(...labelReleased);
+  if (showRivals && filters.rivalScheduled !== false) activeEvents.push(...rivalScheduled);
+  if (showRivals && filters.rivalReleased !== false) activeEvents.push(...rivalReleased);
+
+  activeEvents.sort((a, b) => a.ts - b.ts);
+
+  const safeAnchor = Number.isFinite(anchorWeekIndex) ? anchorWeekIndex : 0;
+  const startWeekIndex = safeAnchor - Math.max(0, pastWeeks);
+  const totalWeeks = Math.max(1, Math.max(0, pastWeeks) + Math.max(0, futureWeeks) + 1);
+
+  const weeks = [];
+  for (let i = 0; i < totalWeeks; i += 1) {
+    const weekIndex = startWeekIndex + i;
+    const weekStart = startEpochMs + weekIndex * WEEK_HOURS * HOUR_MS;
+    const weekEnd = weekStart + WEEK_HOURS * HOUR_MS;
+    const weekEvents = activeEvents.filter((event) => event.ts >= weekStart && event.ts < weekEnd);
+    const days = [];
+
+    for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+      const dayStart = weekStart + dayIndex * DAY_MS;
+      const dayEnd = dayStart + DAY_MS;
+      const dayEvents = weekEvents.filter((event) => event.ts >= dayStart && event.ts < dayEnd);
+      days.push({
+        index: dayIndex,
+        start: dayStart,
+        end: dayEnd,
+        dayLabel: formatDayLabel(dayStart),
+        dateLabel: formatShortDate(dayStart),
+        events: dayEvents
+      });
+    }
+
+    weeks.push({
+      weekIndex,
+      weekNumber: weekIndex + 1,
+      start: weekStart,
+      end: weekEnd,
+      days,
+      events: weekEvents
+    });
+  }
+
+  const rangeStart = weeks[0]?.start ?? startEpochMs;
+  const rangeEnd = weeks[weeks.length - 1]?.end ?? startEpochMs;
+  const rangeLabel = formatRangeLabel(startWeekIndex + 1, startWeekIndex + totalWeeks, rangeStart, rangeEnd - 1);
+
+  return {
+    tab,
+    filters,
+    weeks,
+    eras,
+    rangeLabel
+  };
+}
+
+export function CalendarDayCell(day) {
+  const events = Array.isArray(day.events) ? day.events : [];
+  const visible = events.slice(0, MAX_EVENTS_PER_DAY);
+  const overflow = events.length - visible.length;
+  const eventHtml = visible.map((event) => {
+    const typeLabel = event.typeLabel || "Event";
+    const title = event.title || "Untitled";
+    const actName = event.actName || "Unknown";
+    const labelName = event.label || "Label";
+    const distribution = event.distribution ? `, ${event.distribution}` : "";
+    const detail = `${labelName} | ${actName} | ${title} (${typeLabel}${distribution})`;
+    const kindClass = event.className || toKebabCase(event.kind || "event");
+    return `
+      <div class="calendar-event calendar-event--${kindClass}" title="${escapeAttr(detail)}">
+        <span class="calendar-event-type">${typeLabel}</span>
+        <span class="calendar-event-title">${title}</span>
+      </div>
+    `;
+  }).join("");
+  const overflowHtml = overflow > 0
+    ? `<div class="calendar-event calendar-event--more">+${overflow} more</div>`
+    : "";
+
+  return `
+    <div class="calendar-day" data-day-ts="${day.start}">
+      <div class="calendar-day-head">
+        <div class="calendar-day-name">${day.dayLabel}</div>
+        <div class="calendar-day-date">${day.dateLabel}</div>
+      </div>
+      <div class="calendar-day-events">
+        ${eventHtml || `<div class="calendar-day-empty">No events</div>`}
+        ${overflowHtml}
+      </div>
+    </div>
+  `;
+}
+
+export function CalendarWeekRow(week) {
+  const days = Array.isArray(week.days) ? week.days : [];
+  const label = week.label || `Week ${week.weekNumber}`;
+  const dayCells = days.map((day) => CalendarDayCell(day)).join("");
+  return `
+    <div class="calendar-week-row">
+      <div class="calendar-week-label">${label}</div>
+      <div class="calendar-week-days">
+        ${dayCells}
+      </div>
+    </div>
+  `;
+}
+
+export function CalendarView(projection) {
+  const weeks = Array.isArray(projection.weeks) ? projection.weeks : [];
+  if (!weeks.length) {
+    return `<div class="muted">No calendar data available.</div>`;
+  }
+  const header = DAYS.map((day) => `
+    <div class="calendar-grid-day">${day.slice(0, 3)}</div>
+  `).join("");
+  const rows = weeks.map((week) => CalendarWeekRow(week)).join("");
+
+  return `
+    <div class="calendar-grid">
+      <div class="calendar-grid-header">
+        <div class="calendar-grid-spacer"></div>
+        ${header}
+      </div>
+      ${rows}
+    </div>
+  `;
+}
