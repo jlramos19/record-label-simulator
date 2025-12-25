@@ -1,0 +1,3 @@
+# **`Economy - Facility Maintenance Costs`**
+
+Studios will have upfront maintenance costs charged to the player to keep the facility active. The player can choose to automatically renew the maintenance "contract" or have it taken away/demolished (destroyed in-game). This gives the player the flexibility to switch things around on the Record Label, as in, not hoard facilities that might not be needed. Facilities cannot be sold, the player can only cancel the renewing maintenance contract. The player can choose to destroy a facility, but won't get anything back in return. Facilities are generic, which means there's no reason to buy more if you don't need them.

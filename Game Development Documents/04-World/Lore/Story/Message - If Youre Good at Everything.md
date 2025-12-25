@@ -1,0 +1,1 @@
+If you’re good at everything, you’re specially good at nothing. 

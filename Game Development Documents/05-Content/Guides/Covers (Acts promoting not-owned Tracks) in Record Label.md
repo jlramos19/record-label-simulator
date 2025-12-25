@@ -1,0 +1,1 @@
+Acts can choose to promote a Track that wasn’t originally created by them to further promote themselves. 

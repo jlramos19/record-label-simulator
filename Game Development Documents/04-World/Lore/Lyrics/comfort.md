@@ -1,0 +1,1 @@
+Make songs based on your “comfort bops” playlist, play the songs and see what memories they bring back, and make the beat of the song and the key, chord progression, and instrumentation based on the song itself and the lyrics about the situation you were going through or what the song reminds you of.

@@ -1,0 +1,3 @@
+Theme: This is the main topic or subject that an artist’s era will revolve around in the game. It’s the central idea that the songs, album, and promotions will explore. Themes could be abstract ideas like “Freedom,” “Loyalty,” “Ambition,” “MORALITY,” and “Power.” These themes would be the guiding principle for the content produced in that era.
+
+Concept: This is the creative aesthetic or style that the artist adopts to express and explore the theme in their era. Concepts could be visual and stylistic directions like a “dark” concept, a “cute” concept, or a “colorful” concept. The concept would dictate the visual presentation and mood of the music, music videos, performances, and promotional materials.  

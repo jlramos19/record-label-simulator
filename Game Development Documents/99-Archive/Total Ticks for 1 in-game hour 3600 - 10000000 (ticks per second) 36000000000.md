@@ -1,0 +1,1 @@
+`Total Ticks for 1 in-game hour = 3600 * 10,000,000 (ticks per second) = 36,000,000,000 ticks Number of FixedUpdate calls in 2.5 seconds = 2.5 / 0.02 = 125 Ticks added per FixedUpdate call = 36,000,000,000 / 125 = 288,000,000 ticks`

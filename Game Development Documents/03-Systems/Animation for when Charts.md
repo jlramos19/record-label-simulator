@@ -1,0 +1,1 @@
+Each row will smoothly either enter or exit the charts, or move up or down on the charts. The songs must only enter from the bottom, unless they debut at number 1, in which case, it comes from the top; that is the only exception.

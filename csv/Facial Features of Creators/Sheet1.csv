@@ -1,0 +1,13 @@
+Feature,Size,Shape,Color
+Hair,"Thin, Medium, Thick","Straight, Wavy, Curly, Kinky or Coily","Black, Brown, Blonde, Red/Auburn"
+Hair Length,"Short (less than 2 inches), Medium (2-12 inches), Long (more than 12 inches)",N/A,N/A
+Eyes,N/A,"Almond, Round, Monolid, Hooded, Upturned, Downturned","Brown, Blue, Green, Gray, Hazel"
+Eyebrows,"Thin, Medium, Thick","Straight, Arched, S-shaped","Black, Brown, Blonde, Auburn"
+Nose,"Small, Medium, Big","Straight, Hooked, Button, Roman, Upturned",N/A
+Mouth,"Small, Medium, Big","Full Lips, Thin Lips, Wide Lips, Heart-shaped Lips",N/A
+Ears,"Small, Medium, Big","Round, Square, Triangular",N/A
+Cheeks,"Slim, Normal, Chubby","Round, Angular",N/A
+Forehead,"Narrow, Medium, Broad","Round, Square",N/A
+Jawline,"Narrow, Medium, Wide","Square, Round",N/A
+Head Shape,N/A,"Oval, Round, Square, Heart, Diamond",N/A
+Skin,N/A,N/A,Beige

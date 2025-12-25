@@ -1,0 +1,20 @@
+# **Countries Parameters and Relationships (Gaia Nations Overview)**
+
+| Category | Annglora | Bytenza | Crowlya |
+| :---- | :---- | :---- | :---- |
+| Population | Large | Medium | Small |
+| Religious Inclination | Strongly Religious | Nonreligious | Moderately Religious |
+| Political Inclination | Liberal | Moderate | Conservative |
+| Geography | Mostly in the north, capital in the south | Far east, mostly north | Central, mostly in the south |
+| Economic Profile | High currency value, low cost of living | Medium currency value, moderate cost of living | Low currency value, high cost of living |
+| Notable Features | Proximity to subtropical forest | Strategic positioning for laws, politics, economy | Mainland island surrounded by smaller islands |
+| Cultural Identity | Environmental preservation, religious devotion | Mosaic of cultural traditions, power focus | Blend of technological advancement, Caribbean influence |
+| Key Focus | Local production, abundant resources | Expertise in laws, politics, economy | Technological advancement, conservative values |
+| Relationships | Threatened by Bytenza, allies with Crowlya | Friends with Bytenza | Defends Annglora, balanced relations with Bytenza |
+| Interaction with Others | High currency value, resource richness | Moderate currency value, influence over policies | Low currency value, central location, archipelagic structure |
+| Supernatural Beliefs | Medium emphasis on magic and supernatural | Low emphasis on magic and supernatural | High emphasis on destiny, zodiac, and supernatural |
+| Social Stance on Homosexuality | Acceptance and legal | Conservative | Medium stance with masked representation |
+
+Countries Parameters and Relationships (Gaia Nations Overview)
+
+Notes on Revision

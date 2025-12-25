@@ -2,18 +2,104 @@
 import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
-const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, createTrack, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotElement, describeSlot, loadSlot, deleteSlot, recommendTrackPlan, recommendReleasePlan } = game;
+import { buildPromoHint, getPromoTypeDetails } from "./promo_types.js";
+const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE } = game;
 const ROUTES = ["charts", "create", "releases", "eras", "roster", "world", "logs"];
 const DEFAULT_ROUTE = "charts";
 const ROUTE_ALIASES = {
-    promotion: "eras",
+    promotion: "logs",
     era: "eras"
 };
 const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
 const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
+const GAME_MODE_KEY = "rls_game_mode_v1";
 let activeRoute = DEFAULT_ROUTE;
 let hasMountedRoute = false;
 let chartHistoryRequestId = 0;
+const TRACK_ROLE_KEYS = {
+    Songwriter: "songwriterIds",
+    Performer: "performerIds",
+    Producer: "producerIds"
+};
+const TRACK_ROLE_TARGETS = {
+    Songwriter: "track-writer-1",
+    Performer: "track-performer-1",
+    Producer: "track-producer-1"
+};
+const ROLE_LABELS = {
+    Songwriter: "Songwriter",
+    Performer: "Recorder",
+    Producer: "Producer"
+};
+function roleLabel(role) {
+    return ROLE_LABELS[role] || role;
+}
+function getTrackSlotIds(role) {
+    const key = TRACK_ROLE_KEYS[role];
+    if (!key || !state.ui?.trackSlots)
+        return [];
+    const list = Array.isArray(state.ui.trackSlots[key]) ? state.ui.trackSlots[key] : [];
+    return list.filter(Boolean);
+}
+function setTrackSlotIds(role, ids) {
+    const key = TRACK_ROLE_KEYS[role];
+    const limit = TRACK_ROLE_LIMITS?.[role] || 1;
+    if (!key)
+        return;
+    const next = Array.from({ length: limit }, () => null);
+    const req = staminaRequirement(role);
+    const eligible = ids.filter((id) => {
+        const creator = getCreator(id);
+        return creator && creator.stamina >= req;
+    });
+    eligible.slice(0, limit).forEach((id, index) => {
+        next[index] = id;
+    });
+    if (!state.ui.trackSlots) {
+        state.ui.trackSlots = {
+            actId: null,
+            songwriterIds: Array.from({ length: TRACK_ROLE_LIMITS?.Songwriter || 1 }, () => null),
+            performerIds: Array.from({ length: TRACK_ROLE_LIMITS?.Performer || 1 }, () => null),
+            producerIds: Array.from({ length: TRACK_ROLE_LIMITS?.Producer || 1 }, () => null)
+        };
+    }
+    state.ui.trackSlots[key] = next;
+}
+function primaryTrackSlotTarget(role) {
+    return TRACK_ROLE_TARGETS[role] || "track-writer-1";
+}
+function collectAssignedTrackSlotIds(excludeId) {
+    const ids = new Set([
+        ...getTrackSlotIds("Songwriter"),
+        ...getTrackSlotIds("Performer"),
+        ...getTrackSlotIds("Producer")
+    ]);
+    if (excludeId)
+        ids.delete(excludeId);
+    return ids;
+}
+function recommendCreatorForSlot(targetId) {
+    const slot = getSlotElement(targetId);
+    if (!slot)
+        return;
+    const role = slot.dataset.slotRole;
+    if (!role) {
+        logEvent("This slot does not support creator recommendations.", "warn");
+        return;
+    }
+    const currentId = getSlotValue(targetId);
+    const assigned = collectAssignedTrackSlotIds(currentId);
+    const candidates = rankCandidates(role).filter((creator) => creator.ready && !assigned.has(creator.id));
+    if (!candidates.length) {
+        shakeSlot(targetId);
+        const req = staminaRequirement(role);
+        logEvent(`No available ${roleLabel(role)} creators with ${req} stamina.`, "warn");
+        return;
+    }
+    const picked = candidates[0];
+    assignToSlot(targetId, "creator", picked.id);
+    logEvent(`Recommended ${picked.name} for ${describeSlot(targetId)}.`);
+}
 const expandedPanels = [];
 const PANEL_LAYOUT_KEY = "rls_panel_layout_v1";
 const SIDE_LAYOUT_KEY = "rls_side_layout_v1";
@@ -40,23 +126,24 @@ const VIEW_DEFAULTS = {
     },
     create: {
         "create-track": VIEW_PANEL_STATES.open,
+        "create-trends": VIEW_PANEL_STATES.open,
         "tracks": VIEW_PANEL_STATES.open,
-        "genres": VIEW_PANEL_STATES.open
+        "track-archive": VIEW_PANEL_STATES.open
     },
     releases: {
         "release-desk": VIEW_PANEL_STATES.open,
-        "tracks": VIEW_PANEL_STATES.open
+        "tracks": VIEW_PANEL_STATES.open,
+        "track-archive": VIEW_PANEL_STATES.open
     },
     eras: {
         "era-desk": VIEW_PANEL_STATES.open,
-        "promotion": VIEW_PANEL_STATES.open,
         "calendar": VIEW_PANEL_STATES.open,
-        "tracks": VIEW_PANEL_STATES.open
+        "tracks": VIEW_PANEL_STATES.open,
+        "track-archive": VIEW_PANEL_STATES.open
     },
     roster: {
         "harmony-hub": VIEW_PANEL_STATES.open,
         "communities": VIEW_PANEL_STATES.open,
-        "acts": VIEW_PANEL_STATES.open,
         "label-settings": VIEW_PANEL_STATES.open
     },
     world: {
@@ -108,6 +195,43 @@ function updateSideToggleButtons(leftCollapsed, rightCollapsed) {
         rightBtn.classList.toggle("active", !rightCollapsed);
         rightBtn.setAttribute("aria-pressed", String(!rightCollapsed));
         rightBtn.title = rightCollapsed ? "Expand right panels" : "Collapse right panels";
+    }
+}
+function getStoredGameMode() {
+    if (typeof localStorage === "undefined")
+        return DEFAULT_GAME_MODE;
+    return localStorage.getItem(GAME_MODE_KEY) || DEFAULT_GAME_MODE;
+}
+function setStoredGameMode(modeId) {
+    if (typeof localStorage === "undefined")
+        return;
+    localStorage.setItem(GAME_MODE_KEY, modeId);
+}
+function getSelectedGameModeId() {
+    const select = $("gameModeSelect");
+    return select?.value || getStoredGameMode();
+}
+function syncGameModeSelect() {
+    const select = $("gameModeSelect");
+    if (!select)
+        return;
+    const modes = listGameModes();
+    select.innerHTML = modes.map((mode) => `<option value="${mode.id}">${mode.label}</option>`).join("");
+    const stored = getStoredGameMode();
+    select.value = modes.some((mode) => mode.id === stored) ? stored : DEFAULT_GAME_MODE;
+    const hint = $("gameModeHint");
+    const active = modes.find((mode) => mode.id === select.value);
+    if (hint)
+        hint.textContent = active?.description || "";
+    if (!select.dataset.bound) {
+        select.dataset.bound = "1";
+        select.addEventListener("change", () => {
+            const next = select.value || DEFAULT_GAME_MODE;
+            setStoredGameMode(next);
+            const nextMode = modes.find((mode) => mode.id === next);
+            if (hint)
+                hint.textContent = nextMode?.description || "";
+        });
     }
 }
 function panelByKey(key) {
@@ -439,6 +563,7 @@ function mountView(route) {
     const root = appRoot.querySelector(".view");
     if (root)
         root.dataset.view = route;
+    refreshSelectOptions();
     ensureSlotDropdowns();
     updateSlotDropdowns();
     applyPanelStates(route, root);
@@ -734,6 +859,14 @@ function resetViewLayout() {
     updateRoute(DEFAULT_ROUTE);
     renderPanelMenu();
 }
+function updatePromoTypeHint(root) {
+    const scope = root || document;
+    const select = scope.querySelector("#promoTypeSelect");
+    const hint = scope.querySelector("#promoTypeHint");
+    if (!select || !hint)
+        return;
+    hint.textContent = buildPromoHint(select.value);
+}
 function bindGlobalHandlers() {
     const on = (id, event, handler) => {
         const el = $(id);
@@ -755,6 +888,7 @@ function bindGlobalHandlers() {
     });
     on("menuBtn", "click", () => {
         openMainMenu();
+        syncGameModeSelect();
         updateTimeControlButtons();
         syncTimeControlAria();
     });
@@ -787,6 +921,27 @@ function bindGlobalHandlers() {
         renderMainMenu();
         logEvent(`Saved Game Slot ${session.activeSlot}.`);
     });
+    const lossList = $("usageLedgerList");
+    if (lossList) {
+        lossList.addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-loss-action]");
+            if (!btn)
+                return;
+            const action = btn.dataset.lossAction;
+            const lossId = btn.dataset.lossId;
+            if (!lossId)
+                return;
+            const entry = getLossArchives().find((item) => String(item.id) === String(lossId));
+            if (!entry) {
+                logEvent("Loss archive not found.", "warn");
+                return;
+            }
+            if (action === "download") {
+                exportLossArchive(entry);
+                logUiEvent("loss_archive_export", { loss_id: entry.id, label: entry.label });
+            }
+        });
+    }
     on("skipTimeClose", "click", () => closeOverlay("skipTimeModal"));
     on("skip24hBtn", "click", () => { runTimeJump(24, "Skipping 24 hours"); closeOverlay("skipTimeModal"); });
     on("skip7dBtn", "click", () => { runTimeJump(7 * 24, "Skipping 7 days"); closeOverlay("skipTimeModal"); });
@@ -852,7 +1007,15 @@ function bindGlobalHandlers() {
         closeOverlay("chartHistoryModal");
     });
     on("walletClose", "click", () => closeOverlay("walletModal"));
-    on("endClose", "click", () => closeOverlay("endModal"));
+    on("endClose", "click", () => {
+        closeOverlay("endModal");
+        if (!session.activeSlot) {
+            openMainMenu();
+            syncGameModeSelect();
+            updateTimeControlButtons();
+            syncTimeControlAria();
+        }
+    });
     on("bailoutClose", "click", () => {
         if (declineBailout()) {
             closeOverlay("bailoutModal");
@@ -886,16 +1049,19 @@ function bindGlobalHandlers() {
             const btn = e.target.closest("[data-assign-role]");
             if (!btn)
                 return;
+            if (btn.disabled)
+                return;
             const role = btn.dataset.assignRole;
             const id = btn.dataset.assignId;
             if (role === "Songwriter")
-                state.ui.trackSlots.songwriterId = id;
+                setTrackSlotIds("Songwriter", [id]);
             if (role === "Performer")
-                state.ui.trackSlots.performerId = id;
+                setTrackSlotIds("Performer", [id]);
             if (role === "Producer")
-                state.ui.trackSlots.producerId = id;
+                setTrackSlotIds("Producer", [id]);
             renderSlots();
             saveToActiveSlot();
+            updateTrackRecommendation();
         });
     }
     const eraStatus = $("eraStatus");
@@ -1003,12 +1169,18 @@ function bindGlobalHandlers() {
                 const ok = !hasData || confirm(`Overwrite Game Slot ${slot} with a new game?`);
                 if (!ok)
                     return;
-                loadSlot(slot, true);
+                const mode = getSelectedGameModeId();
+                loadSlot(slot, true, { mode });
                 exitMenuToGame();
             }
         });
     }
     document.addEventListener("click", (e) => {
+        const recommendBtn = e.target.closest("[data-slot-recommend]");
+        if (recommendBtn) {
+            recommendCreatorForSlot(recommendBtn.dataset.slotRecommend);
+            return;
+        }
         const clearBtn = e.target.closest("[data-slot-clear]");
         if (clearBtn) {
             clearSlot(clearBtn.dataset.slotClear);
@@ -1142,6 +1314,10 @@ function bindViewHandlers(route, root) {
             resetChartHistoryView();
         });
     }
+    if (route === "logs") {
+        on("promoTypeSelect", "change", () => updatePromoTypeHint(root));
+        updatePromoTypeHint(root);
+    }
     on("chartWeekBtn", "click", () => {
         renderChartHistoryModal();
         openOverlay("chartHistoryModal");
@@ -1154,6 +1330,30 @@ function bindViewHandlers(route, root) {
     on("projectNameRandom", "click", () => {
         $("projectName").value = makeProjectTitle();
     });
+    const stageButtons = root.querySelector(".stage-buttons");
+    if (stageButtons) {
+        stageButtons.addEventListener("click", (e) => {
+            const button = e.target.closest("[data-create-stage]");
+            if (!button || button.disabled)
+                return;
+            const stageId = button.dataset.createStage;
+            if (!stageId)
+                return;
+            state.ui.createStage = stageId;
+            const target = stageId === "demo"
+                ? primaryTrackSlotTarget("Performer")
+                : stageId === "master"
+                    ? primaryTrackSlotTarget("Producer")
+                    : primaryTrackSlotTarget("Songwriter");
+            state.ui.slotTarget = target;
+            renderAll();
+            saveToActiveSlot();
+        });
+    }
+    on("stageTrackSelect", "change", (e) => {
+        state.ui.createTrackId = e.target.value || null;
+        renderAll();
+    });
     on("themeSelect", "change", () => {
         updateGenrePreview();
         updateTrackRecommendation();
@@ -1162,7 +1362,15 @@ function bindViewHandlers(route, root) {
         updateGenrePreview();
         updateTrackRecommendation();
     });
-    on("trackRecommendApply", "click", applyTrackRecommendation);
+    on("modifierSelect", "change", () => {
+        updateTrackRecommendation();
+    });
+    on("recommendAllMode", "change", (e) => {
+        state.ui.recommendAllMode = e.target.value;
+        renderAll();
+        saveToActiveSlot();
+    });
+    on("trackRecommendAll", "click", recommendAllCreators);
     on("autoAssignBtn", "click", autoAssignCreators);
     on("startTrackBtn", "click", startTrackFromUI);
     on("genreThemeFilter", "change", (e) => {
@@ -1176,6 +1384,23 @@ function bindViewHandlers(route, root) {
     const readyList = root.querySelector("#readyList");
     if (readyList)
         readyList.addEventListener("click", handleReleaseAction);
+    if (readyList)
+        readyList.addEventListener("click", handleReleaseActRecommendation);
+    if (readyList) {
+        readyList.addEventListener("change", (e) => {
+            const select = e.target.closest("[data-assign-act]");
+            if (!select)
+                return;
+            const trackId = select.dataset.assignAct;
+            const actId = select.value;
+            const assigned = assignTrackAct(trackId, actId);
+            if (assigned) {
+                logUiEvent("action_submit", { action: "assign_act", trackId, actId });
+                renderAll();
+                saveToActiveSlot();
+            }
+        });
+    }
     on("calendarBtn", "click", () => {
         renderCalendarList("calendarFullList", 12);
         openOverlay("calendarModal");
@@ -1202,6 +1427,7 @@ function bindViewHandlers(route, root) {
         }
         state.label.cash -= 300;
         state.marketCreators = buildMarketCreators();
+        ensureMarketCreators();
         logEvent("Talent market refreshed.");
         renderAll();
     });
@@ -1214,6 +1440,23 @@ function bindViewHandlers(route, root) {
             signCreatorById(btn.dataset.sign);
         });
     }
+    root.querySelectorAll("[data-ccc-filter]").forEach((input) => {
+        input.addEventListener("change", (e) => {
+            const key = e.target.dataset.cccFilter;
+            if (!key)
+                return;
+            if (!state.ui.cccFilters) {
+                state.ui.cccFilters = {
+                    Songwriter: true,
+                    Performer: true,
+                    Producer: true
+                };
+            }
+            state.ui.cccFilters[key] = e.target.checked;
+            renderAll();
+            saveToActiveSlot();
+        });
+    });
     const actList = root.querySelector("#actList");
     if (actList) {
         actList.addEventListener("click", (e) => {
@@ -1222,7 +1465,7 @@ function bindViewHandlers(route, root) {
                 const act = getAct(useBtn.dataset.actSet);
                 if (!act)
                     return;
-                const target = state.ui.slotTarget || "track-act";
+                const target = state.ui.slotTarget || "era-act";
                 const slot = getSlotElement(target);
                 if (slot && slot.dataset.slotType !== "act") {
                     logEvent("Select an Act ID slot first.", "warn");
@@ -1323,21 +1566,21 @@ function bindViewHandlers(route, root) {
             assignToSlot(target, "creator", item.dataset.entityId);
         });
     }
-    const trackList = root.querySelector("#trackList");
-    if (trackList) {
-        trackList.addEventListener("click", (e) => {
-            const item = e.target.closest("[data-entity-type=\"track\"]");
-            if (!item)
-                return;
-            const target = state.ui.slotTarget;
-            if (!target) {
-                logEvent("Select an ID slot, then tap a Track ID.", "warn");
-                return;
-            }
-            assignToSlot(target, "track", item.dataset.entityId);
-        });
-    }
-    on("promoteIconBtn", "click", () => logEvent("Campaign console opened from Comms."));
+    const handleTrackListClick = (e) => {
+        const item = e.target.closest("[data-entity-type=\"track\"]");
+        if (!item)
+            return;
+        const target = state.ui.slotTarget;
+        if (!target) {
+            logEvent("Select an ID slot, then tap a Track ID.", "warn");
+            return;
+        }
+        assignToSlot(target, "track", item.dataset.entityId);
+    };
+    root.querySelectorAll("#trackList, #trackArchiveList").forEach((list) => {
+        list.addEventListener("click", handleTrackListClick);
+    });
+    on("promoteIconBtn", "click", () => logEvent("Promotion console opened from Comms."));
     on("eyeriSocialBtn", "click", () => logEvent("eyeriSocial post drafted."));
     on("communitiesAreas", "click", () => openOverlay("communitiesModal"));
     on("communitiesCreators", "click", () => openOverlay("communitiesModal"));
@@ -1350,6 +1593,29 @@ function bindViewHandlers(route, root) {
     on("calendarBtn", "click", () => {
         renderCalendarList("calendarFullList", 12);
         openOverlay("calendarModal");
+    });
+    on("studioOwnerFilter", "change", (e) => {
+        state.ui.studioOwnerFilter = e.target.value || "all";
+        renderStudiosList();
+        saveToActiveSlot();
+    });
+    root.querySelectorAll("[data-studio-filter]").forEach((input) => {
+        input.addEventListener("change", (e) => {
+            const key = e.target.dataset.studioFilter;
+            if (!key)
+                return;
+            if (!state.ui.studioFilters) {
+                state.ui.studioFilters = {
+                    owned: true,
+                    unowned: true,
+                    occupied: true,
+                    unoccupied: true
+                };
+            }
+            state.ui.studioFilters[key] = e.target.checked;
+            renderStudiosList();
+            saveToActiveSlot();
+        });
     });
     on("socialShowInternal", "change", (e) => {
         state.ui.socialShowInternal = e.target.checked;
@@ -1365,54 +1631,6 @@ function bindViewHandlers(route, root) {
             renderSocialFeed();
             saveToActiveSlot();
         });
-    });
-    on("postTemplateBtn", "click", () => {
-        const sel = $("templateSelect");
-        if (!sel)
-            return;
-        const id = sel.value;
-        if (!id) {
-            logEvent("No template selected.", "warn");
-            return;
-        }
-        const buildReleaseVars = () => {
-            const selectedId = state.ui.socialSlots.trackId;
-            let track = selectedId ? getTrack(selectedId) : null;
-            if (!track && state.releaseQueue.length) {
-                const next = [...state.releaseQueue].sort((a, b) => a.releaseAt - b.releaseAt)[0];
-                if (next)
-                    track = getTrack(next.trackId);
-            }
-            if (!track) {
-                const released = [...state.tracks].filter((item) => item.releasedAt).sort((a, b) => b.releasedAt - a.releasedAt)[0];
-                if (released)
-                    track = released;
-            }
-            if (!track)
-                return {};
-            const act = getAct(track.actId);
-            const scheduled = state.releaseQueue.find((entry) => entry.trackId === track.id);
-            const releaseDate = scheduled ? formatDate(scheduled.releaseAt) : track.releasedAt ? formatDate(track.releasedAt) : "TBD";
-            return {
-                trackTitle: track.title,
-                actName: act ? act.name : "Unknown Act",
-                channel: track.distribution || "Digital",
-                releaseDate,
-                handle: handleFromName(state.label.name, "Label")
-            };
-        };
-        if (typeof postFromTemplate === "function") {
-            const vars = id === "releaseAnnouncement" || id === "releaseSchedule" || id === "futurePlans"
-                ? buildReleaseVars()
-                : {};
-            postFromTemplate(id, vars);
-            logEvent(`Posted template: ${id}.`);
-            renderSocialFeed();
-            saveToActiveSlot();
-        }
-        else {
-            logEvent("Template posting not available.", "warn");
-        }
     });
     on("exportDebugBtn", "click", exportDebugBundle);
 }
@@ -1458,7 +1676,40 @@ function exportDebugBundle() {
     if (state.meta?.seedInfo) {
         downloadFile("seed_info.json", JSON.stringify(state.meta.seedInfo, null, 2), "application/json");
     }
+    if (state.meta?.seedCalibration) {
+        downloadFile("seed_calibration.json", JSON.stringify(state.meta.seedCalibration, null, 2), "application/json");
+    }
     logUiEvent("export_debug", { ui_events: log.length, sim_events: eventLog.length });
+}
+function formatLossArchiveTimestamp(epochMs) {
+    const d = new Date(epochMs || Date.now());
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}__${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+function exportLossArchive(entry) {
+    if (!entry)
+        return;
+    const stamp = formatLossArchiveTimestamp(entry.createdAt);
+    const labelSlug = String(entry.label || "label").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "label";
+    const base = `loss_${labelSlug}_${stamp}`;
+    downloadFile(`${base}.json`, JSON.stringify(entry, null, 2), "application/json");
+    const summary = [
+        "# Loss Archive Summary",
+        `Generated: ${new Date().toISOString()}`,
+        `Label: ${entry.label || "-"}`,
+        `Result: ${entry.result || "loss"}`,
+        `Reason: ${entry.reason || "-"}`,
+        `Slot: ${entry.slot || "-"}`,
+        `Week: ${entry.week || "-"}`,
+        `Year: ${entry.year || "-"}`,
+        `Cash: ${formatMoney(entry.cash || 0)}`,
+        `EXP: ${formatCount(entry.exp || 0)}`,
+        `Game Date: ${entry.gameTime ? formatDate(entry.gameTime) : "-"}`,
+        "",
+        `UI events: ${Array.isArray(entry.uiEvents) ? entry.uiEvents.length : 0}`,
+        `System events: ${Array.isArray(entry.simEvents) ? entry.simEvents.length : 0}`
+    ].join("\n");
+    downloadFile(`${base}_summary.md`, summary, "text/markdown");
 }
 function downloadFile(name, content, type) {
     const blob = new Blob([content], { type });
@@ -1587,40 +1838,124 @@ function updateTrackRecommendation() {
     if (!target)
         return;
     const rec = recommendTrackPlan();
-    const act = rec.actId ? getAct(rec.actId) : null;
     const writer = rec.songwriterId ? getCreator(rec.songwriterId) : null;
     const performer = rec.performerId ? getCreator(rec.performerId) : null;
     const producer = rec.producerId ? getCreator(rec.producerId) : null;
-    const modifier = getModifier(rec.modifierId);
+    const modifierSelect = $("modifierSelect");
+    const selectedModifierId = modifierSelect && modifierSelect.value ? modifierSelect.value : rec.modifierId;
+    const selectedModifier = getModifier(selectedModifierId);
+    const recModifier = getModifier(rec.modifierId);
+    const stage = state.ui.createStage || "sheet";
+    const stageLabel = stage === "demo" ? "Demo Recording" : stage === "master" ? "Master Recording" : "Sheet Music";
+    const stageIndex = stage === "demo" ? 1 : stage === "master" ? 2 : 0;
+    const stageInfo = STAGES[stageIndex];
+    const songwriterCount = getTrackSlotIds("Songwriter").length;
+    const performerCount = getTrackSlotIds("Performer").length;
+    const producerCount = getTrackSlotIds("Producer").length;
+    const stageCount = stageIndex === 1 ? performerCount : stageIndex === 2 ? producerCount : songwriterCount;
+    const stageCountSafe = stageCount || 1;
+    const formatHours = (value) => {
+        if (!Number.isFinite(value))
+            return "-";
+        const rounded = Math.round(value * 100) / 100;
+        return rounded % 1 === 0 ? `${rounded}` : `${rounded}`;
+    };
+    const baseStageHours = getAdjustedStageHours(stageIndex, null, stageCountSafe);
+    const adjustedStageHours = getAdjustedStageHours(stageIndex, selectedModifier, stageCountSafe);
+    const stageDelta = adjustedStageHours - baseStageHours;
+    const stageDeltaLabel = stageDelta ? ` (${stageDelta > 0 ? "+" : ""}${formatHours(stageDelta)}h mod)` : "";
+    const baseTotalHours = getAdjustedTotalStageHours(null, {
+        Songwriter: songwriterCount || 1,
+        Performer: performerCount || 1,
+        Producer: producerCount || 1
+    });
+    const totalHours = getAdjustedTotalStageHours(selectedModifier, {
+        Songwriter: songwriterCount || 1,
+        Performer: performerCount || 1,
+        Producer: producerCount || 1
+    });
+    const totalDelta = totalHours - baseTotalHours;
+    const totalDeltaLabel = totalDelta ? ` (${totalDelta > 0 ? "+" : ""}${formatHours(totalDelta)}h mod)` : "";
+    const crewStats = stageCount ? getCrewStageStats(stageIndex, stageCount) : null;
+    const crewLine = stageInfo
+        ? stageCount
+            ? `<div class="muted">Crew: ${stageCount} assigned | ${crewStats.minutesPerPiece}m per piece x${crewStats.pieces} | ${stageInfo.stamina * stageCount} stamina total</div>`
+            : `<div class="muted">Crew: 0 assigned</div>`
+        : "";
+    const crewSummaryLine = `<div class="muted">Selected crew: ${songwriterCount} songwriter(s) | ${performerCount} recorder(s) | ${producerCount} producer(s)</div>`;
+    const stageLine = stageInfo
+        ? `Stage: ${stageLabel} | ${formatHours(adjustedStageHours)}h${stageDeltaLabel} | ${stageInfo.stamina} stamina each`
+        : `Stage: ${stageLabel}`;
+    const totalLine = stageInfo
+        ? `<div class="muted">Estimated total: ${formatHours(totalHours)}h${totalDeltaLabel}</div>`
+        : "";
+    const theme = $("themeSelect") ? $("themeSelect").value : "";
+    const mood = $("moodSelect") ? $("moodSelect").value : "";
+    const warnings = [];
+    const genreRanking = Array.isArray(state.genreRanking) ? state.genreRanking : [];
+    const selectedGenre = theme && mood ? `${theme} / ${mood}` : "";
+    const genreRank = genreRanking.length >= 40 && selectedGenre ? genreRanking.indexOf(selectedGenre) : -1;
+    if (genreRank >= 30 && genreRank <= 39) {
+        warnings.push("Unpopular genre may lower quality.");
+    }
+    if (mood === "Boring") {
+        warnings.push("Boring moods reduce quality and never trend.");
+    }
+    const warningHtml = warnings.length
+        ? warnings.map((note) => `<div class="muted">Warning: ${note}</div>`).join("")
+        : `<div class="muted">Fit check: aligned creator preferences boost quality.</div>`;
     target.innerHTML = `
-    <div class="muted">Recommended: ${act ? act.name : "Assign an Act"} | ${rec.theme} / ${rec.mood}</div>
-    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} • Performer ${performer ? performer.name : "Unassigned"} • Producer ${producer ? producer.name : "Unassigned"}</div>
-    <div class="muted">Modifier ${modifier?.label || "None"} • Project ${rec.projectType}</div>
+    <div class="muted">${stageLine}</div>
+    ${crewLine}
+    ${totalLine}
+    ${crewSummaryLine}
+    <div class="muted">Recommended: ${rec.theme} / ${rec.mood} | Modifier ${recModifier?.label || "None"} | Project ${rec.projectType}</div>
+    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} | Recorder ${performer ? performer.name : "Unassigned"} | Producer ${producer ? producer.name : "Unassigned"}</div>
+    <div class="muted">Act assignment happens at release.</div>
+    ${warningHtml}
     <div class="tiny">${rec.reasons}</div>
   `;
 }
-function applyTrackRecommendation() {
+function applyTrackRecommendationPlan(rec, stage) {
+    if (stage === "sheet") {
+        if ($("themeSelect"))
+            $("themeSelect").value = rec.theme;
+        if ($("moodSelect"))
+            $("moodSelect").value = rec.mood;
+        if ($("modifierSelect"))
+            $("modifierSelect").value = rec.modifierId;
+        if ($("projectTypeSelect"))
+            $("projectTypeSelect").value = rec.projectType;
+    }
+    else if (stage === "demo") {
+        if ($("moodSelect"))
+            $("moodSelect").value = rec.mood;
+    }
+}
+function assignAllCreatorsToSlots() {
+    const roles = ["Songwriter", "Performer", "Producer"];
+    return roles.map((role) => {
+        const candidates = rankCandidates(role).filter((creator) => creator.ready);
+        setTrackSlotIds(role, candidates.map((creator) => creator.id));
+        return { role, count: getTrackSlotIds(role).length, req: staminaRequirement(role) };
+    });
+}
+function recommendAllCreators() {
     const rec = recommendTrackPlan();
-    if (rec.actId)
-        state.ui.trackSlots.actId = rec.actId;
-    if (rec.songwriterId)
-        state.ui.trackSlots.songwriterId = rec.songwriterId;
-    if (rec.performerId)
-        state.ui.trackSlots.performerId = rec.performerId;
-    if (rec.producerId)
-        state.ui.trackSlots.producerId = rec.producerId;
-    if ($("themeSelect"))
-        $("themeSelect").value = rec.theme;
-    if ($("moodSelect"))
-        $("moodSelect").value = rec.mood;
-    if ($("modifierSelect"))
-        $("modifierSelect").value = rec.modifierId;
-    if ($("projectTypeSelect"))
-        $("projectTypeSelect").value = rec.projectType;
+    const stage = state.ui.createStage || "sheet";
+    applyTrackRecommendationPlan(rec, stage);
+    const summary = assignAllCreatorsToSlots();
     renderSlots();
     saveToActiveSlot();
     updateGenrePreview();
     updateTrackRecommendation();
+    const counts = summary.map((entry) => `${roleLabel(entry.role)} ${entry.count}`).join(" | ");
+    logEvent(`Recommended all creators for track slots. ${counts || "None assigned."}`);
+    const missing = summary.filter((entry) => entry.count === 0);
+    if (missing.length) {
+        const detail = missing.map((entry) => `${entry.role} (${entry.req} stamina)`).join(", ");
+        logEvent(`No available creators for: ${detail}.`, "warn");
+    }
 }
 function updateRecommendations() {
     updateTrackRecommendation();
@@ -1666,32 +2001,18 @@ function updateSlotDropdowns() {
         const target = slot.dataset.slotTarget;
         const type = slot.dataset.slotType;
         const role = slot.dataset.slotRole;
-        let currentValue = "";
-        if (target === "act-lead")
-            currentValue = state.ui.actSlots.lead || "";
-        if (target === "act-member2")
-            currentValue = state.ui.actSlots.member2 || "";
-        if (target === "act-member3")
-            currentValue = state.ui.actSlots.member3 || "";
-        if (target === "track-act")
-            currentValue = state.ui.trackSlots.actId || "";
-        if (target === "track-writer")
-            currentValue = state.ui.trackSlots.songwriterId || "";
-        if (target === "track-performer")
-            currentValue = state.ui.trackSlots.performerId || "";
-        if (target === "track-producer")
-            currentValue = state.ui.trackSlots.producerId || "";
-        if (target === "era-act")
-            currentValue = state.ui.eraSlots.actId || "";
-        if (target === "promo-track")
-            currentValue = state.ui.promoSlots.trackId || "";
-        if (target === "social-track")
-            currentValue = state.ui.socialSlots.trackId || "";
+        const currentValue = getSlotValue(target) || "";
         const options = [{ value: "", label: "Unassigned" }];
         if (type === "creator") {
+            const req = role ? staminaRequirement(role) : 0;
             const creators = state.creators.filter((creator) => !role || creator.role === role);
             creators.forEach((creator) => {
-                options.push({ value: creator.id, label: `${creator.name} (${creator.role})` });
+                const lowStamina = role && creator.stamina < req;
+                const roleText = roleLabel(creator.role);
+                const label = lowStamina
+                    ? `${creator.name} (${roleText}) - Low stamina`
+                    : `${creator.name} (${roleText})`;
+                options.push({ value: creator.id, label, disabled: lowStamina });
             });
         }
         else if (type === "act") {
@@ -1700,9 +2021,11 @@ function updateSlotDropdowns() {
             });
         }
         else if (type === "track") {
-            const tracks = target === "promo-track"
-                ? state.tracks.filter((track) => track.status === "Released")
-                : state.tracks;
+            let tracks = state.tracks;
+            if (target === "promo-track") {
+                const activeEraIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.id));
+                tracks = state.tracks.filter((track) => track.status === "Released" && track.eraId && activeEraIds.has(track.eraId));
+            }
             tracks.forEach((track) => {
                 options.push({ value: track.id, label: `${track.title} (${track.status})` });
             });
@@ -1712,6 +2035,8 @@ function updateSlotDropdowns() {
             const option = document.createElement("option");
             option.value = opt.value;
             option.textContent = opt.label;
+            if (opt.disabled)
+                option.disabled = true;
             select.appendChild(option);
         });
         select.value = currentValue;
@@ -1719,6 +2044,7 @@ function updateSlotDropdowns() {
     });
 }
 window.updateSlotDropdowns = updateSlotDropdowns;
+window.ensureSlotDropdowns = ensureSlotDropdowns;
 function ensureSocialDetailModal() {
     if ($("socialDetailModal"))
         return;
@@ -1830,11 +2156,12 @@ function autoAssignCreators() {
 }
 function assignBestCandidates() {
     const pickBest = (role) => rankCandidates(role)[0]?.id || null;
-    state.ui.trackSlots.songwriterId = pickBest("Songwriter");
-    state.ui.trackSlots.performerId = pickBest("Performer");
-    state.ui.trackSlots.producerId = pickBest("Producer");
+    setTrackSlotIds("Songwriter", [pickBest("Songwriter")]);
+    setTrackSlotIds("Performer", [pickBest("Performer")]);
+    setTrackSlotIds("Producer", [pickBest("Producer")]);
     renderSlots();
     saveToActiveSlot();
+    updateTrackRecommendation();
 }
 function renameLabelFromUI() {
     const name = $("labelNameInput").value.trim();
@@ -1855,25 +2182,211 @@ function renameLabelFromUI() {
     renderStats();
     saveToActiveSlot();
 }
-function startTrackFromUI() {
-    const title = $("trackTitle").value.trim() || makeTrackTitle($("themeSelect").value, $("moodSelect").value);
-    const projectName = $("projectName").value.trim() || makeProjectTitle();
-    const projectType = $("projectTypeSelect") ? $("projectTypeSelect").value : "Single";
-    const theme = $("themeSelect").value;
-    const mood = $("moodSelect").value;
-    const alignment = $("trackAlignment").value;
-    const modifierId = $("modifierSelect").value;
-    const modifier = getModifier(modifierId);
-    const actId = state.ui.trackSlots.actId;
-    const songwriterId = state.ui.trackSlots.songwriterId;
-    const performerId = state.ui.trackSlots.performerId;
-    const producerId = state.ui.trackSlots.producerId;
-    if (!actId) {
-        logEvent("Cannot start track: no Act selected.", "warn");
+function startSoloTracksFromUI() {
+    const themeSelect = $("themeSelect");
+    if (!themeSelect) {
+        logEvent("Theme selection unavailable.", "warn");
         return;
     }
-    if (!songwriterId || !performerId || !producerId) {
-        logEvent("Cannot start track: missing creator assignment.", "warn");
+    const theme = themeSelect.value;
+    if (!theme) {
+        shakeField("themeSelect");
+        logEvent("Select a Theme to start sheet music.", "warn");
+        return;
+    }
+    const moodSelect = $("moodSelect");
+    const mood = moodSelect ? moodSelect.value : "";
+    const titleInput = $("trackTitle").value.trim();
+    const projectNameInput = $("projectName").value.trim();
+    const projectType = $("projectTypeSelect") ? $("projectTypeSelect").value : "Single";
+    const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
+    const modifier = getModifier(modifierId);
+    const req = staminaRequirement("Songwriter");
+    const assignedSongwriters = [...new Set(getTrackSlotIds("Songwriter"))];
+    if (!assignedSongwriters.length) {
+        shakeSlot(primaryTrackSlotTarget("Songwriter"));
+        logEvent("Cannot start sheet music: assign a Songwriter ID.", "warn");
+        return;
+    }
+    const eligibleSongwriters = assignedSongwriters.filter((id) => {
+        const creator = getCreator(id);
+        return creator && creator.stamina >= req;
+    });
+    if (!eligibleSongwriters.length) {
+        logEvent(`No available Songwriter creators with ${req} stamina.`, "warn");
+        return;
+    }
+    if (eligibleSongwriters.length < assignedSongwriters.length) {
+        logEvent("Some songwriters were skipped due to low stamina.", "warn");
+    }
+    const availableStudios = getStudioAvailableSlots();
+    if (availableStudios <= 0) {
+        logEvent("No studio slots available. Finish a production or expand capacity first.", "warn");
+        return;
+    }
+    const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
+    const cost = Math.max(0, baseCost + (modifier?.costDelta || 0));
+    if (state.label.cash < cost) {
+        logEvent("Not enough cash to start new sheet music.", "warn");
+        return;
+    }
+    const recommendation = recommendTrackPlan();
+    logRecommendation("startTrack", {
+        version: recommendation.version,
+        actId: recommendation.actId,
+        theme: recommendation.theme,
+        mood: recommendation.mood,
+        songwriterIds: eligibleSongwriters,
+        modifierId: recommendation.modifierId,
+        projectType: recommendation.projectType,
+        studioSlotsAvailable: availableStudios,
+        reason: recommendation.reasons,
+        mode: "solo"
+    });
+    let startedCount = 0;
+    let stoppedByCash = false;
+    let stoppedByStudio = false;
+    for (let i = 0; i < eligibleSongwriters.length; i += 1) {
+        if (state.label.cash < cost) {
+            stoppedByCash = true;
+            break;
+        }
+        const songwriterId = eligibleSongwriters[i];
+        const title = titleInput
+            ? (eligibleSongwriters.length > 1 ? `${titleInput} ${i + 1}` : titleInput)
+            : makeTrackTitle(theme, mood);
+        const projectName = projectNameInput || makeProjectTitle();
+        const track = createTrack({
+            title,
+            theme,
+            songwriterIds: [songwriterId],
+            performerIds: [],
+            producerIds: [],
+            actId: null,
+            projectName,
+            projectType,
+            modifierId
+        });
+        if (!track) {
+            stoppedByStudio = true;
+            break;
+        }
+        state.label.cash -= cost;
+        startedCount += 1;
+        logChoice("startTrack", {
+            trackId: track.id,
+            theme,
+            mood,
+            songwriterIds: [songwriterId],
+            performerIds: [],
+            producerIds: [],
+            modifierId,
+            projectName,
+            projectType,
+            mode: "solo"
+        });
+        logUiEvent("action_submit", {
+            action: "start_track",
+            trackId: track.id,
+            theme,
+            mood,
+            projectType,
+            mode: "solo",
+            songwriterId
+        });
+        const creator = getCreator(songwriterId);
+        const creatorLabel = creator ? ` by ${creator.name}` : "";
+        logEvent(`Started sheet music for "${track.title}" (Theme: ${track.theme})${creatorLabel}.`);
+    }
+    if (!startedCount)
+        return;
+    if (eligibleSongwriters.length > 1) {
+        logEvent(`Started ${startedCount} solo track${startedCount === 1 ? "" : "s"}.`);
+    }
+    if (stoppedByCash) {
+        logEvent("Stopped early: not enough cash to start more tracks.", "warn");
+    }
+    if (stoppedByStudio) {
+        logEvent("Stopped early: no studio slots available for more sheet music.", "warn");
+    }
+    $("trackTitle").value = "";
+    $("projectName").value = "";
+    if ($("projectTypeSelect"))
+        $("projectTypeSelect").value = "Single";
+    renderAll();
+}
+function startTrackFromUI() {
+    const stage = state.ui.createStage || "sheet";
+    if (stage === "demo") {
+        const trackId = state.ui.createTrackId || $("stageTrackSelect")?.value;
+        if (!trackId) {
+            logEvent("Select a track awaiting demo recording.", "warn");
+            return;
+        }
+        const track = getTrack(trackId);
+        if (!track) {
+            logEvent("Track not found for demo recording.", "warn");
+            return;
+        }
+        const mood = $("moodSelect") ? $("moodSelect").value : "";
+        const performerIds = getTrackSlotIds("Performer");
+        const started = startDemoStage(track, mood, performerIds);
+        if (started) {
+            logChoice("track_stage", { trackId, action: "demo", mood, performerIds });
+            logUiEvent("action_submit", { action: "start_demo", trackId, mood, performerIds });
+            renderAll();
+        }
+        return;
+    }
+    if (stage === "master") {
+        const trackId = state.ui.createTrackId || $("stageTrackSelect")?.value;
+        if (!trackId) {
+            logEvent("Select a track awaiting mastering.", "warn");
+            return;
+        }
+        const track = getTrack(trackId);
+        if (!track) {
+            logEvent("Track not found for mastering.", "warn");
+            return;
+        }
+        const producerIds = getTrackSlotIds("Producer");
+        const alignment = $("trackAlignment") ? $("trackAlignment").value : "";
+        const started = startMasterStage(track, producerIds, alignment);
+        if (started) {
+            logChoice("track_stage", { trackId, action: "master", producerIds, alignment });
+            logUiEvent("action_submit", { action: "start_master", trackId, producerIds, alignment });
+            renderAll();
+        }
+        return;
+    }
+    if (state.ui.recommendAllMode === "solo") {
+        startSoloTracksFromUI();
+        return;
+    }
+    const themeSelect = $("themeSelect");
+    if (!themeSelect) {
+        logEvent("Theme selection unavailable.", "warn");
+        return;
+    }
+    const theme = themeSelect.value;
+    if (!theme) {
+        shakeField("themeSelect");
+        logEvent("Select a Theme to start sheet music.", "warn");
+        return;
+    }
+    const moodSelect = $("moodSelect");
+    const mood = moodSelect ? moodSelect.value : "";
+    const title = $("trackTitle").value.trim() || makeTrackTitle(theme, mood);
+    const projectName = $("projectName").value.trim() || makeProjectTitle();
+    const projectType = $("projectTypeSelect") ? $("projectTypeSelect").value : "Single";
+    const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
+    const modifier = getModifier(modifierId);
+    const songwriterIds = getTrackSlotIds("Songwriter");
+    const performerIds = getTrackSlotIds("Performer");
+    const producerIds = getTrackSlotIds("Producer");
+    if (!songwriterIds.length) {
+        shakeSlot(primaryTrackSlotTarget("Songwriter"));
+        logEvent("Cannot start sheet music: assign a Songwriter ID.", "warn");
         return;
     }
     const availableStudios = getStudioAvailableSlots();
@@ -1884,7 +2397,7 @@ function startTrackFromUI() {
     const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
     const cost = Math.max(0, baseCost + (modifier?.costDelta || 0));
     if (state.label.cash < cost) {
-        logEvent("Not enough cash to start a new track.", "warn");
+        logEvent("Not enough cash to start new sheet music.", "warn");
         return;
     }
     const recommendation = recommendTrackPlan();
@@ -1901,28 +2414,27 @@ function startTrackFromUI() {
         studioSlotsAvailable: availableStudios,
         reason: recommendation.reasons
     });
-    state.label.cash -= cost;
     const track = createTrack({
         title,
         theme,
-        mood,
-        alignment,
-        songwriterId,
-        performerId,
-        producerId,
-        actId,
+        songwriterIds,
+        performerIds,
+        producerIds,
+        actId: null,
         projectName,
         projectType,
         modifierId
     });
+    if (!track)
+        return;
+    state.label.cash -= cost;
     logChoice("startTrack", {
         trackId: track.id,
-        actId,
         theme,
         mood,
-        songwriterId,
-        performerId,
-        producerId,
+        songwriterIds,
+        performerIds,
+        producerIds,
         modifierId,
         projectName,
         projectType
@@ -1930,12 +2442,11 @@ function startTrackFromUI() {
     logUiEvent("action_submit", {
         action: "start_track",
         trackId: track.id,
-        actId,
         theme,
         mood,
         projectType
     });
-    logEvent(`Started "${track.title}" (${track.genre}).`);
+    logEvent(`Started sheet music for "${track.title}" (Theme: ${track.theme}).`);
     $("trackTitle").value = "";
     $("projectName").value = "";
     if ($("projectTypeSelect"))
@@ -2062,7 +2573,7 @@ function pickPromoTrackFromFocus() {
     const fallbackEra = !focusEra && activeEras.length === 1 ? activeEras[0] : null;
     const targetEra = focusEra || fallbackEra;
     if (!targetEra) {
-        logEvent("Select a focus era before picking a campaign track.", "warn");
+        logEvent("Select a focus era before picking a promo track.", "warn");
         return;
     }
     const candidates = state.tracks.filter((track) => track.status === "Released" && track.eraId === targetEra.id);
@@ -2077,7 +2588,7 @@ function pickPromoTrackFromFocus() {
     }, candidates[0]);
     state.ui.promoSlots.trackId = picked.id;
     logUiEvent("action_submit", { action: "promo_focus_pick", eraId: targetEra.id, trackId: picked.id });
-    logEvent(`Campaign slot set to "${picked.title}".`);
+    logEvent(`Promo slot set to "${picked.title}".`);
     renderSlots();
     renderTracks();
     saveToActiveSlot();
@@ -2085,16 +2596,18 @@ function pickPromoTrackFromFocus() {
 function runPromotion() {
     const trackId = state.ui.promoSlots.trackId;
     const budget = Number($("promoBudget").value);
+    const promoType = $("promoTypeSelect") ? $("promoTypeSelect").value : "musicVideo";
+    const promoDetails = getPromoTypeDetails(promoType);
     if (!trackId) {
-        logEvent("No released track selected for campaign.", "warn");
+        logEvent("No released track selected for promo push.", "warn");
         return;
     }
     if (budget <= 0 || Number.isNaN(budget)) {
-        logEvent("Campaign budget must be greater than 0.", "warn");
+        logEvent("Promo budget must be greater than 0.", "warn");
         return;
     }
     if (state.label.cash < budget) {
-        logEvent("Not enough cash for campaign.", "warn");
+        logEvent("Not enough cash for promo push.", "warn");
         return;
     }
     const track = getTrack(trackId);
@@ -2102,6 +2615,14 @@ function runPromotion() {
         logEvent("Track is not active on the market.", "warn");
         return;
     }
+    const era = track.eraId ? getEraById(track.eraId) : null;
+    if (!era || era.status !== "Active") {
+        logEvent("Promo push requires a track from an active era.", "warn");
+        return;
+    }
+    const act = getAct(track.actId);
+    const scheduled = state.releaseQueue.find((entry) => entry.trackId === track.id);
+    const releaseDate = scheduled ? formatDate(scheduled.releaseAt) : track.releasedAt ? formatDate(track.releasedAt) : "TBD";
     const market = state.marketTracks.find((entry) => entry.id === track.marketId);
     if (!market)
         return;
@@ -2109,8 +2630,73 @@ function runPromotion() {
     const boostWeeks = clamp(Math.floor(budget / 1200) + 1, 1, 4);
     market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);
     state.meta.promoRuns = (state.meta.promoRuns || 0) + 1;
-    logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks: boostWeeks });
-    logEvent(`Campaign run for "${track.title}" (+${boostWeeks} weeks).`);
+    const promoIds = [
+        ...(track.creators?.songwriterIds || []),
+        ...(track.creators?.performerIds || []),
+        ...(track.creators?.producerIds || [])
+    ].filter(Boolean);
+    markCreatorPromo(promoIds);
+    logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks: boostWeeks, promoType });
+    if (typeof postFromTemplate === "function") {
+        postFromTemplate(promoType, {
+            trackTitle: track.title,
+            actName: act ? act.name : "Unknown Act",
+            releaseDate,
+            channel: track.distribution || "Digital",
+            handle: handleFromName(state.label.name, "Label"),
+            cost: budget
+        });
+        renderSocialFeed();
+    }
+    else {
+        logEvent("Promo template posting not available.", "warn");
+    }
+    logEvent(`Promo push funded for "${track.title}" (${promoDetails.label}) (+${boostWeeks} weeks).`);
+    renderAll();
+}
+function handleReleaseActRecommendation(e) {
+    const btn = e.target.closest("button[data-act-recommend]");
+    if (!btn)
+        return;
+    const track = getTrack(btn.dataset.actRecommend);
+    if (!track)
+        return;
+    const recommendation = recommendActForTrack(track);
+    if (!recommendation.actId) {
+        logEvent(recommendation.reason || "No act recommendation available.", "warn");
+        return;
+    }
+    const act = getAct(recommendation.actId);
+    if (!act) {
+        logEvent("Act not found for recommendation.", "warn");
+        return;
+    }
+    const assigned = assignTrackAct(track.id, act.id);
+    if (!assigned)
+        return;
+    logRecommendation("release_act", {
+        version: recommendation.version,
+        trackId: track.id,
+        actId: act.id,
+        genre: recommendation.genre,
+        theme: recommendation.theme,
+        mood: recommendation.mood,
+        reason: recommendation.reason,
+        exactMatches: recommendation.exactMatches,
+        partialMatches: recommendation.partialMatches,
+        memberCount: recommendation.memberCount
+    });
+    logChoice("release_act", {
+        trackId: track.id,
+        actId: act.id,
+        genre: recommendation.genre
+    });
+    logUiEvent("action_submit", {
+        action: "recommend_release_act",
+        trackId: track.id,
+        actId: act.id
+    });
+    logEvent(`Recommended Act "${act.name}" for "${track.title}". ${recommendation.reason}`);
     renderAll();
 }
 function handleReleaseAction(e) {
@@ -2120,7 +2706,13 @@ function handleReleaseAction(e) {
     const track = getTrack(btn.dataset.track);
     if (!track)
         return;
-    const rec = recommendReleasePlan(track);
+    const isReady = track.status === "Ready";
+    if (!track.actId || !getAct(track.actId)) {
+        logEvent("Cannot release track: assign an Act first.", "warn");
+        return;
+    }
+    const derivedGenre = track.genre || (track.theme && track.mood ? `${track.theme} / ${track.mood}` : "");
+    const rec = derivedGenre ? recommendReleasePlan({ ...track, genre: derivedGenre }) : recommendReleasePlan(track);
     logRecommendation("release", {
         version: rec.version,
         trackId: track.id,
@@ -2135,7 +2727,12 @@ function handleReleaseAction(e) {
         distribution = rec.distribution;
         scheduleHours = rec.scheduleHours;
         if (rec.scheduleKey === "now") {
-            releaseTrack(track, distribution, distribution);
+            if (isReady) {
+                releaseTrack(track, distribution, distribution);
+            }
+            else {
+                scheduleRelease(track, 0, distribution);
+            }
         }
         else {
             scheduleRelease(track, rec.scheduleHours, distribution);
@@ -2143,6 +2740,10 @@ function handleReleaseAction(e) {
     }
     if (btn.dataset.release === "now") {
         scheduleHours = 0;
+        if (!isReady) {
+            logEvent("Track is still mastering. Schedule a future release instead.", "warn");
+            return;
+        }
         releaseTrack(track, distribution, distribution);
     }
     if (btn.dataset.release === "week") {
@@ -2181,8 +2782,9 @@ function signCreatorById(id) {
     state.label.cash -= cost;
     creator.signCost = undefined;
     state.creators.push(normalizeCreator(creator));
+    ensureMarketCreators();
     logUiEvent("action_submit", { action: "sign_creator", creatorId: creator.id, role: creator.role });
-    logEvent(`Signed ${creator.name} (${creator.role}).`);
+    logEvent(`Signed ${creator.name} (${roleLabel(creator.role)}).`);
     postCreatorSigned(creator);
     renderCreators();
     renderSlots();
@@ -2201,6 +2803,7 @@ export function initUI() {
     const stored = Number(sessionStorage.getItem("rls_active_slot"));
     if (stored && stored >= 1 && stored <= SLOT_COUNT) {
         session.activeSlot = stored;
+        markUiLogStart();
         const data = getSlotData(stored);
         if (data) {
             resetState(data);
@@ -2213,6 +2816,7 @@ export function initUI() {
         }
     }
     openMainMenu();
+    syncGameModeSelect();
 }
 function setupPanelControls() {
     document.querySelectorAll(".panel.card").forEach((panel) => {
@@ -2221,7 +2825,7 @@ function setupPanelControls() {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "panel-toggle-btn ghost mini";
-        btn.textContent = "–";
+        btn.textContent = "-";
         btn.addEventListener("click", (event) => {
             event.stopPropagation();
             panel.classList.toggle("minimized");

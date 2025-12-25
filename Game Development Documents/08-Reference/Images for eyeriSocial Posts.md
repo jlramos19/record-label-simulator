@@ -1,0 +1,1 @@
+A blurry and indistinguishable genderless silhouette of a person representing a celebrity musician accompanied by bodyguards is photographed by paparazzi walking into a recording studio building at night

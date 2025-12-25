@@ -1,0 +1,1 @@
+A Smear Campaign affects Acts if they upset a Community and Critics by not appeasing them. 

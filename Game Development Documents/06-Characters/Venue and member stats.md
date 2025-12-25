@@ -1,0 +1,1 @@
+`When a member enters a concert venue, the stats of said capsule are tracked and presented on the structure. When the event is over, the capsule leaves the structure and returns to the structure where it resides.` 

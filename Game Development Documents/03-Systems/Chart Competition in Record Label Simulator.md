@@ -1,0 +1,3 @@
+# **`Chart Competition in Record Label Simulator`**
+
+If two or more units of Content have the same content Genre but different Acts with similar properties (like Age and Nationality), then match with the acts that make content with similar properties (content Genre, Quality, Alignment, Popularity, and Release Date of Content must be within the same approximate range that I will later determine (for example, within a 3-month range of release (before or after)). 

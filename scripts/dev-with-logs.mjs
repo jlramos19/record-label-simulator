@@ -13,6 +13,7 @@ const MAX_ARGS = 3;
 const HTTP_LOG_RE = /"(\w+)\s+([^\s]+)\s+HTTP\/[0-9.]+"\s+(\d{3})/;
 const ANSI_REGEX = /\u001b\[[0-9;]*[A-Za-z]/g;
 const ANSI_OSC_REGEX = /\u001b\][^\u0007]*\u0007/g;
+const NPM_CMD = process.platform === "win32" ? "npm.cmd" : "npm";
 
 const lineBuffers = new Map();
 
@@ -152,6 +153,19 @@ function waitForServer(url, timeoutMs = 20_000) {
   });
 }
 
+async function maximizeWindow(page) {
+  try {
+    const client = await page.target().createCDPSession();
+    const { windowId } = await client.send("Browser.getWindowForTarget");
+    await client.send("Browser.setWindowBounds", {
+      windowId,
+      bounds: { windowState: "maximized" }
+    });
+  } catch {
+    // ignore
+  }
+}
+
 function safeKill(child) {
   if (!child || child.killed) return;
   try {
@@ -163,7 +177,11 @@ function safeKill(child) {
 
 const run = async () => {
   const logsDir = path.resolve("usage-logs");
+  const profileDir = process.env.RLS_BROWSER_PROFILE_DIR
+    ? path.resolve(process.env.RLS_BROWSER_PROFILE_DIR)
+    : path.join(logsDir, "browser-profile");
   fs.mkdirSync(logsDir, { recursive: true });
+  fs.mkdirSync(profileDir, { recursive: true });
 
   const logPath = path.join(logsDir, `session-${timestamp()}.ndjson`);
   const logStream = fs.createWriteStream(logPath, { flags: "a" });
@@ -175,11 +193,11 @@ const run = async () => {
   let browser;
 
   try {
-    tsc = spawn("npm", ["run", "watch"], { stdio: ["ignore", "pipe", "pipe"], shell: true });
+    tsc = spawn(NPM_CMD, ["run", "watch"], { stdio: ["ignore", "pipe", "pipe"] });
     tsc.stdout.on("data", (d) => writeChunk(write, "tsc.stdout", d));
     tsc.stderr.on("data", (d) => writeChunk(write, "tsc.stderr", d));
 
-    server = spawn("npm", ["run", "start"], { stdio: ["ignore", "pipe", "pipe"], shell: true });
+    server = spawn(NPM_CMD, ["run", "start"], { stdio: ["ignore", "pipe", "pipe"] });
     server.stdout.on("data", (d) => writeChunk(write, "server.stdout", d, { skip: shouldSkipServerLine }));
     server.stderr.on("data", (d) => writeChunk(write, "server.stderr", d, { skip: shouldSkipServerLine }));
 
@@ -193,12 +211,14 @@ const run = async () => {
     browser = await puppeteer.launch({
       headless: false,
       executablePath: edgePath,
+      userDataDir: profileDir,
       defaultViewport: null,
       args: [
         "--disable-web-security",
         "--disable-features=IsolateOrigins,site-per-process",
         "--no-first-run",
-        "--no-default-browser-check"
+        "--no-default-browser-check",
+        "--start-maximized"
       ]
     });
 
@@ -211,6 +231,8 @@ const run = async () => {
         // ignore
       }
     }
+
+    await maximizeWindow(page);
 
     page.on("console", async (msg) => {
       const handles = msg.args();
@@ -256,6 +278,7 @@ const run = async () => {
     console.log("RLS dev session started.");
     console.log(`- URL: ${URL}`);
     console.log(`- Log file: ${logPath}`);
+    console.log(`- Profile dir: ${profileDir}`);
     console.log("Interact with the opened browser. Close it to stop.");
 
     await new Promise((resolve) => browser.on("disconnected", resolve));

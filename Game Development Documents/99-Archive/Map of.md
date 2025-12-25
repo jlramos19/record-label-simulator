@@ -1,0 +1,1 @@
+The map of the Record Label Simulator game will feature planet earth with three post-apocalyptic countries: Annglora, Bytenza, and Crowlya. 

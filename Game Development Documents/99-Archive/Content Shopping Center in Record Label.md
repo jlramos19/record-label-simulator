@@ -1,0 +1,1 @@
+The Content Shops is where Community Members can buy Content.

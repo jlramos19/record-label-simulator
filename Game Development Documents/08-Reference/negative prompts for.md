@@ -1,0 +1,1 @@
+deformed, ugly, inconsistent, asymmetrical, extra limbs, extra fingers, extra arms, unconventional, unreal, unrealistic, gross, disgusting, unfinished, incomplete, distorted face, deformed face, blurry face, blurry eyes, unrealistic eyes, feet, calves, foot, calf, bottom half body, bottom part of the body, legs, shirtless

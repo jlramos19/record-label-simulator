@@ -1,0 +1,1 @@
+Communities in the game will exhibit diverse populations. Each group of a thousand individuals will be epitomized by one CREATOR, serving as the archetype for the behavior of the remaining 999 members within that community during gameplay.

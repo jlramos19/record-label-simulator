@@ -1,0 +1,1 @@
+Standing in the middle of a white spotlight with five directional lights with the FLAMP colors, each going in a direction that forms a star

@@ -1,0 +1,1 @@
+The Critics Council are the PR list where the Record Label sends Content to be rated.

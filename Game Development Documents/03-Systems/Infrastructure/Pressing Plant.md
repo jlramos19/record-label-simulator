@@ -1,0 +1,1 @@
+the Pressing Plant is where the vinyl records come from to be delivered to Content Shopping Stores.

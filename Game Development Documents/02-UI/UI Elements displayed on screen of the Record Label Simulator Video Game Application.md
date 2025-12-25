@@ -88,11 +88,7 @@
 
 `- HARMONY HUB:`
 
-`displays the same five icons, but this time the ones that the player’s Record Label owns:`
-
-`both these ui elements open popup windows over the center’s top area opf the screen over the normal gameplay.`
-
-`NOTE: Collabs button in Harmony Hub offers the Player the chance to seek to collaborate with other Record Labels in the Player’s owned Eras’ Projects.`
+`reserved for forming and managing Acts with Creator IDs, including which Eras each Act is participating in.`
 
 `## Center Area`
 
@@ -110,9 +106,13 @@
 
 `#### Center’s Bottom Center and Left Area`
 
-`##### Center’s Bottom Center Area`
+`##### Center's Bottom Center Area`
 
 `- AREA BEING INTERACTED WITH BY THE PLAYER. For example: Studios, Venues, Advertising Spaces, etc.`
+
+`- Create Content view shows a Studios panel with filters for owned/unowned, owner entity, and occupied/unoccupied slots. Content studios are multipurpose; broadcast studios are used for interviews and performances.`
+
+`- Create Content stage controls use a titled header with three buttons (Sheet Music, Demo Recording, Master Recording). Creator slots are arranged as studio columns (5 slots per column): 3 columns for Songwriters, 2 for Recorders, 1 for Producers.`
 
 `##### Center’s Bottom Left Area`
 

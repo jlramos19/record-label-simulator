@@ -1,0 +1,1 @@
+`Game auto saves every in-game Thursday at 11pm (charts update Friday at 12am). This is to prevent the player from going back and trying to manipulate chart positions of content.` 

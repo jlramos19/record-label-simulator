@@ -1,0 +1,1 @@
+When you ridicule someone, what other ways do you have to let me know you’re miserable?

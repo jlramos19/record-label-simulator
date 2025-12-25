@@ -22,6 +22,11 @@
     </div>
     <div id="slotList" class="menu-slots"></div>
     <div class="field">
+      <label for="gameModeSelect">Game Mode</label>
+      <select id="gameModeSelect" aria-label="Game mode selection"></select>
+      <div id="gameModeHint" class="tiny"></div>
+    </div>
+    <div class="field">
       <label for="autoSaveToggle">Auto Save</label>
       <div class="toggle-row">
         <input id="autoSaveToggle" type="checkbox" aria-label="Auto save toggle">
@@ -338,13 +343,14 @@
         <h2>Release Desk</h2>
         <div class="card-body">
           <div class="callout">
-            Release ready tracks to enter charts. Schedule physical releases two weeks out.
+            Assign an Act, then release ready tracks to enter charts. Schedule physical (or both) releases two weeks out.
           </div>
           <div class="field">
             <label for="releaseDistribution">Distribution</label>
             <select id="releaseDistribution">
               <option value="Digital">Digital</option>
               <option value="Physical">Physical</option>
+              <option value="Both">Both</option>
             </select>
           </div>
           <div class="subhead">Ready</div>
@@ -370,24 +376,42 @@
         <h2>Create Content</h2>
         <div class="card-body">
           <div class="callout">
-            Quick start: tap an ID slot, assign an Act + Creator IDs, pick Theme + Mood, then start content.
+            Quick start: tap an ID slot, assign Creator IDs, pick a Theme, then start sheet music. Acts are assigned later in Release Desk for release and promotion.
           </div>
-          <div class="form-grid">
-            <div class="field">
-              <label for="trackTitle">Title</label>
-              <div class="input-row">
-                <input id="trackTitle" type="text" placeholder="Auto-generate if empty">
-                <button id="trackTitleRandom" type="button" class="ghost mini">Rnd</button>
+          <div class="stage-picker">
+            <div class="stage-title">Creation Stage</div>
+            <div class="stage-buttons" role="group" aria-label="Creation stage selection">
+              <button type="button" class="ghost stage-btn" data-create-stage="sheet">Sheet Music</button>
+              <button type="button" class="ghost stage-btn" data-create-stage="demo">Demo Recording</button>
+              <button type="button" class="ghost stage-btn" data-create-stage="master">Master Recording</button>
+            </div>
+          </div>
+            <div class="form-grid">
+              <div class="field" data-stage="demo,master">
+                <label for="stageTrackSelect">Track</label>
+                <select id="stageTrackSelect"></select>
+                <div id="stageTrackMeta" class="tiny muted"></div>
+              </div>
+              <div class="field">
+                <label for="activeStudiosSelect">Active Studios</label>
+                <select id="activeStudiosSelect"></select>
+                <div id="activeStudiosMeta" class="tiny muted">Up to 3 studios can run per stage.</div>
+              </div>
+              <div class="field" data-stage="sheet">
+                <label for="trackTitle">Title</label>
+                <div class="input-row">
+                  <input id="trackTitle" type="text" placeholder="Auto-generate if empty">
+                  <button id="trackTitleRandom" type="button" class="ghost mini">Rnd</button>
               </div>
             </div>
-            <div class="field">
+            <div class="field" data-stage="sheet">
               <label for="projectName">Project</label>
               <div class="input-row">
                 <input id="projectName" type="text" placeholder="Auto-generate if empty">
                 <button id="projectNameRandom" type="button" class="ghost mini">Rnd</button>
               </div>
             </div>
-            <div class="field">
+            <div class="field" data-stage="sheet">
               <label for="projectTypeSelect">Content Type</label>
               <select id="projectTypeSelect">
                 <option value="Single">Single</option>
@@ -395,77 +419,65 @@
                 <option value="Album">Album</option>
               </select>
             </div>
-            <div class="field">
+            <div class="field" data-stage="sheet">
               <label for="themeSelect">Theme</label>
               <select id="themeSelect"></select>
             </div>
-            <div class="field">
+            <div class="field" data-stage="demo">
               <label for="moodSelect">Mood</label>
               <select id="moodSelect"></select>
             </div>
-            <div class="field">
+            <div class="field" data-stage="master">
               <label for="trackAlignment">Content Alignment</label>
               <select id="trackAlignment"></select>
             </div>
-            <div class="field">
+            <div class="field" data-stage="sheet">
               <label for="modifierSelect">Modifier Slot</label>
               <select id="modifierSelect"></select>
             </div>
           </div>
           <div class="subhead">Recommendation</div>
           <div id="trackRecommend" class="callout"></div>
-          <div class="subhead">Content Slots</div>
-          <div class="slot-grid">
-            <div class="id-slot" data-slot-target="track-act" data-slot-type="act">
-              <div class="slot-label">Act ID</div>
-              <div id="trackActSlot" class="slot-value">Unassigned</div>
-              <button type="button" class="ghost mini" data-slot-clear="track-act">Clear</button>
-            </div>
-            <div class="id-slot" data-slot-target="track-writer" data-slot-type="creator" data-slot-role="Songwriter">
-              <div class="slot-label">Songwriter ID</div>
-              <div id="trackWriterSlot" class="slot-value">Unassigned</div>
-              <button type="button" class="ghost mini" data-slot-clear="track-writer">Clear</button>
-            </div>
-            <div class="id-slot" data-slot-target="track-performer" data-slot-type="creator" data-slot-role="Performer">
-              <div class="slot-label">Performer ID</div>
-              <div id="trackPerformerSlot" class="slot-value">Unassigned</div>
-              <button type="button" class="ghost mini" data-slot-clear="track-performer">Clear</button>
-            </div>
-            <div class="id-slot" data-slot-target="track-producer" data-slot-type="creator" data-slot-role="Producer">
-              <div class="slot-label">Producer ID</div>
-              <div id="trackProducerSlot" class="slot-value">Unassigned</div>
-              <button type="button" class="ghost mini" data-slot-clear="track-producer">Clear</button>
-            </div>
+          <div class="subhead">Creator Slots</div>
+          <div id="trackSlotMeta" class="tiny muted">Songwriters up to 15, recorders up to 10, producers up to 5. Larger teams move faster but drain more stamina and can dilute fit bonuses.</div>
+          <div id="trackSlotGrid" class="slot-grid slot-grid--stack"></div>
+          <div class="field">
+            <label for="recommendAllMode">Recommend All Mode</label>
+            <select id="recommendAllMode">
+              <option value="solo">Solo tracks</option>
+              <option value="collab">Collab track</option>
+            </select>
+            <div id="recommendAllHelp" class="tiny muted">Solo starts separate sheet music for each assigned songwriter. Collab fills one track with everyone.</div>
           </div>
           <div class="actions">
             <button id="autoAssignBtn" type="button" class="ghost">Auto assign</button>
-            <button id="trackRecommendApply" type="button" class="ghost">Use Recommended</button>
-            <button id="startTrackBtn" type="button">Start Content</button>
+            <button id="trackRecommendAll" type="button" class="ghost">Recommend All</button>
+            <button id="startTrackBtn" type="button">Start Sheet Music</button>
           </div>
-          <div id="genrePreview" class="tiny">Genre: -</div>
+          <div id="genrePreview" class="tiny" data-stage="sheet">Planned Genre: -</div>
           <div class="tiny">Base cost: $2500 total. Modifiers adjust cost and time; stages consume 1, 2, and 3 in-game hours.</div>
         </div>
       </div>
     </section>
     <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="create-trends">
+        <h2>Top Trends</h2>
+        <div class="card-body">
+          <div id="createTrendList" class="list"></div>
+          <div class="tiny">Full rankings live in the CCC.</div>
+        </div>
+      </div>
       <div class="panel card panel--scroll" data-panel="tracks">
         <h2>Tracks</h2>
         <div class="card-body">
           <div id="trackList" class="list"></div>
         </div>
       </div>
-      <div class="panel card panel--scroll" data-panel="genres">
-        <h2>Content Genres</h2>
+      <div class="panel card panel--scroll" data-panel="track-archive">
+        <h2>Track Archive</h2>
         <div class="card-body">
-          <div class="field">
-            <label for="genreThemeFilter">Theme</label>
-            <select id="genreThemeFilter"></select>
-          </div>
-          <div class="field">
-            <label for="genreMoodFilter">Mood</label>
-            <select id="genreMoodFilter"></select>
-          </div>
-          <div id="genreList" class="list scroll-list"></div>
+          <div class="tiny">Released tracks live here.</div>
+          <div id="trackArchiveList" class="list"></div>
         </div>
       </div>
     </aside>
@@ -479,13 +491,14 @@
         <h2>Release Desk</h2>
         <div class="card-body">
           <div class="callout">
-            Release ready tracks to enter charts. Schedule physical releases two weeks out.
+            Assign an Act, then release ready tracks to enter charts. Schedule physical (or both) releases two weeks out.
           </div>
           <div class="field">
             <label for="releaseDistribution">Distribution</label>
             <select id="releaseDistribution">
               <option value="Digital">Digital</option>
               <option value="Physical">Physical</option>
+              <option value="Both">Both</option>
             </select>
           </div>
           <div class="subhead">Ready</div>
@@ -500,6 +513,13 @@
         <h2>Tracks</h2>
         <div class="card-body">
           <div id="trackList" class="list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="track-archive">
+        <h2>Track Archive</h2>
+        <div class="card-body">
+          <div class="tiny">Released tracks live here.</div>
+          <div id="trackArchiveList" class="list"></div>
         </div>
       </div>
     </aside>
@@ -540,47 +560,12 @@
             <div class="list-row">
               <div>
                 <div id="eraFocusLabel" class="item-title">No active eras</div>
-                <div class="muted">Creation and campaigns will prefer this era when possible.</div>
+                <div class="muted">Creation and promo pushes will prefer this era when possible.</div>
               </div>
               <button id="eraFocusClear" type="button" class="ghost mini">Clear</button>
             </div>
           </div>
           <div id="eraStatus" class="list"></div>
-        </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="promotion">
-        <h2>Campaigns</h2>
-        <div class="card-body">
-          <div class="subhead">Campaign Slot</div>
-          <div class="id-slot" data-slot-target="promo-track" data-slot-type="track">
-            <div class="slot-label">Track ID</div>
-            <div id="promoTrackSlot" class="slot-value">Unassigned</div>
-            <button type="button" class="ghost mini" data-slot-clear="promo-track">Clear</button>
-          </div>
-          <div class="list-item">
-            <div class="list-row">
-              <div>
-                <div class="item-title">Focus Era</div>
-                <div id="promoFocusLabel" class="muted">No active eras</div>
-              </div>
-              <button id="promoFocusPickBtn" type="button" class="ghost mini">Pick Track</button>
-            </div>
-          </div>
-          <div class="field">
-            <label for="promoBudget">Budget</label>
-            <input id="promoBudget" type="number" min="0" step="100" value="1000">
-          </div>
-          <div class="field">
-            <label class="toggle-pill">
-              <input id="autoRolloutToggle" type="checkbox">
-              <span>Auto Rollout</span>
-            </label>
-            <div class="tiny">Auto-run rollouts when your saved rules are met.</div>
-          </div>
-          <div class="actions">
-            <button id="promoBtn" type="button">Run Campaign</button>
-          </div>
-          <div class="tiny">Tap a slot, then tap a released Track ID. Campaigns last 1-4 weeks based on budget.</div>
         </div>
       </div>
     </section>
@@ -611,6 +596,13 @@
           <div id="trackList" class="list"></div>
         </div>
       </div>
+      <div class="panel card panel--scroll" data-panel="track-archive">
+        <h2>Track Archive</h2>
+        <div class="card-body">
+          <div class="tiny">Released tracks live here.</div>
+          <div id="trackArchiveList" class="list"></div>
+        </div>
+      </div>
     </aside>
   </div>
 </template>
@@ -621,67 +613,14 @@
       <div class="panel card panel--scroll" data-panel="harmony-hub">
         <h2>Harmony Hub</h2>
         <div class="card-body">
-          <div class="icon-grid">
-            <button id="hubAreas" type="button" class="icon-btn"><span class="icon">AR</span>Areas</button>
-            <button id="hubCreators" type="button" class="icon-btn"><span class="icon">CR</span>Creators</button>
-            <button id="hubItems" type="button" class="icon-btn"><span class="icon">IT</span>Items &amp; Tools</button>
-            <button id="hubCollabs" type="button" class="icon-btn"><span class="icon">CO</span>Collabs</button>
+          <div class="callout">
+            Form and manage Acts by assigning Creator IDs. Track which Eras each Act is participating in.
           </div>
-          <div class="tiny">Your owned spaces, equipped tools, and live collabs.</div>
-          <div class="subhead">Content Cycle (SARPD)</div>
-          <div class="callout">Draft placeholder from the GDD: Schedule, Announce, Release, Promote, Discontinue.</div>
-          <div class="list">
-            <div class="list-item">
-              <div class="item-title">Schedule</div>
-              <div class="muted">Define release dates using the in-game Calendar, considering Community tendencies and peak engagement periods. Scheduling is internal until announced.</div>
-            </div>
-            <div class="list-item">
-              <div class="item-title">Announce</div>
-              <div class="muted">Publicize upcoming releases and promotional events on eyeriSocial to generate hype and prepare the Community. The public only knows what the Label posts.</div>
-            </div>
-            <div class="list-item">
-              <div class="item-title">Release</div>
-              <div class="muted">Make the Content available, ensuring alignment with the defined promotional strategy and community preferences.</div>
-            </div>
-            <div class="list-item">
-              <div class="item-title">Promote</div>
-              <div class="muted">Execute targeted promotional campaigns, leveraging (deprecated term) Guide assets and scheduling Live Venue events to maximize Content uptake.</div>
-            </div>
-            <div class="list-item">
-              <div class="item-title">Discontinue</div>
-              <div class="muted">Withdraw active promotional efforts in response to Community Engagement metrics, preparing the groundwork for upcoming content cycles.</div>
-            </div>
-          </div>
-          <div class="subhead">Creator Roster</div>
-          <div id="creatorList" class="list"></div>
-          <div class="tiny">Drag Creator IDs into slots, or tap after selecting a slot.</div>
-        </div>
-      </div>
-    </section>
-    <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="communities">
-        <div class="card-head">
-          <h2>Communities</h2>
-        </div>
-        <div class="card-body">
-          <div class="icon-grid">
-            <button id="communitiesAreas" type="button" class="icon-btn"><span class="icon">AR</span>Areas</button>
-            <button id="communitiesCreators" type="button" class="icon-btn"><span class="icon">CR</span>Creators</button>
-            <button id="communitiesItems" type="button" class="icon-btn"><span class="icon">IT</span>Items &amp; Tools</button>
-            <button id="communitiesCollabs" type="button" class="icon-btn"><span class="icon">CO</span>Collabs</button>
-          </div>
-          <div class="subhead">Creator Community Chamber (CCC)</div>
-          <div class="tiny">Browse and sign Creator IDs in the CCC tab.</div>
-          <div class="tiny">Opens popups for opportunities beyond your owned areas.</div>
-        </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="acts">
-        <div class="card-head">
-          <h2>Acts</h2>
-          <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
-        </div>
-        <div class="card-body">
+          <div class="subhead">Acts</div>
           <div id="actList" class="list"></div>
+          <div class="actions">
+            <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
+          </div>
           <div class="subhead">Create Act</div>
           <div class="field">
             <label for="actName">Act Name</label>
@@ -719,7 +658,27 @@
           <div class="actions">
             <button id="createActBtn" type="button">Create Act</button>
           </div>
-          <div class="tiny">Acts are the public-facing identity. Tap a slot, then tap a Creator ID in the roster.</div>
+          <div class="subhead">Creator Roster</div>
+          <div id="creatorList" class="list"></div>
+          <div class="tiny">Drag Creator IDs into slots, or tap after selecting a slot.</div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="communities">
+        <div class="card-head">
+          <h2>Communities</h2>
+        </div>
+        <div class="card-body">
+          <div class="icon-grid">
+            <button id="communitiesAreas" type="button" class="icon-btn"><span class="icon">AR</span>Areas</button>
+            <button id="communitiesCreators" type="button" class="icon-btn"><span class="icon">CR</span>Creators</button>
+            <button id="communitiesItems" type="button" class="icon-btn"><span class="icon">IT</span>Items &amp; Tools</button>
+            <button id="communitiesCollabs" type="button" class="icon-btn"><span class="icon">CO</span>Collabs</button>
+          </div>
+          <div class="subhead">Creator Community Chamber (CCC)</div>
+          <div class="tiny">Browse and sign Creator IDs in the CCC tab.</div>
+          <div class="tiny">Opens popups for opportunities beyond your owned areas.</div>
         </div>
       </div>
       <div class="panel card panel--scroll" data-panel="label-settings">
@@ -765,6 +724,11 @@
             CCC is a world-owned institution that prepares Members into Creator IDs for signing. Refresh rotates the pool; signing triggers alignment seeding and eyeriSocial announcements.
           </div>
           <div class="subhead">Available Creator IDs</div>
+          <div class="filter-row">
+            <label class="check-pill"><input type="checkbox" data-ccc-filter="Songwriter">Songwriters</label>
+            <label class="check-pill"><input type="checkbox" data-ccc-filter="Performer">Recorders</label>
+            <label class="check-pill"><input type="checkbox" data-ccc-filter="Producer">Producers</label>
+          </div>
           <div id="marketList" class="list"></div>
           <div class="tiny">Use the CCC to scout and sign new Creator IDs.</div>
         </div>
@@ -778,9 +742,20 @@
         </div>
       </div>
       <div class="panel card panel--scroll" data-panel="trends">
-        <h2>Trend Watch</h2>
+        <h2>Trend Watch &amp; Genre Rankings</h2>
         <div class="card-body">
+          <div class="subhead">Trend Watch</div>
           <div id="trendList" class="list"></div>
+          <div class="subhead">Content Genre Rankings</div>
+          <div class="field">
+            <label for="genreThemeFilter">Theme</label>
+            <select id="genreThemeFilter"></select>
+          </div>
+          <div class="field">
+            <label for="genreMoodFilter">Mood</label>
+            <select id="genreMoodFilter"></select>
+          </div>
+          <div id="genreList" class="list scroll-list"></div>
         </div>
       </div>
     </aside>
@@ -800,11 +775,12 @@
         </div>
         <div class="card-body">
           <div class="callout">
-            Live world feed and public announcements. Internal updates stay hidden unless included.
+            Live world feed and public promotions. Internal updates stay hidden unless included.
           </div>
           <div class="filter-row">
             <label class="check-pill"><input type="checkbox" data-social-filter="creator">Creators</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="track">Tracks</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="promo">Promo</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="quest">Quests</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="era">Eras</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="economy">Economy</label>
@@ -814,29 +790,47 @@
             <label class="check-pill"><input type="checkbox" data-social-filter="ccc">CCC</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="system">System</label>
           </div>
-          <div class="subhead">Public Announcement Slot</div>
-          <div class="id-slot" data-slot-target="social-track" data-slot-type="track">
+          <div class="subhead">Promotional Content</div>
+          <div class="id-slot" data-slot-target="promo-track" data-slot-type="track">
             <div class="slot-label">Track ID</div>
-            <div id="socialTrackSlot" class="slot-value">Unassigned</div>
-            <button type="button" class="ghost mini" data-slot-clear="social-track">Clear</button>
+            <div id="promoTrackSlot" class="slot-value">Unassigned</div>
+            <button type="button" class="ghost mini" data-slot-clear="promo-track">Clear</button>
           </div>
-          <div class="tiny">Use this slot when announcing release dates or future plans. If empty, eyeriSocial uses the next scheduled release.</div>
-          <div class="template-row" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
-            <select id="templateSelect" style="min-width:160px">
-              <option value="releaseAnnouncement">Release Announcement</option>
-              <option value="releaseSchedule">Release Schedule</option>
-              <option value="futurePlans">Future Plans</option>
-              <option value="questInvitation">Quest Invitation</option>
-              <option value="contractWelcome">Contract Welcome</option>
-              <option value="receiptEmail">Receipt Email</option>
-              <option value="cccSigned">CCC Signed</option>
-              <option value="cccDeclined">CCC Declined</option>
-              <option value="cccReconsider">CCC Reconsider</option>
-              <option value="chartNews">Chart News</option>
-              <option value="systemNotice">System Notice</option>
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">Focus Era</div>
+                <div id="promoFocusLabel" class="muted">No active eras</div>
+              </div>
+              <button id="promoFocusPickBtn" type="button" class="ghost mini">Pick Track</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="promoTypeSelect">Promo Type</label>
+            <select id="promoTypeSelect">
+              <option value="musicVideo">Music Video</option>
+              <option value="livePerformance">Live Performance</option>
+              <option value="eyeriSocialPost">eyeriSocial Post</option>
+              <option value="interview">Interview</option>
             </select>
-            <button id="postTemplateBtn" type="button" class="ghost">Publish Update</button>
+            <div id="promoTypeHint" class="tiny">Requirement: Final video + clearance | Typical cost: $7,500</div>
           </div>
+          <div class="field">
+            <label for="promoBudget">Promo Budget</label>
+            <input id="promoBudget" type="number" min="0" step="100" value="1000">
+          </div>
+          <div class="field">
+            <label class="toggle-pill">
+              <input id="autoRolloutToggle" type="checkbox">
+              <span>Auto Promo</span>
+            </label>
+            <div class="tiny">Auto-run promo pushes when your saved rules are met.</div>
+          </div>
+          <div class="actions">
+            <button id="promoBtn" type="button">Fund Promo Push</button>
+          </div>
+          <div class="tiny">Tap a slot, then tap a released Track ID. Promo pushes last 1-4 weeks based on budget.</div>
+          <div class="subhead">Feed</div>
           <div id="socialFeed" class="log"></div>
         </div>
       </div>
@@ -849,8 +843,9 @@
         </div>
       </div>
       <div class="panel card panel--scroll" data-panel="usage-ledger">
-        <h2>Usage Ledger</h2>
+        <h2>Loss Archives</h2>
         <div class="card-body">
+          <div class="tiny">Keeps the last 3 losses with usage logs for review.</div>
           <div id="usageLedgerList" class="list"></div>
         </div>
       </div>

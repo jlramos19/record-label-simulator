@@ -1,0 +1,1 @@
+The goal is to base the discography of artists off of the real story of historic figures\!

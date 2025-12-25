@@ -1,0 +1,1 @@
+`The player levels up the negotiating skill by having their offers be accepted instead of accepting offers from others, and by charging others instead of paying for deals and contracts.` 

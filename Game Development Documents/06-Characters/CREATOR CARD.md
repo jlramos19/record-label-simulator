@@ -1,0 +1,1 @@
+An interviewee must have the acting and public speaking skills. 

@@ -1,0 +1,2 @@
+"My motivation comes from my desire to succeed for my mother and my little brother. Their presence inspires me to continually strive for my dreams. I yearn not to celebrate my achievements alone, but to share them with these unwavering pillars of support in my life. Learning from past missteps, I’ve realized that my efforts should be focused on bettering myself and nurturing the cherished bond I have with my family." After all, the path is not one great river but many streams. 
+

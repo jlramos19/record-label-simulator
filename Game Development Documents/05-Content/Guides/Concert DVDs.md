@@ -1,0 +1,1 @@
+Concert DVDs can be created after the Act performs a tour. 

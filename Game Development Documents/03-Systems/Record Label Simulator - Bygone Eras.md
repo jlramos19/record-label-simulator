@@ -1,0 +1,1 @@
+Bygone eras are the eras previous to the current or future eras of an Act. 

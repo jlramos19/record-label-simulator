@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch",
+    "start": "powershell -Command \"python -m http.server 5173\"",
+    "dev:logs": "node scripts/dev-with-logs.mjs"
+  },
+  "dependencies": {
+    "puppeteer": "^24.34.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

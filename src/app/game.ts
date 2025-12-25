@@ -1,13 +1,199 @@
 // @ts-nocheck
 import { storeChartSnapshot } from "./db.js";
 
-const session = { activeSlot: null, prevSpeed: null };
+const LIVE_SYNC_INTERVAL_MS = 500;
+
+const session = {
+  activeSlot: null,
+  prevSpeed: null,
+  uiLogStart: 0,
+  lastSlotPayload: null,
+  lastLiveSyncAt: 0
+};
+const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
+const LOSS_ARCHIVE_KEY = "rls_loss_archive_v1";
+const LOSS_ARCHIVE_LIMIT = 3;
+const SEED_CALIBRATION_KEY = "rls_seed_calibration_v1";
+
+const STARTING_CASH = 50000;
+const STARTING_STUDIO_SLOTS = 2;
+const STAGE_STUDIO_LIMIT = 3;
+const STUDIO_COLUMN_SLOT_COUNT = 5;
+const STAMINA_OVERUSE_LIMIT = 200;
+const STAMINA_OVERUSE_STRIKES = 1;
+const SEED_CALIBRATION_YEAR = 2400;
+
+const GAME_MODES = {
+  founding: {
+    id: "founding",
+    label: "Founding Era (2025)",
+    startYear: 2025,
+    seeded: false,
+    description: "Start in 2025 and build the industry before modern play."
+  },
+  modern: {
+    id: "modern",
+    label: "Modern Era (2400)",
+    startYear: 2400,
+    seeded: true,
+    description: "Start in 2400 with seeded history and a mature market."
+  }
+};
+const DEFAULT_GAME_MODE = "founding";
+
+const TRACK_ROLE_KEYS = {
+  Songwriter: "songwriterIds",
+  Performer: "performerIds",
+  Producer: "producerIds"
+};
+const TRACK_ROLE_TARGETS = {
+  Songwriter: "track-writer",
+  Performer: "track-performer",
+  Producer: "track-producer"
+};
+const TRACK_ROLE_TARGET_PATTERN = /^track-(writer|performer|producer)(?:-(\d+))?$/;
+const TRACK_ROLE_MATCH = {
+  writer: "Songwriter",
+  performer: "Performer",
+  producer: "Producer"
+};
+const TRACK_CREW_RULES = {
+  Songwriter: { stepMinutes: 12, slotsPerTier: 5, maxPieces: 3 },
+  Performer: { stepMinutes: 24, slotsPerTier: 5, maxPieces: 2 },
+  Producer: { stepMinutes: 36, slotsPerTier: 5, maxPieces: 1 }
+};
+const ROLE_LABELS = {
+  Songwriter: "Songwriter",
+  Performer: "Recorder",
+  Producer: "Producer"
+};
+
+function trackRoleLimit(role) {
+  const limit = TRACK_ROLE_LIMITS?.[role];
+  return Number.isFinite(limit) ? limit : 1;
+}
+
+function roleLabel(role) {
+  return ROLE_LABELS[role] || role;
+}
+
+function buildEmptyTrackSlotList(role) {
+  return Array.from({ length: trackRoleLimit(role) }, () => null);
+}
+
+function ensureTrackSlotArrays() {
+  if (!state.ui.trackSlots) {
+    state.ui.trackSlots = {
+      actId: null,
+      songwriterIds: buildEmptyTrackSlotList("Songwriter"),
+      performerIds: buildEmptyTrackSlotList("Performer"),
+      producerIds: buildEmptyTrackSlotList("Producer")
+    };
+  }
+  ["Songwriter", "Performer", "Producer"].forEach((role) => {
+    const key = TRACK_ROLE_KEYS[role];
+    const limit = trackRoleLimit(role);
+    const current = Array.isArray(state.ui.trackSlots[key]) ? state.ui.trackSlots[key].slice(0, limit) : [];
+    while (current.length < limit) current.push(null);
+    state.ui.trackSlots[key] = current;
+  });
+}
+
+function parseTrackRoleTarget(targetId) {
+  const match = TRACK_ROLE_TARGET_PATTERN.exec(targetId || "");
+  if (!match) return null;
+  const role = TRACK_ROLE_MATCH[match[1]];
+  if (!role) return null;
+  const index = match[2] ? Math.max(0, Number(match[2]) - 1) : 0;
+  return { role, key: TRACK_ROLE_KEYS[role], index };
+}
+
+function listFromIds(ids) {
+  return Array.isArray(ids) ? ids.filter(Boolean) : [];
+}
+
+function normalizeRoleIds(ids, role) {
+  const unique = [...new Set(listFromIds(ids))];
+  return unique.slice(0, trackRoleLimit(role));
+}
+
+function getTrackRoleIdsFromSlots(role) {
+  ensureTrackSlotArrays();
+  if (typeof state.ui.slotTarget === "string") {
+    const match = TRACK_ROLE_TARGET_PATTERN.exec(state.ui.slotTarget);
+    if (match && !match[2]) {
+      const role = TRACK_ROLE_MATCH[match[1]];
+      if (role) {
+        state.ui.slotTarget = `${TRACK_ROLE_TARGETS[role]}-1`;
+      }
+    }
+  }
+  const key = TRACK_ROLE_KEYS[role];
+  return listFromIds(state.ui.trackSlots[key]);
+}
+
+function getTrackRoleIds(track, role) {
+  if (!track?.creators) return [];
+  const key = TRACK_ROLE_KEYS[role];
+  const ids = listFromIds(track.creators[key]);
+  if (ids.length) return ids;
+  const legacyId =
+    role === "Songwriter"
+      ? track.creators.songwriterId
+      : role === "Performer"
+        ? track.creators.performerId
+        : track.creators.producerId;
+  return legacyId ? [legacyId] : [];
+}
+
+function getCrewStageStats(stageIndex, crewCount = 1) {
+  const stage = STAGES[stageIndex];
+  if (!stage) {
+    return { crewCount: 0, minutesPerPiece: 0, pieces: 0, hours: 0 };
+  }
+  const rule = TRACK_CREW_RULES[stage.role] || { stepMinutes: 0, slotsPerTier: 1, maxPieces: 1 };
+  const baseHours = Math.max(1, stage.hours || 1);
+  const baseMinutes = baseHours * 60;
+  const cappedCount = clamp(Math.floor(crewCount || 0), 1, trackRoleLimit(stage.role));
+  const tierIndex = Math.floor((cappedCount - 1) / rule.slotsPerTier);
+  const withinTier = (cappedCount - 1) % rule.slotsPerTier;
+  const pieces = Math.min(rule.maxPieces, tierIndex + 1);
+  const minutesPerPiece = Math.max(1, baseMinutes - rule.stepMinutes * withinTier);
+  const crewMultiplier = (minutesPerPiece / baseMinutes) / pieces;
+  const hours = Math.max(0.05, baseHours * crewMultiplier);
+  return { crewCount: cappedCount, minutesPerPiece, pieces, hours };
+}
+
+function getGameMode(modeId) {
+  return GAME_MODES[modeId] || GAME_MODES[DEFAULT_GAME_MODE];
+}
+
+function listGameModes() {
+  return Object.values(GAME_MODES);
+}
 
 function makeDefaultState() {
   return {
-    time: { epochMs: BASE_EPOCH, totalHours: 0, speed: "pause", secPerHourPlay: 2.5, secPerHourFast: 1, acc: 0, lastTick: null, lastYear: new Date(BASE_EPOCH).getUTCFullYear() },
-    label: { name: "Hann Record Label", alignment: "Neutral", cash: 50000, fans: 0, country: "Annglora" },
-    studio: { slots: 2, inUse: 0 },
+    time: {
+      epochMs: BASE_EPOCH,
+      startEpochMs: BASE_EPOCH,
+      totalHours: 0,
+      speed: "pause",
+      secPerHourPlay: 2.5,
+      secPerHourFast: 1,
+      acc: 0,
+      lastTick: null,
+      lastYear: new Date(BASE_EPOCH).getUTCFullYear()
+    },
+    label: {
+      name: "Hann Record Label",
+      alignment: "Neutral",
+      cash: STARTING_CASH,
+      wallet: { cash: STARTING_CASH },
+      fans: 0,
+      country: "Annglora"
+    },
+    studio: { slots: STARTING_STUDIO_SLOTS, inUse: 0 },
     creators: [],
     acts: [],
     marketCreators: [],
@@ -16,6 +202,7 @@ function makeDefaultState() {
     releaseQueue: [],
     marketTracks: [],
     trends: [],
+    genreRanking: [],
     charts: { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} },
     rivals: [],
     quests: [],
@@ -25,8 +212,16 @@ function makeDefaultState() {
       genreTheme: "All",
       genreMood: "All",
       slotTarget: null,
+      createStage: "sheet",
+      createTrackId: null,
+      recommendAllMode: "solo",
       actSlots: { lead: null, member2: null, member3: null },
-      trackSlots: { actId: null, songwriterId: null, performerId: null, producerId: null },
+      trackSlots: {
+        actId: null,
+        songwriterIds: buildEmptyTrackSlotList("Songwriter"),
+        performerIds: buildEmptyTrackSlotList("Performer"),
+        producerIds: buildEmptyTrackSlotList("Producer")
+      },
       focusEraId: null,
       eraSlots: { actId: null },
       promoSlots: { trackId: null },
@@ -51,11 +246,12 @@ function makeDefaultState() {
       },
       chartHistoryWeek: null,
       chartHistorySnapshot: null,
-      socialShowInternal: true,
+      socialShowInternal: false,
       socialFilters: {
         creator: true,
         quest: true,
         track: true,
+        promo: true,
         era: true,
         economy: true,
         system: true,
@@ -64,6 +260,18 @@ function makeDefaultState() {
         receipt: true,
         ccc: true
       },
+      cccFilters: {
+        Songwriter: true,
+        Performer: true,
+        Producer: true
+      },
+      studioFilters: {
+        owned: true,
+        unowned: true,
+        occupied: true,
+        unoccupied: true
+      },
+      studioOwnerFilter: "all",
       calendarTab: "label",
       calendarFilters: {
         labelScheduled: true,
@@ -74,7 +282,7 @@ function makeDefaultState() {
       activeView: "charts"
     },
     era: { active: [], history: [] },
-    economy: { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0 },
+    economy: { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, leaseFeesWeek: 0 },
     lastWeekIndex: 0,
     population: { snapshot: null, lastUpdateYear: 0, lastUpdateAt: null, campaignSplit: null, campaignSplitStage: null },
     social: { posts: [] },
@@ -93,6 +301,9 @@ function makeDefaultState() {
       exp: 0,
       promoRuns: 0,
       cumulativeLabelPoints: {},
+      gameMode: DEFAULT_GAME_MODE,
+      startYear: getGameMode(DEFAULT_GAME_MODE).startYear,
+      seedCalibration: null,
       gameOver: null,
       winState: null,
       winShown: false,
@@ -104,6 +315,42 @@ function makeDefaultState() {
 }
 
 const state = makeDefaultState();
+
+function getStartEpochMsFromState() {
+  if (state.time && typeof state.time.startEpochMs === "number") return state.time.startEpochMs;
+  const totalHours = typeof state.time?.totalHours === "number" ? state.time.totalHours : 0;
+  const epoch = typeof state.time?.epochMs === "number" ? state.time.epochMs : BASE_EPOCH;
+  return epoch - totalHours * HOUR_MS;
+}
+
+function applyGameMode(modeId) {
+  const mode = getGameMode(modeId);
+  const startEpochMs = Date.UTC(mode.startYear, 0, 1, 0, 0, 0);
+  state.time.epochMs = startEpochMs;
+  state.time.startEpochMs = startEpochMs;
+  state.time.totalHours = 0;
+  state.time.lastYear = mode.startYear;
+  if (!state.meta) state.meta = {};
+  state.meta.gameMode = mode.id;
+  state.meta.startYear = mode.startYear;
+  return mode;
+}
+
+function loadSeedCalibration() {
+  if (typeof localStorage === "undefined") return null;
+  const raw = localStorage.getItem(SEED_CALIBRATION_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveSeedCalibration(calibration) {
+  if (!calibration || typeof localStorage === "undefined") return;
+  localStorage.setItem(SEED_CALIBRATION_KEY, JSON.stringify(calibration));
+}
 
 function populationBoundsForYear(prevPop, year, floor) {
   let min = floor;
@@ -235,6 +482,12 @@ function clampQuality(value) {
 function clampStamina(value) {
   return clamp(Math.round(value), 0, STAMINA_MAX);
 }
+
+const DAY_MS = HOUR_MS * 24;
+const YEAR_MS = DAY_MS * 365;
+const CREATOR_INACTIVITY_MS = YEAR_MS * 2;
+const MARKET_MIN_PER_ROLE = 2;
+const MARKET_ROLES = ["Songwriter", "Performer", "Producer"];
 
 const STUDIO_CAP_PER_LABEL = 50;
 const ACHIEVEMENT_TARGET = 12;
@@ -410,7 +663,7 @@ const ACHIEVEMENTS = [
   {
     id: "REQ-12",
     label: "Promo Push",
-    desc: "Run 5 promotion campaigns.",
+    desc: "Run 5 promo pushes.",
     exp: 1500,
     target: 5,
     check: () => state.meta.promoRuns >= 5,
@@ -484,24 +737,29 @@ function fillTemplate(template, tokens) {
 }
 
 function makeGenre(theme, mood) {
+  if (!theme || !mood) return "";
   return `${theme} / ${mood}`;
 }
 
 function formatGenreLabel(theme, mood) {
+  if (!theme || !mood) return "-";
   return `${theme.toLowerCase()} but it's ${mood.toLowerCase()}`;
 }
 
 function formatGenreKeyLabel(genre) {
+  if (!genre) return "-";
   const parts = genre.split(" / ");
   if (parts.length !== 2) return genre;
   return formatGenreLabel(parts[0], parts[1]);
 }
 
 function themeFromGenre(genre) {
+  if (!genre) return "";
   return genre.split(" / ")[0];
 }
 
 function moodFromGenre(genre) {
+  if (!genre) return "";
   return genre.split(" / ")[1];
 }
 
@@ -526,6 +784,38 @@ function slugify(text) {
 
 function getModifier(id) {
   return MODIFIERS.find((mod) => mod.id === id) || MODIFIERS[0];
+}
+
+function resolveModifier(modifier) {
+  if (!modifier) return null;
+  if (typeof modifier === "string") return getModifier(modifier);
+  if (modifier && typeof modifier === "object") {
+    if (modifier.id) {
+      const resolved = MODIFIERS.find((mod) => mod.id === modifier.id);
+      return resolved || modifier;
+    }
+    if (typeof modifier.hoursDelta === "number") return modifier;
+  }
+  return null;
+}
+
+function getAdjustedStageHours(stageIndex, modifier, crewCount = 1) {
+  const stage = STAGES[stageIndex];
+  if (!stage) return 0;
+  const baseHours = getCrewStageStats(stageIndex, crewCount).hours;
+  const resolved = resolveModifier(modifier);
+  const hoursDelta = resolved?.hoursDelta || 0;
+  return Math.max(0.05, baseHours + hoursDelta);
+}
+
+function getAdjustedTotalStageHours(modifier, crewCounts = {}) {
+  return STAGES.reduce((sum, stage, index) => {
+    const count =
+      crewCounts[stage.role]
+      || crewCounts[index]
+      || 1;
+    return sum + getAdjustedStageHours(index, modifier, count);
+  }, 0);
 }
 
 function renderAlignmentTag(alignment) {
@@ -580,6 +870,27 @@ function getSlotElement(targetId) {
   return document.querySelector(`[data-slot-target="${targetId}"]`);
 }
 
+function shakeElement(el) {
+  if (!el) return;
+  el.classList.remove("shake");
+  void el.offsetWidth;
+  el.classList.add("shake");
+  window.setTimeout(() => {
+    el.classList.remove("shake");
+  }, 320);
+}
+
+function shakeSlot(targetId) {
+  shakeElement(getSlotElement(targetId));
+}
+
+function shakeField(fieldId) {
+  const el = $(fieldId);
+  if (!el) return;
+  const field = el.closest(".field") || el;
+  shakeElement(field);
+}
+
 function describeSlot(targetId) {
   const slot = getSlotElement(targetId);
   if (!slot) return targetId || "-";
@@ -590,7 +901,33 @@ function describeSlot(targetId) {
 function commitSlotChange({ updateStats = false } = {}) {
   renderSlots();
   if (updateStats) renderStats();
+  if (typeof window !== "undefined" && window.updateRecommendations) {
+    window.updateRecommendations();
+  }
   saveToActiveSlot();
+}
+
+function ejectLowStaminaTrackSlots() {
+  ensureTrackSlotArrays();
+  const cleared = [];
+  ["Songwriter", "Performer", "Producer"].forEach((role) => {
+    const key = TRACK_ROLE_KEYS[role];
+    const req = staminaRequirement(role);
+    const list = state.ui.trackSlots[key] || [];
+    list.forEach((id, index) => {
+      if (!id) return;
+      const creator = getCreator(id);
+      if (!creator || creator.stamina >= req) return;
+      list[index] = null;
+      cleared.push({ role, creator });
+    });
+  });
+  if (!cleared.length) return;
+  const names = [...new Set(cleared.map((entry) => entry.creator?.name).filter(Boolean))];
+  if (names.length) {
+    logEvent(`Removed low-stamina creators from track slots: ${names.join(", ")}.`, "warn");
+  }
+  commitSlotChange();
 }
 
 function setSlotTarget(targetId) {
@@ -598,44 +935,92 @@ function setSlotTarget(targetId) {
   commitSlotChange({ updateStats: true });
 }
 
+function getSlotValue(targetId) {
+  if (targetId === "act-lead") return state.ui.actSlots.lead;
+  if (targetId === "act-member2") return state.ui.actSlots.member2;
+  if (targetId === "act-member3") return state.ui.actSlots.member3;
+  if (targetId === "track-act") return state.ui.trackSlots.actId;
+  if (targetId === "era-act") return state.ui.eraSlots.actId;
+  if (targetId === "promo-track") return state.ui.promoSlots.trackId;
+  if (targetId === "social-track") return state.ui.socialSlots.trackId;
+  const trackRole = parseTrackRoleTarget(targetId);
+  if (trackRole) {
+    ensureTrackSlotArrays();
+    const list = state.ui.trackSlots[trackRole.key] || [];
+    return list[trackRole.index] || null;
+  }
+  return null;
+}
+
 function setSlotValue(targetId, value) {
   if (targetId === "act-lead") state.ui.actSlots.lead = value;
   if (targetId === "act-member2") state.ui.actSlots.member2 = value;
   if (targetId === "act-member3") state.ui.actSlots.member3 = value;
   if (targetId === "track-act") state.ui.trackSlots.actId = value;
-  if (targetId === "track-writer") state.ui.trackSlots.songwriterId = value;
-  if (targetId === "track-performer") state.ui.trackSlots.performerId = value;
-  if (targetId === "track-producer") state.ui.trackSlots.producerId = value;
   if (targetId === "era-act") state.ui.eraSlots.actId = value;
   if (targetId === "promo-track") state.ui.promoSlots.trackId = value;
   if (targetId === "social-track") state.ui.socialSlots.trackId = value;
+  const trackRole = parseTrackRoleTarget(targetId);
+  if (trackRole) {
+    ensureTrackSlotArrays();
+    const list = state.ui.trackSlots[trackRole.key] || [];
+    if (trackRole.index >= list.length) return;
+    if (value) {
+      const dupIndex = list.findIndex((id) => id === value);
+      if (dupIndex !== -1 && dupIndex !== trackRole.index) list[dupIndex] = null;
+    }
+    list[trackRole.index] = value || null;
+  }
 }
 
 function assignToSlot(targetId, entityType, entityId) {
   const slot = getSlotElement(targetId);
   if (!slot) return;
   if (slot.classList.contains("disabled")) {
+    shakeSlot(targetId);
     logEvent("This slot is disabled for Solo Acts.", "warn");
     return;
   }
   const expectedType = slot.dataset.slotType;
   if (expectedType !== entityType) {
+    shakeSlot(targetId);
     logEvent(`Slot expects ${expectedType} ID.`, "warn");
     return;
   }
   if (entityType === "creator") {
     const creator = getCreator(entityId);
-    if (!creator) return;
+    if (!creator) {
+      shakeSlot(targetId);
+      logEvent("Creator not found.", "warn");
+      return;
+    }
     const role = slot.dataset.slotRole;
     if (role && creator.role !== role) {
-      logEvent(`${creator.name} is not a ${role}.`, "warn");
+      shakeSlot(targetId);
+      logEvent(`${creator.name} is not a ${roleLabel(role)}.`, "warn");
       return;
+    }
+    const trackRole = parseTrackRoleTarget(targetId);
+    if (trackRole) {
+      const req = staminaRequirement(trackRole.role);
+      if (creator.stamina < req) {
+        shakeSlot(targetId);
+        logEvent(`${creator.name} needs ${req} stamina for ${roleLabel(trackRole.role)} slots.`, "warn");
+        return;
+      }
     }
   }
   if (entityType === "track" && targetId === "promo-track") {
     const track = getTrack(entityId);
     if (!track || track.status !== "Released") {
-      logEvent("Campaign slot requires a released Track ID.", "warn");
+      shakeSlot(targetId);
+      logEvent("Promo slot requires a released Track ID.", "warn");
+      return;
+    }
+    const era = track.eraId ? getEraById(track.eraId) : null;
+    if (!era || era.status !== "Active") {
+      shakeSlot(targetId);
+      logEvent("Promo slot requires a track from an active era.", "warn");
       return;
     }
   }
@@ -648,7 +1033,66 @@ function clearSlot(targetId) {
   commitSlotChange();
 }
 
+function ensureTrackSlotGrid() {
+  const grid = $("trackSlotGrid");
+  if (!grid || grid.dataset.built === "true") return;
+  grid.dataset.built = "true";
+  grid.innerHTML = "";
+  const roles = [
+    { role: "Songwriter", target: TRACK_ROLE_TARGETS.Songwriter },
+    { role: "Performer", target: TRACK_ROLE_TARGETS.Performer },
+    { role: "Producer", target: TRACK_ROLE_TARGETS.Producer }
+  ];
+  roles.forEach((entry) => {
+    const limit = trackRoleLimit(entry.role);
+    const group = document.createElement("div");
+    group.className = "slot-role-group";
+    group.dataset.slotRoleGroup = entry.role;
+    const header = document.createElement("div");
+    header.className = "slot-group-label";
+    header.dataset.slotGroupLabel = entry.role;
+    header.textContent = `${roleLabel(entry.role)} Slots (0/${limit})`;
+    group.appendChild(header);
+    const slotGrid = document.createElement("div");
+    slotGrid.className = "slot-role-grid";
+    slotGrid.dataset.slotRoleGrid = entry.role;
+    group.appendChild(slotGrid);
+    const columns = Math.max(1, Math.ceil(limit / STUDIO_COLUMN_SLOT_COUNT));
+    // Studio columns render five slots each to mirror studio capacity.
+    for (let col = 0; col < columns; col += 1) {
+      const columnLabel = document.createElement("div");
+      columnLabel.className = "slot-column-label";
+      columnLabel.dataset.slotColumnLabel = `${entry.role}-${col + 1}`;
+      columnLabel.textContent = `Studio ${col + 1}`;
+      slotGrid.appendChild(columnLabel);
+      for (let row = 0; row < STUDIO_COLUMN_SLOT_COUNT; row += 1) {
+        const index = col * STUDIO_COLUMN_SLOT_COUNT + row + 1;
+        if (index > limit) break;
+        const slot = document.createElement("div");
+        slot.className = "id-slot";
+        slot.dataset.slotTarget = `${entry.target}-${index}`;
+        slot.dataset.slotType = "creator";
+        slot.dataset.slotRole = entry.role;
+        slot.dataset.slotGroup = "track";
+        const label = `${roleLabel(entry.role)} Slot`;
+        slot.innerHTML = `
+          <div class="slot-label">${label} ${index}</div>
+          <div class="slot-value">Unassigned</div>
+          <div class="slot-actions">
+            <button type="button" class="ghost mini" data-slot-recommend="${entry.target}-${index}">Recommend</button>
+            <button type="button" class="ghost mini" data-slot-clear="${entry.target}-${index}">Clear</button>
+          </div>
+        `;
+        slotGrid.appendChild(slot);
+      }
+    }
+    grid.appendChild(group);
+  });
+}
+
 function renderSlots() {
+  ensureTrackSlotGrid();
+  ensureTrackSlotArrays();
   const activeTarget = state.ui.slotTarget;
   document.querySelectorAll(".id-slot").forEach((slot) => {
     const target = slot.dataset.slotTarget;
@@ -659,9 +1103,6 @@ function renderSlots() {
   const actMember2 = getCreator(state.ui.actSlots.member2);
   const actMember3 = getCreator(state.ui.actSlots.member3);
   const trackAct = getAct(state.ui.trackSlots.actId);
-  const trackWriter = getCreator(state.ui.trackSlots.songwriterId);
-  const trackPerformer = getCreator(state.ui.trackSlots.performerId);
-  const trackProducer = getCreator(state.ui.trackSlots.producerId);
   const eraAct = getAct(state.ui.eraSlots.actId);
   const promoTrack = state.marketTracks.find((entry) => entry.trackId === state.ui.promoSlots.trackId)
     || getTrack(state.ui.promoSlots.trackId);
@@ -671,18 +1112,69 @@ function renderSlots() {
   if ($("actMember2Slot")) $("actMember2Slot").textContent = actMember2 ? actMember2.name : "Unassigned";
   if ($("actMember3Slot")) $("actMember3Slot").textContent = actMember3 ? actMember3.name : "Unassigned";
   if ($("trackActSlot")) $("trackActSlot").textContent = trackAct ? trackAct.name : "Unassigned";
-  if ($("trackWriterSlot")) $("trackWriterSlot").textContent = trackWriter ? trackWriter.name : "Unassigned";
-  if ($("trackPerformerSlot")) $("trackPerformerSlot").textContent = trackPerformer ? trackPerformer.name : "Unassigned";
-  if ($("trackProducerSlot")) $("trackProducerSlot").textContent = trackProducer ? trackProducer.name : "Unassigned";
   if ($("eraActSlot")) $("eraActSlot").textContent = eraAct ? eraAct.name : "Unassigned";
   if ($("promoTrackSlot")) $("promoTrackSlot").textContent = promoTrack ? promoTrack.title : "Unassigned";
   if ($("socialTrackSlot")) $("socialTrackSlot").textContent = socialTrack ? socialTrack.title : "Unassigned";
+
+  document.querySelectorAll(".id-slot").forEach((slot) => {
+    const target = slot.dataset.slotTarget;
+    const type = slot.dataset.slotType;
+    const value = getSlotValue(target);
+    const valueEl = slot.querySelector(".slot-value");
+    if (!valueEl) return;
+    if (type === "creator") {
+      const creator = value ? getCreator(value) : null;
+      valueEl.textContent = creator ? creator.name : "Unassigned";
+    } else if (type === "act") {
+      const act = value ? getAct(value) : null;
+      valueEl.textContent = act ? act.name : "Unassigned";
+    } else if (type === "track") {
+      const track = value ? getTrack(value) : null;
+      valueEl.textContent = track ? track.title : "Unassigned";
+    }
+  });
+
+  document.querySelectorAll("[data-slot-group-label]").forEach((label) => {
+    const role = label.dataset.slotGroupLabel;
+    if (!role) return;
+    const limit = trackRoleLimit(role);
+    const assigned = getTrackRoleIdsFromSlots(role).length;
+    label.textContent = `${roleLabel(role)} Slots (${assigned}/${limit})`;
+  });
+
+  const createStage = state.ui.activeView === "create" ? (state.ui.createStage || "sheet") : null;
+  const showSlot = (role, visible) => {
+    document.querySelectorAll(`.slot-role-group[data-slot-role-group="${role}"]`)
+      .forEach((group) => {
+        group.classList.toggle("hidden", !visible);
+      });
+    document.querySelectorAll(`.id-slot[data-slot-group="track"][data-slot-role="${role}"]`)
+      .forEach((slot) => {
+        slot.classList.toggle("hidden", !visible);
+      });
+    document.querySelectorAll(`.slot-group-label[data-slot-group-label="${role}"]`)
+      .forEach((label) => {
+        label.classList.toggle("hidden", !visible);
+      });
+  };
+  if (createStage) {
+    showSlot("Songwriter", createStage === "sheet");
+    showSlot("Performer", createStage === "demo");
+    showSlot("Producer", createStage === "master");
+  } else {
+    showSlot("Songwriter", true);
+    showSlot("Performer", true);
+    showSlot("Producer", true);
+  }
 
   const solo = $("actTypeSelect") && $("actTypeSelect").value === "Solo Act";
   ["act-member2", "act-member3"].forEach((target) => {
     const slot = getSlotElement(target);
     if (slot) slot.classList.toggle("disabled", solo);
   });
+  if (typeof window !== "undefined" && window.ensureSlotDropdowns) {
+    window.ensureSlotDropdowns();
+  }
   if (typeof window !== "undefined" && window.updateSlotDropdowns) {
     window.updateSlotDropdowns();
   }
@@ -715,6 +1207,22 @@ function formatDate(epochMs) {
   return `${dayName} - ${monthName} ${day}, ${year} - ${formatHour(hour)}`;
 }
 
+function syncLabelWallets() {
+  if (state.label) {
+    if (!state.label.wallet) state.label.wallet = { cash: 0 };
+    state.label.wallet.cash = state.label.cash;
+  }
+  if (Array.isArray(state.rivals)) {
+    state.rivals.forEach((rival) => {
+      if (typeof rival.cash !== "number") rival.cash = STARTING_CASH;
+      if (!rival.wallet) rival.wallet = { cash: rival.cash };
+      rival.wallet.cash = rival.cash;
+      if (!rival.studio) rival.studio = { slots: STARTING_STUDIO_SLOTS };
+      if (typeof rival.studio.slots !== "number") rival.studio.slots = STARTING_STUDIO_SLOTS;
+    });
+  }
+}
+
 function weekIndex() {
   return Math.floor(state.time.totalHours / WEEK_HOURS);
 }
@@ -727,6 +1235,40 @@ function logEvent(text, kind = "info") {
   state.events.unshift({ ts: state.time.epochMs, text, kind });
   if (state.events.length > 80) state.events.pop();
   renderEventLog();
+}
+
+function loadUiEventLog() {
+  const raw = localStorage.getItem(UI_EVENT_LOG_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function markUiLogStart() {
+  session.uiLogStart = loadUiEventLog().length;
+}
+
+function loadLossArchives() {
+  const raw = localStorage.getItem(LOSS_ARCHIVE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLossArchives(entries) {
+  localStorage.setItem(LOSS_ARCHIVE_KEY, JSON.stringify(entries));
+}
+
+function getLossArchives() {
+  return loadLossArchives();
 }
 
 function handleFromName(name, fallback) {
@@ -859,7 +1401,7 @@ function postContractEmail(creator, signCost) {
       ...contact.playerAddress,
       `Subject: ${subject}`,
       `Hello, ${creator.name}!`,
-      `Welcome to ${contact.labelName} as our new ${creator.role}, starting ${startDate}.`,
+      `Welcome to ${contact.labelName} as our new ${roleLabel(creator.role)}, starting ${startDate}.`,
       `Reward: Signing bonus ${formatMoney(signCost || 0)}.`,
       "Best,",
       `${contact.labelName} CEO`
@@ -941,6 +1483,17 @@ function normalizeCreator(creator) {
   if (!creator.prefThemes?.length) creator.prefThemes = pickDistinct(THEMES, 2);
   if (!creator.prefMoods?.length) creator.prefMoods = pickDistinct(MOODS, 2);
   if (!creator.country) creator.country = pickOne(NATIONS);
+  const now = typeof state?.time?.epochMs === "number" ? state.time.epochMs : Date.now();
+  if (typeof creator.lastActivityAt !== "number") creator.lastActivityAt = now;
+  if (typeof creator.lastReleaseAt !== "number") creator.lastReleaseAt = null;
+  if (typeof creator.lastPromoAt !== "number") creator.lastPromoAt = null;
+  if (typeof creator.staminaUsedToday !== "number") creator.staminaUsedToday = 0;
+  if (typeof creator.lastUsageDay !== "number") {
+    creator.lastUsageDay = Math.floor((creator.lastActivityAt || now) / DAY_MS);
+  }
+  if (typeof creator.overuseStrikes !== "number") creator.overuseStrikes = 0;
+  if (typeof creator.lastOveruseDay !== "number") creator.lastOveruseDay = null;
+  if (!creator.departurePending) creator.departurePending = null;
   return creator;
 }
 
@@ -948,6 +1501,78 @@ function computeSignCost(creator) {
   const roleFactor = creator.role === "Producer" ? 1.2 : creator.role === "Songwriter" ? 0.95 : 1.05;
   const base = 900 + creator.skill * 40;
   return clamp(Math.round(base * roleFactor), 900, 9000);
+}
+
+function getTrackCreatorIds(track) {
+  if (!track?.creators) return [];
+  const ids = [
+    ...getTrackRoleIds(track, "Songwriter"),
+    ...getTrackRoleIds(track, "Performer"),
+    ...getTrackRoleIds(track, "Producer")
+  ];
+  return [...new Set(ids.filter(Boolean))];
+}
+
+function getWorkOrderCreatorIds(order) {
+  if (!order) return [];
+  if (Array.isArray(order.creatorIds) && order.creatorIds.length) return order.creatorIds;
+  return order.creatorId ? [order.creatorId] : [];
+}
+
+function getBusyCreatorIds(status) {
+  const ids = new Set();
+  state.workOrders.forEach((order) => {
+    if (status && order.status !== status) return;
+    getWorkOrderCreatorIds(order).forEach((id) => ids.add(id));
+  });
+  return ids;
+}
+
+function markCreatorActivityById(creatorId, atMs = state.time.epochMs) {
+  const creator = getCreator(creatorId);
+  if (!creator) return;
+  creator.lastActivityAt = atMs;
+}
+
+function markCreatorRelease(creatorIds, atMs = state.time.epochMs) {
+  if (!Array.isArray(creatorIds)) return;
+  creatorIds.forEach((id) => {
+    const creator = getCreator(id);
+    if (!creator) return;
+    creator.lastReleaseAt = atMs;
+    creator.lastActivityAt = atMs;
+  });
+}
+
+function markCreatorPromo(creatorIds, atMs = state.time.epochMs) {
+  if (!Array.isArray(creatorIds)) return;
+  creatorIds.forEach((id) => {
+    const creator = getCreator(id);
+    if (!creator) return;
+    creator.lastPromoAt = atMs;
+    creator.lastActivityAt = atMs;
+  });
+}
+
+function updateCreatorOveruse(creator, staminaCost) {
+  if (!creator) return;
+  const dayIndex = Math.floor(state.time.epochMs / DAY_MS);
+  if (creator.lastUsageDay !== dayIndex) {
+    creator.lastUsageDay = dayIndex;
+    creator.staminaUsedToday = 0;
+    creator.lastOveruseDay = null;
+  }
+  creator.staminaUsedToday = (creator.staminaUsedToday || 0) + staminaCost;
+  if (creator.staminaUsedToday <= STAMINA_OVERUSE_LIMIT) return;
+  if (creator.lastOveruseDay === dayIndex) return;
+  creator.overuseStrikes = (creator.overuseStrikes || 0) + 1;
+  creator.lastOveruseDay = dayIndex;
+  if (creator.overuseStrikes >= STAMINA_OVERUSE_STRIKES) {
+    if (!creator.departurePending) {
+      creator.departurePending = { reason: "overuse", flaggedAt: state.time.epochMs };
+      logEvent(`${creator.name} is overused and considering leaving the label.`, "warn");
+    }
+  }
 }
 
 function creatorPreferredGenres(creator) {
@@ -1011,7 +1636,7 @@ function seedActs() {
 function buildMarketCreators() {
   const list = [];
   const existing = () => [...state.creators.map((creator) => creator.name), ...list.map((creator) => creator.name)];
-  ["Songwriter", "Performer", "Producer"].forEach((role) => {
+  MARKET_ROLES.forEach((role) => {
     const first = normalizeCreator(makeCreator(role, existing()));
     const second = normalizeCreator(makeCreator(role, existing()));
     first.signCost = computeSignCost(first);
@@ -1020,6 +1645,20 @@ function buildMarketCreators() {
     list.push(second);
   });
   return list;
+}
+
+function ensureMarketCreators() {
+  if (!Array.isArray(state.marketCreators)) state.marketCreators = [];
+  const existing = () => [...state.creators.map((creator) => creator.name), ...state.marketCreators.map((creator) => creator.name)];
+  MARKET_ROLES.forEach((role) => {
+    const current = state.marketCreators.filter((creator) => creator.role === role).length;
+    const missing = Math.max(0, MARKET_MIN_PER_ROLE - current);
+    for (let i = 0; i < missing; i += 1) {
+      const creator = normalizeCreator(makeCreator(role, existing()));
+      creator.signCost = computeSignCost(creator);
+      state.marketCreators.push(creator);
+    }
+  });
 }
 
 function buildRivals() {
@@ -1031,7 +1670,11 @@ function buildRivals() {
     focusThemes: label.focusThemes,
     focusMoods: label.focusMoods,
     momentum: 0.5,
-    seedBonus: 0
+    seedBonus: 0,
+    cash: STARTING_CASH,
+    wallet: { cash: STARTING_CASH },
+    studio: { slots: STARTING_STUDIO_SLOTS },
+    creators: []
   }));
 }
 
@@ -1097,6 +1740,28 @@ function simulateSeedHistory(startYear, endYear, rng, labelNames, dominantLabelI
   return { startYear, endYear, cumulative, winners };
 }
 
+function captureSeedCalibration(year, labelScores) {
+  if (state.meta.gameMode !== "founding") return;
+  if (year !== SEED_CALIBRATION_YEAR) return;
+  const calibration = {
+    year,
+    capturedAt: state.time.epochMs,
+    labelScores: labelScores || {},
+    trends: Array.isArray(state.trends) ? state.trends.slice() : [],
+    marketTrackCount: state.marketTracks?.length || 0,
+    rivalMomentum: state.rivals.map((rival) => ({
+      id: rival.id,
+      name: rival.name,
+      momentum: rival.momentum || 0,
+      seedBonus: rival.seedBonus || 0,
+      creators: Array.isArray(rival.creators) ? rival.creators.length : 0
+    }))
+  };
+  state.meta.seedCalibration = calibration;
+  saveSeedCalibration(calibration);
+  logEvent("Seed calibration captured for 2400 kickoff.");
+}
+
 function seedWorldHistory() {
   const baselineSeed = 2025;
   const baselineRng = makeSeededRng(baselineSeed);
@@ -1107,14 +1772,17 @@ function seedWorldHistory() {
   const labelNames = state.rivals.map((rival) => rival.name);
   const baseline = simulateSeedHistory(2025, 2200, baselineRng, labelNames, null);
   const variant = simulateSeedHistory(2200, 2400, variantRng, labelNames, preset?.dominantLabelId || null);
+  const calibration = loadSeedCalibration();
   state.meta.seedInfo = {
     baselineSeed,
     variantSeed,
     dominantLabelId: preset?.dominantLabelId || null,
     baselineRange: [baseline.startYear, baseline.endYear],
-    variantRange: [variant.startYear, variant.endYear]
+    variantRange: [variant.startYear, variant.endYear],
+    calibration: calibration ? { year: calibration.year, capturedAt: calibration.capturedAt } : null
   };
   state.meta.seedHistory = { baseline, variant };
+  if (calibration) state.meta.seedCalibration = calibration;
 
   const maxPoints = Math.max(...Object.values(variant.cumulative));
   const scaledCumulative = {};
@@ -1166,7 +1834,7 @@ function makeTrackTitleByCountry(theme, mood, country) {
   const lang = pickTrackLanguage(country);
   const pool = trackPoolByLang(lang);
   const base = pickUniqueName(pool, existing, "II");
-  if (Math.random() < 0.35) {
+  if (theme && mood && Math.random() < 0.35) {
     return `${base} (${formatGenreLabel(theme, mood)})`;
   }
   return base;
@@ -1192,27 +1860,52 @@ function makeProjectTitle() {
 }
 
 function computeQualityPotential(track) {
-  const writer = getCreator(track.creators.songwriterId);
-  const performer = getCreator(track.creators.performerId);
-  const producer = getCreator(track.creators.producerId);
-  if (!writer || !performer || !producer) return clampQuality(60);
-  let score = 40 + writer.skill * 0.2 + performer.skill * 0.2 + producer.skill * 0.3 + rand(-5, 5);
-  const prefHits =
-    (writer.prefThemes.includes(track.theme) ? 1 : 0) +
-    (performer.prefMoods.includes(track.mood) ? 1 : 0) +
-    (producer.prefThemes.includes(track.theme) ? 1 : 0);
-  score += prefHits * 3;
+  const writers = getTrackRoleIds(track, "Songwriter").map((id) => getCreator(id)).filter(Boolean);
+  const performers = getTrackRoleIds(track, "Performer").map((id) => getCreator(id)).filter(Boolean);
+  const producers = getTrackRoleIds(track, "Producer").map((id) => getCreator(id)).filter(Boolean);
+  const averageSkill = (list) => {
+    if (!list.length) return 0;
+    return list.reduce((sum, creator) => sum + creator.skill, 0) / list.length;
+  };
+  const matchRate = (list, matches) => {
+    if (!list.length) return 0;
+    const hits = list.filter(matches).length;
+    return hits / list.length;
+  };
+  let score = 40 + rand(-5, 5);
+  score += averageSkill(writers) * 0.2;
+  score += averageSkill(performers) * 0.2;
+  score += averageSkill(producers) * 0.3;
+  if (track.theme) {
+    score += matchRate(writers, (creator) => creator.prefThemes.includes(track.theme)) * 3;
+    score += matchRate(producers, (creator) => creator.prefThemes.includes(track.theme)) * 3;
+  }
+  if (track.mood) {
+    score += matchRate(performers, (creator) => creator.prefMoods.includes(track.mood)) * 3;
+  }
   if (track.mood === "Boring") score -= 12;
   if (track.modifier?.qualityDelta) score += track.modifier.qualityDelta;
   return clampQuality(score);
 }
 
-function qualityGrade(score) {
+function refreshTrackQuality(track, stageIndex) {
+  track.qualityPotential = computeQualityPotential(track);
+  const stage = STAGES[stageIndex];
+  const progress = stage ? stage.progress : 1;
+  track.quality = Math.round(track.qualityPotential * progress);
+}
+
+function scoreGrade(score) {
+  if (score >= 95) return "S";
   if (score >= 90) return "A";
   if (score >= 80) return "B";
   if (score >= 70) return "C";
   if (score >= 60) return "D";
   return "F";
+}
+
+function qualityGrade(score) {
+  return scoreGrade(score);
 }
 
 function getCreator(id) {
@@ -1223,12 +1916,140 @@ function getTrack(id) {
   return state.tracks.find((t) => t.id === id);
 }
 
+function assignTrackAct(trackId, actId) {
+  const track = getTrack(trackId);
+  if (!track) {
+    logEvent("Track not found for assignment.", "warn");
+    return false;
+  }
+  if (track.status === "Released") {
+    logEvent("Cannot change Act after release.", "warn");
+    return false;
+  }
+  if (!actId) {
+    logEvent("Select an Act to assign.", "warn");
+    return false;
+  }
+  const act = getAct(actId);
+  if (!act) {
+    logEvent("Act not found for assignment.", "warn");
+    return false;
+  }
+  const prevAct = track.actId;
+  track.actId = act.id;
+  if (prevAct && prevAct !== act.id) {
+    track.eraId = null;
+  }
+  logEvent(`Assigned "${track.title}" to Act "${act.name}".`);
+  return true;
+}
+
+function isTrackPipelineActive(track) {
+  return track.status === "In Production" || track.status === "Awaiting Demo" || track.status === "Awaiting Master";
+}
+
+function isMasteringTrack(track) {
+  return track.stageIndex === 2 && (track.status === "Awaiting Master" || track.status === "In Production");
+}
+
+function getOwnedStudioSlots() {
+  return clamp(Math.round(state.studio.slots || 0), 0, STUDIO_CAP_PER_LABEL);
+}
+
+function getStudioUsageCounts() {
+  const ownedSlots = getOwnedStudioSlots();
+  let owned = 0;
+  let leased = 0;
+  state.workOrders.forEach((order) => {
+    if (order.status !== "In Progress") return;
+    const slot = Number.isFinite(order.studioSlot) ? order.studioSlot : null;
+    if (!slot) return;
+    if (slot <= ownedSlots) {
+      owned += 1;
+    } else {
+      leased += 1;
+    }
+  });
+  return { owned, leased, total: owned + leased };
+}
+
 function getStudioUsageCount() {
-  return state.tracks.filter((track) => track.status === "In Production").length;
+  return getStudioUsageCounts().total;
+}
+
+function getLeasedStudioUsage() {
+  return getStudioUsageCounts().leased;
+}
+
+function syncStudioUsage() {
+  const inUse = getStudioUsageCount();
+  state.studio.inUse = inUse;
+  return inUse;
+}
+
+function getStageStudioUsage(stageIndex) {
+  return state.workOrders.filter(
+    (order) => order.status === "In Progress" && order.stageIndex === stageIndex
+  ).length;
+}
+
+function getStageStudioAvailable(stageIndex) {
+  return Math.max(0, STAGE_STUDIO_LIMIT - getStageStudioUsage(stageIndex));
+}
+
+function getActiveStudioSlots() {
+  const used = new Set();
+  state.workOrders.forEach((order) => {
+    if (order.status === "In Progress" && Number.isFinite(order.studioSlot)) {
+      used.add(order.studioSlot);
+    }
+  });
+  return used;
+}
+
+function findAvailableStudioSlot(usedSlots) {
+  const used = usedSlots || getActiveStudioSlots();
+  const ownedSlots = getOwnedStudioSlots();
+  const market = getStudioMarketSnapshot();
+  const maxSlot = Math.min(STUDIO_CAP_PER_LABEL, ownedSlots + getLeasedStudioUsage() + market.available);
+  for (let i = 1; i <= maxSlot; i += 1) {
+    if (!used.has(i)) return i;
+  }
+  return null;
+}
+
+function syncWorkOrderStudioSlots() {
+  const inProgress = state.workOrders.filter((order) => order.status === "In Progress");
+  const used = new Set();
+  const ownedSlots = getOwnedStudioSlots();
+  const market = getStudioMarketSnapshot();
+  const maxSlot = Math.min(STUDIO_CAP_PER_LABEL, ownedSlots + getLeasedStudioUsage() + market.available);
+  inProgress.forEach((order) => {
+    const slot = Number.isFinite(order.studioSlot) ? order.studioSlot : null;
+    if (slot && slot <= maxSlot && !used.has(slot)) {
+      used.add(slot);
+    } else {
+      order.studioSlot = null;
+    }
+  });
+  inProgress.forEach((order) => {
+    if (Number.isFinite(order.studioSlot)) return;
+    const slot = findAvailableStudioSlot(used);
+    if (!slot) return;
+    order.studioSlot = slot;
+    used.add(slot);
+  });
+  state.studio.inUse = inProgress.length;
 }
 
 function getStudioAvailableSlots() {
-  return Math.max(0, state.studio.slots - getStudioUsageCount());
+  const counts = getStudioUsageCounts();
+  const ownedSlots = getOwnedStudioSlots();
+  const ownedAvailable = Math.max(0, ownedSlots - counts.owned);
+  const market = getStudioMarketSnapshot();
+  const marketAvailable = Math.max(0, market.available);
+  const maxAdditional = Math.max(0, STUDIO_CAP_PER_LABEL - counts.total);
+  return Math.min(ownedAvailable + marketAvailable, maxAdditional);
 }
 
 function estimateRivalStudioUsage() {
@@ -1244,9 +2065,43 @@ function getStudioMarketSnapshot() {
   const capPerLabel = STUDIO_CAP_PER_LABEL;
   const total = capPerLabel * (state.rivals.length + 1);
   const rivals = estimateRivalStudioUsage();
-  const player = clamp(Math.round(state.studio.slots || 0), 0, capPerLabel);
+  const ownedSlots = getOwnedStudioSlots();
+  const leasedUsage = getLeasedStudioUsage();
+  const player = clamp(ownedSlots + leasedUsage, 0, capPerLabel);
   const available = Math.max(0, total - rivals - player);
   return { total, rivals, player, available, capPerLabel };
+}
+
+function getStudioLeaseRate() {
+  const buildCost = ECONOMY_BASELINES.studioBuildCost || 0;
+  const leaseCost = ECONOMY_BASELINES.studioLease4y || 0;
+  if (!buildCost || !leaseCost) return 0;
+  const baseRate = leaseCost / buildCost;
+  const market = getStudioMarketSnapshot();
+  const availability = market.total ? market.available / market.total : 0;
+  const scarcity = clamp(1 - availability, 0, 1);
+  // Lease rates flex with market availability using the documented interest band.
+  const interestMin = 0.0002;
+  const interestMax = 0.5;
+  const interest = interestMin + (interestMax - interestMin) * scarcity;
+  const discount = availability * 0.1;
+  const multiplier = clamp(1 + interest - discount, 0.85, 1.5);
+  return baseRate * multiplier;
+}
+
+function queueStudioLeaseFee(stage, hours) {
+  if (!stage || !state.economy) return 0;
+  const rate = getStudioLeaseRate();
+  if (!rate) return 0;
+  const baseHours = Math.max(1, stage.hours || 1);
+  const billedHours = Math.max(1, Number.isFinite(hours) ? hours : baseHours);
+  const hourlyRate = stage.cost / baseHours;
+  const fee = Math.round(hourlyRate * billedHours * rate);
+  if (fee > 0) {
+    if (typeof state.economy.leaseFeesWeek !== "number") state.economy.leaseFeesWeek = 0;
+    state.economy.leaseFeesWeek = Math.round(state.economy.leaseFeesWeek + fee);
+  }
+  return fee;
 }
 
 function getActiveEras() {
@@ -1397,24 +2252,251 @@ function getRivalByName(name) {
   return state.rivals.find((rival) => rival.name === name);
 }
 
-function createTrack({ title, theme, mood, alignment, songwriterId, performerId, producerId, actId, projectName, projectType, modifierId }) {
-  const focusEra = getFocusEraForAct(actId);
-  const activeEra = focusEra || getLatestActiveEraForAct(actId);
+function creatorHasActiveAct(creatorId) {
+  const memberActs = state.acts.filter((act) => act.memberIds.includes(creatorId));
+  if (!memberActs.length) return false;
+  const activeEraActIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.actId));
+  return memberActs.some((act) => activeEraActIds.has(act.id));
+}
+
+function creatorHasActiveWork(creatorId) {
+  return getBusyCreatorIds().has(creatorId);
+}
+
+function detachCreatorFromContent(creatorId) {
+  state.acts.forEach((act) => {
+    act.memberIds = act.memberIds.filter((id) => id !== creatorId);
+  });
+  state.tracks.forEach((track) => {
+    if (!track.creators) return;
+    if (Array.isArray(track.creators.songwriterIds)) {
+      track.creators.songwriterIds = track.creators.songwriterIds.filter((id) => id !== creatorId);
+    }
+    if (Array.isArray(track.creators.performerIds)) {
+      track.creators.performerIds = track.creators.performerIds.filter((id) => id !== creatorId);
+    }
+    if (Array.isArray(track.creators.producerIds)) {
+      track.creators.producerIds = track.creators.producerIds.filter((id) => id !== creatorId);
+    }
+    if (track.creators.songwriterId === creatorId) track.creators.songwriterId = null;
+    if (track.creators.performerId === creatorId) track.creators.performerId = null;
+    if (track.creators.producerId === creatorId) track.creators.producerId = null;
+  });
+  if (state.ui?.actSlots) {
+    if (state.ui.actSlots.lead === creatorId) state.ui.actSlots.lead = null;
+    if (state.ui.actSlots.member2 === creatorId) state.ui.actSlots.member2 = null;
+    if (state.ui.actSlots.member3 === creatorId) state.ui.actSlots.member3 = null;
+  }
+  if (state.ui?.trackSlots) {
+    ensureTrackSlotArrays();
+    ["songwriterIds", "performerIds", "producerIds"].forEach((key) => {
+      if (!Array.isArray(state.ui.trackSlots[key])) return;
+      state.ui.trackSlots[key] = state.ui.trackSlots[key].map((id) => (id === creatorId ? null : id));
+    });
+  }
+}
+
+function returnCreatorToMarket(creator, reason) {
+  if (!creator) return;
+  const returned = normalizeCreator({
+    ...creator,
+    lastActivityAt: state.time.epochMs,
+    lastReleaseAt: null,
+    lastPromoAt: null,
+    departurePending: null,
+    overuseStrikes: 0,
+    staminaUsedToday: 0,
+    lastUsageDay: Math.floor(state.time.epochMs / DAY_MS),
+    lastOveruseDay: null
+  });
+  returned.signCost = computeSignCost(returned);
+  state.marketCreators.push(returned);
+  logEvent(`${creator.name} returned to the CCC (${reason}).`);
+  postSocial({
+    handle: "@CreatorsChamber",
+    title: "Creator available",
+    lines: [
+      `${creator.name} is back in the community chamber.`,
+      `Reason: ${reason}.`
+    ],
+    type: "ccc",
+    order: 2
+  });
+  ensureMarketCreators();
+}
+
+function removeCreatorFromLabel(creator, reason) {
+  if (!creator) return;
+  detachCreatorFromContent(creator.id);
+  state.creators = state.creators.filter((entry) => entry.id !== creator.id);
+  returnCreatorToMarket(creator, reason);
+  renderSlots();
+}
+
+function processCreatorDepartures() {
+  const busyIds = getBusyCreatorIds();
+  const pending = state.creators.filter((creator) => creator.departurePending && !busyIds.has(creator.id));
+  if (!pending.length) return;
+  pending.forEach((creator) => {
+    const reason = creator.departurePending?.reason || "departure";
+    creator.departurePending = null;
+    removeCreatorFromLabel(creator, reason);
+  });
+}
+
+function processCreatorInactivity() {
+  const now = state.time.epochMs;
+  const busyIds = getBusyCreatorIds();
+  state.creators.forEach((creator) => {
+    if (creator.departurePending) return;
+    if (busyIds.has(creator.id)) return;
+    if (creatorHasActiveAct(creator.id)) return;
+    const lastActivity = typeof creator.lastActivityAt === "number" ? creator.lastActivityAt : 0;
+    const releaseAt = typeof creator.lastReleaseAt === "number" ? creator.lastReleaseAt : 0;
+    const promoAt = typeof creator.lastPromoAt === "number" ? creator.lastPromoAt : 0;
+    const recentRelease = Math.max(releaseAt || 0, promoAt || 0);
+    if (now - lastActivity < CREATOR_INACTIVITY_MS) return;
+    if (recentRelease && now - recentRelease < CREATOR_INACTIVITY_MS) return;
+    creator.departurePending = { reason: "inactivity", flaggedAt: now };
+  });
+  processCreatorDepartures();
+}
+
+function ensureRivalRoster(rival) {
+  if (!rival.creators) rival.creators = [];
+  if (!Array.isArray(rival.creators)) rival.creators = [];
+}
+
+function buildRivalCreator(role, rival, trendTheme, trendMood) {
+  const existing = [
+    ...state.creators.map((creator) => creator.name),
+    ...state.marketCreators.map((creator) => creator.name),
+    ...rival.creators.map((creator) => creator.name)
+  ];
+  const creator = normalizeCreator(makeCreator(role, existing, rival.country));
+  if (trendTheme) creator.prefThemes = pickDistinct([trendTheme, ...THEMES], 2);
+  if (trendMood) creator.prefMoods = pickDistinct([trendMood, ...MOODS], 2);
+  creator.signCost = computeSignCost(creator);
+  return creator;
+}
+
+function rivalHasTrendCoverage(rival, theme, mood) {
+  if (!theme || !mood) return false;
+  return rival.creators.some((creator) => creator.prefThemes?.includes(theme) && creator.prefMoods?.includes(mood));
+}
+
+function recruitRivalCreators() {
+  const trends = Array.isArray(state.trends) ? state.trends : [];
+  state.rivals.forEach((rival) => {
+    ensureRivalRoster(rival);
+    const counts = MARKET_ROLES.reduce((acc, role) => {
+      acc[role] = rival.creators.filter((creator) => creator.role === role).length;
+      return acc;
+    }, {});
+    const targetRoles = MARKET_ROLES.filter((role) => counts[role] < MARKET_MIN_PER_ROLE);
+    const needsCoverage = trends.some((trend) => {
+      const theme = themeFromGenre(trend);
+      const mood = moodFromGenre(trend);
+      return !rival.creators.some((creator) => creator.prefThemes?.includes(theme) && creator.prefMoods?.includes(mood));
+    });
+    if (!targetRoles.length && !needsCoverage) return;
+    const neededRole = targetRoles.length
+      ? pickOne(targetRoles)
+      : MARKET_ROLES.slice().sort((a, b) => counts[a] - counts[b])[0];
+    let trendTheme = "";
+    let trendMood = "";
+    if (trends.length) {
+      const trend = pickOne(trends);
+      trendTheme = themeFromGenre(trend);
+      trendMood = moodFromGenre(trend);
+    }
+    const matchingIndex = state.marketCreators.findIndex((creator) => {
+      const themeMatch = trendTheme ? creator.prefThemes?.includes(trendTheme) : true;
+      const moodMatch = trendMood ? creator.prefMoods?.includes(trendMood) : true;
+      return creator.role === neededRole && themeMatch && moodMatch;
+    });
+    let recruit = null;
+    if (matchingIndex >= 0) {
+      recruit = state.marketCreators.splice(matchingIndex, 1)[0];
+    } else {
+      recruit = buildRivalCreator(neededRole, rival, trendTheme, trendMood);
+    }
+    rival.creators.push(recruit);
+    logEvent(`${rival.name} signed ${recruit.name} (${roleLabel(recruit.role)}) to chase ${trendTheme || "new"} trends.`);
+  });
+  ensureMarketCreators();
+}
+
+function markRivalReleaseActivity(labelName, releasedAt) {
+  const rival = getRivalByName(labelName);
+  if (!rival || !Array.isArray(rival.creators) || !rival.creators.length) return;
+  const creator = pickOne(rival.creators);
+  creator.lastReleaseAt = releasedAt;
+  creator.lastActivityAt = releasedAt;
+}
+
+function processRivalCreatorInactivity() {
+  const now = state.time.epochMs;
+  state.rivals.forEach((rival) => {
+    if (!Array.isArray(rival.creators)) return;
+    const remaining = [];
+    rival.creators.forEach((creator) => {
+      const lastActivity = typeof creator.lastActivityAt === "number" ? creator.lastActivityAt : 0;
+      const releaseAt = typeof creator.lastReleaseAt === "number" ? creator.lastReleaseAt : 0;
+      const promoAt = typeof creator.lastPromoAt === "number" ? creator.lastPromoAt : 0;
+      const recentRelease = Math.max(releaseAt || 0, promoAt || 0);
+      if (now - lastActivity < CREATOR_INACTIVITY_MS) {
+        remaining.push(creator);
+        return;
+      }
+      if (recentRelease && now - recentRelease < CREATOR_INACTIVITY_MS) {
+        remaining.push(creator);
+        return;
+      }
+      returnCreatorToMarket(creator, "inactivity");
+    });
+    rival.creators = remaining;
+  });
+}
+
+function createTrack({ title, theme, alignment, songwriterIds, performerIds, producerIds, actId, projectName, projectType, modifierId }) {
+  if (getStageStudioAvailable(0) <= 0) {
+    logEvent("No studio slots available for sheet music. Wait for a studio to free up.", "warn");
+    return null;
+  }
+  if (getStudioAvailableSlots() <= 0) {
+    logEvent("No studio slots available. Finish a production or expand capacity first.", "warn");
+    return null;
+  }
+  const resolvedActId = actId && getAct(actId) ? actId : null;
+  if (actId && !resolvedActId) {
+    logEvent("Act not found; leaving content unassigned.", "warn");
+  }
+  const focusEra = resolvedActId ? getFocusEraForAct(resolvedActId) : null;
+  const activeEra = resolvedActId ? (focusEra || getLatestActiveEraForAct(resolvedActId)) : null;
   const modifier = getModifier(modifierId);
+  const resolvedAlignment = alignment || state.label.alignment || "Neutral";
+  const normalizedSongwriters = normalizeRoleIds(songwriterIds, "Songwriter");
+  const normalizedPerformers = normalizeRoleIds(performerIds, "Performer");
+  const normalizedProducers = normalizeRoleIds(producerIds, "Producer");
   const track = {
     id: uid("TR"),
     title,
     theme,
-    mood,
-    alignment,
-    genre: makeGenre(theme, mood),
-    actId,
+    mood: null,
+    alignment: resolvedAlignment,
+    genre: "",
+    actId: resolvedActId,
     projectName,
     projectType: projectType || "Single",
     eraId: activeEra ? activeEra.id : null,
     modifier: modifier && modifier.id !== "None" ? modifier : null,
     distribution: "Digital",
-    creators: { songwriterId, performerId, producerId },
+    creators: {
+      songwriterIds: normalizedSongwriters,
+      performerIds: normalizedPerformers,
+      producerIds: normalizedProducers
+    },
     stageIndex: 0,
     status: "In Production",
     qualityPotential: 0,
@@ -1423,8 +2505,7 @@ function createTrack({ title, theme, mood, alignment, songwriterId, performerId,
     releasedAt: null,
     marketId: null
   };
-  track.qualityPotential = computeQualityPotential(track);
-  track.quality = Math.round(track.qualityPotential * STAGES[0].progress);
+  refreshTrackQuality(track, 0);
   state.tracks.push(track);
   if (activeEra) registerEraContent(activeEra, "Track", track.id);
   scheduleStage(track, 0);
@@ -1432,21 +2513,46 @@ function createTrack({ title, theme, mood, alignment, songwriterId, performerId,
 }
 
 function scheduleStage(track, stageIndex) {
+  if (!track) {
+    logEvent("Cannot start production: track missing.", "warn");
+    return false;
+  }
   const stage = STAGES[stageIndex];
-  const hoursDelta = track.modifier?.hoursDelta || 0;
-  const adjustedHours = Math.max(1, stage.hours + hoursDelta);
-  const creatorId =
-    stage.role === "Songwriter"
-      ? track.creators.songwriterId
-      : stage.role === "Performer"
-        ? track.creators.performerId
-        : track.creators.producerId;
+  if (!stage) {
+    logEvent(`Cannot start production: unknown stage ${stageIndex}.`, "warn");
+    return false;
+  }
+  const creatorIds = normalizeRoleIds(getTrackRoleIds(track, stage.role), stage.role);
+  if (!creatorIds.length) {
+    const slotTarget = `${TRACK_ROLE_TARGETS[stage.role]}-1`;
+    shakeSlot(slotTarget);
+    logEvent(`Cannot start ${stage.name}: missing ${roleLabel(stage.role)} assignment.`, "warn");
+    return false;
+  }
+  // Validate crew IDs before scheduling to avoid orphaned work orders.
+  const crew = creatorIds
+    .map((id) => getCreator(id))
+    .filter((creator) => creator && creator.role === stage.role);
+  if (!crew.length) {
+    logEvent(`Cannot start ${stage.name}: no valid ${roleLabel(stage.role)} assigned.`, "warn");
+    return false;
+  }
+  if (crew.length !== creatorIds.length) {
+    logEvent(`Some ${roleLabel(stage.role)} slots were invalid and skipped.`, "warn");
+  }
+  const crewIds = crew.map((creator) => creator.id);
+  const adjustedHours = getAdjustedStageHours(stageIndex, track.modifier, crewIds.length);
+  if (!Number.isFinite(adjustedHours) || adjustedHours <= 0) {
+    logEvent(`Cannot start ${stage.name}: invalid schedule duration.`, "warn");
+    return false;
+  }
   const order = {
     id: uid("WO"),
     trackId: track.id,
     stageIndex,
     stageName: stage.name,
-    creatorId,
+    creatorId: crewIds[0],
+    creatorIds: crewIds,
     startAt: null,
     endAt: null,
     hours: adjustedHours,
@@ -1454,24 +2560,136 @@ function scheduleStage(track, stageIndex) {
   };
   state.workOrders.push(order);
   tryStartWorkOrder(order);
+  return true;
+}
+
+function startDemoStage(track, mood, performerIds) {
+  if (!track) return false;
+  if (track.status !== "Awaiting Demo" || track.stageIndex !== 1) {
+    logEvent("Track is not ready for demo recording.", "warn");
+    return false;
+  }
+  if (!mood) {
+    shakeField("moodSelect");
+    logEvent("Select a Mood to start the demo recording.", "warn");
+    return false;
+  }
+  if (Array.isArray(MOODS) && !MOODS.includes(mood)) {
+    shakeField("moodSelect");
+    logEvent("Select a valid Mood to start the demo recording.", "warn");
+    return false;
+  }
+  const selectedPerformers = listFromIds(performerIds);
+  const assignedPerformers = selectedPerformers.length
+    ? normalizeRoleIds(selectedPerformers, "Performer")
+    : getTrackRoleIds(track, "Performer");
+  if (!assignedPerformers.length) {
+    shakeSlot(`${TRACK_ROLE_TARGETS.Performer}-1`);
+    logEvent("Assign a Recorder ID to start the demo recording.", "warn");
+    return false;
+  }
+  const availableStudios = getStudioAvailableSlots();
+  if (availableStudios <= 0) {
+    logEvent("No studio slots available. Finish a production or expand capacity first.", "warn");
+    return false;
+  }
+  if (getStageStudioAvailable(1) <= 0) {
+    logEvent("No studio slots available for demo recording. Wait for a studio to free up.", "warn");
+    return false;
+  }
+  track.creators.performerIds = assignedPerformers;
+  track.mood = mood;
+  track.status = "In Production";
+  refreshTrackQuality(track, 1);
+  return scheduleStage(track, 1);
+}
+
+function startMasterStage(track, producerIds, alignment) {
+  if (!track) return false;
+  if (track.status !== "Awaiting Master" || track.stageIndex !== 2) {
+    logEvent("Track is not ready for mastering.", "warn");
+    return false;
+  }
+  if (!track.mood) {
+    logEvent("Demo recording must assign a Mood before mastering.", "warn");
+    return false;
+  }
+  const selectedProducers = listFromIds(producerIds);
+  const assignedProducers = selectedProducers.length
+    ? normalizeRoleIds(selectedProducers, "Producer")
+    : getTrackRoleIds(track, "Producer");
+  if (!assignedProducers.length) {
+    shakeSlot(`${TRACK_ROLE_TARGETS.Producer}-1`);
+    logEvent("Assign a Producer ID to start mastering.", "warn");
+    return false;
+  }
+  const resolvedAlignment = alignment || track.alignment || state.label.alignment;
+  if (!resolvedAlignment) {
+    shakeField("trackAlignment");
+    logEvent("Select a Content Alignment before mastering.", "warn");
+    return false;
+  }
+  if (Array.isArray(ALIGNMENTS) && !ALIGNMENTS.includes(resolvedAlignment)) {
+    shakeField("trackAlignment");
+    logEvent("Select a valid Content Alignment before mastering.", "warn");
+    return false;
+  }
+  const availableStudios = getStudioAvailableSlots();
+  if (availableStudios <= 0) {
+    logEvent("No studio slots available. Finish a production or expand capacity first.", "warn");
+    return false;
+  }
+  if (getStageStudioAvailable(2) <= 0) {
+    logEvent("No studio slots available for mastering. Wait for a studio to free up.", "warn");
+    return false;
+  }
+  track.creators.producerIds = assignedProducers;
+  track.alignment = resolvedAlignment;
+  track.status = "In Production";
+  refreshTrackQuality(track, 2);
+  return scheduleStage(track, 2);
 }
 
 function tryStartWorkOrder(order) {
   const stage = STAGES[order.stageIndex];
   if (order.status !== "Queued") return;
-  if (state.studio.inUse >= state.studio.slots) return;
-  const creator = getCreator(order.creatorId);
-  if (!creator || creator.stamina < stage.stamina) return;
+  const currentInUse = syncStudioUsage();
+  if (getStudioAvailableSlots() <= 0) return;
+  if (getStageStudioAvailable(order.stageIndex) <= 0) return;
+  const creatorIds = getWorkOrderCreatorIds(order);
+  const crew = creatorIds.map((id) => getCreator(id)).filter(Boolean);
+  if (!crew.length) return;
+  if (crew.some((creator) => creator.stamina < stage.stamina)) return;
 
-  creator.stamina = clampStamina(creator.stamina - stage.stamina);
+  const usedSlots = getActiveStudioSlots();
+  const assignedSlot = Number.isFinite(order.studioSlot) && !usedSlots.has(order.studioSlot)
+    ? order.studioSlot
+    : findAvailableStudioSlot(usedSlots);
+  if (!assignedSlot) return;
+  const ownedSlots = getOwnedStudioSlots();
+  if (assignedSlot > ownedSlots) {
+    queueStudioLeaseFee(stage, order.hours || stage.hours);
+  }
+
+  order.creatorIds = crew.map((creator) => creator.id);
+  order.creatorId = order.creatorIds[0];
+  crew.forEach((creator) => {
+    creator.stamina = clampStamina(creator.stamina - stage.stamina);
+    markCreatorActivityById(creator.id);
+    updateCreatorOveruse(creator, stage.stamina);
+  });
+  ejectLowStaminaTrackSlots();
   order.status = "In Progress";
+  order.studioSlot = assignedSlot;
   order.startAt = state.time.epochMs;
   order.endAt = state.time.epochMs + (order.hours || stage.hours) * HOUR_MS;
-  state.studio.inUse += 1;
+  state.studio.inUse = Math.max(0, currentInUse + 1);
 
   const track = getTrack(order.trackId);
   if (track) {
-    logEvent(`${creator.name} started ${stage.name} on "${track.title}".`);
+    const lead = crew[0];
+    const crewLabel = crew.length > 1 ? `${lead.name} +${crew.length - 1}` : lead.name;
+    logEvent(`${crewLabel} started ${stage.name} on "${track.title}".`);
   }
 }
 
@@ -1500,21 +2718,35 @@ function processWorkOrders() {
 function completeStage(order) {
   const track = getTrack(order.trackId);
   if (!track) return;
+  const stage = STAGES[order.stageIndex];
   const nextIndex = order.stageIndex + 1;
+  track.quality = Math.round(track.qualityPotential * (stage?.progress || 1));
   if (nextIndex < STAGES.length) {
     track.stageIndex = nextIndex;
-    track.quality = Math.round(track.qualityPotential * STAGES[nextIndex].progress);
-    scheduleStage(track, nextIndex);
-  } else {
-    track.stageIndex = STAGES.length;
-    track.status = "Ready";
-    track.completedAt = state.time.epochMs;
-    track.quality = track.qualityPotential;
-    logEvent(`Track ready: "${track.title}" (${qualityGrade(track.quality)}).`);
+    track.status = nextIndex === 1 ? "Awaiting Demo" : "Awaiting Master";
+    logEvent(`${stage.name} complete: "${track.title}". Ready for ${STAGES[nextIndex].name}.`);
+    return;
   }
+  track.stageIndex = STAGES.length;
+  track.status = "Ready";
+  track.completedAt = state.time.epochMs;
+  track.quality = track.qualityPotential;
+  track.genre = makeGenre(track.theme, track.mood);
+  const queuedRelease = state.releaseQueue.some((entry) => entry.trackId === track.id);
+  if (queuedRelease) track.status = "Scheduled";
+  logEvent(`Track ready${queuedRelease ? " and queued for release" : ""}: "${track.title}" (${qualityGrade(track.quality)}).`);
 }
 
 function releaseTrack(track, note, distribution) {
+  if (!track || !track.actId || !getAct(track.actId)) {
+    if (track && track.status === "Scheduled") track.status = "Ready";
+    logEvent("Cannot release track: assign an Act first.", "warn");
+    return false;
+  }
+  if (!track.genre) {
+    logEvent("Cannot release track without a content genre.", "warn");
+    return false;
+  }
   ensureEraForTrack(track, "Release");
   track.status = "Released";
   track.releasedAt = state.time.epochMs;
@@ -1547,17 +2779,42 @@ function releaseTrack(track, note, distribution) {
   };
   track.marketId = marketEntry.id;
   state.marketTracks.push(marketEntry);
+  markCreatorRelease(getTrackCreatorIds(track), track.releasedAt);
   logEvent(`Released "${track.title}" to market${note ? ` (${note})` : ""}.`);
   postTrackRelease(track);
+  return true;
 }
 
 function scheduleRelease(track, hoursFromNow, distribution, note) {
+  if (!track || !track.actId || !getAct(track.actId)) {
+    logEvent("Cannot schedule release: assign an Act first.", "warn");
+    return false;
+  }
+  const isReady = track.status === "Ready";
+  const isMastering = isMasteringTrack(track);
+  if (!isReady && !isMastering) {
+    logEvent("Only Ready or Mastering tracks can be scheduled for release.", "warn");
+    return false;
+  }
+  if (!track.genre && track.theme && track.mood) {
+    track.genre = makeGenre(track.theme, track.mood);
+  }
+  if (!track.genre) {
+    logEvent("Cannot schedule release without a content genre.", "warn");
+    return false;
+  }
+  if (state.releaseQueue.some((entry) => entry.trackId === track.id)) {
+    logEvent("Track is already scheduled for release.", "warn");
+    return false;
+  }
   const releaseAt = state.time.epochMs + hoursFromNow * HOUR_MS;
-  const dist = distribution || note || "Digital";
-  state.releaseQueue.push({ id: uid("RL"), trackId: track.id, releaseAt, note: dist, distribution: dist });
-  track.status = "Scheduled";
+  const dist = distribution || "Digital";
+  const releaseNote = note || dist;
+  state.releaseQueue.push({ id: uid("RL"), trackId: track.id, releaseAt, note: releaseNote, distribution: dist });
+  if (isReady) track.status = "Scheduled";
   ensureEraForTrack(track, "Release scheduled");
   logEvent(`Scheduled "${track.title}" for release in ${hoursFromNow}h.`);
+  return true;
 }
 
 function processReleaseQueue() {
@@ -1566,7 +2823,13 @@ function processReleaseQueue() {
   state.releaseQueue.forEach((entry) => {
     if (entry.releaseAt <= now) {
       const track = getTrack(entry.trackId);
-      if (track) releaseTrack(track, entry.note, entry.distribution);
+      if (!track) return;
+      if (track.status === "Released") return;
+      if (track.status === "Ready" || track.status === "Scheduled") {
+        releaseTrack(track, entry.note, entry.distribution);
+        return;
+      }
+      remaining.push(entry);
     } else {
       remaining.push(entry);
     }
@@ -1575,7 +2838,7 @@ function processReleaseQueue() {
 }
 
 function rechargeStamina(hours) {
-  const busyIds = new Set(state.workOrders.filter((o) => o.status === "In Progress").map((o) => o.creatorId));
+  const busyIds = getBusyCreatorIds("In Progress");
   state.creators.forEach((creator) => {
     if (busyIds.has(creator.id)) return;
     creator.stamina = clampStamina(creator.stamina + 50 * hours);
@@ -1600,13 +2863,77 @@ function roundToAudienceChunk(value) {
   return Math.ceil(Math.max(0, value) / chunk) * chunk;
 }
 
-function buildChartMetrics(score) {
+function normalizeChartWeights(weights) {
+  const safe = weights || CHART_WEIGHTS;
+  const total =
+    Math.max(0, safe.sales || 0)
+    + Math.max(0, safe.streaming || 0)
+    + Math.max(0, safe.airplay || 0)
+    + Math.max(0, safe.social || 0);
+  if (!total) return { ...CHART_WEIGHTS };
+  return {
+    sales: Math.max(0, safe.sales || 0) / total,
+    streaming: Math.max(0, safe.streaming || 0) / total,
+    airplay: Math.max(0, safe.airplay || 0) / total,
+    social: Math.max(0, safe.social || 0) / total
+  };
+}
+
+function blendChartWeights(primary, secondary, primaryShare) {
+  const a = normalizeChartWeights(primary);
+  const b = normalizeChartWeights(secondary);
+  const share = clamp(primaryShare, 0, 1);
+  return normalizeChartWeights({
+    sales: a.sales * share + b.sales * (1 - share),
+    streaming: a.streaming * share + b.streaming * (1 - share),
+    airplay: a.airplay * share + b.airplay * (1 - share),
+    social: a.social * share + b.social * (1 - share)
+  });
+}
+
+function chartWeightsForRegion(regionId) {
+  const regionWeights = REGION_CONSUMPTION_WEIGHTS?.[regionId];
+  return normalizeChartWeights(regionWeights || CHART_WEIGHTS);
+}
+
+function chartWeightsForNation(nation) {
+  const regions = REGION_DEFS.filter((region) => region.nation === nation);
+  if (!regions.length) return normalizeChartWeights(CHART_WEIGHTS);
+  const capital = regions.find((region) => region.id.includes("Capital")) || regions[0];
+  const elsewhere = regions.find((region) => region.id.includes("Elsewhere")) || regions[1] || capital;
+  return blendChartWeights(chartWeightsForRegion(capital.id), chartWeightsForRegion(elsewhere.id), REGION_CAPITAL_SHARE);
+}
+
+function chartWeightsForGlobal() {
+  const snapshot = computePopulationSnapshot();
+  const total = snapshot.total || 0;
+  if (!total) return normalizeChartWeights(CHART_WEIGHTS);
+  const weights = snapshot.nations.reduce((acc, nation) => {
+    const share = nation.total / total;
+    const nationWeights = chartWeightsForNation(nation.nation);
+    acc.sales += nationWeights.sales * share;
+    acc.streaming += nationWeights.streaming * share;
+    acc.airplay += nationWeights.airplay * share;
+    acc.social += nationWeights.social * share;
+    return acc;
+  }, { sales: 0, streaming: 0, airplay: 0, social: 0 });
+  return normalizeChartWeights(weights);
+}
+
+function chartWeightsForScope(scopeId) {
+  if (scopeId === "global") return chartWeightsForGlobal();
+  if (NATIONS.includes(scopeId)) return chartWeightsForNation(scopeId);
+  return chartWeightsForRegion(scopeId);
+}
+
+function buildChartMetrics(score, weights = CHART_WEIGHTS) {
+  const normalized = normalizeChartWeights(weights);
   const base = Math.max(0, score) * 1200;
   return {
-    sales: roundToAudienceChunk(base * CHART_WEIGHTS.sales),
-    streaming: roundToAudienceChunk(base * CHART_WEIGHTS.streaming),
-    airplay: roundToAudienceChunk(base * CHART_WEIGHTS.airplay),
-    social: roundToAudienceChunk(base * CHART_WEIGHTS.social)
+    sales: roundToAudienceChunk(base * normalized.sales),
+    streaming: roundToAudienceChunk(base * normalized.streaming),
+    airplay: roundToAudienceChunk(base * normalized.airplay),
+    social: roundToAudienceChunk(base * normalized.social)
   };
 }
 
@@ -1632,7 +2959,7 @@ function formatShortDate(ms) {
 }
 
 function formatWeekRangeLabel(week) {
-  const start = BASE_EPOCH + (week - 1) * WEEK_HOURS * HOUR_MS;
+  const start = getStartEpochMsFromState() + (week - 1) * WEEK_HOURS * HOUR_MS;
   const end = start + WEEK_HOURS * HOUR_MS - 1;
   return `Week ${week} | ${formatShortDate(start)} - ${formatShortDate(end)}`;
 }
@@ -1691,23 +3018,32 @@ function persistChartHistorySnapshots() {
 function computeCharts() {
   const nationScores = {};
   const regionScores = {};
-  NATIONS.forEach((nation) => { nationScores[nation] = []; });
-  REGION_DEFS.forEach((region) => { regionScores[region.id] = []; });
+  const nationWeights = {};
+  const regionWeights = {};
+  NATIONS.forEach((nation) => {
+    nationScores[nation] = [];
+    nationWeights[nation] = chartWeightsForNation(nation);
+  });
+  REGION_DEFS.forEach((region) => {
+    regionScores[region.id] = [];
+    regionWeights[region.id] = chartWeightsForRegion(region.id);
+  });
+  const globalWeights = chartWeightsForGlobal();
   const globalScores = [];
 
   state.marketTracks.forEach((track) => {
     let sum = 0;
     NATIONS.forEach((nation) => {
       const score = scoreTrack(track, nation);
-      const metrics = buildChartMetrics(score);
+      const metrics = buildChartMetrics(score, nationWeights[nation]);
       nationScores[nation].push({ track, score, metrics });
       sum += score;
     });
     const avg = Math.round(sum / NATIONS.length);
-    globalScores.push({ track, score: avg, metrics: buildChartMetrics(avg) });
+    globalScores.push({ track, score: avg, metrics: buildChartMetrics(avg, globalWeights) });
     REGION_DEFS.forEach((region) => {
       const score = scoreTrack(track, region.id);
-      regionScores[region.id].push({ track, score, metrics: buildChartMetrics(score) });
+      regionScores[region.id].push({ track, score, metrics: buildChartMetrics(score, regionWeights[region.id]) });
     });
   });
 
@@ -1767,17 +3103,42 @@ function computeCharts() {
   return { globalScores };
 }
 
+function buildGenreRanking(totals) {
+  const entries = [];
+  THEMES.forEach((theme, themeIndex) => {
+    MOODS.forEach((mood, moodIndex) => {
+      if (mood === "Boring") return;
+      const genre = makeGenre(theme, mood);
+      entries.push({
+        genre,
+        score: totals[genre] || 0,
+        themeIndex,
+        moodIndex
+      });
+    });
+  });
+  entries.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (a.themeIndex !== b.themeIndex) return a.themeIndex - b.themeIndex;
+    return a.moodIndex - b.moodIndex;
+  });
+  return entries.map((entry) => entry.genre);
+}
+
 function updateTrends(globalScores) {
   const totals = {};
   globalScores.forEach((entry) => {
+    if (!entry.track?.genre) return;
     if (entry.track.mood === "Boring") return;
     totals[entry.track.genre] = (totals[entry.track.genre] || 0) + entry.score;
   });
-  const next = Object.entries(totals)
+  const ranked = Object.entries(totals)
     .sort((a, b) => b[1] - a[1])
-    .map((entry) => entry[0])
-    .slice(0, 3);
-  if (next.length) state.trends = next;
+    .map((entry) => entry[0]);
+  if (ranked.length) {
+    state.trends = ranked.slice(0, 3);
+    state.genreRanking = buildGenreRanking(totals);
+  }
 }
 
 function updateEconomy(globalScores) {
@@ -1787,11 +3148,14 @@ function updateEconomy(globalScores) {
     revenue += Math.max(0, entry.score) * 22;
   });
   revenue = Math.round(revenue);
-  const upkeep = state.creators.length * 150 + state.studio.slots * 600;
+  const ownedSlots = getOwnedStudioSlots();
+  const leaseFees = Math.max(0, Math.round(state.economy.leaseFeesWeek || 0));
+  const upkeep = state.creators.length * 150 + ownedSlots * 600 + leaseFees;
   state.label.cash = Math.round(state.label.cash + revenue - upkeep);
   state.economy.lastRevenue = revenue;
   state.economy.lastUpkeep = upkeep;
   state.economy.lastWeek = weekIndex() + 1;
+  state.economy.leaseFeesWeek = 0;
   logEvent(`Week ${weekIndex() + 1} report: +${formatMoney(revenue)} revenue, -${formatMoney(upkeep)} upkeep.`);
   postSocial({
     handle: "@eyeriStats",
@@ -1837,6 +3201,29 @@ function updateRivalMomentum(scores) {
   });
 }
 
+function applyRivalStudioLeaseCosts() {
+  const rate = getStudioLeaseRate();
+  if (!rate) return;
+  const hourly = STAGES.reduce((sum, stage) => {
+    const hours = Math.max(1, stage.hours || 1);
+    return sum + stage.cost / hours;
+  }, 0) / STAGES.length;
+  const costPerSlotWeek = Math.round(hourly * WEEK_HOURS * rate);
+  if (!costPerSlotWeek) return;
+  const cap = STUDIO_CAP_PER_LABEL;
+  state.rivals.forEach((rival) => {
+    const ownedSlots = clamp(Math.round(rival.studio?.slots || STARTING_STUDIO_SLOTS), 0, cap);
+    const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.35;
+    const used = clamp(Math.round(cap * momentum), 0, cap);
+    const leased = Math.max(0, used - ownedSlots);
+    if (!leased) return;
+    const cash = typeof rival.cash === "number" ? rival.cash : STARTING_CASH;
+    rival.cash = Math.round(cash - leased * costPerSlotWeek);
+    if (!rival.wallet) rival.wallet = { cash: rival.cash };
+    rival.wallet.cash = rival.cash;
+  });
+}
+
 function topLabelFromScores(scores) {
   const ordered = Object.entries(scores).sort((a, b) => b[1] - a[1]);
   if (!ordered.length) return { label: null, points: 0 };
@@ -1872,15 +3259,65 @@ function announceWin(reason) {
   }
 }
 
+function archiveLossGame(reason, slotIndex) {
+  const now = Date.now();
+  const uiLog = loadUiEventLog();
+  const start = Number.isFinite(session.uiLogStart) ? session.uiLogStart : 0;
+  const uiEvents = start > 0 ? uiLog.slice(start) : uiLog.slice();
+  let snapshot = null;
+  try {
+    snapshot = JSON.parse(JSON.stringify(state));
+  } catch {
+    snapshot = null;
+  }
+  const entry = {
+    id: `loss-${now}`,
+    createdAt: now,
+    slot: slotIndex || null,
+    label: state.label?.name || "Unknown Label",
+    result: "loss",
+    reason,
+    year: currentYear(),
+    week: weekIndex() + 1,
+    exp: state.meta?.exp || 0,
+    cash: state.label?.cash ?? 0,
+    gameTime: state.time?.epochMs || null,
+    savedAt: state.meta?.savedAt || null,
+    uiEvents,
+    simEvents: Array.isArray(state.events) ? state.events.slice(0) : [],
+    snapshot
+  };
+  const archives = loadLossArchives();
+  archives.push(entry);
+  archives.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const pruned = archives.slice(-LOSS_ARCHIVE_LIMIT);
+  saveLossArchives(pruned);
+  return entry;
+}
+
 function finalizeGame(result, reason) {
   if (state.meta.gameOver) return;
+  const endedSlot = session.activeSlot;
   state.meta.gameOver = { result, reason, year: currentYear(), exp: state.meta.exp };
   setTimeSpeed("pause");
   const title = result === "win" ? "You Won" : "Game Over - You Lost";
-  showEndScreen(title, [
+  const lines = [
     { title: reason, detail: `EXP ${formatCount(state.meta.exp)} | End ${formatDate(state.time.epochMs)}` }
-  ]);
+  ];
+  if (result === "loss") {
+    lines.push({ title: "Loss archived", detail: `Saved to Loss Archives (last ${LOSS_ARCHIVE_LIMIT}).` });
+  }
+  lines.push({ title: "Select a new slot", detail: "Pick a game slot in the main menu to keep playing." });
+  showEndScreen(title, lines);
   state.meta.endShown = true;
+  saveToActiveSlot();
+  if (result === "loss") {
+    archiveLossGame(reason, endedSlot);
+  }
+  session.activeSlot = null;
+  sessionStorage.removeItem("rls_active_slot");
+  openMainMenu();
+  renderLossArchives();
 }
 
 function applyBailoutIfNeeded() {
@@ -2073,12 +3510,6 @@ function refreshQuestPool() {
   newQuests.forEach((quest) => postQuestEmail(quest));
 }
 
-function updateStamina() {
-  state.creators.forEach((creator) => {
-    creator.stamina = Math.min(100, creator.stamina + 14);
-  });
-}
-
 function ageMarketTracks() {
   state.marketTracks.forEach((track) => {
     track.weeksOnChart += 1;
@@ -2094,8 +3525,17 @@ function generateRivalReleases() {
     if (Math.random() < chance) {
       const themePool = rival.focusThemes?.length ? rival.focusThemes : THEMES;
       const moodPool = rival.focusMoods?.length ? rival.focusMoods : MOODS;
-      const theme = Math.random() < 0.8 ? pickOne(themePool) : pickOne(THEMES);
-      const mood = Math.random() < 0.8 ? pickOne(moodPool) : pickOne(MOODS);
+      let theme = Math.random() < 0.8 ? pickOne(themePool) : pickOne(THEMES);
+      let mood = Math.random() < 0.8 ? pickOne(moodPool) : pickOne(MOODS);
+      if (state.trends?.length) {
+        const trend = pickOne(state.trends);
+        const trendTheme = themeFromGenre(trend);
+        const trendMood = moodFromGenre(trend);
+        if (rivalHasTrendCoverage(rival, trendTheme, trendMood) && Math.random() < 0.7) {
+          theme = trendTheme;
+          mood = trendMood;
+        }
+      }
       let quality = clampQuality(rand(55, 95) + Math.round(momentum * 8));
       if (mood === "Boring") quality = clampQuality(quality - 12);
       const releaseAt = state.time.epochMs + rand(12, WEEK_HOURS) * HOUR_MS;
@@ -2144,6 +3584,7 @@ function processRivalReleaseQueue() {
         weeksOnChart: 0,
         promoWeeks: 0
       });
+      markRivalReleaseActivity(entry.label, entry.releaseAt);
     } else {
       remaining.push(entry);
     }
@@ -2188,11 +3629,16 @@ function maybeRunAutoRollout() {
 
 function weeklyUpdate() {
   const week = weekIndex() + 1;
+  ensureMarketCreators();
+  recruitRivalCreators();
+  processCreatorInactivity();
+  processRivalCreatorInactivity();
   generateRivalReleases();
   const { globalScores } = computeCharts();
   const labelScores = computeLabelScoresFromCharts();
   updateCumulativeLabelPoints(labelScores);
   updateRivalMomentum(labelScores);
+  applyRivalStudioLeaseCosts();
   updateTrends(globalScores);
   updateEconomy(globalScores);
   awardExp(Math.min(300, Math.round(state.economy.lastRevenue / 500)), null, true);
@@ -2202,6 +3648,7 @@ function weeklyUpdate() {
   advanceEraWeek();
   maybeRunAutoRollout();
   ageMarketTracks();
+  processCreatorDepartures();
   applyBailoutIfNeeded();
   evaluateAchievements();
   checkWinLoss(labelScores);
@@ -2217,6 +3664,7 @@ function onYearTick(year) {
   const { globalScores } = computeCharts();
   const labelScores = computeLabelScoresFromCharts();
   updateCumulativeLabelPoints(labelScores);
+  captureSeedCalibration(year, labelScores);
   // Determine top labels
   const entries = Object.entries(labelScores).sort((a, b) => b[1] - a[1]);
   if (!entries.length) return;
@@ -2249,34 +3697,70 @@ function onYearTick(year) {
   saveToActiveSlot();
 }
 
-function advanceHours(hours) {
-  if (state.meta.gameOver) return;
-  for (let i = 0; i < hours; i += 1) {
-    state.time.totalHours += 1;
-    state.time.epochMs += HOUR_MS;
-    processWorkOrders();
-    processReleaseQueue();
-    processRivalReleaseQueue();
-    rechargeStamina(1);
-    if (weekIndex() > state.lastWeekIndex) {
-      state.lastWeekIndex = weekIndex();
-      weeklyUpdate();
-    }
-    // Year crossing detection and yearly tick handling
-    const cy = currentYear();
-    if (typeof state.time.lastYear === "undefined") state.time.lastYear = cy;
-    if (cy !== state.time.lastYear) {
-      for (let y = state.time.lastYear + 1; y <= cy; y += 1) {
-        try {
-          onYearTick(y);
-        } catch (e) {
-          console.error("onYearTick error:", e);
-        }
-      }
-      state.time.lastYear = cy;
+function runYearTicksIfNeeded(year) {
+  const current = typeof year === "number" ? year : currentYear();
+  if (typeof state.time.lastYear === "undefined") {
+    state.time.lastYear = current;
+    return;
+  }
+  if (current === state.time.lastYear) return;
+  for (let y = state.time.lastYear + 1; y <= current; y += 1) {
+    try {
+      onYearTick(y);
+    } catch (e) {
+      console.error("onYearTick error:", e);
     }
   }
+  state.time.lastYear = current;
+}
+
+function runHourlyTick() {
+  state.time.totalHours += 1;
+  state.time.epochMs += HOUR_MS;
+  processWorkOrders();
+  processReleaseQueue();
+  processRivalReleaseQueue();
+  rechargeStamina(1);
+  const currentWeek = weekIndex();
+  if (currentWeek > state.lastWeekIndex) {
+    state.lastWeekIndex = currentWeek;
+    weeklyUpdate();
+  }
+  runYearTicksIfNeeded(currentYear());
+}
+
+function advanceHours(hours) {
+  if (state.meta.gameOver) return;
+  if (!Number.isFinite(hours) || hours <= 0) return;
+  for (let i = 0; i < hours; i += 1) {
+    runHourlyTick();
+  }
   renderTime();
+}
+
+function maybeSyncPausedLiveChanges(now) {
+  if (state.time.speed !== "pause") return;
+  if (!session.activeSlot) return;
+  if (now - session.lastLiveSyncAt < LIVE_SYNC_INTERVAL_MS) return;
+  session.lastLiveSyncAt = now;
+  const raw = localStorage.getItem(slotKey(session.activeSlot));
+  if (!raw || raw === session.lastSlotPayload) return;
+  let parsed = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (!parsed || typeof parsed !== "object") return;
+  const prevSpeed = state.time.speed;
+  const prevView = state.ui?.activeView || null;
+  resetState(parsed);
+  state.time.speed = prevSpeed;
+  if (prevView) state.ui.activeView = prevView;
+  refreshSelectOptions();
+  computeCharts();
+  renderAll({ save: false });
+  session.lastSlotPayload = raw;
 }
 
 function tick(now) {
@@ -2297,6 +3781,7 @@ function tick(now) {
       advanceHours(1);
     }
   }
+  maybeSyncPausedLiveChanges(now);
   maybeAutoSave();
   requestAnimationFrame(tick);
 }
@@ -2369,6 +3854,9 @@ function saveToSlot(index) {
   if (state.meta.autoSave) state.meta.autoSave.lastSavedAt = state.meta.savedAt;
   const payload = JSON.stringify(state);
   localStorage.setItem(slotKey(index), payload);
+  if (session.activeSlot === index) {
+    session.lastSlotPayload = payload;
+  }
 }
 
 function saveToActiveSlot() {
@@ -2383,27 +3871,39 @@ function resetState(nextState) {
   state.time.acc = 0;
 }
 
-function seedNewGame() {
+function seedNewGame(options = {}) {
+  const mode = applyGameMode(options.mode || DEFAULT_GAME_MODE);
   const baseCreators = [];
   ["Songwriter", "Performer", "Producer"].forEach((role) => {
     baseCreators.push(makeCreator(role, baseCreators.map((creator) => creator.name)));
   });
   state.creators = baseCreators;
   state.marketCreators = buildMarketCreators();
+  ensureMarketCreators();
   state.rivals = buildRivals();
   state.trends = seedTrends();
   state.quests = buildQuests();
   state.quests.forEach((quest) => postQuestEmail(quest));
-  seedWorldHistory();
+  state.meta.seedInfo = null;
+  state.meta.seedHistory = null;
+  state.meta.cumulativeLabelPoints = {};
+  if (mode.seeded) {
+    seedWorldHistory();
+  } else {
+    state.marketTracks = [];
+  }
   seedActs();
+  syncLabelWallets();
   logEvent("Welcome back, CEO. Your label awaits.");
 }
 
-function loadSlot(index, forceNew = false) {
+function loadSlot(index, forceNew = false, options = {}) {
   const data = forceNew ? null : getSlotData(index);
   resetState(data);
-  if (!data) seedNewGame();
+  if (!data) seedNewGame({ mode: options.mode });
   session.activeSlot = index;
+  session.lastSlotPayload = localStorage.getItem(slotKey(index));
+  markUiLogStart();
   sessionStorage.setItem("rls_active_slot", String(index));
   refreshSelectOptions();
   computeCharts();
@@ -2427,7 +3927,12 @@ function normalizeState() {
       genreMood: "All",
       slotTarget: null,
       actSlots: { lead: null, member2: null, member3: null },
-      trackSlots: { actId: null, songwriterId: null, performerId: null, producerId: null },
+      trackSlots: {
+        actId: null,
+        songwriterIds: buildEmptyTrackSlotList("Songwriter"),
+        performerIds: buildEmptyTrackSlotList("Performer"),
+        producerIds: buildEmptyTrackSlotList("Producer")
+      },
       eraSlots: { actId: null },
       promoSlots: { trackId: null },
       activeView: "charts"
@@ -2437,7 +3942,28 @@ function normalizeState() {
   if (!state.ui.genreTheme) state.ui.genreTheme = "All";
   if (!state.ui.genreMood) state.ui.genreMood = "All";
   if (!state.ui.actSlots) state.ui.actSlots = { lead: null, member2: null, member3: null };
-  if (!state.ui.trackSlots) state.ui.trackSlots = { actId: null, songwriterId: null, performerId: null, producerId: null };
+  if (!state.ui.trackSlots) {
+    state.ui.trackSlots = {
+      actId: null,
+      songwriterIds: buildEmptyTrackSlotList("Songwriter"),
+      performerIds: buildEmptyTrackSlotList("Performer"),
+      producerIds: buildEmptyTrackSlotList("Producer")
+    };
+  } else if (typeof state.ui.trackSlots.songwriterId !== "undefined"
+    || typeof state.ui.trackSlots.performerId !== "undefined"
+    || typeof state.ui.trackSlots.producerId !== "undefined") {
+    const legacy = state.ui.trackSlots;
+    state.ui.trackSlots = {
+      actId: legacy.actId || null,
+      songwriterIds: buildEmptyTrackSlotList("Songwriter"),
+      performerIds: buildEmptyTrackSlotList("Performer"),
+      producerIds: buildEmptyTrackSlotList("Producer")
+    };
+    if (legacy.songwriterId) state.ui.trackSlots.songwriterIds[0] = legacy.songwriterId;
+    if (legacy.performerId) state.ui.trackSlots.performerIds[0] = legacy.performerId;
+    if (legacy.producerId) state.ui.trackSlots.producerIds[0] = legacy.producerId;
+  }
+  ensureTrackSlotArrays();
   if (typeof state.ui.focusEraId === "undefined") state.ui.focusEraId = null;
   if (state.ui.focusEraId !== null && typeof state.ui.focusEraId !== "string") state.ui.focusEraId = null;
   if (!state.ui.eraSlots) state.ui.eraSlots = { actId: null };
@@ -2470,40 +3996,70 @@ function normalizeState() {
     };
   }
   if (!state.ui.activeView) state.ui.activeView = "charts";
-  if (state.ui.activeView === "promotion" || state.ui.activeView === "era") {
+  if (state.ui.activeView === "promotion") {
+    state.ui.activeView = "logs";
+  } else if (state.ui.activeView === "era") {
     state.ui.activeView = "eras";
   }
   if (typeof state.ui.socialShowInternal !== "boolean") state.ui.socialShowInternal = false;
-  if (!state.ui.socialFilters) {
-    state.ui.socialFilters = {
-      creator: true,
-      quest: true,
-      track: true,
-      era: true,
-      economy: true,
-      system: true,
-      chart: true,
-      contract: true,
-      receipt: true,
-      ccc: true
+    if (!state.ui.socialFilters) {
+      state.ui.socialFilters = {
+        creator: true,
+        quest: true,
+        track: true,
+        promo: true,
+        era: true,
+        economy: true,
+        system: true,
+        chart: true,
+        contract: true,
+        receipt: true,
+        ccc: true
+      };
+    } else {
+      const defaults = {
+        creator: true,
+        quest: true,
+        track: true,
+        promo: true,
+        era: true,
+        economy: true,
+        system: true,
+        chart: true,
+        contract: true,
+        receipt: true,
+        ccc: true
+      };
+      Object.keys(defaults).forEach((key) => {
+        if (typeof state.ui.socialFilters[key] !== "boolean") state.ui.socialFilters[key] = defaults[key];
+      });
+    }
+  if (!state.ui.cccFilters) {
+    state.ui.cccFilters = {
+      Songwriter: true,
+      Performer: true,
+      Producer: true
     };
   } else {
-    const defaults = {
-      creator: true,
-      quest: true,
-      track: true,
-      era: true,
-      economy: true,
-      system: true,
-      chart: true,
-      contract: true,
-      receipt: true,
-      ccc: true
-    };
+    const defaults = { Songwriter: true, Performer: true, Producer: true };
     Object.keys(defaults).forEach((key) => {
-      if (typeof state.ui.socialFilters[key] !== "boolean") state.ui.socialFilters[key] = defaults[key];
+      if (typeof state.ui.cccFilters[key] !== "boolean") state.ui.cccFilters[key] = defaults[key];
     });
   }
+  if (!state.ui.studioFilters) {
+    state.ui.studioFilters = {
+      owned: true,
+      unowned: true,
+      occupied: true,
+      unoccupied: true
+    };
+  } else {
+    const defaults = { owned: true, unowned: true, occupied: true, unoccupied: true };
+    Object.keys(defaults).forEach((key) => {
+      if (typeof state.ui.studioFilters[key] !== "boolean") state.ui.studioFilters[key] = defaults[key];
+    });
+  }
+  if (!state.ui.studioOwnerFilter) state.ui.studioOwnerFilter = "all";
   if (!state.ui.calendarTab) state.ui.calendarTab = "label";
   if (!state.ui.calendarFilters) {
     state.ui.calendarFilters = {
@@ -2524,17 +4080,41 @@ function normalizeState() {
     });
   }
   if (typeof state.ui.slotTarget === "undefined") state.ui.slotTarget = null;
+  if (!state.ui.createStage || !["sheet", "demo", "master"].includes(state.ui.createStage)) {
+    state.ui.createStage = "sheet";
+  }
+  if (typeof state.ui.createTrackId === "undefined") state.ui.createTrackId = null;
+  if (!["solo", "collab"].includes(state.ui.recommendAllMode)) {
+    state.ui.recommendAllMode = "solo";
+  }
   if (!state.studio) state.studio = { slots: 2, inUse: 0 };
   if (typeof state.studio.slots !== "number") state.studio.slots = 2;
   if (typeof state.studio.inUse !== "number") state.studio.inUse = 0;
   state.studio.slots = clamp(Math.round(state.studio.slots), 0, STUDIO_CAP_PER_LABEL);
-  state.studio.inUse = clamp(Math.round(state.studio.inUse), 0, state.studio.slots);
+  state.studio.inUse = Math.max(0, Math.round(state.studio.inUse));
+  if (!Array.isArray(state.workOrders)) state.workOrders = [];
+  state.workOrders = state.workOrders.filter(Boolean).map((order) => {
+    if (!order.status) order.status = "Queued";
+    if (typeof order.stageIndex !== "number") order.stageIndex = 0;
+    const ids = listFromIds(order.creatorIds);
+    if (!ids.length && order.creatorId) ids.push(order.creatorId);
+    order.creatorIds = ids;
+    if (order.creatorIds.length) order.creatorId = order.creatorIds[0];
+    if (order.status !== "In Progress") order.studioSlot = null;
+    return order;
+  });
+  syncWorkOrderStudioSlots();
+  syncStudioUsage();
   if (!state.acts) state.acts = [];
   if (!state.creators) state.creators = [];
   state.creators = state.creators.map((creator) => normalizeCreator(creator));
   if (!state.rivals) state.rivals = [];
   state.rivals.forEach((rival) => {
     if (typeof rival.seedBonus !== "number") rival.seedBonus = 0;
+    if (!Array.isArray(rival.creators)) rival.creators = [];
+    if (typeof rival.cash !== "number") rival.cash = STARTING_CASH;
+    if (!rival.wallet) rival.wallet = { cash: rival.cash };
+    if (!rival.studio) rival.studio = { slots: STARTING_STUDIO_SLOTS };
   });
   if (!state.trends) state.trends = [];
   if (!state.acts.length && state.creators.length) seedActs();
@@ -2560,10 +4140,12 @@ function normalizeState() {
   if (typeof state.meta.autoRollout.enabled !== "boolean") state.meta.autoRollout.enabled = false;
   if (!state.meta.seedInfo) state.meta.seedInfo = null;
   if (!state.meta.seedHistory) state.meta.seedHistory = null;
+  if (!state.meta.seedCalibration) state.meta.seedCalibration = null;
   if (!Array.isArray(state.meta.seedCatalog)) state.meta.seedCatalog = [];
   if (!state.charts) state.charts = { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} };
   if (!state.charts.regions) state.charts.regions = {};
-  if (!state.economy) state.economy = { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0 };
+  if (!state.economy) state.economy = { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, leaseFeesWeek: 0 };
+  if (typeof state.economy.leaseFeesWeek !== "number") state.economy.leaseFeesWeek = 0;
   if (!state.era) state.era = { active: [], history: [] };
   if (!Array.isArray(state.era.active)) {
     const legacy = state.era.active ? [state.era.active] : [];
@@ -2597,11 +4179,33 @@ function normalizeState() {
   }
   if (state.tracks?.length) {
     state.tracks.forEach((track) => {
+      if (!track.creators) track.creators = {};
+      const legacySongwriter = track.creators.songwriterId;
+      const legacyPerformer = track.creators.performerId;
+      const legacyProducer = track.creators.producerId;
+      track.creators.songwriterIds = normalizeRoleIds(
+        track.creators.songwriterIds || (legacySongwriter ? [legacySongwriter] : []),
+        "Songwriter"
+      );
+      track.creators.performerIds = normalizeRoleIds(
+        track.creators.performerIds || (legacyPerformer ? [legacyPerformer] : []),
+        "Performer"
+      );
+      track.creators.producerIds = normalizeRoleIds(
+        track.creators.producerIds || (legacyProducer ? [legacyProducer] : []),
+        "Producer"
+      );
       track.quality = clampQuality(track.quality ?? 0);
       track.qualityPotential = clampQuality(track.qualityPotential ?? track.quality);
       if (typeof track.trendAtRelease !== "boolean") track.trendAtRelease = false;
       if (!track.projectType) track.projectType = "Single";
       if (!track.distribution) track.distribution = "Digital";
+      if (typeof track.stageIndex !== "number") {
+        track.stageIndex = track.status === "Ready" ? STAGES.length : 0;
+      }
+      if (!track.genre && track.theme && track.mood && ["Ready", "Scheduled", "Released"].includes(track.status)) {
+        track.genre = makeGenre(track.theme, track.mood);
+      }
       if (track.modifier && !track.modifier.id) track.modifier = getModifier(track.modifier);
     });
   }
@@ -2642,6 +4246,19 @@ function normalizeState() {
   if (typeof state.time.lastYear === "undefined" || Number.isNaN(state.time.lastYear)) {
     state.time.lastYear = currentYear();
   }
+  if (typeof state.time.startEpochMs !== "number" || Number.isNaN(state.time.startEpochMs)) {
+    state.time.startEpochMs = getStartEpochMsFromState();
+  }
+  if (typeof state.meta.gameMode !== "string") {
+    const startYear = state.meta.startYear || new Date(state.time.startEpochMs).getUTCFullYear();
+    state.meta.gameMode = startYear >= 2400 ? "modern" : "founding";
+    state.meta.startYear = startYear;
+  }
+  if (typeof state.meta.startYear !== "number") {
+    state.meta.startYear = new Date(state.time.startEpochMs).getUTCFullYear();
+  }
+  syncLabelWallets();
+  ensureMarketCreators();
 }
 
 function refreshSelectOptions() {
@@ -2734,7 +4351,7 @@ function updateActMemberFields() {
 }
 
 function rankCandidates(role) {
-  const busyIds = new Set(state.workOrders.filter((o) => o.status === "In Progress").map((o) => o.creatorId));
+  const busyIds = getBusyCreatorIds("In Progress");
   const req = staminaRequirement(role);
   return state.creators
     .filter((c) => c.role === role)
@@ -2784,6 +4401,120 @@ function recommendActId() {
   return { actId: scored[0].act.id, reason: `Best average skill (${scored[0].avgSkill}).` };
 }
 
+function scoreActGenreMatch(act, theme, mood) {
+  const members = act.memberIds.map((id) => getCreator(id)).filter(Boolean);
+  const memberCount = members.length;
+  if (!memberCount) {
+    return {
+      act,
+      memberCount: 0,
+      avgSkill: 0,
+      matchScore: 0,
+      matchRate: 0,
+      exactHits: 0,
+      partialHits: 0
+    };
+  }
+  const canExact = Boolean(theme && mood);
+  let exactHits = 0;
+  let partialHits = 0;
+  members.forEach((creator) => {
+    const themeMatch = theme ? creator.prefThemes.includes(theme) : false;
+    const moodMatch = mood ? creator.prefMoods.includes(mood) : false;
+    if (canExact && themeMatch && moodMatch) {
+      exactHits += 1;
+      partialHits += 1;
+      return;
+    }
+    if (themeMatch || moodMatch) partialHits += 1;
+  });
+  const maxPerMember = canExact ? 3 : 1;
+  const matchScore = canExact ? exactHits * 3 + (partialHits - exactHits) : partialHits;
+  const matchRate = matchScore / (memberCount * maxPerMember);
+  const avgSkill = Math.round(members.reduce((sum, creator) => sum + creator.skill, 0) / memberCount);
+  return {
+    act,
+    memberCount,
+    avgSkill,
+    matchScore,
+    matchRate,
+    exactHits,
+    partialHits
+  };
+}
+
+function recommendActForTrack(track) {
+  if (!state.acts.length) {
+    return { version: RECOMMEND_VERSION, actId: null, reason: "No acts available yet." };
+  }
+  const theme = track.theme || themeFromGenre(track.genre);
+  const mood = track.mood || moodFromGenre(track.genre);
+  if (!theme && !mood) {
+    const fallback = recommendActId();
+    return {
+      version: RECOMMEND_VERSION,
+      actId: fallback.actId,
+      theme: "",
+      mood: "",
+      genre: "",
+      reason: `No genre data to match. ${fallback.reason}`
+    };
+  }
+  const genre = makeGenre(theme, mood);
+  const scored = state.acts.map((act) => scoreActGenreMatch(act, theme, mood));
+  scored.sort((a, b) => {
+    if (b.matchRate !== a.matchRate) return b.matchRate - a.matchRate;
+    if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+    if (b.avgSkill !== a.avgSkill) return b.avgSkill - a.avgSkill;
+    return a.act.name.localeCompare(b.act.name);
+  });
+  const top = scored[0];
+  if (!top || top.matchScore <= 0) {
+    const fallback = recommendActId();
+    const label = genre || theme || mood || "this track";
+    return {
+      version: RECOMMEND_VERSION,
+      actId: fallback.actId,
+      theme,
+      mood,
+      genre,
+      memberCount: top?.memberCount || 0,
+      exactMatches: 0,
+      partialMatches: 0,
+      reason: `No preference matches for ${label}. ${fallback.reason}`
+    };
+  }
+  const exactPossible = Boolean(theme && mood);
+  const partialOnly = top.partialHits - top.exactHits;
+  let reason = "";
+  if (exactPossible) {
+    const parts = [];
+    if (top.exactHits) parts.push(`${top.exactHits}/${top.memberCount} exact`);
+    if (partialOnly) parts.push(`${partialOnly}/${top.memberCount} partial`);
+    if (!parts.length) parts.push("no member preferences aligned");
+    reason = `Preference match for ${genre}: ${parts.join(", ")}.`;
+  } else if (theme) {
+    reason = top.partialHits
+      ? `Preference match for theme "${theme}": ${top.partialHits}/${top.memberCount} members.`
+      : `No preference matches for theme "${theme}".`;
+  } else {
+    reason = top.partialHits
+      ? `Preference match for mood "${mood}": ${top.partialHits}/${top.memberCount} members.`
+      : `No preference matches for mood "${mood}".`;
+  }
+  return {
+    version: RECOMMEND_VERSION,
+    actId: top.act.id,
+    theme,
+    mood,
+    genre,
+    memberCount: top.memberCount,
+    exactMatches: top.exactHits,
+    partialMatches: top.partialHits,
+    reason
+  };
+}
+
 function recommendModifierId(theme, mood) {
   const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
   const trendMatch = state.trends.includes(makeGenre(theme, mood));
@@ -2800,8 +4531,8 @@ function recommendModifierId(theme, mood) {
 
 function recommendProjectType(actId) {
   const relevant = actId
-    ? state.tracks.filter((track) => track.actId === actId && track.status !== "In Production")
-    : state.tracks.filter((track) => track.status !== "In Production");
+    ? state.tracks.filter((track) => track.actId === actId && !isTrackPipelineActive(track))
+    : state.tracks.filter((track) => !isTrackPipelineActive(track));
   const count = relevant.length;
   if (count >= 6) return { type: "Album", reason: `Catalog depth ${count} supports an album.` };
   if (count >= 3) return { type: "EP", reason: `Catalog depth ${count} supports an EP.` };
@@ -2869,30 +4600,31 @@ function renderAutoAssignModal() {
   const blocks = roles.map((role) => {
     const candidates = rankCandidates(role).slice(0, 5);
     const req = staminaRequirement(role);
+    const label = roleLabel(role);
     if (!candidates.length) {
       return `
         <div class="auto-assign-role">
-          <h3>${role}</h3>
+          <h3>${label}</h3>
           <div class="muted">No candidates available.</div>
         </div>
       `;
     }
     return `
       <div class="auto-assign-role">
-        <h3>${role}</h3>
+        <h3>${label}</h3>
         ${candidates.map((creator) => `
           <div class="list-item">
             <div class="auto-assign-candidate">
               <div>
                 <div class="item-title">${creator.name}</div>
-                <div class="muted">ID ${creator.id} • Skill ${creator.skill} • Stamina ${creator.stamina}</div>
+                <div class="muted">ID ${creator.id} • Skill <span class="grade-text" data-grade="${scoreGrade(creator.skill)}">${creator.skill}</span> • Stamina ${creator.stamina}</div>
               </div>
               <div class="actions">
                 ${creator.ready ? "" : `<span class="tag low">Low stamina</span>`}
-                <button type="button" class="ghost" data-assign-role="${role}" data-assign-id="${creator.id}">Assign</button>
+                <button type="button" class="ghost" data-assign-role="${role}" data-assign-id="${creator.id}"${creator.ready ? "" : " disabled"}>Assign</button>
               </div>
             </div>
-            <div class="muted">Needs ${req} stamina for ${role} stage</div>
+            <div class="muted">Needs ${req} stamina for ${label} stage</div>
           </div>
         `).join("")}
       </div>
@@ -2957,7 +4689,11 @@ function renderFocusEraStatus() {
 
 function renderStats() {
   $("cashDisplay").textContent = formatMoney(state.label.cash);
-  $("studioDisplay").textContent = `${state.studio.inUse} / ${state.studio.slots}`;
+  const counts = getStudioUsageCounts();
+  const ownedSlots = getOwnedStudioSlots();
+  const totalSlots = ownedSlots + counts.leased;
+  state.studio.inUse = counts.total;
+  $("studioDisplay").textContent = `${counts.total} / ${totalSlots}`;
   $("slotDisplay").textContent = session.activeSlot ? `Slot ${session.activeSlot}` : "-";
   $("slotTargetDisplay").textContent = state.ui.slotTarget ? describeSlot(state.ui.slotTarget) : "-";
   if ($("labelNameDisplay")) {
@@ -3295,7 +5031,7 @@ function renderActiveCampaigns() {
   if (!listEl) return;
   const active = state.marketTracks.filter((entry) => entry.isPlayer && entry.promoWeeks > 0);
   if (!active.length) {
-    listEl.innerHTML = `<div class="muted">No active campaigns.</div>`;
+    listEl.innerHTML = `<div class="muted">No active promo pushes.</div>`;
     return;
   }
   listEl.innerHTML = active.map((entry) => {
@@ -3351,21 +5087,57 @@ function renderWallet() {
       </div>
     `
   ];
-  const targets = ["walletDetails", "usageLedgerList"];
-  targets.forEach((id) => {
-    const el = $(id);
-    if (el) el.innerHTML = items.join("");
-  });
+  const el = $("walletDetails");
+  if (el) el.innerHTML = items.join("");
+}
+
+function renderLossArchives() {
+  const target = $("usageLedgerList");
+  if (!target) return;
+  const archives = loadLossArchives();
+  if (!archives.length) {
+    target.innerHTML = `<div class="muted">No loss archives yet.</div>`;
+    return;
+  }
+  const sorted = archives.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  target.innerHTML = sorted.map((entry) => {
+    const createdAt = entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "Unknown";
+    const slot = entry.slot ? `Slot ${entry.slot}` : "Slot -";
+    const week = entry.week ? `Week ${entry.week}` : "Week -";
+    const year = entry.year || "-";
+    const uiCount = Array.isArray(entry.uiEvents) ? entry.uiEvents.length : 0;
+    const simCount = Array.isArray(entry.simEvents) ? entry.simEvents.length : 0;
+    const label = entry.label || "Unknown Label";
+    const reason = entry.reason || "Loss recorded.";
+    const lossId = entry.id || "";
+    const gameDate = entry.gameTime ? formatDate(entry.gameTime) : "Unknown";
+    return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${label} - Loss</div>
+            <div class="muted">${reason}</div>
+            <div class="muted">${slot} | ${week} | Year ${year}</div>
+            <div class="muted">Game date ${gameDate}</div>
+            <div class="muted">UI ${uiCount} | System ${simCount} | Archived ${createdAt}</div>
+          </div>
+          <div class="actions">
+            <button type="button" class="ghost mini" data-loss-action="download" data-loss-id="${lossId}">Download</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 function renderQuickRecipes() {
   if (!$("quickRecipesList")) return;
   const recipes = [
     { title: "Songwriting", detail: "Assign Songwriter ID + Theme to draft the sheet music." },
-    { title: "Performance", detail: "Assign Performer ID + Mood to craft the demo tone." },
+    { title: "Recording", detail: "Assign Recorder ID + Mood to craft the demo tone." },
     { title: "Production", detail: "Assign Producer ID to master the track quality." },
     { title: "Release", detail: "Move Ready tracks into Release Desk for scheduling." },
-    { title: "Campaigns", detail: "Assign a Released Track ID to the Campaign Slot." }
+    { title: "Promo Pushes", detail: "Assign a Released Track ID to the Promo Push Slot." }
   ];
   $("quickRecipesList").innerHTML = recipes.map((recipe) => `
     <div class="list-item">
@@ -3378,6 +5150,10 @@ function renderQuickRecipes() {
 function renderActiveArea() {
   if (!$("activeAreaDisplay")) return;
   const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
+  const counts = getStudioUsageCounts();
+  const ownedSlots = getOwnedStudioSlots();
+  const totalSlots = ownedSlots + counts.leased;
+  state.studio.inUse = counts.total;
   let era = "No active eras";
   if (activeEras.length === 1) {
     const active = activeEras[0];
@@ -3392,9 +5168,9 @@ function renderActiveArea() {
       <div class="list-row">
         <div>
           <div class="item-title">Studios</div>
-          <div class="muted">${state.studio.inUse} active / ${state.studio.slots} total</div>
+          <div class="muted">${counts.total} active / ${totalSlots} total</div>
         </div>
-        <div class="pill">${state.studio.slots} rooms</div>
+        <div class="pill">${totalSlots} rooms</div>
       </div>
     </div>
     <div class="list-item">
@@ -3423,7 +5199,7 @@ function renderInventory() {
           <div class="muted">Item: Track • ID ${track.id}</div>
           <div class="muted">${track.status} • ${formatGenreKeyLabel(track.genre)}</div>
         </div>
-        <div class="pill">${qualityGrade(track.quality)}</div>
+        <div class="pill grade" data-grade="${qualityGrade(track.quality)}">${qualityGrade(track.quality)}</div>
       </div>
     </div>
   `).join("");
@@ -3562,6 +5338,11 @@ function renderActs() {
     return;
   }
   const list = state.acts.map((act) => {
+    const activeEras = getActiveEras().filter((era) => era.actId === act.id && era.status === "Active");
+    const historyCount = state.era.history.filter((era) => era.actId === act.id).length;
+    const eraLabel = activeEras.length
+      ? activeEras.map((era) => `${era.name} (${ERA_STAGES[era.stageIndex] || "Active"})`).join(", ")
+      : "None active";
     const members = act.memberIds
       .map((id) => {
         const creator = getCreator(id);
@@ -3580,6 +5361,7 @@ function renderActs() {
             <button type="button" class="ghost" data-act-set="${act.id}">Assign</button>
           </div>
         <div class="muted">Members: ${members || "None"}</div>
+        <div class="muted">Eras: ${eraLabel}${historyCount ? ` | Past ${historyCount}` : ""}</div>
         <div class="field">
           <label for="${inputId}">Rename Act</label>
           <input id="${inputId}" type="text" value="${act.name}" data-act-input="${act.id}" aria-label="Rename act ${act.name}">
@@ -3594,20 +5376,22 @@ function renderActs() {
 }
 
   function renderCreators() {
-    const busyIds = new Set(state.workOrders.filter((o) => o.status === "In Progress").map((o) => o.creatorId));
+    const busyIds = getBusyCreatorIds("In Progress");
     const list = state.creators.map((creator) => {
       const busy = busyIds.has(creator.id);
       const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
-    const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
-    const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
-    const memberships = state.acts.filter((act) => act.memberIds.includes(creator.id)).map((act) => act.name);
-    const actText = memberships.length ? memberships.join(", ") : "No Act";
-    return `
+      const skillGrade = scoreGrade(creator.skill);
+      const roleText = roleLabel(creator.role);
+      const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
+      const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
+      const memberships = state.acts.filter((act) => act.memberIds.includes(creator.id)).map((act) => act.name);
+      const actText = memberships.length ? memberships.join(", ") : "No Act";
+      return `
       <div class="list-item" data-entity-type="creator" data-entity-id="${creator.id}" data-entity-name="${creator.name}" draggable="true">
           <div class="list-row">
             <div>
               <div class="item-title">${creator.name}</div>
-              <div class="muted">ID ${creator.id} | ${creator.role} | Skill ${creator.skill}</div>
+              <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
               <div class="muted">Acts: ${actText}</div>
               <div class="muted">Preferred Themes:</div>
             <div class="time-row">${themeCells}</div>
@@ -3625,20 +5409,34 @@ function renderActs() {
 }
 
 function renderMarket() {
+  ensureMarketCreators();
   const listEl = $("marketList");
   if (!listEl) return;
-  const list = state.marketCreators.map((creator) => `
-    <div class="list-item">
-      <div class="list-row">
-        <div>
-          <div class="item-title">${creator.name}</div>
-          <div class="muted">ID ${creator.id} | ${creator.role} | Skill ${creator.skill}</div>
+  const filters = state.ui.cccFilters || {};
+  document.querySelectorAll("[data-ccc-filter]").forEach((input) => {
+    const key = input.dataset.cccFilter;
+    if (!key) return;
+    input.checked = filters[key] !== false;
+  });
+  const pool = state.marketCreators || [];
+  const filtered = pool.filter((creator) => filters[creator.role] !== false);
+  const list = filtered.map((creator) => {
+    const skillGrade = scoreGrade(creator.skill);
+    const roleText = roleLabel(creator.role);
+    return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${creator.name}</div>
+            <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
+          </div>
+          <button type="button" data-sign="${creator.id}">Sign ${formatMoney(creator.signCost || 0)}</button>
         </div>
-        <button type="button" data-sign="${creator.id}">Sign ${formatMoney(creator.signCost || 0)}</button>
       </div>
-    </div>
-  `);
-  listEl.innerHTML = list.length ? list.join("") : `<div class="muted">No Creator IDs available.</div>`;
+    `;
+  });
+  const emptyMsg = pool.length ? "No Creator IDs match the filters." : "No Creator IDs available.";
+  listEl.innerHTML = list.length ? list.join("") : `<div class="muted">${emptyMsg}</div>`;
 }
 
 function renderWorkOrders() {
@@ -3651,7 +5449,10 @@ function renderWorkOrders() {
   const now = state.time.epochMs;
   const list = state.workOrders.map((order) => {
     const track = getTrack(order.trackId);
-    const creator = getCreator(order.creatorId);
+    const crewIds = getWorkOrderCreatorIds(order);
+    const crew = crewIds.map((id) => getCreator(id)).filter(Boolean);
+    const lead = crew[0] || null;
+    const crewLabel = lead ? (crew.length > 1 ? `${lead.name} +${crew.length - 1}` : lead.name) : "Unassigned";
     const stage = STAGES[order.stageIndex];
     const hoursLeft = order.status === "In Progress" ? Math.max(0, Math.ceil((order.endAt - now) / HOUR_MS)) : "Queued";
     return `
@@ -3659,7 +5460,7 @@ function renderWorkOrders() {
         <div class="list-row">
           <div>
             <div class="item-title">${track ? track.title : "Unknown"}</div>
-            <div class="muted">${stage.name} | ${creator ? creator.name : "Unassigned"}</div>
+            <div class="muted">${stage.name} | ${crewLabel}</div>
           </div>
           <div class="pill">${hoursLeft}h</div>
         </div>
@@ -3670,12 +5471,34 @@ function renderWorkOrders() {
 }
 
 function renderTracks() {
-  if (!state.tracks.length) {
-    $("trackList").innerHTML = `<div class="muted">No tracks in catalog.</div>`;
-    return;
+  const activeView = state.ui.activeView || "";
+  const createStage = state.ui.createStage || "sheet";
+  const allTracks = state.tracks;
+  const archivedTracks = allTracks.filter((track) => track.status === "Released");
+  let tracks = allTracks.filter((track) => track.status !== "Released");
+  if (activeView === "create") {
+    if (createStage === "demo") {
+      tracks = tracks.filter((track) => track.status === "Awaiting Demo");
+    } else if (createStage === "master") {
+      tracks = tracks.filter((track) => track.status === "Awaiting Master");
+    }
   }
-  const focusEra = getFocusedEra();
-  const list = state.tracks.map((track) => {
+  const trackList = $("trackList");
+  if (trackList) {
+    if (!tracks.length) {
+      let emptyMsg = activeView === "create" && createStage === "demo"
+        ? "No sheet music awaiting demo recordings."
+        : activeView === "create" && createStage === "master"
+          ? "No demos awaiting mastering."
+          : "No active tracks in catalog.";
+      if (archivedTracks.length && emptyMsg === "No active tracks in catalog.") {
+        emptyMsg = `${emptyMsg} Released tracks are in the Archive.`;
+      }
+      trackList.innerHTML = `<div class="muted">${emptyMsg}</div>`;
+    } else {
+      const focusEra = getFocusedEra();
+      const now = state.time.epochMs;
+      const list = tracks.map((track) => {
     const stageName = track.status === "In Production" ? STAGES[Math.min(track.stageIndex, STAGES.length - 1)].name : track.status;
     const grade = qualityGrade(track.quality);
     const act = getAct(track.actId);
@@ -3683,28 +5506,82 @@ function renderTracks() {
     const projectType = track.projectType || "Single";
     const themeTag = renderThemeTag(track.theme);
     const alignTag = renderAlignmentTag(track.alignment);
-      const era = track.eraId ? getEraById(track.eraId) : null;
-      const eraName = era ? era.name : null;
-      const focusSuffix = focusEra && era && focusEra.id === era.id ? " | Focus" : "";
-      const modifierName = track.modifier ? track.modifier.label : "None";
-      return `
+    const actLine = activeView === "create"
+      ? `Project: ${project} (${projectType})`
+      : `Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})`;
+    const era = track.eraId ? getEraById(track.eraId) : null;
+    const eraName = era ? era.name : null;
+    const focusSuffix = focusEra && era && focusEra.id === era.id ? " | Focus" : "";
+    const modifierName = track.modifier ? track.modifier.label : "None";
+    const genreLabel = track.genre || "Genre: -";
+    const activeOrder = track.status === "In Production"
+      ? state.workOrders.find((order) => order.trackId === track.id && order.status === "In Progress")
+      : null;
+    let progressBlock = "";
+    if (activeOrder && activeOrder.startAt && activeOrder.endAt) {
+      const total = Math.max(1, activeOrder.endAt - activeOrder.startAt);
+      const progress = clamp((now - activeOrder.startAt) / total, 0, 1);
+      const pct = Math.round(progress * 100);
+      const hoursLeft = Math.max(0, Math.ceil((activeOrder.endAt - now) / HOUR_MS));
+      progressBlock = `
+        <div class="bar"><span style="width:${pct}%"></span></div>
+        <div class="muted">Progress: ${pct}% • ${hoursLeft}h left</div>
+      `;
+    } else if (track.status === "In Production") {
+      progressBlock = `<div class="muted">Queued for studio time.</div>`;
+    }
+    return `
       <div class="list-item" data-entity-type="track" data-entity-id="${track.id}" data-entity-name="${track.title}" draggable="true">
         <div class="list-row">
             <div>
               <div class="item-title">${track.title}</div>
               <div class="muted">ID ${track.id} | Item: Track</div>
-              <div class="muted">${track.genre}</div>
+              <div class="muted">${genreLabel}</div>
               <div class="muted">${themeTag} ${alignTag}</div>
-            <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
+            <div class="muted">${actLine}</div>
             <div class="muted">Distribution: ${track.distribution || "Digital"}</div>
           </div>
-          <div class="badge">${grade}</div>
+          <div class="badge grade" data-grade="${grade}">${grade}</div>
         </div>
         <div class="muted">Status: ${stageName} | Quality ${track.quality}${eraName ? ` | Era: ${eraName}${focusSuffix}` : ""}</div>
+        ${progressBlock}
+      </div>
+    `;
+      });
+      trackList.innerHTML = list.join("");
+    }
+  }
+
+  const archiveList = $("trackArchiveList");
+  if (!archiveList) return;
+  if (!archivedTracks.length) {
+    archiveList.innerHTML = `<div class="muted">No released tracks yet.</div>`;
+    return;
+  }
+  const sortedArchive = archivedTracks.slice().sort((a, b) => (b.releasedAt || 0) - (a.releasedAt || 0));
+  const archiveItems = sortedArchive.map((track) => {
+    const act = getAct(track.actId);
+    const project = track.projectName || `${track.title} - Single`;
+    const projectType = track.projectType || "Single";
+    const releaseDate = track.releasedAt ? formatDate(track.releasedAt) : "TBD";
+    const grade = qualityGrade(track.quality);
+    const genreLabel = track.genre || "Genre: -";
+    const actLine = `Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})`;
+    return `
+      <div class="list-item" data-entity-type="track" data-entity-id="${track.id}" data-entity-name="${track.title}" draggable="true">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${track.title}</div>
+            <div class="muted">ID ${track.id} | ${genreLabel}</div>
+            <div class="muted">${actLine}</div>
+            <div class="muted">Released ${releaseDate} | ${track.distribution || "Digital"}</div>
+          </div>
+          <div class="badge grade" data-grade="${grade}">${grade}</div>
+        </div>
       </div>
     `;
   });
-  $("trackList").innerHTML = list.join("");
+  archiveList.innerHTML = archiveItems.join("");
 }
 
 function renderEraStatus() {
@@ -3746,39 +5623,69 @@ function renderEraStatus() {
 }
 
 function renderReleaseDesk() {
-  const readyTracks = state.tracks.filter((track) => track.status === "Ready");
+  const queuedIds = new Set(state.releaseQueue.map((entry) => entry.trackId));
+  const readyTracks = state.tracks.filter((track) => {
+    if (queuedIds.has(track.id)) return false;
+    if (track.status === "Ready") return true;
+    return isMasteringTrack(track);
+  });
   const readyHtml = readyTracks.length
     ? readyTracks.map((track) => {
+      const isReady = track.status === "Ready";
+      const isMastering = isMasteringTrack(track);
       const act = getAct(track.actId);
+      const actOptions = state.acts.map((entry) => `<option value="${entry.id}"${entry.id === track.actId ? " selected" : ""}>${entry.name}</option>`).join("");
+      const actSelect = state.acts.length
+        ? `
+          <div class="field">
+            <label>Assign Act</label>
+            <div class="input-row">
+              <select data-assign-act="${track.id}">
+                <option value="">Select Act</option>
+                ${actOptions}
+              </select>
+              <button type="button" class="ghost mini" data-act-recommend="${track.id}">Recommend</button>
+            </div>
+          </div>
+        `
+        : `<div class="muted">No Acts available. Create one in Roster.</div>`;
       const project = track.projectName || `${track.title} - Single`;
       const projectType = track.projectType || "Single";
       const themeTag = renderThemeTag(track.theme);
       const alignTag = renderAlignmentTag(track.alignment);
       const modifierName = track.modifier ? track.modifier.label : "None";
-      const rec = recommendReleasePlan(track);
+      const derivedGenre = track.genre || makeGenre(track.theme, track.mood);
+      const grade = qualityGrade(track.quality);
+      const rec = derivedGenre ? recommendReleasePlan({ ...track, genre: derivedGenre }) : recommendReleasePlan(track);
       const recLabel = `${rec.distribution} ${rec.scheduleKey === "now" ? "now" : rec.scheduleKey === "fortnight" ? "+14d" : "+7d"}`;
+      const statusLabel = isReady ? "" : track.status === "In Production" ? "Mastering" : "Awaiting Master";
+      const genreLabel = derivedGenre || "-";
+      const hasAct = Boolean(track.actId);
+      const canReleaseNow = hasAct && isReady;
+      const canSchedule = hasAct && (isReady || isMastering);
       return `
         <div class="list-item">
           <div class="list-row">
             <div>
               <div class="item-title">${track.title}</div>
-              <div class="muted">${track.genre} | ${qualityGrade(track.quality)}</div>
+              <div class="muted">${genreLabel} | <span class="grade-text" data-grade="${grade}">${grade}</span>${isReady ? "" : ` | ${statusLabel}`}</div>
               <div class="muted">${themeTag} ${alignTag}</div>
               <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
               <div class="muted">Modifier: ${modifierName}</div>
               <div class="muted">Recommended: ${recLabel} - ${rec.reason}</div>
+              ${actSelect}
             </div>
             <div class="time-row">
-              <button type="button" data-release="now" data-track="${track.id}">Release</button>
-              <button type="button" class="ghost" data-release="week" data-track="${track.id}">+7d</button>
-              <button type="button" class="ghost" data-release="fortnight" data-track="${track.id}">+14d</button>
-              <button type="button" class="ghost" data-release="recommend" data-track="${track.id}">Use Recommended</button>
+              <button type="button" data-release="now" data-track="${track.id}"${canReleaseNow ? "" : " disabled"}>Release</button>
+              <button type="button" class="ghost" data-release="week" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+7d</button>
+              <button type="button" class="ghost" data-release="fortnight" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+14d</button>
+              <button type="button" class="ghost" data-release="recommend" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Use Recommended</button>
             </div>
           </div>
         </div>
       `;
     }).join("")
-    : `<div class="muted">No ready tracks.</div>`;
+    : `<div class="muted">No ready or mastering tracks.</div>`;
   $("readyList").innerHTML = readyHtml;
 
   if (!state.releaseQueue.length) {
@@ -3824,7 +5731,30 @@ function renderTrends() {
   listEl.innerHTML = list.join("");
 }
 
+function renderCreateTrends() {
+  const listEl = $("createTrendList");
+  if (!listEl) return;
+  const list = (state.trends || []).slice(0, 3).map((trend, index) => {
+    const theme = themeFromGenre(trend);
+    const mood = moodFromGenre(trend);
+    return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">#${index + 1} ${formatGenreKeyLabel(trend)}</div>
+            <div class="time-row">${renderThemeTag(theme)} ${renderMoodLabel(mood)}</div>
+          </div>
+          <div class="badge warn">Hot</div>
+        </div>
+      </div>
+    `;
+  });
+  listEl.innerHTML = list.length ? list.join("") : `<div class="muted">No trends yet.</div>`;
+}
+
 function renderGenreIndex() {
+  const listEl = $("genreList");
+  if (!listEl) return;
   const themeFilter = state.ui.genreTheme || "All";
   const moodFilter = state.ui.genreMood || "All";
   const list = [];
@@ -3849,7 +5779,103 @@ function renderGenreIndex() {
       `);
     });
   });
-  $("genreList").innerHTML = list.length ? list.join("") : `<div class="muted">No genres match the filters.</div>`;
+  listEl.innerHTML = list.length ? list.join("") : `<div class="muted">No genres match the filters.</div>`;
+}
+
+function buildStudioEntries() {
+  const entries = [];
+  const playerSlots = getOwnedStudioSlots();
+  const playerUsed = Math.min(getStudioUsageCounts().owned, playerSlots);
+  for (let i = 1; i <= playerSlots; i += 1) {
+    entries.push({
+      id: `player-${i}`,
+      ownerType: "player",
+      ownerId: "player",
+      ownerName: state.label.name || "Your Label",
+      slotIndex: i,
+      slotCount: playerSlots,
+      occupied: i <= playerUsed
+    });
+  }
+
+  const cap = STUDIO_CAP_PER_LABEL;
+  state.rivals.forEach((rival) => {
+    const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.35;
+    const used = clamp(Math.round(cap * momentum), 0, cap);
+    for (let i = 1; i <= cap; i += 1) {
+      entries.push({
+        id: `${rival.id}-${i}`,
+        ownerType: "rival",
+        ownerId: rival.id,
+        ownerName: rival.name,
+        slotIndex: i,
+        slotCount: cap,
+        occupied: i <= used
+      });
+    }
+  });
+
+  return entries;
+}
+
+function renderStudiosList() {
+  const listEl = $("studioList");
+  if (!listEl) return;
+  const filters = state.ui.studioFilters || {};
+  const ownerFilter = state.ui.studioOwnerFilter || "all";
+  const restrictToOwned = state.ui.activeView === "create";
+  document.querySelectorAll("[data-studio-filter]").forEach((input) => {
+    const key = input.dataset.studioFilter;
+    if (!key || typeof filters[key] !== "boolean") return;
+    input.checked = filters[key] !== false;
+  });
+
+  const ownerSelect = $("studioOwnerFilter");
+  if (ownerSelect) {
+    const options = [
+      `<option value="all">All rivals</option>`,
+      ...state.rivals.map((rival) => `<option value="${rival.id}">${rival.name}</option>`)
+    ];
+    ownerSelect.innerHTML = options.join("");
+    const validOwners = new Set(["all", ...state.rivals.map((rival) => rival.id)]);
+    if (!validOwners.has(ownerFilter)) state.ui.studioOwnerFilter = "all";
+    ownerSelect.value = state.ui.studioOwnerFilter || "all";
+    ownerSelect.disabled = restrictToOwned || filters.unowned === false;
+  }
+
+  const showOwned = restrictToOwned ? true : filters.owned !== false;
+  const showUnowned = restrictToOwned ? false : filters.unowned !== false;
+  const showOccupied = filters.occupied !== false;
+  const showUnoccupied = filters.unoccupied !== false;
+  const filtered = buildStudioEntries().filter((entry) => {
+    if (entry.ownerType === "player" && !showOwned) return false;
+    if (entry.ownerType !== "player" && !showUnowned) return false;
+    if (entry.ownerType !== "player" && ownerFilter !== "all" && entry.ownerId !== ownerFilter) return false;
+    if (entry.occupied && !showOccupied) return false;
+    if (!entry.occupied && !showUnoccupied) return false;
+    return true;
+  });
+
+  if (!filtered.length) {
+    listEl.innerHTML = `<div class="muted">No studios match the filters.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map((entry) => {
+    const ownership = entry.ownerType === "player" ? "Owned" : "Unowned";
+    const status = entry.occupied ? "Occupied" : "Available";
+    return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${entry.ownerName} Studio ${entry.slotIndex}</div>
+            <div class="muted">${ownership} | Slot ${entry.slotIndex} of ${entry.slotCount}</div>
+          </div>
+          <div class="pill">${status}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 function renderCharts() {
@@ -3905,7 +5931,9 @@ function renderCharts() {
 
   const meta = $("chartMeta");
   if (meta) {
-    meta.textContent = `Top ${size} | ${scopeLabel} | Weights S ${CHART_WEIGHTS.sales * 100}% / Stream ${CHART_WEIGHTS.streaming * 100}% / Air ${CHART_WEIGHTS.airplay * 100}% / Social ${CHART_WEIGHTS.social * 100}%`;
+    const weights = chartWeightsForScope(state.ui.activeChart || "global");
+    const pct = (value) => Math.round(value * 100);
+    meta.textContent = `Top ${size} | ${scopeLabel} | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
   }
 
   const globalLocked = state.ui.activeChart === "global" && entries.length < size;
@@ -4285,23 +6313,183 @@ function updateGenrePreview() {
   const theme = themeSelect.value;
   const mood = moodSelect.value;
   if (!theme || !mood) {
-    $("genrePreview").textContent = "Genre: -";
+    $("genrePreview").textContent = "Planned Genre: -";
     return;
   }
-  $("genrePreview").textContent = `Genre: ${formatGenreLabel(theme, mood)}`;
+  $("genrePreview").textContent = `Planned Genre: ${formatGenreLabel(theme, mood)}`;
+}
+
+function stageLabelFromId(stageId) {
+  if (stageId === "demo") return "Demo Recording";
+  if (stageId === "master") return "Master Recording";
+  return "Sheet Music";
+}
+
+function stageIndexFromId(stageId) {
+  if (stageId === "demo") return 1;
+  if (stageId === "master") return 2;
+  return 0;
+}
+
+function renderActiveStudiosSelect() {
+  const select = $("activeStudiosSelect");
+  if (!select) return;
+  const stageId = state.ui.createStage || "sheet";
+  const stageIndex = stageIndexFromId(stageId);
+  const stageLabel = stageLabelFromId(stageId);
+  const labelEl = select.closest(".field")?.querySelector("label");
+  if (labelEl) labelEl.textContent = `Active Studios (${stageLabel})`;
+
+  const active = state.workOrders
+    .filter((order) => order.status === "In Progress" && order.stageIndex === stageIndex)
+    .map((order) => {
+      const track = getTrack(order.trackId);
+      const crewIds = getWorkOrderCreatorIds(order);
+      const crew = crewIds.map((id) => getCreator(id)).filter(Boolean);
+      const lead = crew[0] || null;
+      const crewLabel = lead ? (crew.length > 1 ? `${lead.name} +${crew.length - 1}` : lead.name) : null;
+      return {
+        slot: Number.isFinite(order.studioSlot) ? order.studioSlot : null,
+        trackTitle: track ? track.title : "Unknown Track",
+        creatorName: crewLabel
+      };
+    })
+    .sort((a, b) => (a.slot || 0) - (b.slot || 0));
+
+  if (!active.length) {
+    select.innerHTML = `<option value="">No active studios</option>`;
+    select.disabled = true;
+  } else {
+    select.innerHTML = active
+      .map((entry, index) => {
+        const slotLabel = entry.slot ? `Studio ${entry.slot}` : `Studio ${index + 1}`;
+        const creatorLabel = entry.creatorName ? ` • ${entry.creatorName}` : "";
+        return `<option value="${entry.slot || index + 1}">${slotLabel} • ${entry.trackTitle}${creatorLabel}</option>`;
+      })
+      .join("");
+    select.disabled = false;
+  }
+
+  const meta = $("activeStudiosMeta");
+  if (meta) {
+    const counts = getStudioUsageCounts();
+    const ownedSlots = getOwnedStudioSlots();
+    const totalSlots = ownedSlots + counts.leased;
+    meta.textContent = `Active ${active.length}/${STAGE_STUDIO_LIMIT} | Global ${counts.total}/${totalSlots}`;
+  }
+}
+
+function renderCreateStageTrackSelect() {
+  const select = $("stageTrackSelect");
+  if (!select) return;
+  const meta = $("stageTrackMeta");
+  const stageId = state.ui.createStage || "sheet";
+  if (stageId === "sheet") {
+    select.innerHTML = "";
+    select.disabled = true;
+    if (meta) meta.textContent = "Select Demo or Master to choose a track.";
+    return;
+  }
+  const isDemo = stageId === "demo";
+  const status = isDemo ? "Awaiting Demo" : "Awaiting Master";
+  const tracks = state.tracks.filter((track) => track.status === status);
+  if (!tracks.length) {
+    select.innerHTML = `<option value="">No tracks awaiting ${isDemo ? "demo recording" : "mastering"}.</option>`;
+    select.disabled = true;
+    state.ui.createTrackId = null;
+    if (meta) meta.textContent = `Awaiting ${isDemo ? "demo recordings" : "mastering"}: 0`;
+    return;
+  }
+  select.innerHTML = tracks
+    .map((track) => `<option value="${track.id}">${track.title}</option>`)
+    .join("");
+  const preferred = tracks.some((track) => track.id === state.ui.createTrackId)
+    ? state.ui.createTrackId
+    : tracks[0].id;
+  state.ui.createTrackId = preferred;
+  select.value = preferred;
+  select.disabled = false;
+  if (meta) meta.textContent = `Awaiting ${isDemo ? "demo recordings" : "mastering"}: ${tracks.length}`;
+}
+
+function renderCreateStageControls() {
+  const stageButtons = document.querySelectorAll("[data-create-stage]");
+  if (!stageButtons.length) return;
+  const demoCount = state.tracks.filter((track) => track.status === "Awaiting Demo").length;
+  const masterCount = state.tracks.filter((track) => track.status === "Awaiting Master").length;
+  const demoActive = state.workOrders.some((order) => order.status === "In Progress" && order.stageIndex === 1);
+  const masterActive = state.workOrders.some((order) => order.status === "In Progress" && order.stageIndex === 2);
+  let stage = state.ui.createStage || "sheet";
+  const validStages = ["sheet", "demo", "master"];
+  if (!validStages.includes(stage)) {
+    logEvent("Unknown creation stage selected. Reverting to Sheet Music.", "warn");
+    stage = "sheet";
+  }
+  if (stage === "demo" && demoCount === 0 && !demoActive) stage = "sheet";
+  if (stage === "master" && masterCount === 0 && !masterActive) stage = "sheet";
+  state.ui.createStage = stage;
+  const options = {
+    sheet: { label: "Sheet Music", disabled: false },
+    demo: { label: `Demo Recording (${demoCount})`, disabled: demoCount === 0 && !demoActive },
+    master: { label: `Master Recording (${masterCount})`, disabled: masterCount === 0 && !masterActive }
+  };
+  stageButtons.forEach((btn) => {
+    const id = btn.dataset.createStage;
+    if (!id || !options[id]) return;
+    const config = options[id];
+    const isActive = id === stage;
+    btn.textContent = config.label;
+    btn.disabled = config.disabled;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-pressed", String(isActive));
+  });
+
+  const desiredRole = stage === "demo" ? "Performer" : stage === "master" ? "Producer" : "Songwriter";
+  const currentRole = parseTrackRoleTarget(state.ui.slotTarget || "")?.role || null;
+  if (currentRole !== desiredRole) {
+    state.ui.slotTarget = `${TRACK_ROLE_TARGETS[desiredRole]}-1`;
+  }
+  renderCreateStageTrackSelect();
+  const startBtn = $("startTrackBtn");
+  if (startBtn) {
+    const crewMode = state.ui.recommendAllMode || "solo";
+    startBtn.textContent = stage === "demo"
+      ? "Start Demo Recording"
+      : stage === "master"
+        ? "Start Master Recording"
+        : crewMode === "solo"
+          ? "Start Solo Tracks"
+          : "Start Sheet Music";
+    const needsTrack = stage === "demo" || stage === "master";
+    startBtn.disabled = needsTrack && !state.ui.createTrackId;
+  }
+  const recommendSelect = $("recommendAllMode");
+  if (recommendSelect) recommendSelect.value = state.ui.recommendAllMode || "solo";
+  const recommendHelp = $("recommendAllHelp");
+  if (recommendHelp) {
+    recommendHelp.textContent = stage === "sheet"
+      ? "Solo starts separate sheet music for each assigned songwriter. Collab fills one track with everyone."
+      : "Solo tracks apply to sheet music only. Demo and master stages always run one track at a time.";
+  }
+  document.querySelectorAll("[data-stage]").forEach((el) => {
+    const stages = el.dataset.stage.split(",").map((value) => value.trim());
+    el.classList.toggle("hidden", !stages.includes(stage));
+  });
+  renderActiveStudiosSelect();
 }
 
 function renderActiveView(view) {
   const raw = view || state.ui.activeView || "charts";
-  const active = raw === "promotion" || raw === "era" ? "eras" : raw;
+  const active = raw === "promotion" ? "logs" : raw === "era" ? "eras" : raw;
   if (active === "charts") {
     renderCharts();
     renderReleaseDesk();
     renderSlots();
   } else if (active === "create") {
+    renderCreateStageControls();
     renderSlots();
     renderTracks();
-    renderGenreIndex();
+    renderCreateTrends();
     updateGenrePreview();
   } else if (active === "releases") {
     renderReleaseDesk();
@@ -4318,15 +6506,22 @@ function renderActiveView(view) {
     renderSlots();
   } else if (active === "world") {
     renderMarket();
+    renderPopulation();
     renderTrends();
+    renderGenreIndex();
+    renderEconomySummary();
+    renderQuests();
     renderTopBar();
   } else if (active === "logs") {
+    renderSlots();
     renderEventLog();
     renderWallet();
+    renderLossArchives();
   }
 }
 
-function renderAll() {
+function renderAll({ save = true } = {}) {
+  syncLabelWallets();
   renderTime();
   renderStats();
   renderTopBar();
@@ -4338,7 +6533,7 @@ function renderAll() {
   if (typeof window !== "undefined" && window.updateRecommendations) {
     window.updateRecommendations();
   }
-  saveToActiveSlot();
+  if (save) saveToActiveSlot();
 }
 
 export {
@@ -4360,10 +6555,17 @@ export {
   handleFromName,
   makeAct,
   createTrack,
+  startDemoStage,
+  startMasterStage,
   getModifier,
+  staminaRequirement,
+  getCrewStageStats,
+  getAdjustedStageHours,
+  getAdjustedTotalStageHours,
   getAct,
   getCreator,
   getTrack,
+  assignTrackAct,
   getStudioAvailableSlots,
   getEraById,
   getActiveEras,
@@ -4376,6 +6578,10 @@ export {
   weekIndex,
   normalizeCreator,
   postCreatorSigned,
+  markCreatorPromo,
+  ensureMarketCreators,
+  listGameModes,
+  DEFAULT_GAME_MODE,
   renderAll,
   renderStats,
   renderSlots,
@@ -4385,10 +6591,12 @@ export {
   renderReleaseDesk,
   renderEraStatus,
   renderWallet,
+  renderLossArchives,
   renderActiveCampaigns,
   renderQuickRecipes,
   renderCalendarList,
   renderGenreIndex,
+  renderStudiosList,
   renderCharts,
   renderSocialFeed,
   renderMainMenu,
@@ -4397,10 +6605,14 @@ export {
   renderAutoAssignModal,
   rankCandidates,
   recommendTrackPlan,
+  recommendActForTrack,
   recommendReleasePlan,
   recommendProjectType,
   assignToSlot,
+  shakeSlot,
+  shakeField,
   clearSlot,
+  getSlotValue,
   getSlotElement,
   describeSlot,
   setSlotTarget,
@@ -4418,6 +6630,8 @@ export {
   openMainMenu,
   closeMainMenu,
   saveToActiveSlot,
+  markUiLogStart,
+  getLossArchives,
   getSlotData,
   loadSlot,
   resetState,
