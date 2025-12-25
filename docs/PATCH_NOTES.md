@@ -1,5 +1,11 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1628Z)
+- Week boundaries now anchor to Sunday 00:00 UTC for week labels and calendar ranges.
+
+## 2025-12-25 (RLS-PATCH-20251225-1620Z)
+- Added safe quarter-hour defaults to prevent missing constant crashes when cached data assets lag behind.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1614Z)
 - Fixed weekly update logging crash caused by a missing timer reference.
 
