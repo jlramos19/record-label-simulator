@@ -3,7 +3,7 @@ import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
-const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
+const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
 const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
@@ -3198,36 +3198,28 @@ function handleReleaseAction(e) {
     renderAll();
 }
 function signCreatorById(id) {
-    const index = state.marketCreators.findIndex((c) => c.id === id);
-    if (index === -1)
+    const creator = state.marketCreators.find((entry) => entry.id === id) || null;
+    const result = attemptSignCreator({
+        creatorId: id,
+        recordLabelId: state.label?.name,
+        nowEpochMs: state.time.epochMs
+    });
+    if (!result)
         return;
-    const creator = state.marketCreators[index];
-    const dayIndex = Math.floor(state.time.epochMs / (HOUR_MS * 24));
-    const failSign = (message) => {
-        creator.signFailedDay = dayIndex;
-        logEvent(message, "warn");
-        renderAll();
-        const card = document.querySelector(`[data-ccc-creator="${creator.id}"]`);
+    logUiEvent("action_submit", {
+        action: "sign_creator",
+        creatorId: id,
+        role: creator?.role,
+        outcome: result.ok ? "accepted" : (result.kind || "unknown").toLowerCase(),
+        reason: result.reason
+    });
+    if (!result.ok) {
+        const card = document.querySelector(`[data-ccc-creator="${id}"]`);
         if (card)
             shakeElement(card);
-    };
-    if (creator.signFailedDay === dayIndex) {
-        logEvent("Contract review pending. Check back after the daily refresh.", "warn");
+        renderAll();
         return;
     }
-    const cost = creator.signCost || 0;
-    if (state.label.cash < cost) {
-        failSign("Not enough cash to sign this creator.");
-        return;
-    }
-    state.marketCreators.splice(index, 1);
-    state.label.cash -= cost;
-    creator.signCost = undefined;
-    state.creators.push(normalizeCreator(creator));
-    ensureMarketCreators();
-    logUiEvent("action_submit", { action: "sign_creator", creatorId: creator.id, role: creator.role });
-    logEvent(`Signed ${creator.name} (${roleLabel(creator.role)}).`);
-    postCreatorSigned(creator, cost);
     renderCreators();
     renderSlots();
     renderAll();
