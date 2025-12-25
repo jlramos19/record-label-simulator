@@ -2,42 +2,32 @@
 
 All characters in the `Record Label` Simulator are community members with roles and occupations that define their functions in the game's ecosystem.
 
-\#\# Player  
-\#\#\# Role  
-Creative strategist and decision-maker for the Record Label.  
-\#\#\#\# occupation  
-  \- \*\*Executive\*\*: Executes the vision of the CEO with the autonomy to influence the Record Label's direction, for better or worse.
+## Player (CEO)
+### Role
+CEO of the Record Label.
+#### Occupation
+- Music Executive: negotiate, sign, form, place, terminate, rent, conduct, plan.
 
-\#\# CEO  
-\#\#\# Role  
-Visionary leader and ultimate authority of the Record Label.  
-\#\#\#\# occupation  
-  \- \*\*Director\*\*: Provides quests and sets goals, offering a framework for the player's strategic decisions.
+## Members
+### Role
+Community members who power the world simulation.
+#### Occupations
+- Personnel: Factory, Shopping Center, and Broadcast Corporation roles (manufacture, distribute, present; priority order).
+- Consumer: buy, stream, attend, rate.
+- Critic: rate (Alignment, Theme, and Mood focus).
 
-\#\# Creators  
-\#\#\# Role  
-Creative individuals responsible for producing music content.  
-\#\#\#\# occupations  
-  \- \*\*Songwriter\*\*: Develops lyrical content, imbuing it with chosen themes.  
-  \- \*\*Recorder\*\*: Delivers the music with heartfelt emotional expression.  
-  \- \*\*Producer\*\*: Finalizes the track, defining its content genre and quality.
+## Creators
+### Role
+Creative individuals responsible for producing music content.
+#### Occupations
+- Songwriter: write (Create Sheet Music with selected Themes).
+- Performer: perform (Create Demo Recordings that define Moods).
+- Producer: produce (Create Masters that set Genre and preliminary Quality).
 
-\#\# Consumers  
-\#\#\# Role  
-Audience members who engage with and support the music content.  
-\#\#\#\# occupations  
-  \- \*\*Fan\*\*: Regular appreciator and supporter of music acts.  
-  \- \*\*Stan\*\*: Highly devoted advocate, deeply engaging with music acts.
+## Acts
+### Role
+Public-facing artist units formed from Creators.
+#### Occupation
+- Promoter: promote (Boost visibility and engagement of released content).
 
-\#\# Critics  
-\#\#\# Role  
-Independent evaluators who critically assess music content created within the game.  
-\#\#\#\# occupations  
-  \- \*\*Alignment\*\*: Critics operate within councils that are aligned with the game's Alignment spectrum – Safe, Neutral, and Risky.  
-  \- \*\*Theme\*\*: Critics are part of councils that specialize in evaluating the thematic aspects of music content – Freedom, Loyalty, Ambition, Morality, Power.  
-  \- \*\*Mood\*\*: Critics belong to councils that focus on the mood conveyed by music – Calming, Uplifting, Saddening, Energizing, Thrilling, Angering, Cheering, Daring, Boring.
-
-\*\*Note\*\*: Critics are categorized by their specific focus on either mood or theme, and their assessment contributes to the final quality rating of the music content.
-
-\*\*Note\*\*: The term 'occupation' encapsulates the specific functions and participatory levels for community members, ensuring uniformity across all character roles in the game.
-
+Note: Some Member actions are simulated or placeholders until their gameplay systems are fully implemented.

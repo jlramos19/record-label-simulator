@@ -28,7 +28,7 @@ const TRACK_ROLE_TARGETS = {
 };
 const ROLE_LABELS = {
     Songwriter: "Songwriter",
-    Performer: "Recorder",
+    Performer: "Performer",
     Producer: "Producer"
 };
 function roleLabel(role) {
@@ -1910,7 +1910,7 @@ function updateTrackRecommendation() {
     ${totalLine}
     ${crewSummaryLine}
     <div class="muted">Recommended: ${rec.theme} / ${rec.mood} | Modifier ${recModifier?.label || "None"} | Project ${rec.projectType}</div>
-    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} | Recorder ${performer ? performer.name : "Unassigned"} | Producer ${producer ? producer.name : "Unassigned"}</div>
+    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} | Performer ${performer ? performer.name : "Unassigned"} | Producer ${producer ? producer.name : "Unassigned"}</div>
     <div class="muted">Act assignment happens at release.</div>
     ${warningHtml}
     <div class="tiny">${rec.reasons}</div>

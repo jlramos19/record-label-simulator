@@ -64,9 +64,79 @@ const TRACK_CREW_RULES = {
 };
 const ROLE_LABELS = {
   Songwriter: "Songwriter",
-  Performer: "Recorder",
+  Performer: "Performer",
   Producer: "Producer"
 };
+
+const ROLE_ACTION_STATUS = {
+  live: { label: "Live", className: "badge" },
+  simulated: { label: "Simulated", className: "badge warn" },
+  placeholder: { label: "Placeholder", className: "badge danger" }
+};
+
+const ROLE_ACTIONS = [
+  {
+    role: "Member",
+    occupations: [
+      {
+        name: "Personnel",
+        note: "Priority order for new Members.",
+        actions: [
+          { label: "Factory Personnel", verb: "manufacture", detail: "Produce content.", status: "placeholder", priority: 1 },
+          { label: "Shopping Center Personnel", verb: "distribute", detail: "Sell content.", status: "placeholder", priority: 2 },
+          { label: "Broadcast Corporation Personnel", verb: "present", detail: "Show content to audience.", status: "placeholder", priority: 3 }
+        ]
+      },
+      {
+        name: "Consumer",
+        actions: [
+          { verb: "buy", detail: "Purchase content from Shopping Centers.", status: "simulated" },
+          { verb: "stream", detail: "Tune into shows, stations, or playlists at home.", status: "simulated" },
+          { verb: "attend", detail: "Participate in live performances or events at Venues.", status: "simulated" },
+          { verb: "rate", detail: "Provide ratings for consumed content.", status: "simulated" }
+        ]
+      },
+      {
+        name: "Critic",
+        actions: [
+          { verb: "rate", detail: "Evaluate content quality based on Alignment and preferences.", status: "simulated" }
+        ]
+      }
+    ]
+  },
+  {
+    role: "Creator",
+    occupations: [
+      { name: "Songwriter", actions: [{ verb: "write", detail: "Create Sheet Music with selected Themes.", status: "live" }] },
+      { name: "Performer", actions: [{ verb: "perform", detail: "Create Demo Recordings that define Moods.", status: "live" }] },
+      { name: "Producer", actions: [{ verb: "produce", detail: "Create Masters by combining Theme + Mood into Genre and preliminary Quality.", status: "live" }] }
+    ]
+  },
+  {
+    role: "Act",
+    occupations: [
+      { name: "Promoter", actions: [{ verb: "promote", detail: "Boost visibility and engagement of released content.", status: "live" }] }
+    ]
+  },
+  {
+    role: "CEO",
+    occupations: [
+      {
+        name: "Music Executive",
+        actions: [
+          { verb: "negotiate", detail: "Contracts with Creators to sign them.", status: "simulated" },
+          { verb: "sign", detail: "Creators to the Record Label.", status: "live" },
+          { verb: "form", detail: "Acts from Creators within the Record Label.", status: "live" },
+          { verb: "place", detail: "Creators in Structures' slots.", status: "live" },
+          { verb: "terminate", detail: "A contract with a Creator.", status: "placeholder" },
+          { verb: "rent", detail: "Structures to create content.", status: "placeholder" },
+          { verb: "conduct", detail: "Era with Acts.", status: "live" },
+          { verb: "plan", detail: "Tour.", status: "placeholder" }
+        ]
+      }
+    ]
+  }
+];
 
 function trackRoleLimit(role) {
   const limit = TRACK_ROLE_LIMITS?.[role];
@@ -170,6 +240,31 @@ function getGameMode(modeId) {
 
 function listGameModes() {
   return Object.values(GAME_MODES);
+}
+
+function shortGameModeLabel(label) {
+  if (!label) return "";
+  return label.replace(/\s*\(\d+\)\s*$/, "");
+}
+
+function getGameModeFromStartYear(startYear) {
+  if (!Number.isFinite(startYear)) return null;
+  const modeId = startYear >= GAME_MODES.modern.startYear ? "modern" : "founding";
+  return getGameMode(modeId);
+}
+
+function getSlotGameMode(data) {
+  if (!data) return null;
+  const modeId = typeof data?.meta?.gameMode === "string" ? data.meta.gameMode : null;
+  if (modeId) return getGameMode(modeId);
+  const startYear = Number.isFinite(data?.meta?.startYear)
+    ? data.meta.startYear
+    : Number.isFinite(data?.time?.startEpochMs)
+      ? new Date(data.time.startEpochMs).getUTCFullYear()
+      : Number.isFinite(data?.time?.epochMs)
+        ? new Date(data.time.epochMs).getUTCFullYear()
+        : null;
+  return getGameModeFromStartYear(startYear);
 }
 
 function makeDefaultState() {
@@ -1419,7 +1514,7 @@ function postCreatorSigned(creator, signCost) {
     handle: "@CreatorsChamber",
     title: "Creator signing",
     lines: [
-      `The Executive Producer ${state.label.name} tried to negotiate a contract with the Creator ${creator.name}, and signed them.`,
+      `The Music Executive ${state.label.name} tried to negotiate a contract with the Creator ${creator.name}, and signed them.`,
       `${labelHandle} welcomed ${creatorHandle}.`
     ],
     type: "ccc",
@@ -2585,7 +2680,7 @@ function startDemoStage(track, mood, performerIds) {
     : getTrackRoleIds(track, "Performer");
   if (!assignedPerformers.length) {
     shakeSlot(`${TRACK_ROLE_TARGETS.Performer}-1`);
-    logEvent("Assign a Recorder ID to start the demo recording.", "warn");
+    logEvent("Assign a Performer ID to start the demo recording.", "warn");
     return false;
   }
   const availableStudios = getStudioAvailableSlots();
@@ -4636,6 +4731,19 @@ function renderTime() {
   $("timeDisplay").textContent = formatDate(state.time.epochMs);
   $("weekDisplay").textContent = `Week ${weekIndex() + 1}`;
   $("chartCountdown").textContent = `Charts update in ${hoursUntilNextWeek()}h`;
+  const mode = getGameMode(state.meta?.gameMode);
+  const modeLabel = shortGameModeLabel(mode.label);
+  const modeEl = $("gameModeDisplay");
+  if (modeEl) {
+    modeEl.textContent = modeLabel || "-";
+    if (mode?.id) {
+      modeEl.dataset.mode = mode.id;
+    } else {
+      modeEl.removeAttribute("data-mode");
+    }
+    modeEl.setAttribute("title", mode.label || "");
+    modeEl.setAttribute("aria-label", mode.label ? `Game mode: ${mode.label}` : "Game mode");
+  }
 }
 
 function renderFocusEraStatus() {
@@ -4974,6 +5082,33 @@ function renderPopulation() {
   $("populationList").innerHTML = list.join("");
 }
 
+function renderRoleActions() {
+  const listEl = $("roleActionsList");
+  if (!listEl) return;
+  const badgeFor = (status) => {
+    const meta = ROLE_ACTION_STATUS[status] || ROLE_ACTION_STATUS.placeholder;
+    return `<span class="${meta.className}">${meta.label}</span>`;
+  };
+  const renderAction = (action) => {
+    const label = action.label ? `${action.label}${action.priority ? ` (Priority ${action.priority})` : ""}: ` : "";
+    return `
+      <div class="list-row">
+        <div class="muted">${label}${action.verb} - ${action.detail}</div>
+        ${badgeFor(action.status)}
+      </div>
+    `;
+  };
+  listEl.innerHTML = ROLE_ACTIONS.map((group) => `
+    <div class="list-item">
+      <div class="item-title">${group.role}</div>
+      ${group.occupations.map((occupation) => `
+        <div class="muted">${occupation.name}${occupation.note ? ` - ${occupation.note}` : ""}</div>
+        ${occupation.actions.map(renderAction).join("")}
+      `).join("")}
+    </div>
+  `).join("");
+}
+
 function renderEconomySummary() {
   if (!$("economySummary")) return;
   const studioMarket = getStudioMarketSnapshot();
@@ -5134,7 +5269,7 @@ function renderQuickRecipes() {
   if (!$("quickRecipesList")) return;
   const recipes = [
     { title: "Songwriting", detail: "Assign Songwriter ID + Theme to draft the sheet music." },
-    { title: "Recording", detail: "Assign Recorder ID + Mood to craft the demo tone." },
+    { title: "Performance", detail: "Assign Performer ID + Mood to craft the demo tone." },
     { title: "Production", detail: "Assign Producer ID to master the track quality." },
     { title: "Release", detail: "Move Ready tracks into Release Desk for scheduling." },
     { title: "Promo Pushes", detail: "Assign a Released Track ID to the Promo Push Slot." }
@@ -6231,12 +6366,20 @@ function renderMainMenu() {
     const hours = data?.time?.totalHours || 0;
     const week = Math.floor(hours / WEEK_HOURS) + 1;
     const cash = data?.label?.cash ?? 0;
+    const mode = getSlotGameMode(data);
+    const modeLabel = mode ? shortGameModeLabel(mode.label) : "";
+    const modeTag = mode && modeLabel
+      ? `<span class="pill mode-pill" data-mode="${mode.id}" title="${mode.label}">${modeLabel}</span>`
+      : "";
+    const metaLine = data
+      ? `${modeTag ? `${modeTag} ` : ""}Week ${week} | ${formatMoney(cash)} | ${savedAt}`
+      : "Start a new label in this game slot.";
     list.push(`
       <div class="slot-card" data-slot-index="${i}" data-slot-has-data="${hasData ? "1" : "0"}" data-slot-default="${hasData ? "continue" : "new"}">
         <div class="slot-row">
           <div>
             <div class="item-title">Game Slot ${i}: ${data ? labelName : "Empty"}</div>
-            <div class="muted">${data ? `Week ${week} | ${formatMoney(cash)} | ${savedAt}` : "Start a new label in this game slot."}</div>
+            <div class="muted">${metaLine}</div>
           </div>
           <div class="actions">
             <button type="button" data-slot-action="continue" data-slot-index="${i}" ${hasData ? "" : "disabled"}>Continue</button>
@@ -6507,6 +6650,7 @@ function renderActiveView(view) {
   } else if (active === "world") {
     renderMarket();
     renderPopulation();
+    renderRoleActions();
     renderTrends();
     renderGenreIndex();
     renderEconomySummary();

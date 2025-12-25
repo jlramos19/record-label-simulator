@@ -604,6 +604,30 @@ body::before {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  vertical-align: middle;
+}
+.mode-pill[data-mode="founding"] {
+  background: rgba(244, 177, 90, 0.18);
+  border-color: rgba(244, 177, 90, 0.45);
+  color: #f9e7cc;
+}
+.mode-pill[data-mode="modern"] {
+  background: rgba(74, 209, 163, 0.18);
+  border-color: rgba(74, 209, 163, 0.45);
+  color: #d7f8ec;
+}
 .badge { font-size: 12px; padding: 4px 8px; border-radius: 6px; background: rgba(74, 209, 163, 0.15); color: var(--accent-2); }
 .badge.warn { background: rgba(244, 177, 90, 0.18); color: var(--accent); }
 .badge.danger { background: rgba(225, 92, 92, 0.2); color: var(--danger); }
@@ -867,9 +891,9 @@ select, input[type="text"], input[type="number"] {
   .slot-role-grid {
     display: grid;
     gap: 8px;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(170px, 1fr);
-    grid-template-rows: auto repeat(5, auto);
+    grid-auto-flow: row;
+    grid-auto-rows: auto;
+    grid-template-columns: minmax(100px, 140px) repeat(5, minmax(170px, 1fr));
     align-items: start;
     overflow-x: auto;
     padding-bottom: 2px;

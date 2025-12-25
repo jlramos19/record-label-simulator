@@ -14,9 +14,9 @@
 
 `### **Core Gameplay Loop**`  
 `1. **Content Creation**:`  
-   `- Place **Creators** (Songwriters, Recorders, Producers) into **Structures** to create content:`  
+   `- Place **Creators** (Songwriters, Performers, Producers) into **Structures** to create content:`  
      `- **Sheet Music** (Songwriters).`  
-     `- **Demo Recordings** (Recorders).`  
+     `- **Demo Recordings** (Performers).`  
      `- **Finalized Tracks** (Producers).`  
    `- Content creation requires:`  
      `- **Stamina**: Energy spent by Creators during production.`  
@@ -57,7 +57,7 @@
 
 `#### **1. Structures**`  
 `Structures are locations where content is created, promoted, or distributed:`  
-`- **ID Slots**: Assign Creators to perform tasks (write, record, produce).`  
+`- **ID Slots**: Assign Creators to perform tasks (write, perform, produce).`  
 `- **Item Slots**: Store input items (e.g., Sheet Music, Demo Recordings).`  
 `- **Output Slots**: Hold finalized content (Tracks).`  
 `- **Modifier Slots**: Apply modifiers that enhance or trade off efficiency.`
@@ -65,7 +65,7 @@
 `#### **2. Creators**`  
 `Creators are categorized into **three occupations**:`  
 `- **Songwriters**: Write Sheet Music (**Mental Stamina**: -25 per creation).`  
-`- **Recorders**: Record Demo Recordings (**Physical Stamina**: -50 per creation).`  
+`- **Performers**: Perform Demo Recordings (**Physical Stamina**: -50 per creation).`  
 `- **Producers**: Finalize Tracks (**Both Stamina Types**: -75 Mental, -75 Physical).`
 
 `#### **3. Community Members**`  

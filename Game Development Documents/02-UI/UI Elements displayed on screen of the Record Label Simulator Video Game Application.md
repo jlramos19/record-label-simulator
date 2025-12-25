@@ -112,7 +112,7 @@
 
 `- Create Content view shows a Studios panel with filters for owned/unowned, owner entity, and occupied/unoccupied slots. Content studios are multipurpose; broadcast studios are used for interviews and performances.`
 
-`- Create Content stage controls use a titled header with three buttons (Sheet Music, Demo Recording, Master Recording). Creator slots are arranged as studio columns (5 slots per column): 3 columns for Songwriters, 2 for Recorders, 1 for Producers.`
+`- Create Content stage controls use a titled header with three buttons (Sheet Music, Demo Recording, Master Recording). Creator slots are arranged as studio columns (5 slots per column): 3 columns for Songwriters, 2 for Performers, 1 for Producers.`
 
 `##### Center’s Bottom Left Area`
 

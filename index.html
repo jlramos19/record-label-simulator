@@ -267,7 +267,7 @@
         <button id="skipTimeBtn" type="button" class="ghost">Skip Time</button>
       </div>
       <div class="time-meta">
-        <span id="weekDisplay">Week 1</span> | <span id="chartCountdown">Charts update in 168h</span>
+        <span id="weekDisplay">Week 1</span> | <span id="chartCountdown">Charts update in 168h</span> | <span id="gameModeDisplay" class="pill mode-pill" aria-label="Game mode">-</span>
       </div>
     </div>
     <div class="hud-right">
@@ -726,7 +726,7 @@
           <div class="subhead">Available Creator IDs</div>
           <div class="filter-row">
             <label class="check-pill"><input type="checkbox" data-ccc-filter="Songwriter">Songwriters</label>
-            <label class="check-pill"><input type="checkbox" data-ccc-filter="Performer">Recorders</label>
+            <label class="check-pill"><input type="checkbox" data-ccc-filter="Performer">Performers</label>
             <label class="check-pill"><input type="checkbox" data-ccc-filter="Producer">Producers</label>
           </div>
           <div id="marketList" class="list"></div>
@@ -739,6 +739,16 @@
         <h2>Top Labels</h2>
         <div class="card-body">
           <div id="topLabelsWorldList" class="top-mini-list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="role-actions">
+        <h2>Roles &amp; Actions</h2>
+        <div class="card-body">
+          <div class="callout">
+            World roles and their action verbs. Placeholder actions are listed for visibility and are not yet playable.
+          </div>
+          <div class="tiny muted">Status: Live = playable, Simulated = system-driven, Placeholder = planned.</div>
+          <div id="roleActionsList" class="list" style="margin-top:10px"></div>
         </div>
       </div>
       <div class="panel card panel--scroll" data-panel="trends">

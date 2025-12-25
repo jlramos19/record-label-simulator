@@ -19,4 +19,4 @@
 - Auto-rollout toggle added (hook/state only; rules pending).
 - Seeding split enforced (2025-2200 deterministic baseline, 2200-2400 seeded) with hidden dominant rival bias.
 - Population updates moved to yearly cadence.
-- Create Content uses stage buttons (Sheet/Demo/Master) and studio slot columns (5 slots per column; 3/2/1 columns for Songwriters/Recorders/Producers).
+- Create Content uses stage buttons (Sheet/Demo/Master) and studio slot columns (5 slots per column; 3/2/1 columns for Songwriters/Performers/Producers).

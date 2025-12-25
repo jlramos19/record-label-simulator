@@ -1,56 +1,59 @@
-`### Action Verbs and Their Parameters in "Record Label Simulator"`
+# Action Verbs and Their Parameters in Record Label Simulator
 
-`Each action verb associated with occupations in "Record Label Simulator" operates with specific parameters of speed, quality, and quantity. These parameters ensure a consistent and measurable output for each task performed by the members. Below are the details for each occupation's actions, including the formula for quality.`
+Each occupation has action verbs that drive the simulation and gameplay. Status indicates availability.
 
-`#### Non-Creator Occupations`
+Status key:
+- Live: Available as a player action in the current build.
+- Simulated: Modeled in systems, but not directly controllable yet.
+- Placeholder: Planned, not yet implemented in gameplay.
 
-`- **Shopping Center Personnel**:`   
-  `- **Action Verb**: Assist`   
-  `- **Speed**: Assists customers at a rate of X customers per in-game hour.`  
-  `- **Quality**: Based on the skill level in assisting, affecting customer satisfaction.`  
-  `- **Quantity**: Number of sales transactions handled.`
+## Member (Role)
 
-`- **Factory Personnel**:`   
-  `- **Action Verb**: Work`   
-  `- **Speed**: Produces X units of vinyl records per in-game hour.`  
-  `- **Quality**: Quality of produced items based on skill level in manufacturing.`  
-  `- **Quantity**: Total units produced and distributed.`
+### Personnel (Occupation)
+- Factory Personnel: manufacture (Produce content). Status: Placeholder.
+- Shopping Center Personnel: distribute (Sell content). Status: Placeholder.
+- Broadcast Corporation Personnel: present (Show content to audience). Status: Placeholder.
 
-`- **Broadcast Corporation Personnel**:`   
-  `- **Action Verb**: Present`   
-  `- **Speed**: Presents X pieces of content per in-game hour.`  
-  `- **Quality**: Quality of presentation based on skill level in broadcasting.`  
-  `- **Quantity**: Total pieces of content presented.`
+### Consumer (Occupation)
+- buy (Purchase content from Shopping Centers). Status: Simulated.
+- stream (Tune into shows, stations, or playlists when at home). Status: Simulated.
+- attend (Participate in live performances or events by going to Venue Structures). Status: Simulated.
+- rate (Provide ratings for consumed content at any time). Status: Simulated.
 
-`#### Creator Occupations`
+### Critic (Occupation)
+- rate (Evaluate content quality based on Alignment and preferences, skewed by in-game Country). Status: Simulated.
 
-`- **Songwriter**:`   
-  `- **Action Verb**: Write`   
-  `- **Speed**: Creates 1 sheet music per in-game hour.`  
-  `- **Quality**: \( \text{Quality} = \left( \text{Skill Level} \times 10 \right) \pm 25 \)`  
-  `- **Quantity**: Total sheet music pieces created.`  
-  `- **Example**: Level 5 songwriting skill creates sheet music of quality ranging from \( (50 - 25) \) to \( (50 + 25) \).`
+## Creator (Role)
 
-`- **Recorder**:`   
-  `- **Action Verb**: Perform`   
-  `- **Speed**: Creates 1 demo recording per in-game hour.`  
-  `- **Quality**: Based on the skill level in performing, with similar variability as songwriting.`  
-  `- **Quantity**: Total demo recordings created.`
+### Songwriter (Occupation)
+- write (Create Sheet Music with selected Themes). Status: Live.
+- Parameters: 1 in-game hour, cost 500, stamina 25.
 
-`#### Administrative and Managerial Occupations`
+### Performer (Occupation)
+- perform (Create Demo Recordings that define Moods). Status: Live.
+- Parameters: 2 in-game hours, cost 800, stamina 50.
 
-`- **Music Executive (CEO)**:`   
-  `- **Action Verb**: Produce`   
-  `- **Speed**: Produces 1 track per in-game hour.`  
-  `- **Quality**: \( \text{Quality} = \left( \text{Skill Level} \times 10 \right) \pm 25 \)`  
-  `- **Quantity**: Total tracks produced.`  
-  `- **Example**: Fusing the content genre "calming freedom" from the highest quality demo recording.`
+### Producer (Occupation)
+- produce (Create Masters by combining Theme + Mood into Genre and preliminary Quality). Status: Live.
+- Parameters: 3 in-game hours, cost 1200, stamina 150.
 
-`### Example Calculation for Quality`
+Quality notes: Creator skill and preference matches raise quality potential. Final quality resolves at the Master stage.
 
-`For a **Songwriter** with a skill level of 5:`  
-`- **Formula**: \( \text{Quality} = \left( 5 \times 10 \right) \pm 25 \)`  
-`- **Range**: \( \text{Quality} = 50 \pm 25 \)`  
-`- **Result**: Quality of sheet music ranges from 25 to 75.`
+## Act (Role)
 
-`These formulas and parameters ensure that each action verb's speed, quality, and quantity are clearly defined and measurable, providing a consistent framework for gameplay mechanics in "Record Label Simulator."`  
+### Promoter (Occupation)
+- promote (Boost visibility and engagement of released content). Status: Live.
+
+## CEO (Role)
+
+### Music Executive (Occupation)
+- negotiate (Contracts with Creators to sign them). Status: Simulated.
+- sign (Creators to the Record Label). Status: Live.
+- form (Acts from Creators within the Record Label). Status: Live.
+- place (Creators in Structures' slots). Status: Live.
+- terminate (A contract with a Creator). Status: Placeholder.
+- rent (Structures to create content). Status: Placeholder.
+- conduct (Era with Acts). Status: Live.
+- plan (Tour). Status: Placeholder.
+
+Placeholder actions are shown in-game as visibility markers so the roadmap is clear.
