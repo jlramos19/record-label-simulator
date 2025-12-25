@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Record Label Simulator - MVP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Ubuntu+Mono:wght@400;700&family=Ubuntu+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<div id="mainMenu" class="menu">
+  <div class="menu-card panel">
+    <div class="card-head">
+      <div>
+        <div class="brand-title">Record Label Simulator</div>
+        <div class="brand-sub">Choose a game slot (one active per session)</div>
+      </div>
+      <button id="menuCloseBtn" type="button" class="ghost">Return</button>
+    </div>
+    <div id="slotList" class="menu-slots"></div>
+    <div class="field">
+      <label for="autoSaveToggle">Auto Save</label>
+      <div class="toggle-row">
+        <input id="autoSaveToggle" type="checkbox" aria-label="Auto save toggle">
+        <select id="autoSaveMinutes" aria-label="Auto save interval"></select>
+      </div>
+      <div class="tiny">Auto save writes to the active game slot every 2-10 minutes.</div>
+    </div>
+    <div class="actions">
+      <button id="menuSaveBtn" type="button">Save Game Slot</button>
+      <button id="resetLayoutSettingsBtn" type="button" class="ghost">Reset UI Layout</button>
+    </div>
+    <div class="tiny">Tip: reload the page to switch game slots.</div>
+  </div>
+</div>
+<div id="walletModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Wallet</h2>
+      <button id="walletClose" type="button" class="ghost">Close</button>
+    </div>
+    <div id="walletDetails" class="list"></div>
+  </div>
+</div>
+<div id="panelMenu" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Panels</h2>
+      <button id="panelMenuClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="card-body">
+      <div class="muted">Toggle panels for the current view. Hidden panels are removed from layout.</div>
+      <div id="panelMenuList" class="list" style="margin-top:10px"></div>
+      <div class="actions">
+        <button id="resetLayoutBtn" type="button" class="ghost">Reset Layout</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="skipTimeModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Skip Time</h2>
+      <button id="skipTimeClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="card-body">
+      <div class="actions">
+        <button id="skip24hBtn" type="button" class="ghost">+24 Hours</button>
+        <button id="skip7dBtn" type="button" class="ghost">+7 Days</button>
+        <button id="skip14dBtn" type="button" class="ghost">+14 Days</button>
+        <button id="skip28dBtn" type="button" class="ghost">+28 Days</button>
+      </div>
+      <div class="form-grid" style="margin-top:10px">
+        <div class="field">
+          <label for="skipDaysInput">Skip Days</label>
+          <input id="skipDaysInput" type="number" min="1" max="365" value="7">
+        </div>
+        <div class="field">
+          <label for="skipHoursInput">Extra Hours</label>
+          <input id="skipHoursInput" type="number" min="0" max="23" value="0">
+        </div>
+      </div>
+      <div class="actions">
+        <button id="skipCustomBtn" type="button">Skip Custom</button>
+      </div>
+      <div class="form-grid" style="margin-top:12px">
+        <div class="field">
+          <label for="skipDateInput">Target Date</label>
+          <input id="skipDateInput" type="date">
+        </div>
+        <div class="field">
+          <label for="skipTimeInput">Target Time (UTC)</label>
+          <input id="skipTimeInput" type="time" value="00:00">
+        </div>
+      </div>
+      <div class="actions">
+        <button id="skipToDateBtn" type="button" class="ghost">Skip to Date</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="quickRecipesModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Quick Recipes</h2>
+      <button id="quickRecipesClose" type="button" class="ghost">Close</button>
+    </div>
+    <div id="quickRecipesList" class="list"></div>
+  </div>
+</div>
+<div id="skipProgressModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Skipping Time</h2>
+      <button id="skipProgressCancel" type="button" class="ghost">Cancel</button>
+    </div>
+    <div class="card-body">
+      <div id="skipProgressLabel" class="muted">Preparing time jump...</div>
+      <div class="progress-bar">
+        <div id="skipProgressFill" class="progress-fill"></div>
+      </div>
+      <div id="skipProgressMeta" class="tiny">0 / 0 hours</div>
+    </div>
+  </div>
+</div>
+<div id="calendarModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Release Calendar</h2>
+      <button id="calendarClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="card-body">
+      <div class="tabs" id="calendarModalTabs">
+        <button class="tab active" data-calendar-tab="label" type="button">Label</button>
+        <button class="tab" data-calendar-tab="public" type="button">Public</button>
+        <button class="tab" data-calendar-tab="eras" type="button">Eras</button>
+      </div>
+      <div class="filter-row" id="calendarModalFilters">
+        <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
+        <label class="check-pill"><input type="checkbox" data-calendar-filter="labelReleased">Label Released</label>
+        <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalScheduled">Rival Scheduled</label>
+        <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
+      </div>
+      <div id="calendarFullList" class="list"></div>
+    </div>
+  </div>
+</div>
+<div id="chartHistoryModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Chart History</h2>
+      <button id="chartHistoryClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="card-body">
+      <div id="chartHistoryScope" class="muted">Scope: -</div>
+      <div class="actions">
+        <button id="chartHistoryLatest" type="button" class="ghost">Return to Latest</button>
+      </div>
+      <div id="chartHistoryList" class="list"></div>
+    </div>
+  </div>
+</div>
+<div id="endModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2 id="endTitle">Game Over</h2>
+      <button id="endClose" type="button" class="ghost">Close</button>
+    </div>
+    <div id="endMessage" class="list"></div>
+  </div>
+</div>
+<div id="bailoutModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Bailout Offer</h2>
+    </div>
+    <div class="card-body">
+      <div class="muted">Cash is below zero. Accept the bailout to continue with $10,000,000 and locked achievements, or decline to end the game.</div>
+      <div class="actions" style="margin-top:12px">
+        <button id="bailoutAcceptBtn" type="button">Accept Bailout</button>
+        <button id="bailoutDeclineBtn" type="button" class="ghost">Decline</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="autoAssignModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Auto Assign - Top Candidates</h2>
+      <button id="autoAssignClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="muted">Top 5 per role, sorted by readiness and skill. Low stamina IDs are deprioritized.</div>
+    <div id="autoAssignList" class="list" style="margin-top:10px"></div>
+    <div class="actions">
+      <button id="autoAssignBest" type="button" class="ghost">Auto Pick Best</button>
+    </div>
+  </div>
+</div>
+<div id="communitiesModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Communities</h2>
+      <button id="communitiesClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="muted">Explore areas, recruit creators, unlock tools, and find collabs across Gaia.</div>
+  </div>
+</div>
+<div id="harmonyModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Harmony Hub</h2>
+      <button id="harmonyClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="muted">Manage owned areas, equipped tools, and active collaborations.</div>
+  </div>
+</div>
+
+<div class="shell">
+  <header class="app-header">
+    <div class="hud-left">
+      <div class="label-summary">
+        <div id="topActPortrait" class="label-portrait">RLS</div>
+        <div class="label-meta">
+          <div id="labelNameDisplay" class="label-title">Record Label</div>
+          <div id="topActName" class="label-sub">Top Act: -</div>
+        </div>
+      </div>
+      <div class="hud-stats-grid">
+        <div class="hud-stat">
+          <div class="stat-label">Cash</div>
+          <div id="cashDisplay" class="stat-value">$0</div>
+        </div>
+        <div class="hud-stat">
+          <div class="stat-label">Studios</div>
+          <div id="studioDisplay" class="stat-value">0 / 0</div>
+        </div>
+        <div class="hud-stat">
+          <div class="stat-label">Active Slot</div>
+          <div id="slotDisplay" class="stat-value">-</div>
+        </div>
+        <div class="hud-stat">
+          <div class="stat-label">Active ID Slot</div>
+          <div id="slotTargetDisplay" class="stat-value">-</div>
+        </div>
+        <div class="hud-stat">
+          <div class="stat-label">Focus Era</div>
+          <div id="focusEraDisplay" class="stat-value">-</div>
+        </div>
+      </div>
+    </div>
+    <div class="hud-center">
+      <div id="timeDisplay" class="time-display">SAT - JAN 01, 2400 - 12AM</div>
+      <div class="time-row">
+        <button id="pauseBtn" type="button" class="ghost">Pause</button>
+        <button id="playBtn" type="button" class="ghost">Play</button>
+        <button id="fastBtn" type="button" class="ghost">Fast</button>
+        <button id="skipDayBtn" type="button" class="ghost">Skip 24h</button>
+        <button id="skipWeekBtn" type="button" class="ghost">Skip 7d</button>
+        <button id="skipTimeBtn" type="button" class="ghost">Skip Time</button>
+      </div>
+      <div class="time-meta">
+        <span id="weekDisplay">Week 1</span> | <span id="chartCountdown">Charts update in 168h</span>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="world-summary">
+        <div class="stat-label">Top Trend</div>
+        <div id="topTrendDisplay" class="hud-trend">Trend: -</div>
+        <div class="stat-label">Top Labels</div>
+        <div id="topLabelsHeaderList" class="top-mini-list"></div>
+      </div>
+      <div class="hud-actions">
+        <button id="menuBtn" type="button" class="ghost">
+          <span class="material-symbols-rounded icon-glyph" aria-hidden="true">settings</span>
+          <span>Settings</span>
+        </button>
+        <button id="panelMenuBtn" type="button" class="ghost">
+          <span class="material-symbols-rounded icon-glyph" aria-hidden="true">widgets</span>
+          <span>Panels</span>
+        </button>
+      </div>
+    </div>
+    <div class="hud-nav-row">
+      <nav class="app-nav">
+        <a href="#/charts" data-route="charts">Charts</a>
+        <a href="#/create" data-route="create">Create Content</a>
+        <a href="#/releases" data-route="releases">Releases</a>
+        <a href="#/eras" data-route="eras">Eras</a>
+        <a href="#/roster" data-route="roster">Harmony Hub</a>
+        <a href="#/world" data-route="world">Creator Community Chamber</a>
+        <a href="#/logs" data-route="logs">eyeriSocial</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app" class="app-main"></main>
+</div>
+
+<template id="view-charts">
+  <div class="view view--charts">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="charts">
+        <div class="card-head">
+          <h2>Gameplay Screen: Charts</h2>
+          <div class="tabs" id="chartTabs">
+            <button class="tab active" data-chart="global" type="button">Global</button>
+            <button class="tab" data-chart="Annglora" type="button">Annglora</button>
+            <button class="tab" data-chart="Bytenza" type="button">Bytenza</button>
+            <button class="tab" data-chart="Crowlya" type="button">Crowlya</button>
+            <button class="tab" data-chart="Annglora Capital" type="button">Annglora Cap</button>
+            <button class="tab" data-chart="Annglora Elsewhere" type="button">Annglora Else</button>
+            <button class="tab" data-chart="Bytenza Capital" type="button">Bytenza Cap</button>
+            <button class="tab" data-chart="Bytenza Elsewhere" type="button">Bytenza Else</button>
+            <button class="tab" data-chart="Crowlya Capital" type="button">Crowlya Cap</button>
+            <button class="tab" data-chart="Crowlya Elsewhere" type="button">Crowlya Else</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="callout">
+            Charts update weekly (every 168 in-game hours). Keep an eye on trends to climb.
+          </div>
+          <div class="chart-meta-row">
+            <button id="chartWeekBtn" type="button" class="ghost mini">
+              <span id="chartWeekRange">Week 1</span>
+            </button>
+            <div id="chartMeta" class="tiny">-</div>
+          </div>
+          <div id="chartHistoryNotice" class="tiny muted"></div>
+          <div id="chartList" class="list"></div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="release-desk">
+        <h2>Release Desk</h2>
+        <div class="card-body">
+          <div class="callout">
+            Release ready tracks to enter charts. Schedule physical releases two weeks out.
+          </div>
+          <div class="field">
+            <label for="releaseDistribution">Distribution</label>
+            <select id="releaseDistribution">
+              <option value="Digital">Digital</option>
+              <option value="Physical">Physical</option>
+            </select>
+          </div>
+          <div class="subhead">Ready</div>
+          <div id="readyList" class="list"></div>
+          <div class="subhead">Scheduled</div>
+          <div id="releaseQueueList" class="list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="label-rankings">
+        <h2>Label Rankings</h2>
+        <div class="card-body">
+          <div id="labelRankings" class="list"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</template>
+
+<template id="view-create">
+  <div class="view view--create">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="create-track">
+        <h2>Create Content</h2>
+        <div class="card-body">
+          <div class="callout">
+            Quick start: tap an ID slot, assign an Act + Creator IDs, pick Theme + Mood, then start content.
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="trackTitle">Title</label>
+              <div class="input-row">
+                <input id="trackTitle" type="text" placeholder="Auto-generate if empty">
+                <button id="trackTitleRandom" type="button" class="ghost mini">Rnd</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="projectName">Project</label>
+              <div class="input-row">
+                <input id="projectName" type="text" placeholder="Auto-generate if empty">
+                <button id="projectNameRandom" type="button" class="ghost mini">Rnd</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="projectTypeSelect">Content Type</label>
+              <select id="projectTypeSelect">
+                <option value="Single">Single</option>
+                <option value="EP">EP</option>
+                <option value="Album">Album</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="themeSelect">Theme</label>
+              <select id="themeSelect"></select>
+            </div>
+            <div class="field">
+              <label for="moodSelect">Mood</label>
+              <select id="moodSelect"></select>
+            </div>
+            <div class="field">
+              <label for="trackAlignment">Content Alignment</label>
+              <select id="trackAlignment"></select>
+            </div>
+            <div class="field">
+              <label for="modifierSelect">Modifier Slot</label>
+              <select id="modifierSelect"></select>
+            </div>
+          </div>
+          <div class="subhead">Recommendation</div>
+          <div id="trackRecommend" class="callout"></div>
+          <div class="subhead">Content Slots</div>
+          <div class="slot-grid">
+            <div class="id-slot" data-slot-target="track-act" data-slot-type="act">
+              <div class="slot-label">Act ID</div>
+              <div id="trackActSlot" class="slot-value">Unassigned</div>
+              <button type="button" class="ghost mini" data-slot-clear="track-act">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="track-writer" data-slot-type="creator" data-slot-role="Songwriter">
+              <div class="slot-label">Songwriter ID</div>
+              <div id="trackWriterSlot" class="slot-value">Unassigned</div>
+              <button type="button" class="ghost mini" data-slot-clear="track-writer">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="track-performer" data-slot-type="creator" data-slot-role="Performer">
+              <div class="slot-label">Performer ID</div>
+              <div id="trackPerformerSlot" class="slot-value">Unassigned</div>
+              <button type="button" class="ghost mini" data-slot-clear="track-performer">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="track-producer" data-slot-type="creator" data-slot-role="Producer">
+              <div class="slot-label">Producer ID</div>
+              <div id="trackProducerSlot" class="slot-value">Unassigned</div>
+              <button type="button" class="ghost mini" data-slot-clear="track-producer">Clear</button>
+            </div>
+          </div>
+          <div class="actions">
+            <button id="autoAssignBtn" type="button" class="ghost">Auto assign</button>
+            <button id="trackRecommendApply" type="button" class="ghost">Use Recommended</button>
+            <button id="startTrackBtn" type="button">Start Content</button>
+          </div>
+          <div id="genrePreview" class="tiny">Genre: -</div>
+          <div class="tiny">Base cost: $2500 total. Modifiers adjust cost and time; stages consume 1, 2, and 3 in-game hours.</div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="tracks">
+        <h2>Tracks</h2>
+        <div class="card-body">
+          <div id="trackList" class="list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="genres">
+        <h2>Content Genres</h2>
+        <div class="card-body">
+          <div class="field">
+            <label for="genreThemeFilter">Theme</label>
+            <select id="genreThemeFilter"></select>
+          </div>
+          <div class="field">
+            <label for="genreMoodFilter">Mood</label>
+            <select id="genreMoodFilter"></select>
+          </div>
+          <div id="genreList" class="list scroll-list"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</template>
+
+<template id="view-releases">
+  <div class="view view--releases">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="release-desk">
+        <h2>Release Desk</h2>
+        <div class="card-body">
+          <div class="callout">
+            Release ready tracks to enter charts. Schedule physical releases two weeks out.
+          </div>
+          <div class="field">
+            <label for="releaseDistribution">Distribution</label>
+            <select id="releaseDistribution">
+              <option value="Digital">Digital</option>
+              <option value="Physical">Physical</option>
+            </select>
+          </div>
+          <div class="subhead">Ready</div>
+          <div id="readyList" class="list"></div>
+          <div class="subhead">Scheduled</div>
+          <div id="releaseQueueList" class="list"></div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="tracks">
+        <h2>Tracks</h2>
+        <div class="card-body">
+          <div id="trackList" class="list"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</template>
+
+<template id="view-eras">
+  <div class="view view--eras">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="era-desk">
+        <h2>Era Desk</h2>
+        <div class="card-body">
+          <div class="callout">
+            Eras run in four stages: Direction, Creation, Promotion, Legacy. Use the calendar to track internal schedules; use eyeriSocial to publish public updates.
+          </div>
+          <div class="id-slot" data-slot-target="era-act" data-slot-type="act">
+            <div class="slot-label">Act ID</div>
+            <div id="eraActSlot" class="slot-value">Unassigned</div>
+            <button type="button" class="ghost mini" data-slot-clear="era-act">Clear</button>
+          </div>
+          <div class="field">
+            <label for="eraNameInput">Era Name</label>
+            <div class="input-row">
+              <input id="eraNameInput" type="text" placeholder="e.g. Neon Signal: Dawn Phase">
+              <button id="eraNameRandom" type="button" class="ghost mini">Rnd</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="eraRolloutSelect">Rollout Strategy</label>
+            <select id="eraRolloutSelect"></select>
+          </div>
+          <div class="actions">
+            <button id="startEraBtn" type="button">Start Era</button>
+            <button id="endEraBtn" type="button" class="ghost">End Era</button>
+          </div>
+          <div class="subhead">Focus Era</div>
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div id="eraFocusLabel" class="item-title">No active eras</div>
+                <div class="muted">Creation and campaigns will prefer this era when possible.</div>
+              </div>
+              <button id="eraFocusClear" type="button" class="ghost mini">Clear</button>
+            </div>
+          </div>
+          <div id="eraStatus" class="list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="promotion">
+        <h2>Campaigns</h2>
+        <div class="card-body">
+          <div class="subhead">Campaign Slot</div>
+          <div class="id-slot" data-slot-target="promo-track" data-slot-type="track">
+            <div class="slot-label">Track ID</div>
+            <div id="promoTrackSlot" class="slot-value">Unassigned</div>
+            <button type="button" class="ghost mini" data-slot-clear="promo-track">Clear</button>
+          </div>
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">Focus Era</div>
+                <div id="promoFocusLabel" class="muted">No active eras</div>
+              </div>
+              <button id="promoFocusPickBtn" type="button" class="ghost mini">Pick Track</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="promoBudget">Budget</label>
+            <input id="promoBudget" type="number" min="0" step="100" value="1000">
+          </div>
+          <div class="field">
+            <label class="toggle-pill">
+              <input id="autoRolloutToggle" type="checkbox">
+              <span>Auto Rollout</span>
+            </label>
+            <div class="tiny">Auto-run rollouts when your saved rules are met.</div>
+          </div>
+          <div class="actions">
+            <button id="promoBtn" type="button">Run Campaign</button>
+          </div>
+          <div class="tiny">Tap a slot, then tap a released Track ID. Campaigns last 1-4 weeks based on budget.</div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="calendar">
+        <div class="card-head">
+          <h2>Calendar</h2>
+          <button id="calendarBtn" type="button" class="ghost">Open</button>
+        </div>
+        <div class="card-body">
+          <div class="tabs" id="calendarTabs">
+            <button class="tab active" data-calendar-tab="label" type="button">Label</button>
+            <button class="tab" data-calendar-tab="public" type="button">Public</button>
+            <button class="tab" data-calendar-tab="eras" type="button">Eras</button>
+          </div>
+          <div class="filter-row" id="calendarFilters">
+            <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
+            <label class="check-pill"><input type="checkbox" data-calendar-filter="labelReleased">Label Released</label>
+            <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalScheduled">Rival Scheduled</label>
+            <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
+          </div>
+          <div id="calendarList" class="list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="tracks">
+        <h2>Tracks</h2>
+        <div class="card-body">
+          <div id="trackList" class="list"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</template>
+
+<template id="view-roster">
+  <div class="view view--roster">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="harmony-hub">
+        <h2>Harmony Hub</h2>
+        <div class="card-body">
+          <div class="icon-grid">
+            <button id="hubAreas" type="button" class="icon-btn"><span class="icon">AR</span>Areas</button>
+            <button id="hubCreators" type="button" class="icon-btn"><span class="icon">CR</span>Creators</button>
+            <button id="hubItems" type="button" class="icon-btn"><span class="icon">IT</span>Items &amp; Tools</button>
+            <button id="hubCollabs" type="button" class="icon-btn"><span class="icon">CO</span>Collabs</button>
+          </div>
+          <div class="tiny">Your owned spaces, equipped tools, and live collabs.</div>
+          <div class="subhead">Content Cycle (SARPD)</div>
+          <div class="callout">Draft placeholder from the GDD: Schedule, Announce, Release, Promote, Discontinue.</div>
+          <div class="list">
+            <div class="list-item">
+              <div class="item-title">Schedule</div>
+              <div class="muted">Define release dates using the in-game Calendar, considering Community tendencies and peak engagement periods. Scheduling is internal until announced.</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Announce</div>
+              <div class="muted">Publicize upcoming releases and promotional events on eyeriSocial to generate hype and prepare the Community. The public only knows what the Label posts.</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Release</div>
+              <div class="muted">Make the Content available, ensuring alignment with the defined promotional strategy and community preferences.</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Promote</div>
+              <div class="muted">Execute targeted promotional campaigns, leveraging (deprecated term) Guide assets and scheduling Live Venue events to maximize Content uptake.</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Discontinue</div>
+              <div class="muted">Withdraw active promotional efforts in response to Community Engagement metrics, preparing the groundwork for upcoming content cycles.</div>
+            </div>
+          </div>
+          <div class="subhead">Creator Roster</div>
+          <div id="creatorList" class="list"></div>
+          <div class="tiny">Drag Creator IDs into slots, or tap after selecting a slot.</div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="communities">
+        <div class="card-head">
+          <h2>Communities</h2>
+        </div>
+        <div class="card-body">
+          <div class="icon-grid">
+            <button id="communitiesAreas" type="button" class="icon-btn"><span class="icon">AR</span>Areas</button>
+            <button id="communitiesCreators" type="button" class="icon-btn"><span class="icon">CR</span>Creators</button>
+            <button id="communitiesItems" type="button" class="icon-btn"><span class="icon">IT</span>Items &amp; Tools</button>
+            <button id="communitiesCollabs" type="button" class="icon-btn"><span class="icon">CO</span>Collabs</button>
+          </div>
+          <div class="subhead">Creator Community Chamber (CCC)</div>
+          <div class="tiny">Browse and sign Creator IDs in the CCC tab.</div>
+          <div class="tiny">Opens popups for opportunities beyond your owned areas.</div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="acts">
+        <div class="card-head">
+          <h2>Acts</h2>
+          <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
+        </div>
+        <div class="card-body">
+          <div id="actList" class="list"></div>
+          <div class="subhead">Create Act</div>
+          <div class="field">
+            <label for="actName">Act Name</label>
+            <div class="input-row">
+              <input id="actName" type="text" placeholder="e.g. Velvet Signal">
+              <button id="actNameRandom" type="button" class="ghost mini">Rnd</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="actTypeSelect">Act Type</label>
+            <select id="actTypeSelect"></select>
+          </div>
+          <div class="field">
+            <label for="actAlignmentSelect">Act Alignment</label>
+            <select id="actAlignmentSelect"></select>
+          </div>
+          <div class="subhead">Act Slots</div>
+          <div class="slot-grid">
+            <div class="id-slot" data-slot-target="act-lead" data-slot-type="creator">
+              <div class="slot-label">Lead Creator ID</div>
+              <div id="actLeadSlot" class="slot-value">Unassigned</div>
+              <button type="button" class="ghost mini" data-slot-clear="act-lead">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="act-member2" data-slot-type="creator">
+              <div class="slot-label">Member 2 ID</div>
+              <div id="actMember2Slot" class="slot-value">Unassigned</div>
+              <button type="button" class="ghost mini" data-slot-clear="act-member2">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="act-member3" data-slot-type="creator">
+              <div class="slot-label">Member 3 ID</div>
+              <div id="actMember3Slot" class="slot-value">Unassigned</div>
+              <button type="button" class="ghost mini" data-slot-clear="act-member3">Clear</button>
+            </div>
+          </div>
+          <div class="actions">
+            <button id="createActBtn" type="button">Create Act</button>
+          </div>
+          <div class="tiny">Acts are the public-facing identity. Tap a slot, then tap a Creator ID in the roster.</div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="label-settings">
+        <h2>Label Settings</h2>
+        <div class="card-body">
+          <div class="field">
+            <label for="labelNameInput">Record Label Name</label>
+            <div class="input-row">
+              <input id="labelNameInput" type="text" aria-label="Record label name">
+              <button id="labelNameRandom" type="button" class="ghost mini">Rnd</button>
+            </div>
+          </div>
+          <div class="actions">
+            <button id="renameLabelBtn" type="button" class="ghost">Rename Label</button>
+          </div>
+          <div class="field">
+            <label for="labelAlignment">Label Alignment</label>
+            <select id="labelAlignment"></select>
+          </div>
+          <div class="field">
+            <label for="saveBtn">Save and Load</label>
+            <div class="time-row">
+              <button id="saveBtn" type="button" class="ghost">Save Slot</button>
+              <label class="file-btn">Load File <input type="file" id="loadInput" accept="application/json"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</template>
+
+<template id="view-world">
+  <div class="view view--world">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="ccc-market">
+        <div class="card-head">
+          <h2>Creator Community Chamber</h2>
+          <button id="refreshMarket" type="button" class="ghost">Refresh</button>
+        </div>
+        <div class="card-body">
+          <div class="callout">
+            CCC is a world-owned institution that prepares Members into Creator IDs for signing. Refresh rotates the pool; signing triggers alignment seeding and eyeriSocial announcements.
+          </div>
+          <div class="subhead">Available Creator IDs</div>
+          <div id="marketList" class="list"></div>
+          <div class="tiny">Use the CCC to scout and sign new Creator IDs.</div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="top-labels">
+        <h2>Top Labels</h2>
+        <div class="card-body">
+          <div id="topLabelsWorldList" class="top-mini-list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="trends">
+        <h2>Trend Watch</h2>
+        <div class="card-body">
+          <div id="trendList" class="list"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</template>
+
+<template id="view-logs">
+  <div class="view view--logs">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="eyerisocial">
+        <div class="card-head">
+          <h2>eyeriSocial</h2>
+          <label class="toggle-pill">
+            <input id="socialShowInternal" type="checkbox">
+            <span>Include Internal</span>
+          </label>
+        </div>
+        <div class="card-body">
+          <div class="callout">
+            Live world feed and public announcements. Internal updates stay hidden unless included.
+          </div>
+          <div class="filter-row">
+            <label class="check-pill"><input type="checkbox" data-social-filter="creator">Creators</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="track">Tracks</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="quest">Quests</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="era">Eras</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="economy">Economy</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="chart">Charts</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="contract">Contracts</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="receipt">Receipts</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="ccc">CCC</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="system">System</label>
+          </div>
+          <div class="subhead">Public Announcement Slot</div>
+          <div class="id-slot" data-slot-target="social-track" data-slot-type="track">
+            <div class="slot-label">Track ID</div>
+            <div id="socialTrackSlot" class="slot-value">Unassigned</div>
+            <button type="button" class="ghost mini" data-slot-clear="social-track">Clear</button>
+          </div>
+          <div class="tiny">Use this slot when announcing release dates or future plans. If empty, eyeriSocial uses the next scheduled release.</div>
+          <div class="template-row" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+            <select id="templateSelect" style="min-width:160px">
+              <option value="releaseAnnouncement">Release Announcement</option>
+              <option value="releaseSchedule">Release Schedule</option>
+              <option value="futurePlans">Future Plans</option>
+              <option value="questInvitation">Quest Invitation</option>
+              <option value="contractWelcome">Contract Welcome</option>
+              <option value="receiptEmail">Receipt Email</option>
+              <option value="cccSigned">CCC Signed</option>
+              <option value="cccDeclined">CCC Declined</option>
+              <option value="cccReconsider">CCC Reconsider</option>
+              <option value="chartNews">Chart News</option>
+              <option value="systemNotice">System Notice</option>
+            </select>
+            <button id="postTemplateBtn" type="button" class="ghost">Publish Update</button>
+          </div>
+          <div id="socialFeed" class="log"></div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="system-log">
+        <h2>Internal Log</h2>
+        <div class="card-body">
+          <div id="eventLogList" class="list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="usage-ledger">
+        <h2>Usage Ledger</h2>
+        <div class="card-body">
+          <div id="usageLedgerList" class="list"></div>
+        </div>
+      </div>
+      <div class="panel card" data-panel="debug-export">
+        <h2>Export Debug Bundle</h2>
+        <div class="card-body">
+          <div class="tiny">Exports UI usage log, a summary markdown, and a state snapshot.</div>
+          <div class="actions">
+            <button id="exportDebugBtn" type="button">Export Debug Bundle</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</template>
+
+<script src="assets/js/data/constants.js"></script>
+<script src="assets/js/data/names.js"></script>
+<script src="assets/js/data/tracklist.js"></script>
+<script src="assets/js/data/ai_labels.js"></script>
+<script src="assets/js/data/social_templates.js"></script>
+<script type="module" src="assets/js/dist/main.js"></script>
+</body>
+</html>
