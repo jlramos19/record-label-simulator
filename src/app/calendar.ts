@@ -228,7 +228,10 @@ export function CalendarView(projection) {
   if (!weeks.length) {
     return `<div class="muted">No calendar data available.</div>`;
   }
-  const header = DAYS.map((day) => `
+  const headerDays = Array.isArray(weeks[0]?.days) && weeks[0].days.length
+    ? weeks[0].days.map((day, index) => day.dayLabel || DAYS[index] || "Day")
+    : DAYS.map((day) => day.slice(0, 3));
+  const header = headerDays.map((day) => `
     <div class="calendar-grid-day">${day.slice(0, 3)}</div>
   `).join("");
   const rows = weeks.map((week) => CalendarWeekRow(week)).join("");

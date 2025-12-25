@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1656Z)
+- Calendar week headers now follow the projected week start day to remove one-day offsets.
+- Upcoming calendar list now anchors to the next in-game week even when scrolling the grid.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1644Z)
 - UI render/DOM helpers now live in `src/app/ui/`, with game logic calling `uiHooks` for UI refreshes.
 - Creator name pools moved into `src/app/game/names.ts`, sourced from the Topoda Charts vocabulary and mapped to regional lore.

@@ -5,5 +5,3 @@ usage-logs/
 Thumbs.db
 tmp_*.txt
 tmp_*.ts
-src/app/ui/render/
-assets/js/dist/app/ui/render/

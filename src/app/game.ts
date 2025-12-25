@@ -7874,12 +7874,13 @@ function buildCalendarSources() {
   return { labelScheduled, labelReleased, rivalScheduled, rivalReleased, eras };
 }
 
-function buildCalendarProjection({ pastWeeks = 1, futureWeeks = 4 } = {}) {
+function buildCalendarProjection({ pastWeeks = 1, futureWeeks = 4, anchorWeekIndex = null } = {}) {
   const tab = state.ui.calendarTab || "label";
   const filters = state.ui.calendarFilters || {};
+  const anchor = Number.isFinite(anchorWeekIndex) ? anchorWeekIndex : getCalendarAnchorWeekIndex();
   return useCalendarProjection({
     startEpochMs: getWeekAnchorEpochMs(),
-    anchorWeekIndex: getCalendarAnchorWeekIndex(),
+    anchorWeekIndex: anchor,
     pastWeeks,
     futureWeeks,
     activeWeeks: 4,
