@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1614Z)
+- Fixed weekly update logging crash caused by a missing timer reference.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1605Z)
 - Rival competitive rollout mode now guarantees one deterministic anchor rival per planning cycle, with additional rivals joining only when budget gates pass.
 - Rival husk plans now commit to multi-week windows while keeping releases on Friday 00:00 and promos gated by budget + facility capacity.

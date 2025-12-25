@@ -6541,6 +6541,7 @@ function maybeRunAutoPromo() {
     runAutoPromoForPlayer();
 }
 function weeklyUpdate() {
+    const startTime = nowMs();
     const week = weekIndex() + 1;
     ensureMarketCreators();
     decayCreatorMarketHeat();
