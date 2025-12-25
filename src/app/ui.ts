@@ -103,6 +103,7 @@ const {
   getPromoFacilityAvailability,
   reservePromoFacilitySlot,
   ensureMarketCreators,
+  attemptSignCreator,
   listGameModes,
   DEFAULT_GAME_MODE,
   listGameDifficulties,
@@ -3244,34 +3245,26 @@ function handleReleaseAction(e) {
 }
 
 function signCreatorById(id) {
-  const index = state.marketCreators.findIndex((c) => c.id === id);
-  if (index === -1) return;
-  const creator = state.marketCreators[index];
-  const dayIndex = Math.floor(state.time.epochMs / (HOUR_MS * 24));
-  const failSign = (message) => {
-    creator.signFailedDay = dayIndex;
-    logEvent(message, "warn");
-    renderAll();
-    const card = document.querySelector(`[data-ccc-creator="${creator.id}"]`);
+  const creator = state.marketCreators.find((entry) => entry.id === id) || null;
+  const result = attemptSignCreator({
+    creatorId: id,
+    recordLabelId: state.label?.name,
+    nowEpochMs: state.time.epochMs
+  });
+  if (!result) return;
+  logUiEvent("action_submit", {
+    action: "sign_creator",
+    creatorId: id,
+    role: creator?.role,
+    outcome: result.ok ? "accepted" : (result.kind || "unknown").toLowerCase(),
+    reason: result.reason
+  });
+  if (!result.ok) {
+    const card = document.querySelector(`[data-ccc-creator="${id}"]`);
     if (card) shakeElement(card);
-  };
-  if (creator.signFailedDay === dayIndex) {
-    logEvent("Contract review pending. Check back after the daily refresh.", "warn");
+    renderAll();
     return;
   }
-  const cost = creator.signCost || 0;
-  if (state.label.cash < cost) {
-    failSign("Not enough cash to sign this creator.");
-    return;
-  }
-  state.marketCreators.splice(index, 1);
-  state.label.cash -= cost;
-  creator.signCost = undefined;
-  state.creators.push(normalizeCreator(creator));
-  ensureMarketCreators();
-  logUiEvent("action_submit", { action: "sign_creator", creatorId: creator.id, role: creator.role });
-  logEvent(`Signed ${creator.name} (${roleLabel(creator.role)}).`);
-  postCreatorSigned(creator, cost);
   renderCreators();
   renderSlots();
   renderAll();

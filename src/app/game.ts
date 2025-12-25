@@ -8299,6 +8299,7 @@ export {
   getPromoFacilityAvailability,
   reservePromoFacilitySlot,
   ensureMarketCreators,
+  attemptSignCreator,
   listGameModes,
   DEFAULT_GAME_MODE,
   listGameDifficulties,
