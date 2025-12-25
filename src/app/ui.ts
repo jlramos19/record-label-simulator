@@ -3157,9 +3157,9 @@ function pickPromoTrackFromFocus() {
 
 function runPromotion() {
   const trackId = state.ui.promoSlots.trackId;
-  const promoType = $("promoTypeSelect") ? $("promoTypeSelect").value : DEFAULT_PROMO_TYPE;
-  const promoDetails = getPromoTypeDetails(promoType);
-  const budget = normalizePromoBudget(document, promoType);
+  const selectedTypes = ensurePromoTypeSelection(document, $("promoTypeSelect") ? $("promoTypeSelect").value : DEFAULT_PROMO_TYPE);
+  const budget = normalizePromoBudget(document, selectedTypes);
+  const totalCost = budget * selectedTypes.length;
   if (!trackId) {
     logEvent("No released track selected for promo push.", "warn");
     return;
@@ -3168,8 +3168,9 @@ function runPromotion() {
     logEvent("Promo budget must be greater than 0.", "warn");
     return;
   }
-  if (state.label.cash < budget) {
-    logEvent("Not enough cash for promo push.", "warn");
+  if (state.label.cash < totalCost) {
+    const label = selectedTypes.length > 1 ? "promo pushes" : "promo push";
+    logEvent(`Not enough cash for ${label}.`, "warn");
     return;
   }
   const track = getTrack(trackId);
@@ -3187,39 +3188,55 @@ function runPromotion() {
   const releaseDate = scheduled ? formatDate(scheduled.releaseAt) : track.releasedAt ? formatDate(track.releasedAt) : "TBD";
   const market = state.marketTracks.find((entry) => entry.id === track.marketId);
   if (!market) return;
-  const facilityId = getPromoFacilityForType(promoType);
-  if (facilityId) {
+  const facilityNeeds = getPromoFacilityNeeds(selectedTypes);
+  for (const [facilityId, count] of Object.entries(facilityNeeds)) {
+    const availability = getPromoFacilityAvailability(facilityId);
+    if (availability.available < count) {
+      const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
+      const plural = count === 1 ? "type" : "types";
+      logEvent(`Not enough ${label} today for ${count} promo ${plural}.`, "warn");
+      return;
+    }
+  }
+  for (const promoType of selectedTypes) {
+    const facilityId = getPromoFacilityForType(promoType);
+    if (!facilityId) continue;
     const reservation = reservePromoFacilitySlot(facilityId, promoType, track.id);
     if (!reservation.ok) {
       logEvent(reservation.reason || "No facility slots available today.", "warn");
       return;
     }
   }
-  state.label.cash -= budget;
+  state.label.cash -= totalCost;
   const boostWeeks = clamp(Math.floor(budget / 1200) + 1, 1, 4);
   market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);
-  state.meta.promoRuns = (state.meta.promoRuns || 0) + 1;
+  state.meta.promoRuns = (state.meta.promoRuns || 0) + selectedTypes.length;
     const promoIds = [
       ...(track.creators?.songwriterIds || []),
       ...(track.creators?.performerIds || []),
       ...(track.creators?.producerIds || [])
     ].filter(Boolean);
     markCreatorPromo(promoIds);
-  logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks: boostWeeks, promoType });
   if (typeof postFromTemplate === "function") {
-    postFromTemplate(promoType, {
-      trackTitle: track.title,
-      actName: act ? act.name : "Unknown Act",
-      releaseDate,
-      channel: track.distribution || "Digital",
-      handle: handleFromName(state.label.name, "Label"),
-      cost: budget
+    selectedTypes.forEach((promoType) => {
+      logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks: boostWeeks, promoType });
+      postFromTemplate(promoType, {
+        trackTitle: track.title,
+        actName: act ? act.name : "Unknown Act",
+        releaseDate,
+        channel: track.distribution || "Digital",
+        handle: handleFromName(state.label.name, "Label"),
+        cost: budget
+      });
     });
     renderSocialFeed();
   } else {
     logEvent("Promo template posting not available.", "warn");
   }
-  logEvent(`Promo push funded for "${track.title}" (${promoDetails.label}) (+${boostWeeks} weeks).`);
+  const promoLabels = selectedTypes.map((promoType) => getPromoTypeDetails(promoType).label).join(", ");
+  const verb = selectedTypes.length > 1 ? "Promo pushes funded" : "Promo push funded";
+  const spendNote = selectedTypes.length > 1 ? ` Total spend: ${formatMoney(totalCost)}.` : "";
+  logEvent(`${verb} for "${track.title}" (${promoLabels}) (+${boostWeeks} weeks).${spendNote}`);
   renderAll();
 }
 

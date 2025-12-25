@@ -12,4 +12,5 @@
 - CCC signing now deducts cash only on success; rejected attempts lock the Sign button until the next 12AM refresh; precondition failures do not lock out; CCC signing docs added.
 - Broadcast Studios now gate interviews and live performances with day-based slot availability (Sunday-heavy).
 - Filming Studio slots now gate music videos and eyeriSocial ads; ads cost more and post as multimedia promos.
+- Promotions tab now supports multi-select promo types and houses the eyeriSocial feed (renamed from the Social tab).
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
