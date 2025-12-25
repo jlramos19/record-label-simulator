@@ -158,7 +158,6 @@ Certainly\! Here's a list of the positions mentioned earlier, with their tasks h
 
     
 
-   *From \<[https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Legacy/Certainly.docx](https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Legacy/Certainly.docx)\>* 
 
     
 

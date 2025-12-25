@@ -1680,6 +1680,13 @@ function formatCount(value) {
   return Math.round(value).toLocaleString("en-US");
 }
 
+function formatHourCountdown(value) {
+  if (!Number.isFinite(value)) return "-";
+  const rounded = Math.max(0, Math.round(value * QUARTERS_PER_HOUR) / QUARTERS_PER_HOUR);
+  const text = rounded.toFixed(2).replace(/\.00$/, "").replace(/0$/, "");
+  return text;
+}
+
 function formatHour(hour) {
   if (hour === 0) return "12AM";
   if (hour < 12) return `${hour}AM`;
@@ -1714,7 +1721,10 @@ function syncLabelWallets() {
 }
 
 function weekIndex() {
-  return Math.floor(state.time.totalHours / WEEK_HOURS);
+  const totalQuarters = Number.isFinite(state.time?.totalQuarters)
+    ? state.time.totalQuarters
+    : Math.floor((state.time?.totalHours || 0) * QUARTERS_PER_HOUR);
+  return Math.floor(totalQuarters / (WEEK_HOURS * QUARTERS_PER_HOUR));
 }
 
 function weekIndexForEpochMs(epochMs) {
@@ -1722,23 +1732,32 @@ function weekIndexForEpochMs(epochMs) {
   return Math.floor((epochMs - startEpoch) / (WEEK_HOURS * HOUR_MS));
 }
 
-function getUtcDayHour(epochMs) {
+function getUtcDayHourMinute(epochMs) {
   const date = new Date(epochMs);
-  return { day: date.getUTCDay(), hour: date.getUTCHours() };
+  const minute = date.getUTCMinutes();
+  return {
+    day: date.getUTCDay(),
+    hour: date.getUTCHours(),
+    minute,
+    quarter: Math.floor(minute / 15)
+  };
 }
 
 function isScheduledTime(epochMs, schedule) {
-  const current = getUtcDayHour(epochMs);
-  return current.day === schedule.day && current.hour === schedule.hour;
+  const current = getUtcDayHourMinute(epochMs);
+  const targetMinute = Number.isFinite(schedule.minute) ? schedule.minute : 0;
+  return current.day === schedule.day && current.hour === schedule.hour && current.minute === targetMinute;
 }
 
 function hoursUntilNextScheduledTime(schedule, epochMs = state.time.epochMs) {
-  const current = getUtcDayHour(epochMs);
+  const current = getUtcDayHourMinute(epochMs);
+  const targetMinute = Number.isFinite(schedule.minute) ? schedule.minute : 0;
   const dayDelta = (schedule.day - current.day + 7) % 7;
   const hourDelta = schedule.hour - current.hour;
-  let total = dayDelta * 24 + hourDelta;
-  if (total <= 0) total += WEEK_HOURS;
-  return total;
+  const minuteDelta = targetMinute - current.minute;
+  let totalMinutes = dayDelta * 24 * 60 + hourDelta * 60 + minuteDelta;
+  if (totalMinutes <= 0) totalMinutes += WEEK_HOURS * 60;
+  return totalMinutes / 60;
 }
 
 function getReleaseAsapHours(epochMs = state.time.epochMs) {
@@ -1750,7 +1769,7 @@ function getReleaseAsapAt(epochMs = state.time.epochMs) {
 }
 
 function getUtcDayIndex(epochMs) {
-  return getUtcDayHour(epochMs).day;
+  return getUtcDayHourMinute(epochMs).day;
 }
 
 function startOfDayEpochMs(epochMs) {
@@ -1768,12 +1787,22 @@ function weekStartEpochMs(weekNumber) {
 
 function rolloutReleaseTimestampForWeek(weekNumber) {
   const weekStart = weekStartEpochMs(weekNumber);
-  return weekStart + WEEKLY_SCHEDULE.releaseProcessing.day * DAY_MS + WEEKLY_SCHEDULE.releaseProcessing.hour * HOUR_MS;
+  const targetMinute = Number.isFinite(WEEKLY_SCHEDULE.releaseProcessing.minute)
+    ? WEEKLY_SCHEDULE.releaseProcessing.minute
+    : 0;
+  return weekStart
+    + WEEKLY_SCHEDULE.releaseProcessing.day * DAY_MS
+    + WEEKLY_SCHEDULE.releaseProcessing.hour * HOUR_MS
+    + targetMinute * 60000;
 }
 
 function rolloutEventTimestampForWeek(weekNumber, eventIndex = 0) {
   const weekStart = weekStartEpochMs(weekNumber);
-  const base = weekStart + ROLLOUT_EVENT_SCHEDULE.day * DAY_MS + ROLLOUT_EVENT_SCHEDULE.hour * HOUR_MS;
+  const targetMinute = Number.isFinite(ROLLOUT_EVENT_SCHEDULE.minute) ? ROLLOUT_EVENT_SCHEDULE.minute : 0;
+  const base = weekStart
+    + ROLLOUT_EVENT_SCHEDULE.day * DAY_MS
+    + ROLLOUT_EVENT_SCHEDULE.hour * HOUR_MS
+    + targetMinute * 60000;
   const offset = Math.max(0, Math.floor(eventIndex || 0));
   return base + offset * HOUR_MS;
 }
@@ -4073,7 +4102,7 @@ function startMasterStage(track, producerIds, alignment) {
 function initWorkOrderStaminaMeta(order, stage, { legacyPaid = false } = {}) {
   if (!order || !stage) return;
   const hours = Number.isFinite(order.hours) ? order.hours : stage.hours || 1;
-  const totalTicks = Math.max(1, Math.ceil(hours || 1));
+  const totalTicks = Math.max(1, Math.ceil(hours * QUARTERS_PER_HOUR));
   const perTick = Math.floor(stage.stamina / totalTicks);
   const remainder = stage.stamina % totalTicks;
   if (!order.staminaTickMeta || typeof order.staminaTickMeta !== "object") {
@@ -5923,9 +5952,29 @@ function estimateHuskPromoBudget(husk, walletCash) {
   return perPromo * promoSteps.length;
 }
 
+function estimateRivalOperatingCost(rival) {
+  if (!rival) return 0;
+  const rate = getStudioLeaseRate();
+  if (!rate) return 0;
+  const hourly = STAGES.reduce((sum, stage) => {
+    const hours = Math.max(1, stage.hours || 1);
+    return sum + stage.cost / hours;
+  }, 0) / STAGES.length;
+  const costPerSlotWeek = Math.round(hourly * WEEK_HOURS * rate);
+  if (!costPerSlotWeek) return 0;
+  const cap = STUDIO_CAP_PER_LABEL;
+  const ownedSlots = clamp(Math.round(rival.studio?.slots || STARTING_STUDIO_SLOTS), 0, cap);
+  const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.35;
+  const used = clamp(Math.round(cap * momentum), 0, cap);
+  const leased = Math.max(0, used - ownedSlots);
+  return leased * costPerSlotWeek;
+}
+
 function scoreHuskForRival(husk, rival, trends) {
   const context = normalizeHuskContext(husk);
   const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
+  const operatingCost = estimateRivalOperatingCost(rival);
+  const availableCash = Math.max(0, walletCash - operatingCost);
   const budgetCost = estimateHuskPromoBudget(husk, walletCash);
   const trendList = Array.isArray(trends) ? trends : [];
   let trendScore = 0.35;
@@ -5945,11 +5994,11 @@ function scoreHuskForRival(husk, rival, trends) {
     ? 1
     : budgetCost === Number.POSITIVE_INFINITY
       ? 0
-      : clamp(walletCash / budgetCost, 0, 1);
+      : clamp(availableCash / budgetCost, 0, 1);
   const outcomeScore = clamp(context.outcomeScore / 100, 0, 1);
   const score = trendScore * 40 + alignmentScore * 30 + budgetScore * 20 + outcomeScore * 10;
-  const eligible = budgetCost === 0 || budgetCost <= walletCash;
-  return { score, eligible, budgetCost };
+  const eligible = budgetCost === 0 || budgetCost <= availableCash;
+  return { score, eligible, budgetCost, availableCash, operatingCost };
 }
 
 function selectHuskForRival(rival, husks) {
@@ -5969,6 +6018,56 @@ function selectHuskForRival(rival, husks) {
     return b.jitter - a.jitter;
   });
   return pool[0].husk;
+}
+
+function huskWindowWeeks(husk) {
+  const steps = normalizeHuskCadence(husk?.cadence);
+  if (!steps.length) return 1;
+  const maxOffset = steps.reduce((max, step) => Math.max(max, step.weekOffset || 0), 0);
+  return Math.max(1, maxOffset + 1);
+}
+
+function selectCompetitiveAnchorRival(rivals) {
+  if (!Array.isArray(rivals) || !rivals.length) return null;
+  const dominantId = state.meta?.seedInfo?.dominantLabelId || null;
+  const dominant = dominantId ? rivals.find((rival) => rival.id === dominantId) : null;
+  if (dominant) return dominant;
+  const sorted = rivals.slice().sort((a, b) => {
+    const momentumA = typeof a.momentum === "number" ? a.momentum : 0;
+    const momentumB = typeof b.momentum === "number" ? b.momentum : 0;
+    if (momentumA !== momentumB) return momentumB - momentumA;
+    const cashA = a.wallet?.cash ?? a.cash ?? 0;
+    const cashB = b.wallet?.cash ?? b.cash ?? 0;
+    if (cashA !== cashB) return cashB - cashA;
+    const idA = String(a.id || a.name || "");
+    const idB = String(b.id || b.name || "");
+    return idA.localeCompare(idB);
+  });
+  return sorted[0] || null;
+}
+
+function isRivalCompetitiveEligible(rival, husk) {
+  if (!rival || !husk) return false;
+  const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
+  const operatingCost = estimateRivalOperatingCost(rival);
+  const availableCash = Math.max(0, walletCash - operatingCost);
+  const promoBudget = estimateHuskPromoBudget(husk, walletCash);
+  if (promoBudget === Number.POSITIVE_INFINITY) return false;
+  const required = RIVAL_COMPETE_CASH_BUFFER + RIVAL_COMPETE_DROP_COST + promoBudget;
+  return availableCash >= required;
+}
+
+function getActiveRivalPlan(rival, currentWeekIndex) {
+  if (!rival?.aiPlan || typeof rival.aiPlan !== "object") return null;
+  const startWeek = rival.aiPlan.windowStartWeekIndex;
+  const endWeek = rival.aiPlan.windowEndWeekIndex;
+  if (!Number.isFinite(startWeek) || !Number.isFinite(endWeek)) return null;
+  if (currentWeekIndex > endWeek) return null;
+  return rival.aiPlan;
+}
+
+function getRivalPlanStartWeekIndex(epochMs = state.time.epochMs) {
+  return weekIndexForEpochMs(getReleaseAsapAt(epochMs));
 }
 
 function safeSeededPick(list, rng, fallbackList = []) {
@@ -6064,7 +6163,44 @@ function planRivalPromoEntry({ rival, husk, promoAt, stepIndex, planWeek, promoT
   };
 }
 
-function scheduleHuskForRival(rival, husk) {
+function promoFacilityCapacityForEpochMs(facilityId, epochMs) {
+  const dayIndex = getUtcDayIndex(epochMs);
+  if (facilityId === "broadcast") return BROADCAST_SLOT_SCHEDULE[dayIndex] || 0;
+  if (facilityId === "filming") return FILMING_STUDIO_SLOTS;
+  return 0;
+}
+
+function countScheduledPromoEventsForFacility(facilityId, epochMs) {
+  if (!facilityId) return 0;
+  const dayStart = startOfDayEpochMs(epochMs);
+  const dayEnd = endOfDayEpochMs(epochMs);
+  const rivalCount = state.rivalReleaseQueue.filter((entry) => {
+    if ((entry.queueType || "release") !== "promo") return false;
+    if (getPromoFacilityForType(entry.promoType) !== facilityId) return false;
+    return Number.isFinite(entry.releaseAt) && entry.releaseAt >= dayStart && entry.releaseAt < dayEnd;
+  }).length;
+  const labelCount = Array.isArray(state.scheduledEvents)
+    ? state.scheduledEvents.filter((entry) => {
+      if (entry.status === "Cancelled") return false;
+      if (entry.facilityId !== facilityId) return false;
+      return Number.isFinite(entry.scheduledAt) && entry.scheduledAt >= dayStart && entry.scheduledAt < dayEnd;
+    }).length
+    : 0;
+  return rivalCount + labelCount;
+}
+
+function canScheduleRivalPromoStep(rival, promoType, promoAt, promoBudgetSlots, promoScheduled) {
+  if (!rival) return false;
+  if (!Number.isFinite(promoBudgetSlots) || promoBudgetSlots <= promoScheduled) return false;
+  const facilityId = getPromoFacilityForType(promoType);
+  if (!facilityId) return true;
+  const capacity = promoFacilityCapacityForEpochMs(facilityId, promoAt);
+  if (capacity <= 0) return false;
+  const scheduled = countScheduledPromoEventsForFacility(facilityId, promoAt);
+  return scheduled < capacity;
+}
+
+function scheduleHuskForRival(rival, husk, options = {}) {
   if (!husk) return;
   const steps = normalizeHuskCadence(husk.cadence);
   if (!steps.length) return;
@@ -6073,15 +6209,19 @@ function scheduleHuskForRival(rival, husk) {
   const promoBudget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
   const promoBudgetSlots = promoBudget ? Math.floor(walletCash / promoBudget) : 0;
   let promoScheduled = 0;
-  const planWeek = weekIndex();
-  const baseReleaseAt = getReleaseAsapAt(now);
-  const baseWeekIndex = weekIndexForEpochMs(baseReleaseAt);
+  const planWeek = Number.isFinite(options.planWeek) ? options.planWeek : weekIndex();
+  const baseWeekIndex = Number.isFinite(options.startWeekIndex)
+    ? options.startWeekIndex
+    : getRivalPlanStartWeekIndex(now);
+  const endWeekIndex = Number.isFinite(options.endWeekIndex) ? options.endWeekIndex : null;
+  const allowPromo = options.allowPromo !== false;
   steps.forEach((step, index) => {
     const weekOffset = Number.isFinite(step.weekOffset) ? Math.max(0, step.weekOffset) : 0;
     const targetWeekIndex = baseWeekIndex + weekOffset;
+    if (Number.isFinite(endWeekIndex) && targetWeekIndex > endWeekIndex) return;
     if (step.kind === "release") {
       if (hasRivalQueueEntry(rival.name, "release", targetWeekIndex)) return;
-      const releaseAt = baseReleaseAt + weekOffset * WEEK_HOURS * HOUR_MS;
+      const releaseAt = rolloutReleaseTimestampForWeek(targetWeekIndex + 1);
       if (releaseAt <= now) return;
       state.rivalReleaseQueue.push(planRivalReleaseEntry({
         rival,
@@ -6092,12 +6232,15 @@ function scheduleHuskForRival(rival, husk) {
       }));
       return;
     }
-    if (!promoBudget || promoScheduled >= promoBudgetSlots) return;
+    if (!allowPromo || !promoBudget) return;
     if (hasRivalQueueEntry(rival.name, "promo", targetWeekIndex)) return;
-    const weekStart = getStartEpochMsFromState() + targetWeekIndex * WEEK_HOURS * HOUR_MS;
+    const weekStart = weekStartEpochMs(targetWeekIndex + 1);
     let promoAt = weekStart + step.day * DAY_MS + step.hour * HOUR_MS;
     while (promoAt <= now) {
       promoAt += WEEK_HOURS * HOUR_MS;
+    }
+    if (!canScheduleRivalPromoStep(rival, step.promoType || HUSK_PROMO_DEFAULT_TYPE, promoAt, promoBudgetSlots, promoScheduled)) {
+      return;
     }
     state.rivalReleaseQueue.push(planRivalPromoEntry({
       rival,
@@ -6115,17 +6258,74 @@ function generateRivalReleases() {
   if (!Array.isArray(state.rivals) || !state.rivals.length) return;
   const huskLibrary = buildHuskLibrary();
   const fallbackHusk = HUSK_STARTERS[0] || null;
+  const anchor = selectCompetitiveAnchorRival(state.rivals);
+  const currentWeek = weekIndex();
   state.rivals.forEach((rival) => {
     if (!rival) return;
-    if (!rival.aiPlan) rival.aiPlan = { lastPlannedWeek: null, lastHuskId: null, lastPlannedAt: null };
-    const currentWeek = weekIndex();
+    if (!rival.aiPlan) {
+      rival.aiPlan = {
+        lastPlannedWeek: null,
+        lastHuskId: null,
+        lastPlannedAt: null,
+        activeHuskId: null,
+        huskSource: null,
+        windowStartWeekIndex: null,
+        windowEndWeekIndex: null,
+        competitive: false
+      };
+    }
     if (rival.aiPlan.lastPlannedWeek === currentWeek) return;
-    const husk = selectHuskForRival(rival, huskLibrary) || fallbackHusk;
-    if (!husk) return;
-    scheduleHuskForRival(rival, husk);
+    const force = anchor && rival.id === anchor.id;
+    let husk = null;
+    let planWeekIndex = null;
+    let planEndWeekIndex = null;
+    const activePlan = getActiveRivalPlan(rival, currentWeek);
+    if (activePlan && activePlan.activeHuskId) {
+      husk = huskLibrary.find((entry) => entry.id === activePlan.activeHuskId) || fallbackHusk;
+      planWeekIndex = activePlan.windowStartWeekIndex;
+      planEndWeekIndex = activePlan.windowEndWeekIndex;
+    }
+    if (!husk) {
+      husk = selectHuskForRival(rival, huskLibrary) || fallbackHusk;
+    }
+    if (!husk) {
+      rival.aiPlan.competitive = false;
+      rival.aiPlan.lastPlannedWeek = currentWeek;
+      rival.aiPlan.lastPlannedAt = state.time.epochMs;
+      return;
+    }
+    const eligible = isRivalCompetitiveEligible(rival, husk);
+    if (!eligible && !force) {
+      rival.aiPlan.competitive = false;
+      rival.aiPlan.activeHuskId = null;
+      rival.aiPlan.huskSource = null;
+      rival.aiPlan.windowStartWeekIndex = null;
+      rival.aiPlan.windowEndWeekIndex = null;
+      rival.aiPlan.lastPlannedWeek = currentWeek;
+      rival.aiPlan.lastHuskId = husk.id;
+      rival.aiPlan.lastPlannedAt = state.time.epochMs;
+      return;
+    }
+    if (!activePlan || !activePlan.activeHuskId || activePlan.activeHuskId !== husk.id) {
+      const startWeekIndex = getRivalPlanStartWeekIndex(state.time.epochMs);
+      const windowWeeks = huskWindowWeeks(husk);
+      planWeekIndex = startWeekIndex;
+      planEndWeekIndex = startWeekIndex + windowWeeks - 1;
+      rival.aiPlan.activeHuskId = husk.id;
+      rival.aiPlan.huskSource = husk.source;
+      rival.aiPlan.windowStartWeekIndex = planWeekIndex;
+      rival.aiPlan.windowEndWeekIndex = planEndWeekIndex;
+    }
+    rival.aiPlan.competitive = true;
     rival.aiPlan.lastPlannedWeek = currentWeek;
     rival.aiPlan.lastHuskId = husk.id;
     rival.aiPlan.lastPlannedAt = state.time.epochMs;
+    scheduleHuskForRival(rival, husk, {
+      planWeek: Number.isFinite(planWeekIndex) ? planWeekIndex : currentWeek,
+      startWeekIndex: planWeekIndex,
+      endWeekIndex: planEndWeekIndex,
+      allowPromo: force || eligible
+    });
   });
 }
 
@@ -6439,7 +6639,7 @@ function resetDailyUsageForCreators(dayIndex) {
 
 function recordResourceTickSummary(summary) {
   if (!state.resourceTickLedger || typeof state.resourceTickLedger !== "object") {
-    state.resourceTickLedger = { hours: [] };
+    state.resourceTickLedger = { hours: [], pendingHour: null };
   }
   if (!Array.isArray(state.resourceTickLedger.hours)) {
     state.resourceTickLedger.hours = [];
@@ -6448,18 +6648,57 @@ function recordResourceTickSummary(summary) {
   state.resourceTickLedger.hours = state.resourceTickLedger.hours.filter(Boolean).slice(-RESOURCE_TICK_LEDGER_LIMIT);
 }
 
-function applyHourlyResourceTick(activeOrders = [], dayIndex = null) {
+function getQuarterHourRegenSlice(quarterIndex) {
+  const base = Math.floor(STAMINA_REGEN_PER_HOUR / QUARTERS_PER_HOUR);
+  const remainder = STAMINA_REGEN_PER_HOUR % QUARTERS_PER_HOUR;
+  if (base <= 0 && remainder <= 0) return 0;
+  return base + (quarterIndex < remainder ? 1 : 0);
+}
+
+function recordQuarterHourSummary(summary, quarterIndex) {
+  if (!state.resourceTickLedger || typeof state.resourceTickLedger !== "object") {
+    state.resourceTickLedger = { hours: [], pendingHour: null };
+  }
+  if (!state.resourceTickLedger.pendingHour || typeof state.resourceTickLedger.pendingHour !== "object") {
+    state.resourceTickLedger.pendingHour = {
+      regenTotal: 0,
+      regenCount: 0,
+      spendTotal: 0,
+      spendCount: 0,
+      overuseCount: 0,
+      departuresFlagged: 0
+    };
+  }
+  const pending = state.resourceTickLedger.pendingHour;
+  pending.regenTotal += summary.regenTotal || 0;
+  pending.regenCount += summary.regenCount || 0;
+  pending.spendTotal += summary.spendTotal || 0;
+  pending.spendCount += summary.spendCount || 0;
+  pending.overuseCount += summary.overuseCount || 0;
+  pending.departuresFlagged += summary.departuresFlagged || 0;
+  if (quarterIndex === QUARTERS_PER_HOUR - 1) {
+    const hourlySummary = { ...pending };
+    recordResourceTickSummary(hourlySummary);
+    state.resourceTickLedger.pendingHour = null;
+    return hourlySummary;
+  }
+  return null;
+}
+
+function applyQuarterHourResourceTick(activeOrders = [], dayIndex = null) {
   const busyIds = new Set();
   activeOrders.forEach((order) => {
     getWorkOrderCreatorIds(order).forEach((id) => busyIds.add(id));
   });
 
+  const quarterIndex = ((state.time.totalQuarters || 0) - 1 + QUARTERS_PER_HOUR) % QUARTERS_PER_HOUR;
+  const regenSlice = getQuarterHourRegenSlice(quarterIndex);
   let regenTotal = 0;
   let regenCount = 0;
   state.creators.forEach((creator) => {
     if (busyIds.has(creator.id)) return;
     const before = creator.stamina;
-    creator.stamina = clampStamina(creator.stamina + STAMINA_REGEN_PER_HOUR);
+    creator.stamina = clampStamina(creator.stamina + regenSlice);
     const delta = creator.stamina - before;
     if (delta > 0) {
       regenTotal += delta;
@@ -6498,29 +6737,30 @@ function applyHourlyResourceTick(activeOrders = [], dayIndex = null) {
     });
   });
 
-  recordResourceTickSummary({
+  const summary = {
     regenTotal,
     regenCount,
     spendTotal,
     spendCount,
     overuseCount,
     departuresFlagged
-  });
-
-  if (regenTotal || spendTotal) {
+  };
+  const hourlySummary = recordQuarterHourSummary(summary, quarterIndex);
+  if (hourlySummary && (hourlySummary.regenTotal || hourlySummary.spendTotal)) {
     logEvent(
-      `Hourly stamina: +${formatCount(regenTotal)} regen (${regenCount} idle) | -${formatCount(spendTotal)} spend (${spendCount} active).`
+      `Hourly stamina: +${formatCount(hourlySummary.regenTotal)} regen (${hourlySummary.regenCount} idle) | -${formatCount(hourlySummary.spendTotal)} spend (${hourlySummary.spendCount} active).`
     );
   }
 }
 
-async function runHourlyTick() {
+async function runQuarterHourTick() {
   const prevDayIndex = Math.floor(state.time.epochMs / DAY_MS);
-  state.time.totalHours += 1;
-  state.time.epochMs += HOUR_MS;
+  state.time.totalQuarters = Number.isFinite(state.time.totalQuarters) ? state.time.totalQuarters + 1 : 1;
+  state.time.totalHours = Math.floor(state.time.totalQuarters / QUARTERS_PER_HOUR);
+  state.time.epochMs += QUARTER_HOUR_MS;
   const currentDayIndex = Math.floor(state.time.epochMs / DAY_MS);
   const activeOrders = state.workOrders.filter((order) => order.status === "In Progress");
-  applyHourlyResourceTick(activeOrders, prevDayIndex);
+  applyQuarterHourResourceTick(activeOrders, prevDayIndex);
   if (currentDayIndex !== prevDayIndex) {
     resetDailyUsageForCreators(currentDayIndex);
     refreshDailyMarket();
@@ -6535,29 +6775,42 @@ async function runHourlyTick() {
   runYearTicksIfNeeded(currentYear());
 }
 
-let advanceHoursQueue = Promise.resolve();
-async function advanceHours(hours, { renderHourly = true, renderAfter = !renderHourly } = {}) {
+let advanceQuartersQueue = Promise.resolve();
+async function advanceQuarters(quarters, { renderQuarterly = true, renderAfter = !renderQuarterly } = {}) {
   if (state.meta.gameOver) return;
-  if (!Number.isFinite(hours) || hours <= 0) return;
-  advanceHoursQueue = advanceHoursQueue.then(async () => {
+  if (!Number.isFinite(quarters) || quarters <= 0) return;
+  const totalQuarters = Math.ceil(quarters);
+  advanceQuartersQueue = advanceQuartersQueue.then(async () => {
     if (state.meta.gameOver) return;
-    for (let i = 0; i < hours; i += 1) {
+    for (let i = 0; i < totalQuarters; i += 1) {
       try {
-        await runHourlyTick();
-        if (renderHourly) renderAll({ save: false });
+        await runQuarterHourTick();
+        if (renderQuarterly) renderAll({ save: false });
       } catch (error) {
-        console.error("runHourlyTick error:", error);
+        console.error("runQuarterHourTick error:", error);
       }
     }
     if (renderAfter) {
       renderAll({ save: false });
-    } else if (!renderHourly) {
+    } else if (!renderQuarterly) {
       renderTime();
     }
   }).catch((error) => {
-    console.error("advanceHours error:", error);
+    console.error("advanceQuarters error:", error);
   });
-  return advanceHoursQueue;
+  return advanceQuartersQueue;
+}
+
+async function advanceHours(hours, options = {}) {
+  if (!Number.isFinite(hours) || hours <= 0) return;
+  const renderQuarterly = typeof options.renderQuarterly === "boolean"
+    ? options.renderQuarterly
+    : typeof options.renderHourly === "boolean"
+      ? options.renderHourly
+      : true;
+  const renderAfter = typeof options.renderAfter === "boolean" ? options.renderAfter : !renderQuarterly;
+  const quarters = Math.ceil(hours * QUARTERS_PER_HOUR);
+  return advanceQuarters(quarters, { renderQuarterly, renderAfter });
 }
 
 async function maybeSyncPausedLiveChanges(now) {
@@ -6594,21 +6847,21 @@ async function tick(now) {
   const frameStart = now;
   const dt = (now - state.time.lastTick) / 1000;
   state.time.lastTick = now;
-  let secPerHour = Infinity;
-  if (state.time.speed === "play") secPerHour = state.time.secPerHourPlay;
-  if (state.time.speed === "fast") secPerHour = state.time.secPerHourFast;
-  if (secPerHour !== Infinity) {
-    const queuedIterations = Math.floor(state.time.acc / secPerHour);
-    if (queuedIterations > HOURLY_TICK_WARNING_THRESHOLD) {
+  let secPerQuarter = Infinity;
+  if (state.time.speed === "play") secPerQuarter = state.time.secPerQuarterPlay;
+  if (state.time.speed === "fast") secPerQuarter = state.time.secPerQuarterFast;
+  if (secPerQuarter !== Infinity) {
+    const queuedIterations = Math.floor(state.time.acc / secPerQuarter);
+    if (queuedIterations > QUARTER_TICK_WARNING_THRESHOLD) {
       console.warn(
-        `[perf] tick queued ${queuedIterations} hourly iterations (speed=${state.time.speed}, acc=${state.time.acc.toFixed(3)}, secPerHour=${secPerHour}).`
+        `[perf] tick queued ${queuedIterations} quarter-hour iterations (speed=${state.time.speed}, acc=${state.time.acc.toFixed(3)}, secPerQuarter=${secPerQuarter}).`
       );
     }
     state.time.acc += dt;
     let iterationsThisFrame = 0;
-    while (state.time.acc >= secPerHour && iterationsThisFrame < HOURLY_TICK_FRAME_LIMIT) {
-      state.time.acc -= secPerHour;
-      advanceHours(1);
+    while (state.time.acc >= secPerQuarter && iterationsThisFrame < QUARTER_TICK_FRAME_LIMIT) {
+      state.time.acc -= secPerQuarter;
+      advanceQuarters(1);
     }
   }
   await maybeSyncPausedLiveChanges(now);
@@ -7031,9 +7284,12 @@ function normalizeState() {
   });
   if (!state.trends) state.trends = [];
   if (!state.resourceTickLedger || typeof state.resourceTickLedger !== "object") {
-    state.resourceTickLedger = { hours: [] };
+    state.resourceTickLedger = { hours: [], pendingHour: null };
   }
   if (!Array.isArray(state.resourceTickLedger.hours)) state.resourceTickLedger.hours = [];
+  if (state.resourceTickLedger.pendingHour && typeof state.resourceTickLedger.pendingHour !== "object") {
+    state.resourceTickLedger.pendingHour = null;
+  }
   state.resourceTickLedger.hours = state.resourceTickLedger.hours.filter(Boolean).slice(-RESOURCE_TICK_LEDGER_LIMIT);
   if (!Array.isArray(state.trendRanking)) {
     state.trendRanking = Array.isArray(state.trends) ? state.trends.slice() : [];
@@ -7281,11 +7537,16 @@ function normalizeState() {
   if (typeof state.time.secPerHourFast !== "number" || state.time.secPerHourFast <= 0) {
     state.time.secPerHourFast = timeDefaults.secPerHourFast;
   }
+  if (typeof state.time.secPerQuarterPlay !== "number" || state.time.secPerQuarterPlay <= 0) {
+    const basis = Number.isFinite(state.time.secPerHourPlay) ? state.time.secPerHourPlay : timeDefaults.secPerHourPlay;
+    state.time.secPerQuarterPlay = basis / QUARTERS_PER_HOUR;
+  }
+  if (typeof state.time.secPerQuarterFast !== "number" || state.time.secPerQuarterFast <= 0) {
+    const basis = Number.isFinite(state.time.secPerHourFast) ? state.time.secPerHourFast : timeDefaults.secPerHourFast;
+    state.time.secPerQuarterFast = basis / QUARTERS_PER_HOUR;
+  }
   if (typeof state.time.epochMs !== "number" || Number.isNaN(state.time.epochMs)) {
     state.time.epochMs = timeDefaults.epochMs;
-  }
-  if (typeof state.time.totalHours !== "number" || Number.isNaN(state.time.totalHours)) {
-    state.time.totalHours = timeDefaults.totalHours;
   }
   if (typeof state.time.acc !== "number" || Number.isNaN(state.time.acc)) {
     state.time.acc = 0;
@@ -7297,6 +7558,15 @@ function normalizeState() {
   if (typeof state.time.startEpochMs !== "number" || Number.isNaN(state.time.startEpochMs)) {
     state.time.startEpochMs = getStartEpochMsFromState();
   }
+  if (typeof state.time.totalQuarters !== "number" || Number.isNaN(state.time.totalQuarters)) {
+    if (Number.isFinite(state.time.totalHours)) {
+      state.time.totalQuarters = Math.max(0, Math.round(state.time.totalHours * QUARTERS_PER_HOUR));
+    } else {
+      const delta = state.time.epochMs - state.time.startEpochMs;
+      state.time.totalQuarters = Math.max(0, Math.round(delta / QUARTER_HOUR_MS));
+    }
+  }
+  state.time.totalHours = Math.max(0, Math.floor(state.time.totalQuarters / QUARTERS_PER_HOUR));
   if (typeof state.meta.gameMode !== "string") {
     const startYear = state.meta.startYear || new Date(state.time.startEpochMs).getUTCFullYear();
     state.meta.gameMode = startYear >= 2400 ? "modern" : "founding";
@@ -7744,7 +8014,8 @@ function renderAutoAssignModal() {
 function renderTime() {
   $("timeDisplay").textContent = formatDate(state.time.epochMs);
   $("weekDisplay").textContent = `Week ${weekIndex() + 1}`;
-  $("chartCountdown").textContent = `Charts update in ${hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate)}h`;
+  const chartHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
+  $("chartCountdown").textContent = `Charts update in ${formatHourCountdown(chartHours)}h`;
   const mode = getGameMode(state.meta?.gameMode);
   const modeLabel = shortGameModeLabel(mode.label);
   const modeEl = $("gameModeDisplay");
@@ -11031,6 +11302,7 @@ export {
   describeSlot,
   setSlotTarget,
   updateActMemberFields,
+  advanceQuarters,
   advanceHours,
   releaseTrack,
   scheduleRelease,

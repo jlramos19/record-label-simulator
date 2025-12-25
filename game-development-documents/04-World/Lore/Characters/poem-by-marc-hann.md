@@ -138,5 +138,4 @@
 
 ` `
 
-*`From <https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/First%20Poem.docx>`* 
 

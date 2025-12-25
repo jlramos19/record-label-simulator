@@ -30,7 +30,6 @@ Thursday, August 10, 2023
 
   ` `
 
-  *`From <https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Legacy/Topoda%20Charts%20Prompts.docx>`*
 
 ` `
 `i want to start by creating a personal library of the steps i take to implement a certain process, then i want to reiterate on the way i implemented that process in a new version once i find out a better version or they release a better update.`

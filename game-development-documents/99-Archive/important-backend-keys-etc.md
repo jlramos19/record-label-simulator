@@ -34,6 +34,5 @@ Note: Instructions vary by domain host and A records are not supported by Google
 
     
 
-   *From \<[https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Topoda%20Charts%20A%20Record.docx](https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Topoda%20Charts%20A%20Record.docx)\>* 
 
     

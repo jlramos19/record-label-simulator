@@ -30,7 +30,7 @@ Per-item metadata (additive for scheduling + audits):
 - Select a strategy and expand it to populate Calendar scheduling stores.
 - Optional: enable auto-run per strategy.
 
-## Husk → Calendar Expansion
+## Husk -> Calendar Expansion
 Expansion converts planned items into scheduling stores (Calendar remains read-only):
 - Drops create entries in `state.releaseQueue` (same store used by Release Desk).
 - Events create entries in `state.scheduledEvents` (new schedule store projected by Calendar).
@@ -50,7 +50,7 @@ When auto-run is enabled, the system attempts to schedule upcoming items using d
 If any check fails, auto-run pauses for that item and logs the reason (`lastAttemptReason` + event log).
 
 ## End-of-Era Husk Generation
-At Era completion, the system generates a “what happened” husk:
+At Era completion, the system generates a "what happened" husk:
 - Releases and events within the Era window are grouped into weekly slots.
 - Saved as a Rollout Strategy with `source = GeneratedAtEraEnd` and `status = Archived`.
 - Opt-out flag: `state.meta.keepEraRolloutHusks` (default `true`) skips saving to reduce bloat.

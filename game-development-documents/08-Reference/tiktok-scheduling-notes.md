@@ -12,7 +12,6 @@ TikTok Lessons Learned
 
     
 
-   *From \<[https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/TikTok%20Lessons%20Learned.docx](https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/TikTok%20Lessons%20Learned.docx)\>* 
 
    
    
@@ -44,6 +43,5 @@ TikTok Lessons Learned
 
     
 
-   *From \<[https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/TOPODA%20CHARTS%20TIKTOK.docx](https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/TOPODA%20CHARTS%20TIKTOK.docx)\>* 
 
     

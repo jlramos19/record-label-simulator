@@ -10,7 +10,6 @@
 
 ` `
 
-*`From <https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/TOPODA%20CHARTS%20MAGAZINE.docx>`* 
 
 ` `  
 ` `
@@ -32,4 +31,3 @@
 
    ` `
 
-   *`From <https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Topoda%20Charts%20Info.docx>`* 

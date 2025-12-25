@@ -265,7 +265,6 @@ It is evident that your place is in a lower class, and it is highly probable tha
 
 
 
-*From \<[https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/It.docx](https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/It.docx)\>*
 
 
 
@@ -329,7 +328,6 @@ With the first sunrays touching this ever-evolving city, Annglora is a beacon of
 
 
 
-*From \<[https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Solace%20In%20Solitude.docx](https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Solace%20In%20Solitude.docx)\>*
 
 
 
