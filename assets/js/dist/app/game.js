@@ -4482,6 +4482,7 @@ async function runHourlyTick() {
         await weeklyUpdate();
     }
     runYearTicksIfNeeded(currentYear());
+    logDuration("runHourlyTick", startTime, HOURLY_TICK_WARN_MS, `(week ${currentWeek}, hour ${state.time.totalHours})`);
 }
 let advanceHoursQueue = Promise.resolve();
 async function advanceHours(hours) {
@@ -4538,6 +4539,7 @@ async function maybeSyncPausedLiveChanges(now) {
     session.lastSlotPayload = raw;
 }
 function tick(now) {
+    const frameStart = typeof now === "number" ? now : nowMs();
     if (state.time.lastTick === null || Number.isNaN(state.time.lastTick)) {
         state.time.lastTick = now;
         requestAnimationFrame(tick);
@@ -4560,6 +4562,11 @@ function tick(now) {
         while (state.time.acc >= secPerHour && iterationsThisFrame < HOURLY_TICK_FRAME_LIMIT) {
             state.time.acc -= secPerHour;
             advanceHours(1);
+            iterationsThisFrame += 1;
+        }
+        if (iterationsThisFrame >= HOURLY_TICK_FRAME_LIMIT && state.time.acc >= secPerHour) {
+            const remainingIterations = Math.floor(state.time.acc / secPerHour);
+            console.warn(`[perf] tick capped at ${HOURLY_TICK_FRAME_LIMIT} hourly iterations this frame; ${remainingIterations} remaining (acc=${state.time.acc.toFixed(3)}, secPerHour=${secPerHour}).`);
         }
     }
     await maybeSyncPausedLiveChanges(now);
