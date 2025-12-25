@@ -13,7 +13,9 @@
 - Added daily stamina usage tracking + overuse strike audit logs, plus a Resource Tick Summary panel in Logs.
 - Producer recommendations/auto-assign now avoid daily overuse thresholds and log clearer overuse/departure triggers.
 
-## 2025-12-25
+## 2025-12-25 (RLS-PATCH-20251225-1241Z)
+- Release stamps now use timestamped patch IDs; service worker cache versions align with the release stamp.
+- Live-edit guardrails added (auto-save on pagehide/visibility, safe-mode on init failure, and a `?sw=off` escape hatch).
 - Canon governance established: `docs/` is canon and GitHub is the tie-breaker; Drive mirrors GitHub.
 - Unity retcon policy established for Unity-era content and terminology.
 - Contradiction closure workflow defined (TODO -> Docs -> Code -> Patch Notes).
