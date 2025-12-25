@@ -1024,6 +1024,7 @@ function ensureTrackSlotGrid() {
         slotGrid.dataset.slotRoleGrid = entry.role;
         group.appendChild(slotGrid);
         const columns = Math.max(1, Math.ceil(limit / STUDIO_COLUMN_SLOT_COUNT));
+        // Studio columns render five slots each to mirror studio capacity.
         for (let col = 0; col < columns; col += 1) {
             const columnLabel = document.createElement("div");
             columnLabel.className = "slot-column-label";
@@ -2497,6 +2498,7 @@ function scheduleStage(track, stageIndex) {
         logEvent(`Cannot start ${stage.name}: missing ${roleLabel(stage.role)} assignment.`, "warn");
         return false;
     }
+    // Validate crew IDs before scheduling to avoid orphaned work orders.
     const crew = creatorIds
         .map((id) => getCreator(id))
         .filter((creator) => creator && creator.role === stage.role);
