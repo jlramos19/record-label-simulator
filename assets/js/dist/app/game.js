@@ -476,6 +476,7 @@ function makeDefaultState() {
             achievements: 0,
             achievementsUnlocked: [],
             achievementsLocked: false,
+            marketTrackArchive: [],
             bailoutUsed: false,
             bailoutPending: false,
             exp: 0,
@@ -3674,7 +3675,47 @@ function persistChartHistorySnapshots() {
         state.meta.chartHistoryLastWeek = week;
     }
 }
-function computeChartsLocal() {
+function archiveMarketTracks(entries) {
+    if (!Array.isArray(entries) || !entries.length)
+        return;
+    if (!Array.isArray(state.meta.marketTrackArchive))
+        state.meta.marketTrackArchive = [];
+    const now = state.time?.epochMs || Date.now();
+    const archived = entries
+        .filter(Boolean)
+        .map((entry) => ({
+        id: entry.id || entry.trackId || uid("MKA"),
+        trackId: entry.trackId || null,
+        title: entry.title || "",
+        label: entry.label || "",
+        actId: entry.actId || null,
+        actName: entry.actName || "",
+        releasedAt: entry.releasedAt || now,
+        archivedAt: now,
+        genre: entry.genre || "",
+        country: entry.country || "",
+        chartHistory: entry.chartHistory || {},
+    }));
+    state.meta.marketTrackArchive = state.meta.marketTrackArchive.concat(archived).slice(-MARKET_TRACK_ARCHIVE_LIMIT);
+}
+function paginateMarketTracks() {
+    if (!Array.isArray(state.marketTracks)) {
+        state.marketTracks = [];
+        return state.marketTracks;
+    }
+    const ordered = state.marketTracks.slice().sort((a, b) => (a.releasedAt || 0) - (b.releasedAt || 0));
+    const overflow = Math.max(0, ordered.length - MARKET_TRACK_ACTIVE_LIMIT);
+    if (overflow > 0) {
+        const archived = ordered.slice(0, overflow);
+        archiveMarketTracks(archived);
+        state.marketTracks = ordered.slice(overflow);
+    }
+    else {
+        state.marketTracks = ordered;
+    }
+    return state.marketTracks;
+}
+function computeCharts(marketTracks = paginateMarketTracks()) {
     const nationScores = {};
     const regionScores = {};
     const nationWeights = {};
@@ -3689,7 +3730,7 @@ function computeChartsLocal() {
     });
     const globalWeights = chartWeightsForGlobal();
     const globalScores = [];
-    state.marketTracks.forEach((track) => {
+    marketTracks.forEach((track) => {
         let sum = 0;
         NATIONS.forEach((nation) => {
             const score = scoreTrack(track, nation);
@@ -4255,11 +4296,20 @@ function refreshQuestPool() {
     newQuests.forEach((quest) => postQuestEmail(quest));
 }
 function ageMarketTracks() {
+    const archived = [];
     state.marketTracks.forEach((track) => {
         track.weeksOnChart += 1;
         track.promoWeeks = Math.max(0, track.promoWeeks - 1);
     });
-    state.marketTracks = state.marketTracks.filter((track) => track.weeksOnChart <= 12);
+    state.marketTracks = state.marketTracks.filter((track) => {
+        if (track.weeksOnChart > 12) {
+            archived.push(track);
+            return false;
+        }
+        return true;
+    });
+    archiveMarketTracks(archived);
+    paginateMarketTracks();
 }
 function generateRivalReleases() {
     state.rivals.forEach((rival) => {
@@ -4374,15 +4424,14 @@ function maybeRunAutoRollout() {
         return;
     state.meta.autoRollout.lastCheckedAt = state.time.epochMs;
 }
-async function weeklyUpdate() {
-    const startTime = nowMs();
+function weeklyUpdate() {
     const week = weekIndex() + 1;
     ensureMarketCreators();
     processCreatorInactivity();
     processRivalCreatorInactivity();
     recruitRivalCreators();
     generateRivalReleases();
-    const { globalScores } = await computeCharts();
+    const { globalScores } = computeCharts();
     const labelScores = computeLabelScoresFromCharts();
     updateCumulativeLabelPoints(labelScores);
     updateRivalMomentum(labelScores);
@@ -4482,7 +4531,6 @@ async function runHourlyTick() {
         await weeklyUpdate();
     }
     runYearTicksIfNeeded(currentYear());
-    logDuration("runHourlyTick", startTime, HOURLY_TICK_WARN_MS, `(week ${currentWeek}, hour ${state.time.totalHours})`);
 }
 let advanceHoursQueue = Promise.resolve();
 async function advanceHours(hours) {
@@ -4539,7 +4587,6 @@ async function maybeSyncPausedLiveChanges(now) {
     session.lastSlotPayload = raw;
 }
 function tick(now) {
-    const frameStart = typeof now === "number" ? now : nowMs();
     if (state.time.lastTick === null || Number.isNaN(state.time.lastTick)) {
         state.time.lastTick = now;
         requestAnimationFrame(tick);
@@ -4562,11 +4609,6 @@ function tick(now) {
         while (state.time.acc >= secPerHour && iterationsThisFrame < HOURLY_TICK_FRAME_LIMIT) {
             state.time.acc -= secPerHour;
             advanceHours(1);
-            iterationsThisFrame += 1;
-        }
-        if (iterationsThisFrame >= HOURLY_TICK_FRAME_LIMIT && state.time.acc >= secPerHour) {
-            const remainingIterations = Math.floor(state.time.acc / secPerHour);
-            console.warn(`[perf] tick capped at ${HOURLY_TICK_FRAME_LIMIT} hourly iterations this frame; ${remainingIterations} remaining (acc=${state.time.acc.toFixed(3)}, secPerHour=${secPerHour}).`);
         }
     }
     await maybeSyncPausedLiveChanges(now);
@@ -5014,6 +5056,8 @@ function normalizeState() {
     state.meta.difficulty = normalizeDifficultyId(state.meta.difficulty);
     if (typeof state.meta.questIdCounter !== "number")
         state.meta.questIdCounter = 0;
+    if (!Array.isArray(state.meta.marketTrackArchive))
+        state.meta.marketTrackArchive = [];
     if (!Array.isArray(state.meta.achievementsUnlocked))
         state.meta.achievementsUnlocked = [];
     if (typeof state.meta.achievements !== "number")
