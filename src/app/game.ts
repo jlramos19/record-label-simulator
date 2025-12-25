@@ -2467,7 +2467,7 @@ function updateCreatorOveruse(creator, staminaCost, context = {}) {
   creator.lastOveruseDay = dayIndex;
   const detail = describeOveruseContext(context);
   logEvent(
-    `Overuse strike: ${creator.name} (${roleLabel(creator.role)}) spent ${formatCount(next)} stamina today (limit ${STAMINA_OVERUSE_LIMIT}). Trigger: ${detail}.`,
+    `Overuse strike: ${creator.name} [${creator.id}] (${roleLabel(creator.role)}) spent ${formatCount(next)} stamina today (limit ${STAMINA_OVERUSE_LIMIT}). Trigger: ${detail}.`,
     "warn"
   );
   let departureFlagged = false;
@@ -2476,7 +2476,7 @@ function updateCreatorOveruse(creator, staminaCost, context = {}) {
       creator.departurePending = { reason: "overuse", flaggedAt: state.time.epochMs };
       departureFlagged = true;
       logEvent(
-        `${creator.name} entered departure risk from overuse (strikes ${creator.overuseStrikes}/${STAMINA_OVERUSE_STRIKES}, spent ${formatCount(next)} today).`,
+        `${creator.name} [${creator.id}] entered departure risk from overuse (strikes ${creator.overuseStrikes}/${STAMINA_OVERUSE_STRIKES}, spent ${formatCount(next)} today).`,
         "warn"
       );
     }
@@ -3266,7 +3266,7 @@ function processCreatorDepartures() {
     if (reason === "overuse") {
       const flaggedLabel = flaggedAt ? formatDate(flaggedAt) : "Unknown time";
       logEvent(
-        `${creator.name} left the label due to overuse (strikes ${creator.overuseStrikes}/${STAMINA_OVERUSE_STRIKES}, flagged ${flaggedLabel}).`,
+        `${creator.name} [${creator.id}] left the label due to overuse (strikes ${creator.overuseStrikes}/${STAMINA_OVERUSE_STRIKES}, flagged ${flaggedLabel}).`,
         "warn"
       );
     }
@@ -3730,7 +3730,7 @@ function logProducerAssignment(crew, stage, order) {
   const details = crew.map((creator) => {
     const spent = getCreatorStaminaSpentToday(creator);
     const projected = spent + stage.stamina;
-    return `${creator.name} (stamina ${creator.stamina}, spent ${formatCount(spent)}/${STAMINA_OVERUSE_LIMIT}, projected ${formatCount(projected)})`;
+    return `${creator.name} [${creator.id}] (stamina ${creator.stamina}, spent ${formatCount(spent)}/${STAMINA_OVERUSE_LIMIT}, projected ${formatCount(projected)})`;
   }).join(" | ");
   const track = order?.trackId ? getTrack(order.trackId) : null;
   const trackLabel = track ? ` "${track.title}"` : "";
@@ -5822,6 +5822,13 @@ function normalizeState() {
       if (typeof state.ui.cccFilters[key] !== "boolean") state.ui.cccFilters[key] = defaults[key];
     });
   }
+  if (!state.ui.cccThemeFilter || (state.ui.cccThemeFilter !== "All" && !THEMES.includes(state.ui.cccThemeFilter))) {
+    state.ui.cccThemeFilter = "All";
+  }
+  if (!state.ui.cccMoodFilter || (state.ui.cccMoodFilter !== "All" && !MOODS.includes(state.ui.cccMoodFilter))) {
+    state.ui.cccMoodFilter = "All";
+  }
+  if (!CCC_SORT_OPTIONS.includes(state.ui.cccSort)) state.ui.cccSort = "default";
   if (!state.ui.studioFilters) {
     state.ui.studioFilters = {
       owned: true,
@@ -5962,8 +5969,17 @@ function normalizeState() {
   if (!Array.isArray(state.meta.seedCatalog)) state.meta.seedCatalog = [];
   if (!state.charts) state.charts = { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} };
   if (!state.charts.regions) state.charts.regions = {};
-  if (!state.economy) state.economy = { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, leaseFeesWeek: 0 };
+  if (!state.economy) {
+    state.economy = {
+      lastRevenue: 0,
+      lastUpkeep: 0,
+      lastWeek: 0,
+      leaseFeesWeek: 0,
+      creatorMarketHeat: { Songwriter: 0, Performer: 0, Producer: 0 }
+    };
+  }
   if (typeof state.economy.leaseFeesWeek !== "number") state.economy.leaseFeesWeek = 0;
+  ensureCreatorMarketHeat();
   if (!state.era) state.era = { active: [], history: [] };
   if (!Array.isArray(state.era.active)) {
     const legacy = state.era.active ? [state.era.active] : [];
@@ -6007,7 +6023,7 @@ function normalizeState() {
   if (state.marketCreators?.length) {
     state.marketCreators = state.marketCreators.map((creator) => {
       const next = normalizeCreator(creator);
-      next.signCost = next.signCost || computeSignCost(next);
+      next.signCost = computeSignCost(next);
       return next;
     });
   }
@@ -6092,7 +6108,7 @@ function normalizeState() {
     state.meta.startYear = new Date(state.time.startEpochMs).getUTCFullYear();
   }
   syncLabelWallets();
-  ensureMarketCreators();
+  ensureMarketCreators({}, { replenish: false });
 }
 
 function refreshSelectOptions() {
@@ -6117,6 +6133,14 @@ function refreshSelectOptions() {
   const genreMoodFilter = $("genreMoodFilter");
   if (genreMoodFilter) {
     genreMoodFilter.innerHTML = [`<option value="All">All Moods</option>`, ...MOODS.map((m) => `<option value="${m}">${m}</option>`)].join("");
+  }
+  const cccThemeFilter = $("cccThemeFilter");
+  if (cccThemeFilter) {
+    cccThemeFilter.innerHTML = [`<option value="All">All Themes</option>`, ...THEMES.map((t) => `<option value="${t}">${t}</option>`)].join("");
+  }
+  const cccMoodFilter = $("cccMoodFilter");
+  if (cccMoodFilter) {
+    cccMoodFilter.innerHTML = [`<option value="All">All Moods</option>`, ...MOODS.map((m) => `<option value="${m}">${m}</option>`)].join("");
   }
   const trendScopeSelect = $("trendScopeSelect");
   if (trendScopeSelect) trendScopeSelect.value = state.ui.trendScopeType || "global";
@@ -6167,6 +6191,10 @@ function refreshSelectOptions() {
   if (labelNameInput) labelNameInput.value = state.label.name;
   if (genreThemeFilter) genreThemeFilter.value = state.ui.genreTheme || "All";
   if (genreMoodFilter) genreMoodFilter.value = state.ui.genreMood || "All";
+  if (cccThemeFilter) cccThemeFilter.value = state.ui.cccThemeFilter || "All";
+  if (cccMoodFilter) cccMoodFilter.value = state.ui.cccMoodFilter || "All";
+  const cccSort = $("cccSort");
+  if (cccSort) cccSort.value = state.ui.cccSort || "default";
   updateActMemberFields();
   renderSlots();
   updateGenrePreview();
@@ -6383,15 +6411,14 @@ function recommendActForTrack(track) {
   };
 }
 
-function recommendModifierId(theme, mood) {
-  const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
+function recommendModifierId(theme, mood, crewIds = []) {
   const trendMatch = state.trends.includes(makeGenre(theme, mood));
   const qualityMod = MODIFIERS.find((mod) => mod.qualityDelta > 0);
   const speedMod = MODIFIERS.find((mod) => mod.hoursDelta < 0);
-  if (trendMatch && qualityMod && state.label.cash >= baseCost + (qualityMod.costDelta || 0)) {
+  if (trendMatch && qualityMod && state.label.cash >= getStageCost(0, qualityMod, crewIds)) {
     return { modifierId: qualityMod.id, reason: "Invest in quality while trend is hot." };
   }
-  if (!trendMatch && speedMod && state.label.cash >= baseCost + (speedMod.costDelta || 0)) {
+  if (!trendMatch && speedMod && state.label.cash >= getStageCost(0, speedMod, crewIds)) {
     return { modifierId: speedMod.id, reason: "Favor speed on a colder week." };
   }
   return { modifierId: MODIFIERS[0]?.id || "None", reason: "Standard budget tier." };
@@ -6491,6 +6518,8 @@ function renderAutoAssignModal() {
         <h3>${label}</h3>
         ${candidates.map((creator) => {
           const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
+          const overuseSafe = getCreatorStaminaSpentToday(creator) + req <= STAMINA_OVERUSE_LIMIT;
+          const canAssign = creator.ready && overuseSafe;
           return `
           <div class="list-item">
             <div class="auto-assign-candidate">
@@ -6502,7 +6531,8 @@ function renderAutoAssignModal() {
               </div>
               <div class="actions">
                 ${creator.ready ? "" : `<span class="tag low">Low stamina</span>`}
-                <button type="button" class="ghost" data-assign-role="${role}" data-assign-id="${creator.id}"${creator.ready ? "" : " disabled"}>Assign</button>
+                ${overuseSafe ? "" : `<span class="tag low">Overuse limit</span>`}
+                <button type="button" class="ghost" data-assign-role="${role}" data-assign-id="${creator.id}"${canAssign ? "" : " disabled"}>Assign</button>
               </div>
             </div>
             <div class="muted">Needs ${req} stamina for ${label} stage</div>
@@ -7547,9 +7577,16 @@ function renderCalendarList(targetId, weeks, projectionOverride) {
           </div>
           <div class="pill">${entries.length} event(s)</div>
         </div>
-        ${entries.map((entry) => `
-          <div class="muted">${entry.label} | ${entry.actName} | ${entry.title} (${entry.typeLabel}, ${entry.distribution})</div>
-        `).join("")}
+        ${entries.map((entry) => {
+          const label = entry.label || "Label";
+          const actName = entry.actName || "Unknown";
+          const title = entry.title || "Untitled";
+          const typeLabel = entry.typeLabel || "Event";
+          const distribution = entry.distribution || "Digital";
+          return `
+            <div class="muted">${label} | ${actName} | ${title} (${typeLabel}, ${distribution})</div>
+          `;
+        }).join("")}
       </div>
     `;
   }).join("");
@@ -9138,6 +9175,7 @@ export {
   getCrewStageStats,
   getAdjustedStageHours,
   getAdjustedTotalStageHours,
+  getStageCost,
   getAct,
   getCreator,
   getTrack,

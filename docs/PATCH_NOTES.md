@@ -12,6 +12,7 @@
 - Community tab now shows up to Top 40 global trends filtered by rolling-window consumption and recent chart presence.
 - Modern era starts now seed the trend ledger from kickoff charts so Community trends populate immediately.
 - CCC signing now deducts cash only on success; rejected attempts lock the Sign button until the next 12AM refresh; precondition failures do not lock out; CCC signing docs added.
+- CCC market pool now persists across reloads until the daily/manual refresh; added preferred Theme/Mood filters and sorting by preference or quality (skill).
 - Broadcast Studios now gate interviews and live performances with day-based slot availability (Sunday-heavy).
 - Filming Studio slots now gate music videos and eyeriSocial ads; ads cost more and post as multimedia promos.
 - Promotions tab now supports multi-select promo types and houses the eyeriSocial feed (renamed from the Social tab).

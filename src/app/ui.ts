@@ -26,6 +26,7 @@ const {
   getCrewStageStats,
   getAdjustedStageHours,
   getAdjustedTotalStageHours,
+  getStageCost,
   createTrack,
   startDemoStage,
   startMasterStage,
@@ -2029,6 +2030,21 @@ function bindViewHandlers(route, root) {
     logEvent("Talent market refreshed.");
     renderAll();
   });
+  on("cccThemeFilter", "change", (e) => {
+    state.ui.cccThemeFilter = e.target.value || "All";
+    renderAll();
+    saveToActiveSlot();
+  });
+  on("cccMoodFilter", "change", (e) => {
+    state.ui.cccMoodFilter = e.target.value || "All";
+    renderAll();
+    saveToActiveSlot();
+  });
+  on("cccSort", "change", (e) => {
+    state.ui.cccSort = e.target.value || "default";
+    renderAll();
+    saveToActiveSlot();
+  });
 
   const marketList = root.querySelector("#marketList");
   if (marketList) {
@@ -2449,6 +2465,12 @@ function updateTrackRecommendation() {
   const producerCount = getTrackSlotIds("Producer").length;
   const stageCount = stageIndex === 1 ? performerCount : stageIndex === 2 ? producerCount : songwriterCount;
   const stageCountSafe = stageCount || 1;
+  const stageCrewIds = stageIndex === 1
+    ? getTrackSlotIds("Performer")
+    : stageIndex === 2
+      ? getTrackSlotIds("Producer")
+      : getTrackSlotIds("Songwriter");
+  const stageCost = stageCrewIds.length ? getStageCost(stageIndex, selectedModifier, stageCrewIds) : 0;
   const formatHours = (value) => {
     if (!Number.isFinite(value)) return "-";
     const rounded = Math.round(value * 100) / 100;
@@ -2480,6 +2502,9 @@ function updateTrackRecommendation() {
   const stageLine = stageInfo
     ? `Stage: ${stageLabel} | ${formatHours(adjustedStageHours)}h${stageDeltaLabel} | ${stageInfo.stamina} stamina each`
     : `Stage: ${stageLabel}`;
+  const stageCostLine = stageInfo
+    ? `<div class="muted">Stage cost: ${stageCrewIds.length ? formatMoney(stageCost) : "-"}</div>`
+    : "";
   const totalLine = stageInfo
     ? `<div class="muted">Estimated total: ${formatHours(totalHours)}h${totalDeltaLabel}</div>`
     : "";
@@ -2500,6 +2525,7 @@ function updateTrackRecommendation() {
     : `<div class="muted">Fit check: aligned creator preferences boost quality.</div>`;
   target.innerHTML = `
     <div class="muted">${stageLine}</div>
+    ${stageCostLine}
     ${crewLine}
     ${totalLine}
     ${crewSummaryLine}
@@ -2824,9 +2850,9 @@ function startSoloTracksFromUI() {
     logEvent("No studio slots available. Finish a production or expand capacity first.", "warn");
     return;
   }
-  const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
-  const cost = Math.max(0, baseCost + (modifier?.costDelta || 0));
-  if (state.label.cash < cost) {
+  const stageCosts = eligibleSongwriters.map((id) => getStageCost(0, modifier, [id]));
+  const minCost = stageCosts.length ? Math.min(...stageCosts) : 0;
+  if (state.label.cash < minCost) {
     logEvent("Not enough cash to start new sheet music.", "warn");
     return;
   }
@@ -2847,11 +2873,12 @@ function startSoloTracksFromUI() {
   let stoppedByCash = false;
   let stoppedByStudio = false;
   for (let i = 0; i < eligibleSongwriters.length; i += 1) {
-    if (state.label.cash < cost) {
+    const songwriterId = eligibleSongwriters[i];
+    const stageCost = getStageCost(0, modifier, [songwriterId]);
+    if (state.label.cash < stageCost) {
       stoppedByCash = true;
       break;
     }
-    const songwriterId = eligibleSongwriters[i];
     const title = titleInput
       ? (eligibleSongwriters.length > 1 ? `${titleInput} ${i + 1}` : titleInput)
       : makeTrackTitle(theme, mood);
@@ -2871,7 +2898,6 @@ function startSoloTracksFromUI() {
       stoppedByStudio = true;
       break;
     }
-    state.label.cash -= cost;
     startedCount += 1;
     logChoice("startTrack", {
       trackId: track.id,
@@ -3011,9 +3037,8 @@ function startSheetFromUI() {
     logEvent("No studio slots available. Finish a production or expand capacity first.", "warn");
     return;
   }
-  const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
-  const cost = Math.max(0, baseCost + (modifier?.costDelta || 0));
-  if (state.label.cash < cost) {
+  const stageCost = getStageCost(0, modifier, songwriterIds);
+  if (state.label.cash < stageCost) {
     logEvent("Not enough cash to start new sheet music.", "warn");
     return;
   }
@@ -3043,7 +3068,6 @@ function startSheetFromUI() {
     modifierId
   });
   if (!track) return;
-  state.label.cash -= cost;
   logChoice("startTrack", {
     trackId: track.id,
     theme,

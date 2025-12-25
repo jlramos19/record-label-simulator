@@ -4,7 +4,8 @@ The Community (world) view is the canonical place to browse the global Top Trend
 
 ## Display rules
 - Scope: Global only.
-- Max list length: 40 (may show fewer if fewer qualify).
+- Ranking size toggle: Top 8 or Top 40 (shared with labels).
+- "More" on #1 opens the full list (all available trends).
 - Update timing: Friday 12:00 (trend refresh time).
 
 ## Filtering rules

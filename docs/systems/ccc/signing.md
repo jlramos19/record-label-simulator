@@ -8,6 +8,11 @@
 - Wallet (cash balance): `state.label.cash`, the funds available for signing costs.
 - Signing cost: A deterministic cost computed from creator role + skill + market pressure and stored as `creator.signCost`.
 
+## CCC Market View
+- CCC pool persists until the next 12AM refresh or a manual refresh action.
+- Filters: role, preferred Theme, preferred Mood.
+- Sorting: preferred Theme/Mood (A-Z or Z-A) and quality (creator skill) high/low.
+
 ## Acceptance Criteria (MVP Rule)
 Creators resolve offers instantly using a single acceptance roll:
 - Base acceptance chance: 70%.

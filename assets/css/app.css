@@ -694,6 +694,17 @@ body::before {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   margin-bottom: 8px;
 }
+.ranking-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ccc-filters {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 8px 0 4px;
+}
 .list-item {
   display: grid;
   gap: 6px;
@@ -1149,6 +1160,10 @@ select, input[type="text"], input[type="number"] {
   flex-wrap: wrap;
   gap: 6px;
 }
+.ranking-controls {
+  display: grid;
+  gap: 6px;
+}
 .toggle-pill,
 .check-pill {
   display: inline-flex;
@@ -1549,8 +1564,7 @@ select, input[type="text"], input[type="number"] {
 
 /* Prevent the top-right pair of panels from pushing the top-bar down */
 #topLabelsHeaderList,
-#topTrendsHeaderList,
-#topLabelsWorldList {
+#topTrendsHeaderList {
   max-height: 160px;
   overflow: auto;
 }

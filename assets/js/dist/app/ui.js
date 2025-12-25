@@ -3,7 +3,7 @@ import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
-const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, renderCreateStageControls, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderCalendarView, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
+const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, renderCreateStageControls, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderCalendarView, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, shakeElement } = game;
 const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
@@ -45,6 +45,13 @@ function getTrackSlotIds(role) {
     const list = Array.isArray(state.ui.trackSlots[key]) ? state.ui.trackSlots[key] : [];
     return list.filter(Boolean);
 }
+function isCreatorOveruseSafe(creator, staminaCost) {
+    if (!creator)
+        return false;
+    if (!Number.isFinite(staminaCost) || staminaCost <= 0)
+        return true;
+    return getCreatorStaminaSpentToday(creator) + staminaCost <= STAMINA_OVERUSE_LIMIT;
+}
 function setTrackSlotIds(role, ids) {
     const key = TRACK_ROLE_KEYS[role];
     const limit = TRACK_ROLE_LIMITS?.[role] || 1;
@@ -52,9 +59,16 @@ function setTrackSlotIds(role, ids) {
         return;
     const next = Array.from({ length: limit }, () => null);
     const req = staminaRequirement(role);
+    const blocked = [];
     const eligible = ids.filter((id) => {
         const creator = getCreator(id);
-        return creator && creator.stamina >= req;
+        if (!creator || creator.stamina < req)
+            return false;
+        if (!isCreatorOveruseSafe(creator, req)) {
+            blocked.push(creator);
+            return false;
+        }
+        return true;
     });
     eligible.slice(0, limit).forEach((id, index) => {
         next[index] = id;
@@ -68,6 +82,10 @@ function setTrackSlotIds(role, ids) {
         };
     }
     state.ui.trackSlots[key] = next;
+    if (blocked.length) {
+        const names = blocked.map((creator) => creator.name).join(", ");
+        logEvent(`Skipped ${roleLabel(role)} due to daily stamina limit (${STAMINA_OVERUSE_LIMIT}): ${names}.`, "warn");
+    }
 }
 function primaryTrackSlotTarget(role) {
     return TRACK_ROLE_TARGETS[role] || "track-writer-1";
@@ -93,14 +111,20 @@ function recommendCreatorForSlot(targetId) {
     }
     const currentId = getSlotValue(targetId);
     const assigned = collectAssignedTrackSlotIds(currentId);
+    const req = staminaRequirement(role);
     const candidates = rankCandidates(role).filter((creator) => creator.ready && !assigned.has(creator.id));
-    if (!candidates.length) {
+    const safe = candidates.filter((creator) => isCreatorOveruseSafe(creator, req));
+    if (!safe.length) {
         shakeSlot(targetId);
-        const req = staminaRequirement(role);
-        logEvent(`No available ${roleLabel(role)} creators with ${req} stamina.`, "warn");
+        if (!candidates.length) {
+            logEvent(`No available ${roleLabel(role)} creators with ${req} stamina.`, "warn");
+        }
+        else {
+            logEvent(`No available ${roleLabel(role)} creators under daily limit (${STAMINA_OVERUSE_LIMIT}).`, "warn");
+        }
         return;
     }
-    const picked = candidates[0];
+    const picked = safe[0];
     assignToSlot(targetId, "creator", picked.id);
     logEvent(`Recommended ${picked.name} for ${describeSlot(targetId)}.`);
 }
@@ -159,6 +183,7 @@ const VIEW_DEFAULTS = {
     },
     logs: {
         "eyerisocial": VIEW_PANEL_STATES.open,
+        "resource-ticks": VIEW_PANEL_STATES.open,
         "system-log": VIEW_PANEL_STATES.open,
         "usage-ledger": VIEW_PANEL_STATES.open,
         "debug-export": VIEW_PANEL_STATES.open
@@ -1719,6 +1744,28 @@ function bindViewHandlers(route, root) {
             });
         });
     }
+    if (route === "releases") {
+        root.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const tab = btn.dataset.calendarTab;
+                if (!tab)
+                    return;
+                state.ui.calendarTab = tab;
+                renderCalendarView();
+                saveToActiveSlot();
+            });
+        });
+        root.querySelectorAll("[data-calendar-filter]").forEach((input) => {
+            input.addEventListener("change", (e) => {
+                const key = e.target.dataset.calendarFilter;
+                if (!key)
+                    return;
+                state.ui.calendarFilters[key] = e.target.checked;
+                renderCalendarView();
+                saveToActiveSlot();
+            });
+        });
+    }
     if (route === "charts") {
         root.addEventListener("click", (e) => {
             if (!state.ui.chartHistoryWeek)
@@ -1921,6 +1968,21 @@ function bindViewHandlers(route, root) {
         ensureMarketCreators();
         logEvent("Talent market refreshed.");
         renderAll();
+    });
+    on("cccThemeFilter", "change", (e) => {
+        state.ui.cccThemeFilter = e.target.value || "All";
+        renderAll();
+        saveToActiveSlot();
+    });
+    on("cccMoodFilter", "change", (e) => {
+        state.ui.cccMoodFilter = e.target.value || "All";
+        renderAll();
+        saveToActiveSlot();
+    });
+    on("cccSort", "change", (e) => {
+        state.ui.cccSort = e.target.value || "default";
+        renderAll();
+        saveToActiveSlot();
     });
     const marketList = root.querySelector("#marketList");
     if (marketList) {
@@ -2347,6 +2409,12 @@ function updateTrackRecommendation() {
     const producerCount = getTrackSlotIds("Producer").length;
     const stageCount = stageIndex === 1 ? performerCount : stageIndex === 2 ? producerCount : songwriterCount;
     const stageCountSafe = stageCount || 1;
+    const stageCrewIds = stageIndex === 1
+        ? getTrackSlotIds("Performer")
+        : stageIndex === 2
+            ? getTrackSlotIds("Producer")
+            : getTrackSlotIds("Songwriter");
+    const stageCost = stageCrewIds.length ? getStageCost(stageIndex, selectedModifier, stageCrewIds) : 0;
     const formatHours = (value) => {
         if (!Number.isFinite(value))
             return "-";
@@ -2379,6 +2447,9 @@ function updateTrackRecommendation() {
     const stageLine = stageInfo
         ? `Stage: ${stageLabel} | ${formatHours(adjustedStageHours)}h${stageDeltaLabel} | ${stageInfo.stamina} stamina each`
         : `Stage: ${stageLabel}`;
+    const stageCostLine = stageInfo
+        ? `<div class="muted">Stage cost: ${stageCrewIds.length ? formatMoney(stageCost) : "-"}</div>`
+        : "";
     const totalLine = stageInfo
         ? `<div class="muted">Estimated total: ${formatHours(totalHours)}h${totalDeltaLabel}</div>`
         : "";
@@ -2399,6 +2470,7 @@ function updateTrackRecommendation() {
         : `<div class="muted">Fit check: aligned creator preferences boost quality.</div>`;
     target.innerHTML = `
     <div class="muted">${stageLine}</div>
+    ${stageCostLine}
     ${crewLine}
     ${totalLine}
     ${crewSummaryLine}
@@ -2429,7 +2501,8 @@ function applyTrackRecommendationPlan(rec, stage) {
 function assignAllCreatorsToSlots() {
     const roles = ["Songwriter", "Performer", "Producer"];
     return roles.map((role) => {
-        const candidates = rankCandidates(role).filter((creator) => creator.ready);
+        const req = staminaRequirement(role);
+        const candidates = rankCandidates(role).filter((creator) => creator.ready && isCreatorOveruseSafe(creator, req));
         setTrackSlotIds(role, candidates.map((creator) => creator.id));
         return { role, count: getTrackSlotIds(role).length, req: staminaRequirement(role) };
     });
@@ -2448,7 +2521,7 @@ function recommendAllCreators() {
     const missing = summary.filter((entry) => entry.count === 0);
     if (missing.length) {
         const detail = missing.map((entry) => `${entry.role} (${entry.req} stamina)`).join(", ");
-        logEvent(`No available creators for: ${detail}.`, "warn");
+        logEvent(`No available creators for: ${detail}. Daily limit ${STAMINA_OVERUSE_LIMIT}.`, "warn");
     }
 }
 function updateRecommendations() {
@@ -2649,7 +2722,15 @@ function autoAssignCreators() {
     openOverlay("autoAssignModal");
 }
 function assignBestCandidates() {
-    const pickBest = (role) => rankCandidates(role)[0]?.id || null;
+    const pickBest = (role) => {
+        const req = staminaRequirement(role);
+        const candidates = rankCandidates(role).filter((creator) => creator.ready && isCreatorOveruseSafe(creator, req));
+        if (!candidates.length) {
+            logEvent(`No available ${roleLabel(role)} creators under daily limit (${STAMINA_OVERUSE_LIMIT}).`, "warn");
+            return null;
+        }
+        return candidates[0].id || null;
+    };
     setTrackSlotIds("Songwriter", [pickBest("Songwriter")]);
     setTrackSlotIds("Performer", [pickBest("Performer")]);
     setTrackSlotIds("Producer", [pickBest("Producer")]);
@@ -2718,9 +2799,9 @@ function startSoloTracksFromUI() {
         logEvent("No studio slots available. Finish a production or expand capacity first.", "warn");
         return;
     }
-    const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
-    const cost = Math.max(0, baseCost + (modifier?.costDelta || 0));
-    if (state.label.cash < cost) {
+    const stageCosts = eligibleSongwriters.map((id) => getStageCost(0, modifier, [id]));
+    const minCost = stageCosts.length ? Math.min(...stageCosts) : 0;
+    if (state.label.cash < minCost) {
         logEvent("Not enough cash to start new sheet music.", "warn");
         return;
     }
@@ -2741,11 +2822,12 @@ function startSoloTracksFromUI() {
     let stoppedByCash = false;
     let stoppedByStudio = false;
     for (let i = 0; i < eligibleSongwriters.length; i += 1) {
-        if (state.label.cash < cost) {
+        const songwriterId = eligibleSongwriters[i];
+        const stageCost = getStageCost(0, modifier, [songwriterId]);
+        if (state.label.cash < stageCost) {
             stoppedByCash = true;
             break;
         }
-        const songwriterId = eligibleSongwriters[i];
         const title = titleInput
             ? (eligibleSongwriters.length > 1 ? `${titleInput} ${i + 1}` : titleInput)
             : makeTrackTitle(theme, mood);
@@ -2765,7 +2847,6 @@ function startSoloTracksFromUI() {
             stoppedByStudio = true;
             break;
         }
-        state.label.cash -= cost;
         startedCount += 1;
         logChoice("startTrack", {
             trackId: track.id,
@@ -2904,9 +2985,8 @@ function startSheetFromUI() {
         logEvent("No studio slots available. Finish a production or expand capacity first.", "warn");
         return;
     }
-    const baseCost = STAGES.reduce((sum, stage) => sum + stage.cost, 0);
-    const cost = Math.max(0, baseCost + (modifier?.costDelta || 0));
-    if (state.label.cash < cost) {
+    const stageCost = getStageCost(0, modifier, songwriterIds);
+    if (state.label.cash < stageCost) {
         logEvent("Not enough cash to start new sheet music.", "warn");
         return;
     }
@@ -2937,7 +3017,6 @@ function startSheetFromUI() {
     });
     if (!track)
         return;
-    state.label.cash -= cost;
     logChoice("startTrack", {
         trackId: track.id,
         theme,

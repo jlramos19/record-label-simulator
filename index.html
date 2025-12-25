@@ -274,6 +274,18 @@
     </div>
   </div>
 </div>
+<div id="rankingModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2 id="rankingModalTitle">Rankings</h2>
+      <button id="rankingModalClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="card-body">
+      <div id="rankingModalMeta" class="tiny muted"></div>
+      <div id="rankingModalList" class="list"></div>
+    </div>
+  </div>
+</div>
 <div id="endModal" class="overlay" aria-hidden="true">
   <div class="overlay-card panel">
     <div class="card-head">
@@ -989,6 +1001,28 @@
             <label class="check-pill"><input type="checkbox" data-ccc-filter="Performer">Performers</label>
             <label class="check-pill"><input type="checkbox" data-ccc-filter="Producer">Producers</label>
           </div>
+          <div class="ccc-filters">
+            <div class="field">
+              <label for="cccThemeFilter">Preferred Theme</label>
+              <select id="cccThemeFilter"></select>
+            </div>
+            <div class="field">
+              <label for="cccMoodFilter">Preferred Mood</label>
+              <select id="cccMoodFilter"></select>
+            </div>
+            <div class="field">
+              <label for="cccSort">Sort By</label>
+              <select id="cccSort">
+                <option value="default">Default</option>
+                <option value="quality-desc">Quality (Skill) High-Low</option>
+                <option value="quality-asc">Quality (Skill) Low-High</option>
+                <option value="theme-asc">Preferred Theme A-Z</option>
+                <option value="theme-desc">Preferred Theme Z-A</option>
+                <option value="mood-asc">Preferred Mood A-Z</option>
+                <option value="mood-desc">Preferred Mood Z-A</option>
+              </select>
+            </div>
+          </div>
           <div id="marketList" class="list ccc-market-grid"></div>
           <div class="tiny">Use the CCC to scout and sign new Creator IDs.</div>
         </div>
@@ -998,12 +1032,25 @@
       <div class="panel card panel--scroll" data-panel="top-labels">
         <h2>Top Labels</h2>
         <div class="card-body">
-          <div id="topLabelsWorldList" class="top-mini-list"></div>
+          <div class="ranking-controls">
+            <div class="filter-row">
+              <label class="toggle-pill"><input type="radio" name="labelRankingSize" data-ranking-limit="8" value="8">Top 8</label>
+              <label class="toggle-pill"><input type="radio" name="labelRankingSize" data-ranking-limit="40" value="40">Top 40</label>
+            </div>
+          </div>
+          <div id="labelRankingMeta" class="tiny muted"></div>
+          <div id="topLabelsWorldList" class="list"></div>
         </div>
       </div>
       <div class="panel card panel--scroll" data-panel="trends">
         <h2>Top Trends</h2>
         <div class="card-body">
+          <div class="ranking-controls">
+            <div class="filter-row">
+              <label class="toggle-pill"><input type="radio" name="trendRankingSize" data-ranking-limit="8" value="8">Top 8</label>
+              <label class="toggle-pill"><input type="radio" name="trendRankingSize" data-ranking-limit="40" value="40">Top 40</label>
+            </div>
+          </div>
           <div class="trend-filters">
             <div class="field">
               <label for="trendScopeSelect">Scope</label>

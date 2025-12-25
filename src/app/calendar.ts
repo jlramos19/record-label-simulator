@@ -186,7 +186,7 @@ export function CalendarDayCell(day) {
         <div class="calendar-day-date">${day.dateLabel}</div>
       </div>
       <div class="calendar-day-events">
-        ${eventHtml || `<div class="calendar-day-empty">No events</div>`}
+        ${eventHtml || `<div class="calendar-day-empty">-</div>`}
         ${overflowHtml}
       </div>
     </div>
