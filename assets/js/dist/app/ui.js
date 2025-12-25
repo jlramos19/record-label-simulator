@@ -2,8 +2,8 @@
 import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
-import { buildPromoHint, getPromoTypeDetails } from "./promo_types.js";
-const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE } = game;
+import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeDetails } from "./promo_types.js";
+const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE } = game;
 const ROUTES = ["charts", "create", "releases", "eras", "roster", "world", "logs"];
 const DEFAULT_ROUTE = "charts";
 const ROUTE_ALIASES = {
@@ -406,9 +406,8 @@ function applyPanelStates(route, root) {
         panel.dataset.state = normalized;
         panel.style.width = entry.width || "";
         panel.style.height = entry.height || "";
-        panel.hidden = isHidden;
+        setPanelVisibility(panel, !isHidden);
         panel.classList.remove("panel--mini");
-        panel.classList.toggle("panel--hidden", isHidden);
         addPanelActions(panel);
         updateViewPanelActions(panel, normalized);
         clampPanelRect(panel);
@@ -859,13 +858,49 @@ function resetViewLayout() {
     updateRoute(DEFAULT_ROUTE);
     renderPanelMenu();
 }
+function hydratePromoTypeCards(root) {
+    const scope = root || document;
+    const cards = scope.querySelectorAll("[data-promo-type]");
+    if (!cards.length)
+        return;
+    cards.forEach((card) => {
+        const typeId = card.dataset.promoType;
+        if (!typeId)
+            return;
+        const details = getPromoTypeDetails(typeId);
+        const label = card.querySelector("[data-promo-label]");
+        if (label)
+            label.textContent = details.label;
+        const requirement = card.querySelector("[data-promo-requirement]");
+        if (requirement)
+            requirement.textContent = `Requirement: ${details.requirement}`;
+        const cost = card.querySelector("[data-promo-cost]");
+        if (cost)
+            cost.textContent = `Typical cost: ${formatMoney(details.cost)}`;
+    });
+}
+function syncPromoTypeCards(root, typeId) {
+    const scope = root || document;
+    const cards = scope.querySelectorAll("[data-promo-type]");
+    if (!cards.length)
+        return;
+    cards.forEach((card) => {
+        const isActive = card.dataset.promoType === typeId;
+        card.classList.toggle("is-active", isActive);
+        card.setAttribute("aria-checked", isActive ? "true" : "false");
+        const status = card.querySelector("[data-promo-status]");
+        if (status)
+            status.textContent = isActive ? "Selected" : "Select";
+    });
+}
 function updatePromoTypeHint(root) {
     const scope = root || document;
     const select = scope.querySelector("#promoTypeSelect");
     const hint = scope.querySelector("#promoTypeHint");
-    if (!select || !hint)
-        return;
-    hint.textContent = buildPromoHint(select.value);
+    const typeId = select ? select.value : DEFAULT_PROMO_TYPE;
+    if (hint)
+        hint.textContent = `Selected: ${buildPromoHint(typeId)}`;
+    syncPromoTypeCards(scope, typeId);
 }
 function bindGlobalHandlers() {
     const on = (id, event, handler) => {
@@ -891,6 +926,10 @@ function bindGlobalHandlers() {
         syncGameModeSelect();
         updateTimeControlButtons();
         syncTimeControlAria();
+    });
+    on("tutorialBtn", "click", () => {
+        renderRoleActions();
+        openOverlay("tutorialModal");
     });
     on("panelMenuBtn", "click", () => {
         renderPanelMenu();
@@ -976,6 +1015,7 @@ function bindGlobalHandlers() {
         openOverlay("quickRecipesModal");
     });
     on("quickRecipesClose", "click", () => closeOverlay("quickRecipesModal"));
+    on("tutorialClose", "click", () => closeOverlay("tutorialModal"));
     on("calendarClose", "click", () => closeOverlay("calendarModal"));
     const refreshCalendar = () => {
         renderCalendarList("calendarList", 4);
@@ -1316,6 +1356,22 @@ function bindViewHandlers(route, root) {
     }
     if (route === "logs") {
         on("promoTypeSelect", "change", () => updatePromoTypeHint(root));
+        const promoGrid = root.querySelector("#promoTypeGrid");
+        if (promoGrid) {
+            promoGrid.addEventListener("click", (e) => {
+                const card = e.target.closest("[data-promo-type]");
+                if (!card)
+                    return;
+                const typeId = card.dataset.promoType;
+                if (!typeId)
+                    return;
+                const select = root.querySelector("#promoTypeSelect");
+                if (select)
+                    select.value = typeId;
+                updatePromoTypeHint(root);
+            });
+        }
+        hydratePromoTypeCards(root);
         updatePromoTypeHint(root);
     }
     on("chartWeekBtn", "click", () => {
@@ -1380,6 +1436,14 @@ function bindViewHandlers(route, root) {
     on("genreMoodFilter", "change", (e) => {
         state.ui.genreMood = e.target.value;
         renderGenreIndex();
+    });
+    on("trendScopeSelect", "change", (e) => {
+        state.ui.trendScopeType = e.target.value;
+        renderAll();
+    });
+    on("trendScopeTarget", "change", (e) => {
+        state.ui.trendScopeTarget = e.target.value;
+        renderAll();
     });
     const readyList = root.querySelector("#readyList");
     if (readyList)

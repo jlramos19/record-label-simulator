@@ -65,6 +65,22 @@
     </div>
   </div>
 </div>
+<div id="tutorialModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Tutorial</h2>
+      <button id="tutorialClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="card-body">
+      <div class="callout">
+        Learn the game systems and review the world roles that shape demand.
+      </div>
+      <div class="subhead">Roles &amp; Actions</div>
+      <div class="tiny muted">Status: Live = playable, Simulated = system-driven, Placeholder = planned.</div>
+      <div id="roleActionsList" class="list" style="margin-top:10px"></div>
+    </div>
+  </div>
+</div>
 <div id="skipTimeModal" class="overlay" aria-hidden="true">
   <div class="overlay-card panel">
     <div class="card-head">
@@ -270,14 +286,20 @@
         <span id="weekDisplay">Week 1</span> | <span id="chartCountdown">Charts update in 168h</span> | <span id="gameModeDisplay" class="pill mode-pill" aria-label="Game mode">-</span>
       </div>
     </div>
-    <div class="hud-right">
+    <div class="hud-mid">
       <div class="world-summary">
         <div class="stat-label">Top Trend</div>
         <div id="topTrendDisplay" class="hud-trend">Trend: -</div>
         <div class="stat-label">Top Labels</div>
         <div id="topLabelsHeaderList" class="top-mini-list"></div>
       </div>
+    </div>
+    <div class="hud-right">
       <div class="hud-actions">
+        <button id="tutorialBtn" type="button" class="ghost">
+          <span class="material-symbols-rounded icon-glyph" aria-hidden="true">help</span>
+          <span>Tutorial</span>
+        </button>
         <button id="menuBtn" type="button" class="ghost">
           <span class="material-symbols-rounded icon-glyph" aria-hidden="true">settings</span>
           <span>Settings</span>
@@ -741,16 +763,6 @@
           <div id="topLabelsWorldList" class="top-mini-list"></div>
         </div>
       </div>
-      <div class="panel card panel--scroll" data-panel="role-actions">
-        <h2>Roles &amp; Actions</h2>
-        <div class="card-body">
-          <div class="callout">
-            World roles and their action verbs. Placeholder actions are listed for visibility and are not yet playable.
-          </div>
-          <div class="tiny muted">Status: Live = playable, Simulated = system-driven, Placeholder = planned.</div>
-          <div id="roleActionsList" class="list" style="margin-top:10px"></div>
-        </div>
-      </div>
       <div class="panel card panel--scroll" data-panel="trends">
         <h2>Top Trends</h2>
         <div class="card-body">
@@ -820,14 +832,52 @@
             </div>
           </div>
           <div class="field">
-            <label for="promoTypeSelect">Promo Type</label>
-            <select id="promoTypeSelect">
+            <label id="promoTypeLabel">Promo Types</label>
+            <select id="promoTypeSelect" class="hidden" aria-hidden="true" tabindex="-1">
               <option value="musicVideo">Music Video</option>
               <option value="livePerformance">Live Performance</option>
               <option value="eyeriSocialPost">eyeriSocial Post</option>
               <option value="interview">Interview</option>
             </select>
-            <div id="promoTypeHint" class="tiny">Requirement: Final video + clearance | Typical cost: $7,500</div>
+            <div id="promoTypeGrid" class="promo-type-grid slot-grid slot-grid--multi" role="radiogroup" aria-labelledby="promoTypeLabel">
+              <button type="button" class="promo-type-card is-active" data-promo-type="musicVideo" role="radio" aria-checked="true">
+                <div class="promo-type-row">
+                  <div class="slot-label">Promo Type</div>
+                  <div class="promo-type-status" data-promo-status>Selected</div>
+                </div>
+                <div class="slot-value" data-promo-label>Music Video</div>
+                <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Final video + clearance</div>
+                <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $7,500</div>
+              </button>
+              <button type="button" class="promo-type-card" data-promo-type="livePerformance" role="radio" aria-checked="false">
+                <div class="promo-type-row">
+                  <div class="slot-label">Promo Type</div>
+                  <div class="promo-type-status" data-promo-status>Select</div>
+                </div>
+                <div class="slot-value" data-promo-label>Live Performance</div>
+                <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Venue slot + live-ready set</div>
+                <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $3,000</div>
+              </button>
+              <button type="button" class="promo-type-card" data-promo-type="eyeriSocialPost" role="radio" aria-checked="false">
+                <div class="promo-type-row">
+                  <div class="slot-label">Promo Type</div>
+                  <div class="promo-type-status" data-promo-status>Select</div>
+                </div>
+                <div class="slot-value" data-promo-label>eyeriSocial Post</div>
+                <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Cover art + caption</div>
+                <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $600</div>
+              </button>
+              <button type="button" class="promo-type-card" data-promo-type="interview" role="radio" aria-checked="false">
+                <div class="promo-type-row">
+                  <div class="slot-label">Promo Type</div>
+                  <div class="promo-type-status" data-promo-status>Select</div>
+                </div>
+                <div class="slot-value" data-promo-label>Interview</div>
+                <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Press kit + talking points</div>
+                <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $1,200</div>
+              </button>
+            </div>
+            <div id="promoTypeHint" class="tiny muted">Selected: Requirement: Final video + clearance | Typical cost: $7,500</div>
           </div>
           <div class="field">
             <label for="promoBudget">Promo Budget</label>

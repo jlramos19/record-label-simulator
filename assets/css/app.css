@@ -51,7 +51,7 @@ body::before {
   min-height: 100vh;
   height: 100vh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) var(--footer-height);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
   padding: 8px;
 }
@@ -60,7 +60,7 @@ body::before {
   top: 0;
   z-index: 8;
   display: grid;
-  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr) minmax(260px, 360px);
+  grid-template-columns: minmax(260px, 340px) minmax(260px, 1fr) minmax(220px, 320px) minmax(220px, 320px);
   grid-template-rows: auto auto;
   gap: 10px 12px;
   align-items: start;
@@ -127,6 +127,12 @@ body::before {
   gap: 6px;
   justify-items: start;
 }
+.hud-mid {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  justify-items: start;
+}
 .hud-right {
   display: grid;
   gap: 8px;
@@ -142,6 +148,7 @@ body::before {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 .hud-trend {
   font-size: 12px;
@@ -182,12 +189,19 @@ body::before {
   justify-items: end;
   text-align: right;
 }
+.hud-mid .world-summary {
+  justify-items: start;
+  text-align: left;
+}
 .world-summary .hud-trend {
   color: var(--text);
   font-weight: 700;
 }
 .world-summary .top-mini-item {
   justify-content: flex-end;
+}
+.hud-mid .top-mini-item {
+  justify-content: flex-start;
 }
 .icon-glyph {
   font-family: "Material Symbols Rounded";
@@ -548,6 +562,14 @@ body::before {
   text-transform: uppercase;
   color: var(--muted);
   font-weight: 700;
+}
+.panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.panel-title h2 {
+  margin: 0;
 }
 .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
 .panel-actions { display: flex; gap: 6px; align-items: center; }
@@ -910,6 +932,53 @@ select, input[type="text"], input[type="number"] {
 .slot-grid--stack {
   display: grid;
   gap: 14px;
+}
+.promo-type-grid {
+  margin-top: 2px;
+}
+.promo-type-card {
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+  background: rgba(15, 20, 28, 0.6);
+  color: var(--text);
+  text-align: left;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  transition: border-color 0.2s ease, transform 0.12s ease, background 0.2s ease;
+}
+.promo-type-card:hover {
+  border-color: rgba(244, 177, 90, 0.55);
+}
+.promo-type-card.is-active {
+  border-color: rgba(244, 177, 90, 0.8);
+  background: rgba(244, 177, 90, 0.12);
+}
+.promo-type-card:active {
+  transform: translateY(1px);
+}
+.promo-type-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.promo-type-status {
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.promo-type-card.is-active .promo-type-status {
+  color: var(--accent);
+  border-color: rgba(244, 177, 90, 0.6);
+  background: rgba(244, 177, 90, 0.18);
 }
 .slot-role-group {
   display: grid;

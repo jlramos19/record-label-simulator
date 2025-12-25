@@ -3184,21 +3184,96 @@ function buildGenreRanking(totals) {
     });
     return entries.map((entry) => entry.genre);
 }
-function updateTrends(globalScores) {
+function buildTrendSnapshot(entries) {
     const totals = {};
-    globalScores.forEach((entry) => {
-        if (!entry.track?.genre)
+    const alignmentScores = {};
+    (entries || []).forEach((entry) => {
+        const track = entry?.track;
+        if (!track?.genre)
             return;
-        if (entry.track.mood === "Boring")
+        if (track.mood === "Boring")
             return;
-        totals[entry.track.genre] = (totals[entry.track.genre] || 0) + entry.score;
+        const score = Number.isFinite(entry.score) ? entry.score : 0;
+        totals[track.genre] = (totals[track.genre] || 0) + score;
+        const alignment = ALIGNMENTS.includes(track.alignment) ? track.alignment : "Neutral";
+        if (!alignmentScores[track.genre]) {
+            alignmentScores[track.genre] = {};
+            ALIGNMENTS.forEach((key) => {
+                alignmentScores[track.genre][key] = 0;
+            });
+        }
+        const weight = Math.max(0, score);
+        alignmentScores[track.genre][alignment] += weight;
     });
-    const ranked = Object.entries(totals)
+    const ranking = Object.entries(totals)
         .sort((a, b) => b[1] - a[1])
         .map((entry) => entry[0]);
-    if (ranked.length) {
-        state.trends = ranked.slice(0, 3);
-        state.genreRanking = buildGenreRanking(totals);
+    return { ranking, totals, alignmentScores };
+}
+function defaultTrendNation() {
+    const labelCountry = state.label?.country;
+    if (labelCountry && NATIONS.includes(labelCountry))
+        return labelCountry;
+    return NATIONS[0] || "";
+}
+function defaultTrendRegion() {
+    const labelCountry = state.label?.country;
+    const regions = Array.isArray(REGION_DEFS) ? REGION_DEFS : [];
+    const match = regions.find((region) => region.nation === labelCountry);
+    return match ? match.id : regions[0]?.id || "";
+}
+function normalizeTrendScope() {
+    const valid = new Set(["global", "nation", "region"]);
+    if (!valid.has(state.ui.trendScopeType))
+        state.ui.trendScopeType = "global";
+    if (!state.ui.trendScopeTarget)
+        state.ui.trendScopeTarget = defaultTrendNation();
+    if (state.ui.trendScopeType === "nation") {
+        if (!NATIONS.includes(state.ui.trendScopeTarget))
+            state.ui.trendScopeTarget = defaultTrendNation();
+        return;
+    }
+    if (state.ui.trendScopeType === "region") {
+        const regionIds = REGION_DEFS.map((region) => region.id);
+        if (!regionIds.includes(state.ui.trendScopeTarget))
+            state.ui.trendScopeTarget = defaultTrendRegion();
+    }
+}
+function trendScopeLabel(scopeType, target) {
+    if (scopeType === "nation")
+        return target || "Nation";
+    if (scopeType === "region") {
+        const region = REGION_DEFS.find((entry) => entry.id === target);
+        return region ? region.label : target || "Region";
+    }
+    return "Global (Gaia)";
+}
+function trendAlignmentLeader(genre, alignmentScores) {
+    const scores = alignmentScores?.[genre];
+    if (!scores)
+        return null;
+    let topAlignment = "";
+    let topScore = -Infinity;
+    let total = 0;
+    ALIGNMENTS.forEach((alignment) => {
+        const score = scores[alignment] || 0;
+        total += score;
+        if (score > topScore) {
+            topScore = score;
+            topAlignment = alignment;
+        }
+    });
+    if (!topAlignment || topScore <= 0 || total <= 0)
+        return null;
+    return { alignment: topAlignment, share: Math.round((topScore / total) * 100) };
+}
+function updateTrends(globalScores) {
+    const snapshot = buildTrendSnapshot(globalScores);
+    if (snapshot.ranking.length) {
+        state.trends = snapshot.ranking.slice(0, TREND_DETAIL_COUNT);
+        state.trendRanking = snapshot.ranking;
+        state.trendAlignmentScores = snapshot.alignmentScores;
+        state.genreRanking = buildGenreRanking(snapshot.totals);
     }
 }
 function updateEconomy(globalScores) {
@@ -3987,6 +4062,8 @@ function normalizeState() {
     if (!state.ui) {
         state.ui = {
             activeChart: "global",
+            trendScopeType: "global",
+            trendScopeTarget: defaultTrendNation(),
             genreTheme: "All",
             genreMood: "All",
             slotTarget: null,
@@ -4004,6 +4081,10 @@ function normalizeState() {
     }
     if (!state.ui.activeChart)
         state.ui.activeChart = "global";
+    if (!state.ui.trendScopeType)
+        state.ui.trendScopeType = "global";
+    if (!state.ui.trendScopeTarget)
+        state.ui.trendScopeTarget = defaultTrendNation();
     if (!state.ui.genreTheme)
         state.ui.genreTheme = "All";
     if (!state.ui.genreMood)
@@ -4231,6 +4312,12 @@ function normalizeState() {
     });
     if (!state.trends)
         state.trends = [];
+    if (!Array.isArray(state.trendRanking)) {
+        state.trendRanking = Array.isArray(state.trends) ? state.trends.slice() : [];
+    }
+    if (!state.trendAlignmentScores || typeof state.trendAlignmentScores !== "object") {
+        state.trendAlignmentScores = {};
+    }
     if (!state.acts.length && state.creators.length)
         seedActs();
     if (!state.meta)
@@ -4316,6 +4403,7 @@ function normalizeState() {
         state.population.campaignSplitStage = null;
     if (state.label && !state.label.country)
         state.label.country = "Annglora";
+    normalizeTrendScope();
     if (state.label) {
         state.label.cash = Math.round(state.label.cash ?? 0);
         const snapshot = computePopulationSnapshot();
@@ -4443,6 +4531,9 @@ function refreshSelectOptions() {
     if (genreMoodFilter) {
         genreMoodFilter.innerHTML = [`<option value="All">All Moods</option>`, ...MOODS.map((m) => `<option value="${m}">${m}</option>`)].join("");
     }
+    const trendScopeSelect = $("trendScopeSelect");
+    if (trendScopeSelect)
+        trendScopeSelect.value = state.ui.trendScopeType || "global";
     const eraRolloutSelect = $("eraRolloutSelect");
     if (eraRolloutSelect) {
         eraRolloutSelect.innerHTML = ROLLOUT_PRESETS.map((preset) => `<option value="${preset.id}">${preset.label}</option>`).join("");
@@ -5935,11 +6026,81 @@ function renderTrends() {
     const listEl = $("trendList");
     if (!listEl)
         return;
-    const list = state.trends.map((trend, index) => {
+    normalizeTrendScope();
+    const scopeType = state.ui.trendScopeType || "global";
+    const scopeTarget = state.ui.trendScopeTarget || "";
+    const scopeSelect = $("trendScopeSelect");
+    const targetSelect = $("trendScopeTarget");
+    const targetLabel = $("trendScopeTargetLabel");
+    const scopeMeta = $("trendScopeMeta");
+    if (scopeSelect)
+        scopeSelect.value = scopeType;
+    let ranking = [];
+    let alignmentScores = {};
+    if (scopeType === "nation") {
+        if (targetLabel)
+            targetLabel.textContent = "Nation";
+        if (targetSelect) {
+            targetSelect.disabled = false;
+            targetSelect.innerHTML = NATIONS.map((nation) => `<option value="${nation}">${nation}</option>`).join("");
+            targetSelect.value = scopeTarget;
+        }
+        const entries = state.charts.nations[scopeTarget] || [];
+        const snapshot = buildTrendSnapshot(entries);
+        ranking = snapshot.ranking;
+        alignmentScores = snapshot.alignmentScores;
+    }
+    else if (scopeType === "region") {
+        if (targetLabel)
+            targetLabel.textContent = "Region";
+        if (targetSelect) {
+            targetSelect.disabled = false;
+            targetSelect.innerHTML = REGION_DEFS.map((region) => `<option value="${region.id}">${region.label}</option>`).join("");
+            targetSelect.value = scopeTarget;
+        }
+        const entries = state.charts.regions[scopeTarget] || [];
+        const snapshot = buildTrendSnapshot(entries);
+        ranking = snapshot.ranking;
+        alignmentScores = snapshot.alignmentScores;
+    }
+    else {
+        if (targetLabel)
+            targetLabel.textContent = "Nation/Region";
+        if (targetSelect) {
+            targetSelect.disabled = true;
+            targetSelect.innerHTML = `<option value="global">Global</option>`;
+        }
+        const fallback = buildTrendSnapshot(state.charts.global || []);
+        ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : fallback.ranking;
+        const hasAlignment = state.trendAlignmentScores && Object.keys(state.trendAlignmentScores).length;
+        alignmentScores = hasAlignment ? state.trendAlignmentScores : fallback.alignmentScores;
+    }
+    const visible = ranking.slice(0, TREND_LIST_LIMIT);
+    if (scopeMeta) {
+        const label = trendScopeLabel(scopeType, scopeTarget);
+        scopeMeta.textContent = visible.length
+            ? `Showing ${label} Top ${visible.length} trends.`
+            : `No trends available for ${label}.`;
+    }
+    const list = visible.map((trend, index) => {
         const theme = themeFromGenre(trend);
         const mood = moodFromGenre(trend);
+        const isTop = index < TREND_DETAIL_COUNT;
+        const leader = isTop ? trendAlignmentLeader(trend, alignmentScores) : null;
+        const detail = isTop
+            ? `
+        <div class="trend-detail">
+          <div class="trend-detail-row">
+            <span class="trend-detail-pill">Alignment push</span>
+            ${leader
+                ? `${renderAlignmentTag(leader.alignment)} <span class="muted">${leader.share}% of trend points</span>`
+                : `<span class="muted">No clear alignment leader</span>`}
+          </div>
+        </div>
+      `
+            : "";
         return `
-      <div class="list-item">
+      <div class="list-item trend-item${isTop ? " trend-item--top" : ""}">
         <div class="list-row">
           <div>
             <div class="item-title">#${index + 1} ${formatGenreKeyLabel(trend)}</div>
@@ -5947,16 +6108,18 @@ function renderTrends() {
           </div>
           <div class="badge warn">Hot</div>
         </div>
+        ${detail}
       </div>
     `;
     });
-    listEl.innerHTML = list.join("");
+    listEl.innerHTML = list.length ? list.join("") : `<div class="muted">No trends yet.</div>`;
 }
 function renderCreateTrends() {
     const listEl = $("createTrendList");
     if (!listEl)
         return;
-    const list = (state.trends || []).slice(0, 3).map((trend, index) => {
+    const ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : (state.trends || []);
+    const list = ranking.slice(0, TREND_DETAIL_COUNT).map((trend, index) => {
         const theme = themeFromGenre(trend);
         const mood = moodFromGenre(trend);
         return `
@@ -6750,7 +6913,6 @@ function renderActiveView(view) {
     else if (active === "world") {
         renderMarket();
         renderPopulation();
-        renderRoleActions();
         renderTrends();
         renderGenreIndex();
         renderEconomySummary();
@@ -6780,4 +6942,4 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, normalizeCreator, postCreatorSigned, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderActiveCampaigns, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, assignToSlot, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };
+export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, normalizeCreator, postCreatorSigned, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderActiveCampaigns, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, assignToSlot, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };

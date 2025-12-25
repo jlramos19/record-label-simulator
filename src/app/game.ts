@@ -6042,7 +6042,7 @@ function renderCreateTrends() {
   const listEl = $("createTrendList");
   if (!listEl) return;
   const ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : (state.trends || []);
-  const list = ranking.slice(0, 3).map((trend, index) => {
+  const list = ranking.slice(0, TREND_DETAIL_COUNT).map((trend, index) => {
     const theme = themeFromGenre(trend);
     const mood = moodFromGenre(trend);
     return `
@@ -6823,7 +6823,6 @@ function renderActiveView(view) {
   } else if (active === "world") {
     renderMarket();
     renderPopulation();
-    renderRoleActions();
     renderTrends();
     renderGenreIndex();
     renderEconomySummary();
@@ -6914,6 +6913,7 @@ export {
   renderCalendarList,
   renderGenreIndex,
   renderStudiosList,
+  renderRoleActions,
   renderCharts,
   renderSocialFeed,
   renderMainMenu,

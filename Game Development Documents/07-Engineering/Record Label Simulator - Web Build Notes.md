@@ -20,3 +20,5 @@
 - Seeding split enforced (2025-2200 deterministic baseline, 2200-2400 seeded) with hidden dominant rival bias.
 - Population updates moved to yearly cadence.
 - Create Content uses stage buttons (Sheet/Demo/Master) and studio slot columns (5 slots per column; 3/2/1 columns for Songwriters/Performers/Producers).
+- Removed the unused footer row so the main view fills the full height.
+- Panel hide/show now properly removes panels from layout across views.
