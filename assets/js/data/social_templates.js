@@ -274,6 +274,24 @@ const SOCIAL_TEMPLATES = {
       };
     }
   },
+  eyeriSocialAd: {
+    id: "eyeriSocialAd",
+    title: "eyeriSocial Ad",
+    type: "promo",
+    render: (vars) => {
+      const promo = promoDefaults(vars);
+      return {
+        title: `eyeriSocial Ad: ${promo.trackTitle}`,
+        lines: [
+          `${promo.actName} launches a multimedia ad for "${promo.trackTitle}".`,
+          `Requirement: ${vars.requirement || "Multimedia post + placement"}`,
+          `Cost: ${promoCost(vars.cost, 1800)}`,
+          `Placement window: ${promo.releaseDate}`
+        ],
+        type: "promo"
+      };
+    }
+  },
   interview: {
     id: "interview",
     title: "Interview",

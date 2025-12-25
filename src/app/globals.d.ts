@@ -6,6 +6,8 @@ declare const ACT_TYPES: string[];
 declare const HOUR_MS: number;
 declare const WEEK_HOURS: number;
 declare const BASE_EPOCH: number;
+declare const BROADCAST_SLOT_SCHEDULE: number[];
+declare const FILMING_STUDIO_SLOTS: number;
 declare const STAGES: { name: string; role: string; hours: number; cost: number; stamina: number; progress: number }[];
 declare const TRACK_ROLE_LIMITS: Record<string, number>;
 declare const STAMINA_MAX: number;

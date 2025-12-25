@@ -26,3 +26,6 @@ Thu 23:00  Fri 00:00           Fri 12:00           Sat 00:00
 ## Notes
 - Times are evaluated against in-game UTC time.
 - Charts update is explicitly not Friday 00:00.
+
+## Related
+- `docs/systems/trends/trends-cadence.md`

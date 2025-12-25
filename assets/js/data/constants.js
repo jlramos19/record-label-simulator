@@ -2,6 +2,8 @@
 const HOUR_MS = 3600000;
 const WEEK_HOURS = 168;
 const BASE_EPOCH = Date.UTC(2400, 0, 1, 0, 0, 0);
+const BROADCAST_SLOT_SCHEDULE = [6, 2, 2, 2, 2, 3, 3];
+const FILMING_STUDIO_SLOTS = 2;
 
 const THEMES = ["Freedom", "Loyalty", "Ambition", "Morality", "Power"];
 const MOODS = ["Cheering", "Saddening", "Thrilling", "Angering", "Calming", "Energizing", "Uplifting", "Boring", "Daring"];

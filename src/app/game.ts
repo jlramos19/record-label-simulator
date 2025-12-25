@@ -20,6 +20,7 @@ const HOURLY_TICK_WARNING_THRESHOLD = 12;
 const WEEKLY_UPDATE_WARN_MS = 50;
 const HOURLY_TICK_WARN_MS = 25;
 const TICK_FRAME_WARN_MS = 33;
+const STATE_VERSION = 4;
 
 const STARTING_CASH = 50000;
 const STARTING_STUDIO_SLOTS = 2;
@@ -404,6 +405,7 @@ function makeDefaultState() {
     trends: [],
     trendRanking: [],
     trendAlignmentScores: {},
+    trendLedger: { weeks: [] },
     genreRanking: [],
     charts: { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} },
     rivals: [],
@@ -496,10 +498,14 @@ function makeDefaultState() {
     lastWeekIndex: 0,
     population: { snapshot: null, lastUpdateYear: 0, lastUpdateAt: null, campaignSplit: null, campaignSplitStage: null },
     social: { posts: [] },
+    promoFacilities: {
+      broadcast: { bookings: [] },
+      filming: { bookings: [] }
+    },
     rivalReleaseQueue: [],
     meta: {
       savedAt: null,
-      version: 3,
+      version: STATE_VERSION,
       annualWinners: [],
       questIdCounter: 0,
       chartHistoryLastWeek: null,
@@ -1638,6 +1644,87 @@ function hoursUntilNextScheduledTime(schedule) {
   let total = dayDelta * 24 + hourDelta;
   if (total <= 0) total += WEEK_HOURS;
   return total;
+}
+
+function getUtcDayIndex(epochMs) {
+  return getUtcDayHour(epochMs).day;
+}
+
+function startOfDayEpochMs(epochMs) {
+  return Math.floor(epochMs / DAY_MS) * DAY_MS;
+}
+
+function endOfDayEpochMs(epochMs) {
+  return startOfDayEpochMs(epochMs) + DAY_MS;
+}
+
+function ensurePromoFacilities() {
+  if (!state.promoFacilities || typeof state.promoFacilities !== "object") {
+    state.promoFacilities = { broadcast: { bookings: [] }, filming: { bookings: [] } };
+  }
+  if (!Array.isArray(state.promoFacilities.broadcast?.bookings)) {
+    state.promoFacilities.broadcast = { bookings: [] };
+  }
+  if (!Array.isArray(state.promoFacilities.filming?.bookings)) {
+    state.promoFacilities.filming = { bookings: [] };
+  }
+  return state.promoFacilities;
+}
+
+function getPromoFacilityForType(typeId) {
+  if (typeId === "livePerformance" || typeId === "interview") return "broadcast";
+  if (typeId === "musicVideo" || typeId === "eyeriSocialAd") return "filming";
+  return null;
+}
+
+function promoFacilityLabel(facilityId) {
+  if (facilityId === "broadcast") return "Broadcast Studio";
+  if (facilityId === "filming") return "Filming Studio";
+  return "Facility";
+}
+
+function getPromoFacilityAvailability(facilityId, epochMs = state.time.epochMs) {
+  const facilities = ensurePromoFacilities();
+  const dayIndex = getUtcDayIndex(epochMs);
+  const bookings = facilities[facilityId]?.bookings || [];
+  const active = bookings.filter((booking) => booking.endsAt > epochMs && booking.startsAt <= epochMs);
+  const capacity = facilityId === "broadcast"
+    ? (BROADCAST_SLOT_SCHEDULE[dayIndex] || 0)
+    : FILMING_STUDIO_SLOTS;
+  const inUse = active.length;
+  return { capacity, inUse, available: Math.max(0, capacity - inUse), dayIndex };
+}
+
+function reservePromoFacilitySlot(facilityId, promoType, trackId) {
+  if (!facilityId) return { ok: true, booking: null };
+  const now = state.time.epochMs;
+  const availability = getPromoFacilityAvailability(facilityId, now);
+  if (availability.available <= 0) {
+    return {
+      ok: false,
+      reason: `No ${promoFacilityLabel(facilityId)} slots available today.`
+    };
+  }
+  const facilities = ensurePromoFacilities();
+  const booking = {
+    id: uid(facilityId === "broadcast" ? "PB" : "PF"),
+    facility: facilityId,
+    promoType,
+    trackId,
+    startsAt: now,
+    endsAt: endOfDayEpochMs(now)
+  };
+  facilities[facilityId].bookings.push(booking);
+  return { ok: true, booking, availability };
+}
+
+function expirePromoFacilityBookings() {
+  const now = state.time.epochMs;
+  const facilities = ensurePromoFacilities();
+  ["broadcast", "filming"].forEach((key) => {
+    const entries = facilities[key]?.bookings || [];
+    facilities[key].bookings = entries.filter((booking) => booking.endsAt > now);
+  });
 }
 
 function logEvent(text, kind = "info") {
@@ -3934,6 +4021,90 @@ function buildTrendSnapshot(entries) {
   return { ranking, totals, alignmentScores };
 }
 
+function buildTrendLedgerSnapshot(entries, week) {
+  const snapshot = buildTrendSnapshot(entries);
+  const chartGenres = [];
+  const seen = new Set();
+  (entries || []).forEach((entry) => {
+    const genre = entry?.track?.genre;
+    if (!genre || seen.has(genre)) return;
+    seen.add(genre);
+    chartGenres.push(genre);
+  });
+  return {
+    week,
+    updatedAt: state.time.epochMs,
+    totals: snapshot.totals,
+    alignmentScores: snapshot.alignmentScores,
+    chartGenres
+  };
+}
+
+function recordTrendLedgerSnapshot(entries) {
+  if (!state.trendLedger || typeof state.trendLedger !== "object") {
+    state.trendLedger = { weeks: [] };
+  }
+  const week = weekIndex() + 1;
+  const nextSnapshot = buildTrendLedgerSnapshot(entries, week);
+  const weeks = Array.isArray(state.trendLedger.weeks) ? state.trendLedger.weeks : [];
+  const deduped = weeks.filter((snapshot) => snapshot && snapshot.week !== week);
+  deduped.push(nextSnapshot);
+  deduped.sort((a, b) => a.week - b.week);
+  state.trendLedger.weeks = deduped.slice(-TREND_WINDOW_WEEKS);
+}
+
+function aggregateTrendLedger(weeks) {
+  const totals = {};
+  const alignmentScores = {};
+  const chartGenres = new Set();
+  (weeks || []).forEach((snapshot) => {
+    if (!snapshot) return;
+    Object.entries(snapshot.totals || {}).forEach(([genre, score]) => {
+      totals[genre] = (totals[genre] || 0) + (Number.isFinite(score) ? score : 0);
+    });
+    Object.entries(snapshot.alignmentScores || {}).forEach(([genre, scores]) => {
+      if (!alignmentScores[genre]) {
+        alignmentScores[genre] = {};
+        ALIGNMENTS.forEach((key) => {
+          alignmentScores[genre][key] = 0;
+        });
+      }
+      ALIGNMENTS.forEach((alignment) => {
+        alignmentScores[genre][alignment] += Number(scores?.[alignment] || 0);
+      });
+    });
+    (snapshot.chartGenres || []).forEach((genre) => {
+      if (genre) chartGenres.add(genre);
+    });
+  });
+  return { totals, alignmentScores, chartGenres: Array.from(chartGenres) };
+}
+
+function getTrendLedgerWindow() {
+  const weeks = state.trendLedger?.weeks;
+  if (!Array.isArray(weeks)) return [];
+  return weeks.slice(-TREND_WINDOW_WEEKS);
+}
+
+function refreshTrendsFromLedger() {
+  const windowWeeks = getTrendLedgerWindow();
+  if (!windowWeeks.length) {
+    if (!Array.isArray(state.trendRanking) || !state.trendRanking.length) {
+      state.trendRanking = Array.isArray(state.trends) ? state.trends.slice() : [];
+    }
+    return;
+  }
+  const aggregate = aggregateTrendLedger(windowWeeks);
+  const ranking = Object.entries(aggregate.totals)
+    .sort((a, b) => b[1] - a[1])
+    .map((entry) => entry[0]);
+  if (!ranking.length) return;
+  state.trendRanking = ranking;
+  state.trends = ranking.slice(0, TREND_DETAIL_COUNT);
+  state.trendAlignmentScores = aggregate.alignmentScores;
+  state.genreRanking = buildGenreRanking(aggregate.totals);
+}
+
 function defaultTrendNation() {
   const labelCountry = state.label?.country;
   if (labelCountry && NATIONS.includes(labelCountry)) return labelCountry;
@@ -3988,15 +4159,6 @@ function trendAlignmentLeader(genre, alignmentScores) {
   return { alignment: topAlignment, share: Math.round((topScore / total) * 100) };
 }
 
-function updateTrends(globalScores) {
-  const snapshot = buildTrendSnapshot(globalScores);
-  if (snapshot.ranking.length) {
-    state.trends = snapshot.ranking.slice(0, TREND_DETAIL_COUNT);
-    state.trendRanking = snapshot.ranking;
-    state.trendAlignmentScores = snapshot.alignmentScores;
-    state.genreRanking = buildGenreRanking(snapshot.totals);
-  }
-}
 
 function updateEconomy(globalScores) {
   const playerScores = globalScores.filter((entry) => entry.track.isPlayer);
@@ -4513,7 +4675,7 @@ function weeklyUpdate() {
   updateCumulativeLabelPoints(labelScores);
   updateRivalMomentum(labelScores);
   applyRivalStudioLeaseCosts();
-  updateTrends(globalScores);
+  recordTrendLedgerSnapshot(globalScores);
   updateEconomy(globalScores);
   awardExp(Math.min(300, Math.round(state.economy.lastRevenue / 500)), null, true);
   updateLabelReach();
@@ -4806,6 +4968,7 @@ function seedNewGame(options = {}) {
   state.trends = seedTrends();
   state.trendRanking = state.trends.slice();
   state.trendAlignmentScores = {};
+  state.trendLedger = { weeks: [] };
   recruitRivalCreators();
   state.quests = buildQuests();
   state.quests.forEach((quest) => postQuestEmail(quest));
@@ -5074,8 +5237,14 @@ function normalizeState() {
   if (!state.trendAlignmentScores || typeof state.trendAlignmentScores !== "object") {
     state.trendAlignmentScores = {};
   }
+  if (!state.trendLedger || typeof state.trendLedger !== "object") {
+    state.trendLedger = { weeks: [] };
+  }
+  if (!Array.isArray(state.trendLedger.weeks)) state.trendLedger.weeks = [];
+  state.trendLedger.weeks = state.trendLedger.weeks.filter(Boolean).slice(-TREND_WINDOW_WEEKS);
   if (!state.acts.length && state.creators.length) seedActs();
-  if (!state.meta) state.meta = { savedAt: null, version: 3, questIdCounter: 0 };
+  if (!state.meta) state.meta = { savedAt: null, version: STATE_VERSION, questIdCounter: 0 };
+  state.meta.version = STATE_VERSION;
   state.meta.difficulty = normalizeDifficultyId(state.meta.difficulty);
   if (typeof state.meta.questIdCounter !== "number") state.meta.questIdCounter = 0;
   if (!Array.isArray(state.meta.marketTrackArchive)) state.meta.marketTrackArchive = [];
@@ -5113,6 +5282,17 @@ function normalizeState() {
   if (!Array.isArray(state.era.history)) state.era.history = [];
   if (!state.social) state.social = { posts: [] };
   if (!Array.isArray(state.social.posts)) state.social.posts = [];
+  if (!state.promoFacilities || typeof state.promoFacilities !== "object") {
+    state.promoFacilities = { broadcast: { bookings: [] }, filming: { bookings: [] } };
+  }
+  if (!Array.isArray(state.promoFacilities.broadcast?.bookings)) {
+    state.promoFacilities.broadcast = { bookings: [] };
+  }
+  if (!Array.isArray(state.promoFacilities.filming?.bookings)) {
+    state.promoFacilities.filming = { bookings: [] };
+  }
+  state.promoFacilities.broadcast.bookings = state.promoFacilities.broadcast.bookings.filter(Boolean);
+  state.promoFacilities.filming.bookings = state.promoFacilities.filming.bookings.filter(Boolean);
   if (!Array.isArray(state.rivalReleaseQueue)) state.rivalReleaseQueue = [];
   if (!state.population) state.population = { snapshot: null, lastUpdateYear: 0, lastUpdateAt: null, campaignSplit: null, campaignSplitStage: null };
   if (typeof state.population.lastUpdateYear !== "number") {
@@ -5336,8 +5516,13 @@ function rankCandidates(role) {
 
 const RECOMMEND_VERSION = 1;
 
+function getTopTrendGenre() {
+  if (Array.isArray(state.trendRanking) && state.trendRanking.length) return state.trendRanking[0];
+  return Array.isArray(state.trends) ? (state.trends[0] || "") : "";
+}
+
 function topTrendRecommendation() {
-  const top = state.trends[0];
+  const top = getTopTrendGenre();
   if (top) {
     return { theme: themeFromGenre(top), mood: moodFromGenre(top), reason: "Top trend this week." };
   }
@@ -5777,20 +5962,28 @@ function renderTopBar() {
         </div>
       `).join("")
     : `<div class="muted">No labels yet</div>`;
+  const trendRanking = Array.isArray(state.trendRanking) && state.trendRanking.length
+    ? state.trendRanking
+    : (state.trends || []);
+  const trendsMarkup = trendRanking.length
+    ? trendRanking.slice(0, TREND_DETAIL_COUNT).map((trend, index) => `
+        <div class="top-mini-item">
+          <span>${index + 1}. ${formatGenreKeyLabel(trend)}</span>
+        </div>
+      `).join("")
+    : `<div class="muted">No trends yet</div>`;
   const headerList = $("topLabelsHeaderList");
   if (headerList) headerList.innerHTML = labelsMarkup;
   const worldList = $("topLabelsWorldList");
   if (worldList) worldList.innerHTML = labelsMarkup;
+  const trendsList = $("topTrendsHeaderList");
+  if (trendsList) trendsList.innerHTML = trendsMarkup;
   if ($("topActName")) {
     const topAct = getTopActSnapshot();
     $("topActName").textContent = topAct ? `Top Act: ${topAct.name}` : "Top Act: -";
     $("topActPortrait").textContent = topAct ? topAct.initials : "RLS";
     $("topActPortrait").style.background = topAct ? topAct.color : "";
     $("topActPortrait").style.color = topAct ? topAct.textColor : "";
-  }
-  if ($("topTrendDisplay")) {
-    const topTrend = state.trends?.[0];
-    $("topTrendDisplay").textContent = topTrend ? `Trend: ${topTrend}` : "Trend: -";
   }
 }
 
@@ -5809,7 +6002,7 @@ function renderDashboard() {
   const studioCounts = getStudioUsageCounts();
   const ownedSlots = getOwnedStudioSlots();
   const totalSlots = ownedSlots + studioCounts.leased;
-  const topTrend = state.trends?.[0] || "-";
+  const topTrend = getTopTrendGenre() || "-";
   const topAct = getTopActSnapshot();
 
   const stats = [
@@ -7005,59 +7198,38 @@ function renderReleaseDesk() {
 function renderTrends() {
   const listEl = $("trendList");
   if (!listEl) return;
-  normalizeTrendScope();
-  const scopeType = state.ui.trendScopeType || "global";
-  const scopeTarget = state.ui.trendScopeTarget || "";
   const scopeSelect = $("trendScopeSelect");
   const targetSelect = $("trendScopeTarget");
   const targetLabel = $("trendScopeTargetLabel");
   const scopeMeta = $("trendScopeMeta");
-  if (scopeSelect) scopeSelect.value = scopeType;
-
-  let ranking = [];
-  let alignmentScores = {};
-  if (scopeType === "nation") {
-    if (targetLabel) targetLabel.textContent = "Nation";
-    if (targetSelect) {
-      targetSelect.disabled = false;
-      targetSelect.innerHTML = NATIONS.map((nation) => `<option value="${nation}">${nation}</option>`).join("");
-      targetSelect.value = scopeTarget;
-    }
-    const entries = state.charts.nations[scopeTarget] || [];
-    const snapshot = buildTrendSnapshot(entries);
-    ranking = snapshot.ranking;
-    alignmentScores = snapshot.alignmentScores;
-  } else if (scopeType === "region") {
-    if (targetLabel) targetLabel.textContent = "Region";
-    if (targetSelect) {
-      targetSelect.disabled = false;
-      targetSelect.innerHTML = REGION_DEFS.map((region) => `<option value="${region.id}">${region.label}</option>`).join("");
-      targetSelect.value = scopeTarget;
-    }
-    const entries = state.charts.regions[scopeTarget] || [];
-    const snapshot = buildTrendSnapshot(entries);
-    ranking = snapshot.ranking;
-    alignmentScores = snapshot.alignmentScores;
-  } else {
-    if (targetLabel) targetLabel.textContent = "Nation/Region";
-    if (targetSelect) {
-      targetSelect.disabled = true;
-      targetSelect.innerHTML = `<option value="global">Global</option>`;
-    }
-    const fallback = buildTrendSnapshot(state.charts.global || []);
-    ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : fallback.ranking;
-    const hasAlignment = state.trendAlignmentScores && Object.keys(state.trendAlignmentScores).length;
-    alignmentScores = hasAlignment ? state.trendAlignmentScores : fallback.alignmentScores;
+  if (scopeSelect) {
+    scopeSelect.value = "global";
+    scopeSelect.disabled = true;
+  }
+  if (targetLabel) targetLabel.textContent = "Global";
+  if (targetSelect) {
+    targetSelect.disabled = true;
+    targetSelect.innerHTML = `<option value="global">Global</option>`;
   }
 
-  const visible = ranking.slice(0, TREND_LIST_LIMIT);
+  const aggregate = aggregateTrendLedger(getTrendLedgerWindow());
+  let ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : [];
+  if (!ranking.length) {
+    ranking = Object.entries(aggregate.totals || {})
+      .sort((a, b) => b[1] - a[1])
+      .map((entry) => entry[0]);
+  }
+  const chartPresence = new Set(aggregate.chartGenres || []);
+  const visible = ranking
+    .filter((trend) => (aggregate.totals?.[trend] || 0) > 0 && chartPresence.has(trend))
+    .slice(0, TREND_LIST_LIMIT);
   if (scopeMeta) {
-    const label = trendScopeLabel(scopeType, scopeTarget);
     scopeMeta.textContent = visible.length
-      ? `Showing ${label} Top ${visible.length} trends.`
-      : `No trends available for ${label}.`;
+      ? `Showing Global Top ${visible.length} trends.`
+      : "No trends available yet.";
   }
 
+  const alignmentScores = aggregate.alignmentScores || {};
   const list = visible.map((trend, index) => {
     const theme = themeFromGenre(trend);
     const mood = moodFromGenre(trend);
@@ -7991,6 +8163,9 @@ export {
   normalizeCreator,
   postCreatorSigned,
   markCreatorPromo,
+  getPromoFacilityForType,
+  getPromoFacilityAvailability,
+  reservePromoFacilitySlot,
   ensureMarketCreators,
   listGameModes,
   DEFAULT_GAME_MODE,

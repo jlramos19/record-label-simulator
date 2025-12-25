@@ -377,11 +377,15 @@
       </div>
     </div>
     <div class="hud-mid">
-      <div class="world-summary">
-        <div class="stat-label">Top Trend</div>
-        <div id="topTrendDisplay" class="hud-trend">Trend: -</div>
-        <div class="stat-label">Top Labels</div>
-        <div id="topLabelsHeaderList" class="top-mini-list"></div>
+      <div class="world-summary world-summary--split">
+        <div class="world-summary-col">
+          <div class="stat-label">Top Labels</div>
+          <div id="topLabelsHeaderList" class="top-mini-list"></div>
+        </div>
+        <div class="world-summary-col">
+          <div class="stat-label">Top Trends</div>
+          <div id="topTrendsHeaderList" class="top-mini-list"></div>
+        </div>
       </div>
     </div>
     <div class="hud-right">
@@ -678,13 +682,6 @@
       </div>
     </section>
     <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="create-trends">
-        <h2>Top Trends</h2>
-        <div class="card-body">
-          <div id="createTrendList" class="list"></div>
-          <div class="tiny">Full rankings live in the CCC.</div>
-        </div>
-      </div>
       <div class="panel card panel--scroll" data-panel="tracks">
         <h2>Tracks</h2>
         <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">
@@ -1036,6 +1033,7 @@
               <option value="musicVideo">Music Video</option>
               <option value="livePerformance">Live Performance</option>
               <option value="eyeriSocialPost">eyeriSocial Post</option>
+              <option value="eyeriSocialAd">eyeriSocial Ad</option>
               <option value="interview">Interview</option>
             </select>
             <div id="promoTypeGrid" class="promo-type-grid slot-grid slot-grid--multi" role="radiogroup" aria-labelledby="promoTypeLabel">
@@ -1065,6 +1063,15 @@
                 <div class="slot-value" data-promo-label>eyeriSocial Post</div>
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Cover art + caption</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $600</div>
+              </button>
+              <button type="button" class="promo-type-card" data-promo-type="eyeriSocialAd" role="radio" aria-checked="false">
+                <div class="promo-type-row">
+                  <div class="slot-label">Promo Type</div>
+                  <div class="promo-type-status" data-promo-status>Select</div>
+                </div>
+                <div class="slot-value" data-promo-label>eyeriSocial Ad</div>
+                <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Multimedia post + placement</div>
+                <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $1,800</div>
               </button>
               <button type="button" class="promo-type-card" data-promo-type="interview" role="radio" aria-checked="false">
                 <div class="promo-type-row">

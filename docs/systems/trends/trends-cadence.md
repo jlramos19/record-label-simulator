@@ -24,3 +24,7 @@ Ledger snapshot fields:
 
 ## Notes
 - If there is not enough ledger data, the UI falls back to seeded trends until the first ledger window is available.
+
+## Related
+- `docs/systems/time/weekly-timing.md`
+- `docs/ui/community-trends.md`

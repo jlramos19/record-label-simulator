@@ -199,9 +199,15 @@ body::before {
 }
 .world-summary {
   display: grid;
-  gap: 6px;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   justify-items: end;
   text-align: right;
+}
+.world-summary-col {
+  display: grid;
+  gap: 6px;
 }
 .hud-mid .world-summary {
   justify-items: start;
@@ -1445,6 +1451,7 @@ select, input[type="text"], input[type="number"] {
     text-align: left;
   }
   .world-summary {
+    grid-template-columns: 1fr;
     justify-items: start;
     text-align: left;
   }
@@ -1464,6 +1471,7 @@ select, input[type="text"], input[type="number"] {
 
 /* Prevent the top-right pair of panels from pushing the top-bar down */
 #topLabelsHeaderList,
+#topTrendsHeaderList,
 #topLabelsWorldList {
   max-height: 160px;
   overflow: auto;
