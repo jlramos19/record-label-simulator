@@ -30,6 +30,11 @@ const STAMINA_OVERUSE_STRIKES = 1;
 const SEED_CALIBRATION_YEAR = 2400;
 const TREND_LIST_LIMIT = 40;
 const TREND_DETAIL_COUNT = 3;
+const WEEKLY_SCHEDULE = {
+  releaseProcessing: { day: 5, hour: 0 },
+  trendsUpdate: { day: 5, hour: 12 },
+  chartUpdate: { day: 6, hour: 0 }
+};
 const UNASSIGNED_SLOT_LABEL = "?";
 const UNASSIGNED_CREATOR_LABEL = "Unassigned";
 const CREATOR_FALLBACK_ICON = "person";
@@ -1615,8 +1620,23 @@ function weekIndex() {
   return Math.floor(state.time.totalHours / WEEK_HOURS);
 }
 
-function hoursUntilNextWeek() {
-  return WEEK_HOURS - (state.time.totalHours % WEEK_HOURS);
+function getUtcDayHour(epochMs) {
+  const date = new Date(epochMs);
+  return { day: date.getUTCDay(), hour: date.getUTCHours() };
+}
+
+function isScheduledTime(epochMs, schedule) {
+  const current = getUtcDayHour(epochMs);
+  return current.day === schedule.day && current.hour === schedule.hour;
+}
+
+function hoursUntilNextScheduledTime(schedule) {
+  const current = getUtcDayHour(state.time.epochMs);
+  const dayDelta = (schedule.day - current.day + 7) % 7;
+  const hourDelta = schedule.hour - current.hour;
+  let total = dayDelta * 24 + hourDelta;
+  if (total <= 0) total += WEEK_HOURS;
+  return total;
 }
 
 function logEvent(text, kind = "info") {
@@ -4568,6 +4588,22 @@ async function runYearTicksIfNeeded(year) {
   state.time.lastYear = current;
 }
 
+async function runScheduledWeeklyEvents(now) {
+  if (isScheduledTime(now, WEEKLY_SCHEDULE.releaseProcessing)) {
+    logEvent("Release day processing window open.");
+    processReleaseQueue();
+    processRivalReleaseQueue();
+  }
+  if (isScheduledTime(now, WEEKLY_SCHEDULE.trendsUpdate)) {
+    refreshTrendsFromLedger();
+    logEvent("Trends refreshed for the week.");
+  }
+  if (isScheduledTime(now, WEEKLY_SCHEDULE.chartUpdate)) {
+    state.lastWeekIndex = weekIndex();
+    await weeklyUpdate();
+  }
+}
+
 async function runHourlyTick() {
   const prevDayIndex = Math.floor(state.time.epochMs / DAY_MS);
   state.time.totalHours += 1;
@@ -4580,11 +4616,8 @@ async function runHourlyTick() {
   processReleaseQueue();
   processRivalReleaseQueue();
   rechargeStamina(1);
-  const currentWeek = weekIndex();
-  if (currentWeek > state.lastWeekIndex) {
-    state.lastWeekIndex = currentWeek;
-    await weeklyUpdate();
-  }
+  expirePromoFacilityBookings();
+  await runScheduledWeeklyEvents(state.time.epochMs);
   runYearTicksIfNeeded(currentYear());
 }
 
@@ -5581,7 +5614,7 @@ function renderAutoAssignModal() {
 function renderTime() {
   $("timeDisplay").textContent = formatDate(state.time.epochMs);
   $("weekDisplay").textContent = `Week ${weekIndex() + 1}`;
-  $("chartCountdown").textContent = `Charts update in ${hoursUntilNextWeek()}h`;
+  $("chartCountdown").textContent = `Charts update in ${hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate)}h`;
   const mode = getGameMode(state.meta?.gameMode);
   const modeLabel = shortGameModeLabel(mode.label);
   const modeEl = $("gameModeDisplay");

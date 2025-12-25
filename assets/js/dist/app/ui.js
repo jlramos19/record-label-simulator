@@ -3188,18 +3188,21 @@ function signCreatorById(id) {
         return;
     const creator = state.marketCreators[index];
     const dayIndex = Math.floor(state.time.epochMs / (HOUR_MS * 24));
+    const failSign = (message) => {
+        creator.signFailedDay = dayIndex;
+        logEvent(message, "warn");
+        renderAll();
+        const card = document.querySelector(`[data-ccc-creator="${creator.id}"]`);
+        if (card)
+            shakeElement(card);
+    };
     if (creator.signFailedDay === dayIndex) {
         logEvent("Contract review pending. Check back after the daily refresh.", "warn");
         return;
     }
     const cost = creator.signCost || 0;
     if (state.label.cash < cost) {
-        creator.signFailedDay = dayIndex;
-        logEvent("Not enough cash to sign this creator.", "warn");
-        renderAll();
-        const card = document.querySelector(`[data-ccc-creator="${creator.id}"]`);
-        if (card)
-            shakeElement(card);
+        failSign("Not enough cash to sign this creator.");
         return;
     }
     state.marketCreators.splice(index, 1);
@@ -3209,7 +3212,7 @@ function signCreatorById(id) {
     ensureMarketCreators();
     logUiEvent("action_submit", { action: "sign_creator", creatorId: creator.id, role: creator.role });
     logEvent(`Signed ${creator.name} (${roleLabel(creator.role)}).`);
-    postCreatorSigned(creator);
+    postCreatorSigned(creator, cost);
     renderCreators();
     renderSlots();
     renderAll();
