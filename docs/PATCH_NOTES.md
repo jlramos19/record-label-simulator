@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1316Z)
+- Restored market track active/archive limits so chart pagination no longer throws a ReferenceError.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1258Z)
 - Guarded quest rendering when `questList` is missing to prevent route crashes.
 

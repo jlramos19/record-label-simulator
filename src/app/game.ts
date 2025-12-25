@@ -37,6 +37,8 @@ const COMMUNITY_RANKING_LIMITS = [8, 40];
 const COMMUNITY_RANKING_DEFAULT = 40;
 const TREND_DETAIL_COUNT = 3;
 const TREND_WINDOW_WEEKS = 4;
+const MARKET_TRACK_ACTIVE_LIMIT = 600;
+const MARKET_TRACK_ARCHIVE_LIMIT = 2400;
 const WEEKLY_SCHEDULE = {
   releaseProcessing: { day: 5, hour: 0 },
   trendsUpdate: { day: 5, hour: 12 },
