@@ -15,12 +15,12 @@ This file tracks known mismatches between the current web MVP implementation and
 ### 2025-12-25-ccc-signing-01 - CCC signing transaction + lockout
 - ID: 2025-12-25-ccc-signing-01
 - Description: CCC signing UX/logic mismatch: wallet deduction must occur only on success; failures should lock the creator until the next CCC refresh at 12AM. Legacy docs mention reconsider timers; MVP uses instant resolution with a midnight lockout instead.
-- Status: TODO
+- Status: PATCH
 - Decision ID: None
-- TODO notes: Define MVP acceptance rule and align CCC UI lockout behavior with midnight refresh.
-- Docs commit/PR: TBD
-- Code commit/PR: TBD
-- Patch note entry: TBD
+- TODO notes: None.
+- Docs commit/PR: Local changes.
+- Code commit/PR: Local changes.
+- Patch note entry: 2025-12-25.
 
 ### 2025-12-25-ui-structure-01 - Top bar trends summary
 - ID: 2025-12-25-ui-structure-01
