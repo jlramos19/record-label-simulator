@@ -343,7 +343,7 @@
         <h2>Release Desk</h2>
         <div class="card-body">
           <div class="callout">
-            Assign an Act, then release ready tracks to enter charts. Schedule physical (or both) releases two weeks out.
+            Assign an Act, then release ready tracks to enter charts. Digital is fast and low-overhead (baseline $0.69 single). Physical (or Both) takes two weeks for manufacturing/distribution but sells at higher prices (baseline $4.99 single).
           </div>
           <div class="field">
             <label for="releaseDistribution">Distribution</label>
@@ -491,7 +491,7 @@
         <h2>Release Desk</h2>
         <div class="card-body">
           <div class="callout">
-            Assign an Act, then release ready tracks to enter charts. Schedule physical (or both) releases two weeks out.
+            Assign an Act, then release ready tracks to enter charts. Digital is fast and low-overhead (baseline $0.69 single). Physical (or Both) takes two weeks for manufacturing/distribution but sells at higher prices (baseline $4.99 single).
           </div>
           <div class="field">
             <label for="releaseDistribution">Distribution</label>
@@ -752,20 +752,24 @@
         </div>
       </div>
       <div class="panel card panel--scroll" data-panel="trends">
-        <h2>Trend Watch &amp; Genre Rankings</h2>
+        <h2>Top Trends</h2>
         <div class="card-body">
-          <div class="subhead">Trend Watch</div>
+          <div class="trend-filters">
+            <div class="field">
+              <label for="trendScopeSelect">Scope</label>
+              <select id="trendScopeSelect">
+                <option value="global">Global</option>
+                <option value="nation">Nation</option>
+                <option value="region">Region</option>
+              </select>
+            </div>
+            <div class="field">
+              <label id="trendScopeTargetLabel" for="trendScopeTarget">Nation/Region</label>
+              <select id="trendScopeTarget"></select>
+            </div>
+          </div>
+          <div id="trendScopeMeta" class="tiny muted"></div>
           <div id="trendList" class="list"></div>
-          <div class="subhead">Content Genre Rankings</div>
-          <div class="field">
-            <label for="genreThemeFilter">Theme</label>
-            <select id="genreThemeFilter"></select>
-          </div>
-          <div class="field">
-            <label for="genreMoodFilter">Mood</label>
-            <select id="genreMoodFilter"></select>
-          </div>
-          <div id="genreList" class="list scroll-list"></div>
         </div>
       </div>
     </aside>

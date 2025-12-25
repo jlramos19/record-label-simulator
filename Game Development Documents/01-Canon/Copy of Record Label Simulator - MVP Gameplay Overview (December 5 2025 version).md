@@ -40,7 +40,11 @@
 
 `Tracks vs Projects: In the MVP, each track is the primary release unit. Tracks can be tagged with a Project name and type (Single/EP/Album) for grouping and recommendations, but multi-track project assembly and pricing are not yet simulated.`
 
-`Release Scheduling: Releases can be scheduled as Digital or Physical. The Release Desk supports immediate release or queueing +7d / +14d; recommendations prefer immediate digital drops for trend matches or a two-week lead for high-quality physical rollouts. When the scheduled hour arrives, the track is released to the market and begins charting.`
+`Release Scheduling: Releases can be scheduled as Digital, Physical, or Both. The Release Desk supports immediate release or queueing +7d / +14d; recommendations prefer immediate digital drops for trend matches or a two-week lead for high-quality physical rollouts (Both follows the physical lead). When the scheduled hour arrives, the track is released to the market and begins charting.`
+
+`Distribution Pricing & Tradeoffs: Digital releases are fastest and low-overhead (baseline single $0.69), ideal for trend chasing. Physical releases command higher unit prices (baseline single $4.99, with projects scaling via the 30-70 rule) but require manufacturing/distribution lead times and per-format fees (example: $500 per format, $2,500 for five formats). "Both" captures both channels but uses the physical timeline and costs.`
+
+`Rival Distribution Logic: AI labels follow the same release guidance as the player: trend matches favor immediate digital releases, high-quality projects take the 2-week physical lead, and mid-tier releases use the 1-week digital prep window.`
 
 `Promotion: Promo pushes are budgeted spends that add 1-4 promo weeks to a released track. Promotion types include Music Video, Live Performance, eyeriSocial Post, and Interview; each can post to eyeriSocial templates and boosts chart scores while promo weeks last. Tours are not implemented in the current MVP.`
 

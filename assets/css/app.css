@@ -581,6 +581,12 @@ body::before {
   overflow: auto;
 }
 .list { display: grid; gap: 8px; }
+.trend-filters {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin-bottom: 8px;
+}
 .list-item {
   display: grid;
   gap: 6px;
@@ -589,6 +595,27 @@ body::before {
   background: rgba(19, 25, 35, 0.8);
   border: 1px solid rgba(42, 52, 66, 0.8);
   transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.trend-item--top {
+  border-color: rgba(244, 177, 90, 0.5);
+  background: rgba(30, 24, 18, 0.85);
+}
+.trend-detail {
+  display: grid;
+  gap: 4px;
+}
+.trend-detail-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.trend-detail-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .list-item:active {
   transform: scale(0.99);

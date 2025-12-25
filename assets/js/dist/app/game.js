@@ -19,6 +19,8 @@ const STUDIO_COLUMN_SLOT_COUNT = 5;
 const STAMINA_OVERUSE_LIMIT = 200;
 const STAMINA_OVERUSE_STRIKES = 1;
 const SEED_CALIBRATION_YEAR = 2400;
+const TREND_LIST_LIMIT = 40;
+const TREND_DETAIL_COUNT = 3;
 const GAME_MODES = {
     founding: {
         id: "founding",
@@ -282,6 +284,8 @@ function makeDefaultState() {
         releaseQueue: [],
         marketTracks: [],
         trends: [],
+        trendRanking: [],
+        trendAlignmentScores: {},
         genreRanking: [],
         charts: { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} },
         rivals: [],
@@ -289,6 +293,8 @@ function makeDefaultState() {
         events: [],
         ui: {
             activeChart: "global",
+            trendScopeType: "global",
+            trendScopeTarget: "Annglora",
             genreTheme: "All",
             genreMood: "All",
             slotTarget: null,
@@ -3584,10 +3590,11 @@ function generateRivalReleases() {
             let quality = clampQuality(rand(55, 95) + Math.round(momentum * 8));
             if (mood === "Boring")
                 quality = clampQuality(quality - 12);
-            const releaseAt = state.time.epochMs + rand(12, WEEK_HOURS) * HOUR_MS;
+            const genre = makeGenre(theme, mood);
+            const releasePlan = planRivalRelease(genre, quality);
             state.rivalReleaseQueue.push({
                 id: uid("RR"),
-                releaseAt,
+                releaseAt: releasePlan.releaseAt,
                 title: makeTrackTitleByCountry(theme, mood, rival.country),
                 label: rival.name,
                 actName: makeRivalActName(),
@@ -3597,8 +3604,8 @@ function generateRivalReleases() {
                 alignment: rival.alignment,
                 country: rival.country,
                 quality,
-                genre: makeGenre(theme, mood),
-                distribution: "Digital"
+                genre,
+                distribution: releasePlan.distribution
             });
         }
     });
@@ -3938,6 +3945,8 @@ function seedNewGame(options = {}) {
     ensureMarketCreators();
     state.rivals = buildRivals();
     state.trends = seedTrends();
+    state.trendRanking = state.trends.slice();
+    state.trendAlignmentScores = {};
     state.quests = buildQuests();
     state.quests.forEach((quest) => postQuestEmail(quest));
     state.meta.seedInfo = null;
@@ -4757,6 +4766,14 @@ function recommendReleasePlan(track) {
         scheduleKey: "week",
         scheduleHours: WEEK_HOURS,
         reason: "Give one week for prep and momentum."
+    };
+}
+function planRivalRelease(genre, quality) {
+    const plan = recommendReleasePlan({ genre, quality });
+    const jitter = plan.scheduleKey === "now" ? rand(0, 12) : rand(0, 24);
+    return {
+        distribution: plan.distribution,
+        releaseAt: state.time.epochMs + (plan.scheduleHours + jitter) * HOUR_MS
     };
 }
 function renderAutoAssignModal() {
