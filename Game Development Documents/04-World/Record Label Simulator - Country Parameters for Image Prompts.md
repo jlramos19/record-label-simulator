@@ -10,7 +10,7 @@
 
 * `Ethnic Backgrounds: Asian & Middle Eastern · White & Native · Black & Brown`
 
-* `Lighting Colors: Red · Cyan · Green · Magenta · Gold`
+* `Lighting Colors: Red · Cyan · Green · Magenta · Gold · Blue`
 
 * `Gender: Male · Female · Nonbinary`
 
@@ -37,6 +37,16 @@
 * `Environments should indicate wealth level (e.g., luxury hall vs. humble stage).`
 
 * `Lighting can reflect age (glossy = youth, matte = older) and alignment (bright = positive, dark = negative).`
+
+* `Color semantics are layered: nation cues first, then theme accents, then alignment overlays.`
+
+* `Nation cues come from silhouette/props/lighting style (tech/neon vs bioluminescent flora vs gem reflection).`
+
+* `Bytenza nation color is blue when color is used; cyan is Freedom theme only.`
+
+* `Safe alignment uses white accents/motifs.`
+
+* `When reviewing portraits, propose a head-and-shoulders crop centered on the face that preserves nation/theme/alignment accents.`
 
 ---
 
@@ -78,7 +88,7 @@
 
 * `Cultural Identity: Cultural mosaic · Governance & authority focus`
 
-* `Dominant Color: Blue (visualized as cyan in imagery)`
+* `Dominant Color: Blue (use blue for nation accents)`
 
 * `Language: Korean`
 
@@ -94,7 +104,7 @@
 
 * `Relations: Friendly with Crowlya · Threatens Annglora`
 
-* `Artists: Reflect fauna/power themes (cyan lighting)`
+* `Artists: Reflect fauna/power themes (blue lighting, tech glow)`
 
 * `Demonym: Bytenese`
 
@@ -127,4 +137,3 @@
 * `Artists: Reflect regal/tech focus (gold lighting)`
 
 * `Demonym: Crowlish`
-

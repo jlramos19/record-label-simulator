@@ -26,6 +26,11 @@ const STAMINA_OVERUSE_STRIKES = 1;
 const SEED_CALIBRATION_YEAR = 2400;
 const TREND_LIST_LIMIT = 40;
 const TREND_DETAIL_COUNT = 3;
+const UNASSIGNED_SLOT_LABEL = "?";
+const UNASSIGNED_CREATOR_LABEL = "Unassigned";
+const CREATOR_FALLBACK_ICON = "person";
+const CREATOR_FALLBACK_EMOJI = "👤";
+const UNASSIGNED_CREATOR_EMOJI = "❓👤";
 const GAME_MODES = {
     founding: {
         id: "founding",
@@ -43,6 +48,36 @@ const GAME_MODES = {
     }
 };
 const DEFAULT_GAME_MODE = "founding";
+const GAME_DIFFICULTIES = {
+    easy: {
+        id: "easy",
+        label: "Easy",
+        description: "More runway with higher revenue and cheaper upkeep.",
+        startingCash: 80000,
+        revenueMult: 1.25,
+        upkeepMult: 0.85,
+        bailoutAmount: 15000000
+    },
+    medium: {
+        id: "medium",
+        label: "Medium",
+        description: "Balanced cashflow with a modest cushion.",
+        startingCash: 65000,
+        revenueMult: 1.12,
+        upkeepMult: 0.92,
+        bailoutAmount: 12000000
+    },
+    hard: {
+        id: "hard",
+        label: "Hard",
+        description: "Tighter cashflow with slimmer margins.",
+        startingCash: STARTING_CASH,
+        revenueMult: 1,
+        upkeepMult: 1,
+        bailoutAmount: 10000000
+    }
+};
+const DEFAULT_GAME_DIFFICULTY = "medium";
 const TRACK_ROLE_KEYS = {
     Songwriter: "songwriterIds",
     Performer: "performerIds",
@@ -82,24 +117,24 @@ const ROLE_ACTIONS = [
                 name: "Personnel",
                 note: "Priority order for new Members.",
                 actions: [
-                    { label: "Factory Personnel", verb: "manufacture", detail: "Produce content.", status: "placeholder", priority: 1 },
-                    { label: "Shopping Center Personnel", verb: "distribute", detail: "Sell content.", status: "placeholder", priority: 2 },
-                    { label: "Broadcast Corporation Personnel", verb: "present", detail: "Show content to audience.", status: "placeholder", priority: 3 }
+                    { label: "Factory Personnel", verb: "manufacture", detail: "Produce physical inventory and packaging.", status: "placeholder", priority: 1 },
+                    { label: "Shopping Center Personnel", verb: "distribute", detail: "Move inventory to stores and sell to consumers.", status: "placeholder", priority: 2 },
+                    { label: "Broadcast Corporation Personnel", verb: "present", detail: "Program broadcasts that surface new content.", status: "placeholder", priority: 3 }
                 ]
             },
             {
                 name: "Consumer",
                 actions: [
-                    { verb: "buy", detail: "Purchase content from Shopping Centers.", status: "simulated" },
-                    { verb: "stream", detail: "Tune into shows, stations, or playlists at home.", status: "simulated" },
-                    { verb: "attend", detail: "Participate in live performances or events at Venues.", status: "simulated" },
-                    { verb: "rate", detail: "Provide ratings for consumed content.", status: "simulated" }
+                    { verb: "buy", detail: "Purchase released content from Shopping Centers.", status: "simulated" },
+                    { verb: "stream", detail: "Listen at home; drives weekly chart demand.", status: "simulated" },
+                    { verb: "attend", detail: "Attend live events and performances at Venues.", status: "simulated" },
+                    { verb: "rate", detail: "Score content after consuming it.", status: "simulated" }
                 ]
             },
             {
                 name: "Critic",
                 actions: [
-                    { verb: "rate", detail: "Evaluate content quality based on Alignment and preferences.", status: "simulated" }
+                    { verb: "review", detail: "Rate content quality using Alignment and preferences.", status: "simulated" }
                 ]
             }
         ]
@@ -107,15 +142,15 @@ const ROLE_ACTIONS = [
     {
         role: "Creator",
         occupations: [
-            { name: "Songwriter", actions: [{ verb: "write", detail: "Create Sheet Music with selected Themes.", status: "live" }] },
-            { name: "Performer", actions: [{ verb: "perform", detail: "Create Demo Recordings that define Moods.", status: "live" }] },
-            { name: "Producer", actions: [{ verb: "produce", detail: "Create Masters by combining Theme + Mood into Genre and preliminary Quality.", status: "live" }] }
+            { name: "Songwriter", actions: [{ verb: "write", detail: "Draft sheet music from Themes in Create view.", status: "live" }] },
+            { name: "Performer", actions: [{ verb: "perform", detail: "Record demos that set the track Mood.", status: "live" }] },
+            { name: "Producer", actions: [{ verb: "produce", detail: "Master recordings to lock Genre and base Quality.", status: "live" }] }
         ]
     },
     {
         role: "Act",
         occupations: [
-            { name: "Promoter", actions: [{ verb: "promote", detail: "Boost visibility and engagement of released content.", status: "live" }] }
+            { name: "Promoter", actions: [{ verb: "promote", detail: "Run promo pushes for released tracks and eras.", status: "live" }] }
         ]
     },
     {
@@ -124,19 +159,21 @@ const ROLE_ACTIONS = [
             {
                 name: "Music Executive",
                 actions: [
-                    { verb: "negotiate", detail: "Contracts with Creators to sign them.", status: "simulated" },
-                    { verb: "sign", detail: "Creators to the Record Label.", status: "live" },
-                    { verb: "form", detail: "Acts from Creators within the Record Label.", status: "live" },
-                    { verb: "place", detail: "Creators in Structures' slots.", status: "live" },
+                    { verb: "negotiate", detail: "Contracts with Creators (auto-resolved on sign).", status: "simulated" },
+                    { verb: "sign", detail: "Creators to the Record Label via the CCC.", status: "live" },
+                    { verb: "form", detail: "Acts from signed Creators in Harmony Hub.", status: "live" },
+                    { verb: "place", detail: "Creators in track and act slots.", status: "live" },
+                    { verb: "release", detail: "Schedule ready tracks in Release Desk.", status: "live" },
                     { verb: "terminate", detail: "A contract with a Creator.", status: "placeholder" },
-                    { verb: "rent", detail: "Structures to create content.", status: "placeholder" },
-                    { verb: "conduct", detail: "Era with Acts.", status: "live" },
-                    { verb: "plan", detail: "Tour.", status: "placeholder" }
+                    { verb: "rent", detail: "Lease studios and structures for production.", status: "placeholder" },
+                    { verb: "conduct", detail: "Launch and manage Eras with Acts.", status: "live" },
+                    { verb: "plan", detail: "Tours and live circuits.", status: "placeholder" }
                 ]
             }
         ]
     }
 ];
+const DEFAULT_TRACK_SLOT_VISIBLE = 3;
 function trackRoleLimit(role) {
     const limit = TRACK_ROLE_LIMITS?.[role];
     return Number.isFinite(limit) ? limit : 1;
@@ -157,6 +194,13 @@ function logDuration(label, startTime, thresholdMs, context = "") {
 }
 function buildEmptyTrackSlotList(role) {
     return Array.from({ length: trackRoleLimit(role) }, () => null);
+}
+function buildDefaultTrackSlotVisibility() {
+    return {
+        Songwriter: Math.min(DEFAULT_TRACK_SLOT_VISIBLE, trackRoleLimit("Songwriter")),
+        Performer: Math.min(DEFAULT_TRACK_SLOT_VISIBLE, trackRoleLimit("Performer")),
+        Producer: Math.min(DEFAULT_TRACK_SLOT_VISIBLE, trackRoleLimit("Producer"))
+    };
 }
 function ensureTrackSlotArrays() {
     if (!state.ui.trackSlots) {
@@ -188,6 +232,21 @@ function parseTrackRoleTarget(targetId) {
 }
 function listFromIds(ids) {
     return Array.isArray(ids) ? ids.filter(Boolean) : [];
+}
+function ensureTrackSlotVisibility() {
+    if (!state.ui.trackSlotVisible) {
+        state.ui.trackSlotVisible = buildDefaultTrackSlotVisibility();
+    }
+    ["Songwriter", "Performer", "Producer"].forEach((role) => {
+        const limit = trackRoleLimit(role);
+        const current = Number(state.ui.trackSlotVisible[role]);
+        const fallback = Math.min(DEFAULT_TRACK_SLOT_VISIBLE, limit);
+        const safeCurrent = Number.isFinite(current) ? current : fallback;
+        const key = TRACK_ROLE_KEYS[role];
+        const assigned = listFromIds(state.ui.trackSlots?.[key]).length;
+        const next = Math.max(fallback, Math.min(limit, Math.max(safeCurrent, assigned)));
+        state.ui.trackSlotVisible[role] = next;
+    });
 }
 function normalizeRoleIds(ids, role) {
     const unique = [...new Set(listFromIds(ids))];
@@ -244,6 +303,15 @@ function getGameMode(modeId) {
 function listGameModes() {
     return Object.values(GAME_MODES);
 }
+function getGameDifficulty(difficultyId) {
+    return GAME_DIFFICULTIES[difficultyId] || GAME_DIFFICULTIES[DEFAULT_GAME_DIFFICULTY];
+}
+function listGameDifficulties() {
+    return Object.values(GAME_DIFFICULTIES);
+}
+function normalizeDifficultyId(difficultyId) {
+    return GAME_DIFFICULTIES[difficultyId] ? difficultyId : DEFAULT_GAME_DIFFICULTY;
+}
 function shortGameModeLabel(label) {
     if (!label)
         return "";
@@ -271,6 +339,8 @@ function getSlotGameMode(data) {
     return getGameModeFromStartYear(startYear);
 }
 function makeDefaultState() {
+    const difficulty = getGameDifficulty(DEFAULT_GAME_DIFFICULTY);
+    const startingCash = difficulty.startingCash;
     return {
         time: {
             epochMs: BASE_EPOCH,
@@ -286,8 +356,8 @@ function makeDefaultState() {
         label: {
             name: "Hann Record Label",
             alignment: "Neutral",
-            cash: STARTING_CASH,
-            wallet: { cash: STARTING_CASH },
+            cash: startingCash,
+            wallet: { cash: startingCash },
             fans: 0,
             country: "Annglora"
         },
@@ -316,7 +386,11 @@ function makeDefaultState() {
             slotTarget: null,
             createStage: "sheet",
             createTrackId: null,
+            createTrackIds: { demo: null, master: null },
             recommendAllMode: "solo",
+            createHelpOpen: false,
+            createAdvancedOpen: false,
+            trackPanelTab: "active",
             actSlots: { lead: null, member2: null, member3: null },
             trackSlots: {
                 actId: null,
@@ -324,6 +398,7 @@ function makeDefaultState() {
                 performerIds: buildEmptyTrackSlotList("Performer"),
                 producerIds: buildEmptyTrackSlotList("Producer")
             },
+            trackSlotVisible: buildDefaultTrackSlotVisibility(),
             focusEraId: null,
             eraSlots: { actId: null },
             promoSlots: { trackId: null },
@@ -381,7 +456,8 @@ function makeDefaultState() {
                 rivalScheduled: true,
                 rivalReleased: true
             },
-            activeView: "charts"
+            sidePanelRestore: {},
+            activeView: "dashboard"
         },
         era: { active: [], history: [] },
         economy: { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, leaseFeesWeek: 0 },
@@ -403,6 +479,7 @@ function makeDefaultState() {
             exp: 0,
             promoRuns: 0,
             cumulativeLabelPoints: {},
+            difficulty: difficulty.id,
             gameMode: DEFAULT_GAME_MODE,
             startYear: getGameMode(DEFAULT_GAME_MODE).startYear,
             seedCalibration: null,
@@ -435,6 +512,19 @@ function applyGameMode(modeId) {
     state.meta.gameMode = mode.id;
     state.meta.startYear = mode.startYear;
     return mode;
+}
+function applyDifficulty(difficultyId, { resetCash = false } = {}) {
+    const difficulty = getGameDifficulty(difficultyId);
+    if (!state.meta)
+        state.meta = {};
+    state.meta.difficulty = difficulty.id;
+    if (resetCash && state.label) {
+        state.label.cash = difficulty.startingCash;
+        if (!state.label.wallet)
+            state.label.wallet = { cash: state.label.cash };
+        state.label.wallet.cash = state.label.cash;
+    }
+    return difficulty;
 }
 function loadSeedCalibration() {
     if (typeof localStorage === "undefined")
@@ -576,7 +666,8 @@ function clampStamina(value) {
 const DAY_MS = HOUR_MS * 24;
 const YEAR_MS = DAY_MS * 365;
 const CREATOR_INACTIVITY_MS = YEAR_MS * 2;
-const MARKET_MIN_PER_ROLE = 2;
+const MARKET_MIN_PER_ROLE = 10;
+const RIVAL_MIN_PER_ROLE = 10;
 const MARKET_ROLES = ["Songwriter", "Performer", "Producer"];
 const STUDIO_CAP_PER_LABEL = 50;
 const ACHIEVEMENT_TARGET = 12;
@@ -851,6 +942,73 @@ function themeColor(theme) {
 function countryColor(country) {
     return COUNTRY_COLORS[country] || "var(--accent)";
 }
+const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
+function resolveCssColor(value) {
+    const raw = String(value || "").trim();
+    if (!raw || !raw.startsWith("var("))
+        return raw;
+    const match = raw.match(/var\((--[^)]+)\)/);
+    if (!match || typeof document === "undefined")
+        return raw;
+    const resolved = getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim();
+    return resolved || raw;
+}
+function parseColorToRgb(value) {
+    const color = resolveCssColor(value);
+    if (!color)
+        return null;
+    if (color.startsWith("#")) {
+        let hex = color.slice(1).trim();
+        if (hex.length === 3) {
+            hex = hex.split("").map((ch) => ch + ch).join("");
+        }
+        if (hex.length === 8)
+            hex = hex.slice(0, 6);
+        if (hex.length !== 6)
+            return null;
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return { r, g, b };
+    }
+    const rgbMatch = color.match(/^rgba?\(([^)]+)\)$/);
+    if (!rgbMatch)
+        return null;
+    const parts = rgbMatch[1].split(",").map((part) => Number.parseFloat(part.trim()));
+    if (parts.length < 3 || parts.some((part) => Number.isNaN(part)))
+        return null;
+    return { r: parts[0], g: parts[1], b: parts[2] };
+}
+function relativeLuminance(rgb) {
+    const toLinear = (value) => {
+        const channel = value / 255;
+        return channel <= 0.03928
+            ? channel / 12.92
+            : Math.pow((channel + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * toLinear(rgb.r) + 0.7152 * toLinear(rgb.g) + 0.0722 * toLinear(rgb.b);
+}
+function contrastRatio(a, b) {
+    const lighter = Math.max(a, b);
+    const darker = Math.min(a, b);
+    return (lighter + 0.05) / (darker + 0.05);
+}
+function pickAccessibleTextColor(bgColor) {
+    const bg = parseColorToRgb(bgColor);
+    const dark = parseColorToRgb(ACCESSIBLE_TEXT.dark);
+    const light = parseColorToRgb(ACCESSIBLE_TEXT.light);
+    if (!bg || !dark || !light)
+        return ACCESSIBLE_TEXT.dark;
+    const bgLum = relativeLuminance(bg);
+    const darkContrast = contrastRatio(bgLum, relativeLuminance(dark));
+    const lightContrast = contrastRatio(bgLum, relativeLuminance(light));
+    return lightContrast >= darkContrast ? ACCESSIBLE_TEXT.light : ACCESSIBLE_TEXT.dark;
+}
+function countryDemonym(country) {
+    if (!country)
+        return "Unknown";
+    return COUNTRY_DEMONYMS[country] || country;
+}
 function alignmentClass(alignment) {
     return alignment ? alignment.toLowerCase() : "neutral";
 }
@@ -906,6 +1064,12 @@ function renderThemeTag(theme) {
 function renderCountryTag(country) {
     const cls = `country-${slugify(country)}`;
     return `<span class="tag ${cls}"><span class="tag-dot"></span>${country}</span>`;
+}
+function renderNationalityPill(country) {
+    const color = countryColor(country);
+    const textColor = pickAccessibleTextColor(color);
+    const demonym = countryDemonym(country);
+    return `<span class="pill country-pill" style="color:${textColor}; border-color:${color}; background:${color};">${demonym}</span>`;
 }
 function renderLabelTag(label, country) {
     const color = countryColor(country);
@@ -1130,11 +1294,21 @@ function ensureTrackSlotGrid() {
         const group = document.createElement("div");
         group.className = "slot-role-group";
         group.dataset.slotRoleGroup = entry.role;
+        const head = document.createElement("div");
+        head.className = "slot-group-head";
         const header = document.createElement("div");
         header.className = "slot-group-label";
         header.dataset.slotGroupLabel = entry.role;
         header.textContent = `${roleLabel(entry.role)} Slots (0/${limit})`;
-        group.appendChild(header);
+        const actions = document.createElement("div");
+        actions.className = "slot-group-actions";
+        actions.innerHTML = `
+      <button type="button" class="ghost mini" data-slot-more="${entry.role}">Add Slot</button>
+      <button type="button" class="ghost mini" data-slot-less="${entry.role}">Show Less</button>
+    `;
+        head.appendChild(header);
+        head.appendChild(actions);
+        group.appendChild(head);
         const slotGrid = document.createElement("div");
         slotGrid.className = "slot-role-grid";
         slotGrid.dataset.slotRoleGrid = entry.role;
@@ -1145,6 +1319,8 @@ function ensureTrackSlotGrid() {
             const columnLabel = document.createElement("div");
             columnLabel.className = "slot-column-label";
             columnLabel.dataset.slotColumnLabel = `${entry.role}-${col + 1}`;
+            columnLabel.dataset.slotRole = entry.role;
+            columnLabel.dataset.slotColumnStart = String(col * STUDIO_COLUMN_SLOT_COUNT + 1);
             columnLabel.textContent = `Studio ${col + 1}`;
             slotGrid.appendChild(columnLabel);
             for (let row = 0; row < STUDIO_COLUMN_SLOT_COUNT; row += 1) {
@@ -1157,10 +1333,14 @@ function ensureTrackSlotGrid() {
                 slot.dataset.slotType = "creator";
                 slot.dataset.slotRole = entry.role;
                 slot.dataset.slotGroup = "track";
+                slot.dataset.slotIndex = String(index);
                 const label = `${roleLabel(entry.role)} Slot`;
                 slot.innerHTML = `
           <div class="slot-label">${label} ${index}</div>
-          <div class="slot-value">Unassigned</div>
+          <div class="slot-id">
+            <div class="slot-avatar" aria-hidden="true"></div>
+            <div class="slot-value">${UNASSIGNED_CREATOR_LABEL}</div>
+          </div>
           <div class="slot-actions">
             <button type="button" class="ghost mini" data-slot-recommend="${entry.target}-${index}">Recommend</button>
             <button type="button" class="ghost mini" data-slot-clear="${entry.target}-${index}">Clear</button>
@@ -1172,9 +1352,57 @@ function ensureTrackSlotGrid() {
         grid.appendChild(group);
     });
 }
+function applyTrackSlotVisibility() {
+    const grid = $("trackSlotGrid");
+    if (!grid)
+        return;
+    ensureTrackSlotVisibility();
+    const stage = state.ui.activeView === "create" ? (state.ui.createStage || "sheet") : null;
+    const isPipeline = stage === "all";
+    const stageRole = stage === "demo"
+        ? "Performer"
+        : stage === "master"
+            ? "Producer"
+            : stage === "sheet"
+                ? "Songwriter"
+                : null;
+    grid.querySelectorAll("[data-slot-role-group]").forEach((group) => {
+        const role = group.dataset.slotRoleGroup;
+        const visible = !stageRole || isPipeline ? true : role === stageRole;
+        group.classList.toggle("hidden", !visible);
+    });
+    ["Songwriter", "Performer", "Producer"].forEach((role) => {
+        const limit = trackRoleLimit(role);
+        const key = TRACK_ROLE_KEYS[role];
+        const assigned = listFromIds(state.ui.trackSlots?.[key]).length;
+        const fallback = Math.min(DEFAULT_TRACK_SLOT_VISIBLE, limit);
+        const current = Number(state.ui.trackSlotVisible?.[role]);
+        const desired = Number.isFinite(current) ? current : fallback;
+        const visibleCount = Math.max(fallback, Math.min(limit, Math.max(desired, assigned)));
+        state.ui.trackSlotVisible[role] = visibleCount;
+        const label = grid.querySelector(`[data-slot-group-label="${role}"]`);
+        if (label)
+            label.textContent = `${roleLabel(role)} Slots (${assigned}/${limit})`;
+        grid.querySelectorAll(`.id-slot[data-slot-role="${role}"]`).forEach((slot) => {
+            const index = Number(slot.dataset.slotIndex || "0");
+            slot.classList.toggle("hidden", index > visibleCount);
+        });
+        grid.querySelectorAll(`.slot-column-label[data-slot-role="${role}"]`).forEach((column) => {
+            const start = Number(column.dataset.slotColumnStart || "0");
+            column.classList.toggle("hidden", start > visibleCount);
+        });
+        const moreBtn = grid.querySelector(`[data-slot-more="${role}"]`);
+        if (moreBtn)
+            moreBtn.disabled = visibleCount >= limit;
+        const lessBtn = grid.querySelector(`[data-slot-less="${role}"]`);
+        if (lessBtn)
+            lessBtn.disabled = visibleCount <= Math.max(fallback, assigned);
+    });
+}
 function renderSlots() {
     ensureTrackSlotGrid();
     ensureTrackSlotArrays();
+    applyTrackSlotVisibility();
     const activeTarget = state.ui.slotTarget;
     document.querySelectorAll(".id-slot").forEach((slot) => {
         const target = slot.dataset.slotTarget;
@@ -1188,38 +1416,68 @@ function renderSlots() {
     const promoTrack = state.marketTracks.find((entry) => entry.trackId === state.ui.promoSlots.trackId)
         || getTrack(state.ui.promoSlots.trackId);
     const socialTrack = getTrack(state.ui.socialSlots.trackId);
+    const unassignedLabel = UNASSIGNED_SLOT_LABEL;
+    const unassignedCreatorLabel = UNASSIGNED_CREATOR_LABEL;
     if ($("actLeadSlot"))
-        $("actLeadSlot").textContent = actLead ? actLead.name : "Unassigned";
+        $("actLeadSlot").textContent = actLead ? actLead.name : unassignedCreatorLabel;
     if ($("actMember2Slot"))
-        $("actMember2Slot").textContent = actMember2 ? actMember2.name : "Unassigned";
+        $("actMember2Slot").textContent = actMember2 ? actMember2.name : unassignedCreatorLabel;
     if ($("actMember3Slot"))
-        $("actMember3Slot").textContent = actMember3 ? actMember3.name : "Unassigned";
+        $("actMember3Slot").textContent = actMember3 ? actMember3.name : unassignedCreatorLabel;
     if ($("trackActSlot"))
-        $("trackActSlot").textContent = trackAct ? trackAct.name : "Unassigned";
+        $("trackActSlot").textContent = trackAct ? trackAct.name : unassignedLabel;
     if ($("eraActSlot"))
-        $("eraActSlot").textContent = eraAct ? eraAct.name : "Unassigned";
+        $("eraActSlot").textContent = eraAct ? eraAct.name : unassignedLabel;
     if ($("promoTrackSlot"))
-        $("promoTrackSlot").textContent = promoTrack ? promoTrack.title : "Unassigned";
+        $("promoTrackSlot").textContent = promoTrack ? promoTrack.title : unassignedLabel;
     if ($("socialTrackSlot"))
-        $("socialTrackSlot").textContent = socialTrack ? socialTrack.title : "Unassigned";
+        $("socialTrackSlot").textContent = socialTrack ? socialTrack.title : unassignedLabel;
     document.querySelectorAll(".id-slot").forEach((slot) => {
         const target = slot.dataset.slotTarget;
         const type = slot.dataset.slotType;
         const value = getSlotValue(target);
         const valueEl = slot.querySelector(".slot-value");
+        const avatarEl = slot.querySelector(".slot-avatar");
         if (!valueEl)
             return;
         if (type === "creator") {
             const creator = value ? getCreator(value) : null;
-            valueEl.textContent = creator ? creator.name : "Unassigned";
+            valueEl.textContent = creator ? creator.name : unassignedCreatorLabel;
+            if (avatarEl) {
+                const portraitUrl = creator ? getCreatorPortraitUrl(creator) : null;
+                const hasImage = Boolean(portraitUrl);
+                avatarEl.classList.toggle("has-image", hasImage);
+                avatarEl.classList.toggle("is-empty", !creator);
+                avatarEl.classList.toggle("has-symbols", !hasImage);
+                if (hasImage) {
+                    avatarEl.style.backgroundImage = `url("${safeAvatarUrl(portraitUrl)}")`;
+                    avatarEl.textContent = "";
+                }
+                else {
+                    avatarEl.style.backgroundImage = "";
+                    avatarEl.innerHTML = renderCreatorFallbackSymbols({ unassigned: !creator });
+                }
+            }
         }
         else if (type === "act") {
             const act = value ? getAct(value) : null;
-            valueEl.textContent = act ? act.name : "Unassigned";
+            valueEl.textContent = act ? act.name : unassignedLabel;
+            if (avatarEl) {
+                avatarEl.classList.remove("has-image");
+                avatarEl.classList.remove("is-empty");
+                avatarEl.style.backgroundImage = "";
+                avatarEl.textContent = "";
+            }
         }
         else if (type === "track") {
             const track = value ? getTrack(value) : null;
-            valueEl.textContent = track ? track.title : "Unassigned";
+            valueEl.textContent = track ? track.title : unassignedLabel;
+            if (avatarEl) {
+                avatarEl.classList.remove("has-image");
+                avatarEl.classList.remove("is-empty");
+                avatarEl.style.backgroundImage = "";
+                avatarEl.textContent = "";
+            }
         }
     });
     document.querySelectorAll("[data-slot-group-label]").forEach((label) => {
@@ -1246,9 +1504,16 @@ function renderSlots() {
         });
     };
     if (createStage) {
-        showSlot("Songwriter", createStage === "sheet");
-        showSlot("Performer", createStage === "demo");
-        showSlot("Producer", createStage === "master");
+        if (createStage === "all") {
+            showSlot("Songwriter", true);
+            showSlot("Performer", true);
+            showSlot("Producer", true);
+        }
+        else {
+            showSlot("Songwriter", createStage === "sheet");
+            showSlot("Performer", createStage === "demo");
+            showSlot("Producer", createStage === "master");
+        }
     }
     else {
         showSlot("Songwriter", true);
@@ -1553,7 +1818,8 @@ function makeCreator(role, existingNames, country) {
         stamina: STAMINA_MAX,
         prefThemes: themes,
         prefMoods: moods,
-        country: origin
+        country: origin,
+        portraitUrl: null
     };
 }
 function normalizeCreator(creator) {
@@ -1583,6 +1849,11 @@ function normalizeCreator(creator) {
         creator.lastOveruseDay = null;
     if (!creator.departurePending)
         creator.departurePending = null;
+    if (typeof creator.portraitUrl !== "string") {
+        creator.portraitUrl = creator.portraitUrl ? String(creator.portraitUrl) : null;
+    }
+    if (creator.portraitUrl && !creator.portraitUrl.trim())
+        creator.portraitUrl = null;
     return creator;
 }
 function computeSignCost(creator) {
@@ -1723,18 +1994,20 @@ function buildMarketCreators() {
     const list = [];
     const existing = () => [...state.creators.map((creator) => creator.name), ...list.map((creator) => creator.name)];
     MARKET_ROLES.forEach((role) => {
-        const first = normalizeCreator(makeCreator(role, existing()));
-        const second = normalizeCreator(makeCreator(role, existing()));
-        first.signCost = computeSignCost(first);
-        second.signCost = computeSignCost(second);
-        list.push(first);
-        list.push(second);
+        for (let i = 0; i < MARKET_MIN_PER_ROLE; i += 1) {
+            const creator = normalizeCreator(makeCreator(role, existing()));
+            creator.signCost = computeSignCost(creator);
+            list.push(creator);
+        }
     });
     return list;
 }
 function ensureMarketCreators() {
     if (!Array.isArray(state.marketCreators))
         state.marketCreators = [];
+    if (!Array.isArray(state.creators))
+        state.creators = [];
+    state.marketCreators = state.marketCreators.filter((creator) => creator && typeof creator === "object" && creator.role);
     const existing = () => [...state.creators.map((creator) => creator.name), ...state.marketCreators.map((creator) => creator.name)];
     MARKET_ROLES.forEach((role) => {
         const current = state.marketCreators.filter((creator) => creator.role === role).length;
@@ -1745,6 +2018,13 @@ function ensureMarketCreators() {
             state.marketCreators.push(creator);
         }
     });
+}
+function refreshDailyMarket() {
+    state.marketCreators = buildMarketCreators();
+    ensureMarketCreators();
+    if (state.ui?.activeView === "world") {
+        renderMarket();
+    }
 }
 function buildRivals() {
     return AI_LABELS.map((label) => ({
@@ -2469,6 +2749,61 @@ function rivalHasTrendCoverage(rival, theme, mood) {
         return false;
     return rival.creators.some((creator) => creator.prefThemes?.includes(theme) && creator.prefMoods?.includes(mood));
 }
+function pickTrendTarget(trends) {
+    if (!trends.length)
+        return { theme: "", mood: "" };
+    const trend = pickOne(trends);
+    return { theme: themeFromGenre(trend), mood: moodFromGenre(trend) };
+}
+function takeMarketRecruit(role, trendTheme, trendMood) {
+    const themedIndex = state.marketCreators.findIndex((creator) => {
+        if (creator.role !== role)
+            return false;
+        if (trendTheme && !creator.prefThemes?.includes(trendTheme))
+            return false;
+        if (trendMood && !creator.prefMoods?.includes(trendMood))
+            return false;
+        return true;
+    });
+    if (themedIndex >= 0)
+        return state.marketCreators.splice(themedIndex, 1)[0];
+    const roleIndex = state.marketCreators.findIndex((creator) => creator.role === role);
+    if (roleIndex >= 0)
+        return state.marketCreators.splice(roleIndex, 1)[0];
+    return null;
+}
+function pickRivalCreatorForRole(rival, role, theme, mood) {
+    const pool = rival.creators.filter((creator) => creator.role === role);
+    if (!pool.length)
+        return null;
+    const themed = pool.filter((creator) => {
+        const themeMatch = theme ? creator.prefThemes?.includes(theme) : true;
+        const moodMatch = mood ? creator.prefMoods?.includes(mood) : true;
+        return themeMatch && moodMatch;
+    });
+    const candidates = themed.length ? themed : pool;
+    let best = candidates[0];
+    let bestReleaseAt = typeof best.lastReleaseAt === "number" ? best.lastReleaseAt : -Infinity;
+    let bestActivityAt = typeof best.lastActivityAt === "number" ? best.lastActivityAt : -Infinity;
+    for (let i = 1; i < candidates.length; i += 1) {
+        const candidate = candidates[i];
+        const releaseAt = typeof candidate.lastReleaseAt === "number" ? candidate.lastReleaseAt : -Infinity;
+        const activityAt = typeof candidate.lastActivityAt === "number" ? candidate.lastActivityAt : -Infinity;
+        if (releaseAt < bestReleaseAt || (releaseAt === bestReleaseAt && activityAt < bestActivityAt)) {
+            best = candidate;
+            bestReleaseAt = releaseAt;
+            bestActivityAt = activityAt;
+        }
+    }
+    return best;
+}
+function pickRivalReleaseCrew(rival, theme, mood) {
+    return [
+        pickRivalCreatorForRole(rival, "Songwriter", theme, mood),
+        pickRivalCreatorForRole(rival, "Performer", theme, mood),
+        pickRivalCreatorForRole(rival, "Producer", theme, mood)
+    ].filter(Boolean);
+}
 function recruitRivalCreators() {
     const trends = Array.isArray(state.trends) ? state.trends : [];
     state.rivals.forEach((rival) => {
@@ -2477,48 +2812,62 @@ function recruitRivalCreators() {
             acc[role] = rival.creators.filter((creator) => creator.role === role).length;
             return acc;
         }, {});
-        const targetRoles = MARKET_ROLES.filter((role) => counts[role] < MARKET_MIN_PER_ROLE);
+        const signed = [];
+        const addRecruit = (role, trendTheme, trendMood) => {
+            const recruit = takeMarketRecruit(role, trendTheme, trendMood)
+                || buildRivalCreator(role, rival, trendTheme, trendMood);
+            rival.creators.push(recruit);
+            signed.push({ role: recruit.role, name: recruit.name, trendTheme });
+            counts[role] = (counts[role] || 0) + 1;
+        };
+        MARKET_ROLES.forEach((role) => {
+            let missing = Math.max(0, RIVAL_MIN_PER_ROLE - counts[role]);
+            while (missing > 0) {
+                const { theme, mood } = pickTrendTarget(trends);
+                addRecruit(role, theme, mood);
+                missing -= 1;
+            }
+        });
         const needsCoverage = trends.some((trend) => {
             const theme = themeFromGenre(trend);
             const mood = moodFromGenre(trend);
             return !rival.creators.some((creator) => creator.prefThemes?.includes(theme) && creator.prefMoods?.includes(mood));
         });
-        if (!targetRoles.length && !needsCoverage)
+        if (needsCoverage) {
+            const { theme, mood } = pickTrendTarget(trends);
+            const neededRole = MARKET_ROLES.slice().sort((a, b) => counts[a] - counts[b])[0];
+            addRecruit(neededRole, theme, mood);
+        }
+        if (!signed.length)
             return;
-        const neededRole = targetRoles.length
-            ? pickOne(targetRoles)
-            : MARKET_ROLES.slice().sort((a, b) => counts[a] - counts[b])[0];
-        let trendTheme = "";
-        let trendMood = "";
-        if (trends.length) {
-            const trend = pickOne(trends);
-            trendTheme = themeFromGenre(trend);
-            trendMood = moodFromGenre(trend);
+        if (signed.length === 1) {
+            const entry = signed[0];
+            logEvent(`${rival.name} signed ${entry.name} (${roleLabel(entry.role)}) to chase ${entry.trendTheme || "new"} trends.`);
+            return;
         }
-        const matchingIndex = state.marketCreators.findIndex((creator) => {
-            const themeMatch = trendTheme ? creator.prefThemes?.includes(trendTheme) : true;
-            const moodMatch = trendMood ? creator.prefMoods?.includes(trendMood) : true;
-            return creator.role === neededRole && themeMatch && moodMatch;
-        });
-        let recruit = null;
-        if (matchingIndex >= 0) {
-            recruit = state.marketCreators.splice(matchingIndex, 1)[0];
-        }
-        else {
-            recruit = buildRivalCreator(neededRole, rival, trendTheme, trendMood);
-        }
-        rival.creators.push(recruit);
-        logEvent(`${rival.name} signed ${recruit.name} (${roleLabel(recruit.role)}) to chase ${trendTheme || "new"} trends.`);
+        const roleCounts = signed.reduce((acc, entry) => {
+            acc[entry.role] = (acc[entry.role] || 0) + 1;
+            return acc;
+        }, {});
+        const detail = Object.entries(roleCounts).map(([role, count]) => `${roleLabel(role)} +${count}`).join(", ");
+        logEvent(`${rival.name} signed ${signed.length} creators (${detail}).`);
     });
     ensureMarketCreators();
 }
-function markRivalReleaseActivity(labelName, releasedAt) {
+function markRivalReleaseActivity(labelName, releasedAt, creatorIds = []) {
     const rival = getRivalByName(labelName);
     if (!rival || !Array.isArray(rival.creators) || !rival.creators.length)
         return;
-    const creator = pickOne(rival.creators);
-    creator.lastReleaseAt = releasedAt;
-    creator.lastActivityAt = releasedAt;
+    const ids = Array.isArray(creatorIds) && creatorIds.length
+        ? creatorIds
+        : [pickOne(rival.creators).id];
+    ids.forEach((id) => {
+        const creator = rival.creators.find((entry) => entry.id === id);
+        if (!creator)
+            return;
+        creator.lastReleaseAt = releasedAt;
+        creator.lastActivityAt = releasedAt;
+    });
 }
 function processRivalCreatorInactivity() {
     const now = state.time.epochMs;
@@ -3200,21 +3549,96 @@ function buildGenreRanking(totals) {
     });
     return entries.map((entry) => entry.genre);
 }
-function updateTrends(globalScores) {
+function buildTrendSnapshot(entries) {
     const totals = {};
-    globalScores.forEach((entry) => {
-        if (!entry.track?.genre)
+    const alignmentScores = {};
+    (entries || []).forEach((entry) => {
+        const track = entry?.track;
+        if (!track?.genre)
             return;
-        if (entry.track.mood === "Boring")
+        if (track.mood === "Boring")
             return;
-        totals[entry.track.genre] = (totals[entry.track.genre] || 0) + entry.score;
+        const score = Number.isFinite(entry.score) ? entry.score : 0;
+        totals[track.genre] = (totals[track.genre] || 0) + score;
+        const alignment = ALIGNMENTS.includes(track.alignment) ? track.alignment : "Neutral";
+        if (!alignmentScores[track.genre]) {
+            alignmentScores[track.genre] = {};
+            ALIGNMENTS.forEach((key) => {
+                alignmentScores[track.genre][key] = 0;
+            });
+        }
+        const weight = Math.max(0, score);
+        alignmentScores[track.genre][alignment] += weight;
     });
-    const ranked = Object.entries(totals)
+    const ranking = Object.entries(totals)
         .sort((a, b) => b[1] - a[1])
         .map((entry) => entry[0]);
-    if (ranked.length) {
-        state.trends = ranked.slice(0, 3);
-        state.genreRanking = buildGenreRanking(totals);
+    return { ranking, totals, alignmentScores };
+}
+function defaultTrendNation() {
+    const labelCountry = state.label?.country;
+    if (labelCountry && NATIONS.includes(labelCountry))
+        return labelCountry;
+    return NATIONS[0] || "";
+}
+function defaultTrendRegion() {
+    const labelCountry = state.label?.country;
+    const regions = Array.isArray(REGION_DEFS) ? REGION_DEFS : [];
+    const match = regions.find((region) => region.nation === labelCountry);
+    return match ? match.id : regions[0]?.id || "";
+}
+function normalizeTrendScope() {
+    const valid = new Set(["global", "nation", "region"]);
+    if (!valid.has(state.ui.trendScopeType))
+        state.ui.trendScopeType = "global";
+    if (!state.ui.trendScopeTarget)
+        state.ui.trendScopeTarget = defaultTrendNation();
+    if (state.ui.trendScopeType === "nation") {
+        if (!NATIONS.includes(state.ui.trendScopeTarget))
+            state.ui.trendScopeTarget = defaultTrendNation();
+        return;
+    }
+    if (state.ui.trendScopeType === "region") {
+        const regionIds = REGION_DEFS.map((region) => region.id);
+        if (!regionIds.includes(state.ui.trendScopeTarget))
+            state.ui.trendScopeTarget = defaultTrendRegion();
+    }
+}
+function trendScopeLabel(scopeType, target) {
+    if (scopeType === "nation")
+        return target || "Nation";
+    if (scopeType === "region") {
+        const region = REGION_DEFS.find((entry) => entry.id === target);
+        return region ? region.label : target || "Region";
+    }
+    return "Global (Gaia)";
+}
+function trendAlignmentLeader(genre, alignmentScores) {
+    const scores = alignmentScores?.[genre];
+    if (!scores)
+        return null;
+    let topAlignment = "";
+    let topScore = -Infinity;
+    let total = 0;
+    ALIGNMENTS.forEach((alignment) => {
+        const score = scores[alignment] || 0;
+        total += score;
+        if (score > topScore) {
+            topScore = score;
+            topAlignment = alignment;
+        }
+    });
+    if (!topAlignment || topScore <= 0 || total <= 0)
+        return null;
+    return { alignment: topAlignment, share: Math.round((topScore / total) * 100) };
+}
+function updateTrends(globalScores) {
+    const snapshot = buildTrendSnapshot(globalScores);
+    if (snapshot.ranking.length) {
+        state.trends = snapshot.ranking.slice(0, TREND_DETAIL_COUNT);
+        state.trendRanking = snapshot.ranking;
+        state.trendAlignmentScores = snapshot.alignmentScores;
+        state.genreRanking = buildGenreRanking(snapshot.totals);
     }
 }
 function updateEconomy(globalScores) {
@@ -3224,9 +3648,12 @@ function updateEconomy(globalScores) {
         revenue += Math.max(0, entry.score) * 22;
     });
     revenue = Math.round(revenue);
+    const difficulty = getGameDifficulty(state.meta?.difficulty);
+    revenue = Math.round(revenue * difficulty.revenueMult);
     const ownedSlots = getOwnedStudioSlots();
     const leaseFees = Math.max(0, Math.round(state.economy.leaseFeesWeek || 0));
-    const upkeep = state.creators.length * 150 + ownedSlots * 600 + leaseFees;
+    const upkeepBase = state.creators.length * 150 + ownedSlots * 600 + leaseFees;
+    const upkeep = Math.round(upkeepBase * difficulty.upkeepMult);
     state.label.cash = Math.round(state.label.cash + revenue - upkeep);
     state.economy.lastRevenue = revenue;
     state.economy.lastUpkeep = upkeep;
@@ -3352,6 +3779,7 @@ function archiveLossGame(reason, slotIndex) {
         label: state.label?.name || "Unknown Label",
         result: "loss",
         reason,
+        difficulty: state.meta?.difficulty || DEFAULT_GAME_DIFFICULTY,
         year: currentYear(),
         week: weekIndex() + 1,
         exp: state.meta?.exp || 0,
@@ -3414,8 +3842,9 @@ function acceptBailout() {
     state.meta.bailoutUsed = true;
     state.meta.bailoutPending = false;
     state.meta.achievementsLocked = true;
-    state.label.cash = 10000000;
-    logEvent("Bailout accepted: debt cleared and $10,000,000 granted. Achievements locked.", "warn");
+    const difficulty = getGameDifficulty(state.meta?.difficulty);
+    state.label.cash = difficulty.bailoutAmount;
+    logEvent(`Bailout accepted: debt cleared and ${formatMoney(difficulty.bailoutAmount)} granted. Achievements locked.`, "warn");
     return true;
 }
 function declineBailout() {
@@ -3608,6 +4037,7 @@ function generateRivalReleases() {
                 quality = clampQuality(quality - 12);
             const genre = makeGenre(theme, mood);
             const releasePlan = planRivalRelease(genre, quality);
+            const crew = pickRivalReleaseCrew(rival, theme, mood);
             state.rivalReleaseQueue.push({
                 id: uid("RR"),
                 releaseAt: releasePlan.releaseAt,
@@ -3621,7 +4051,8 @@ function generateRivalReleases() {
                 country: rival.country,
                 quality,
                 genre,
-                distribution: releasePlan.distribution
+                distribution: releasePlan.distribution,
+                creatorIds: crew.map((creator) => creator.id)
             });
         }
     });
@@ -3653,7 +4084,7 @@ function processRivalReleaseQueue() {
                 weeksOnChart: 0,
                 promoWeeks: 0
             });
-            markRivalReleaseActivity(entry.label, entry.releaseAt);
+            markRivalReleaseActivity(entry.label, entry.releaseAt, entry.creatorIds);
         }
         else {
             remaining.push(entry);
@@ -3700,9 +4131,9 @@ function weeklyUpdate() {
     const startTime = nowMs();
     const week = weekIndex() + 1;
     ensureMarketCreators();
-    recruitRivalCreators();
     processCreatorInactivity();
     processRivalCreatorInactivity();
+    recruitRivalCreators();
     generateRivalReleases();
     const { globalScores } = computeCharts();
     const labelScores = computeLabelScoresFromCharts();
@@ -3787,9 +4218,13 @@ function runYearTicksIfNeeded(year) {
     state.time.lastYear = current;
 }
 function runHourlyTick() {
-    const startTime = nowMs();
+    const prevDayIndex = Math.floor(state.time.epochMs / DAY_MS);
     state.time.totalHours += 1;
     state.time.epochMs += HOUR_MS;
+    const currentDayIndex = Math.floor(state.time.epochMs / DAY_MS);
+    if (currentDayIndex !== prevDayIndex) {
+        refreshDailyMarket();
+    }
     processWorkOrders();
     processReleaseQueue();
     processRivalReleaseQueue();
@@ -3968,6 +4403,7 @@ function resetState(nextState) {
 }
 function seedNewGame(options = {}) {
     const mode = applyGameMode(options.mode || DEFAULT_GAME_MODE);
+    applyDifficulty(options.difficulty || DEFAULT_GAME_DIFFICULTY, { resetCash: true });
     const baseCreators = [];
     ["Songwriter", "Performer", "Producer"].forEach((role) => {
         baseCreators.push(makeCreator(role, baseCreators.map((creator) => creator.name)));
@@ -3979,6 +4415,7 @@ function seedNewGame(options = {}) {
     state.trends = seedTrends();
     state.trendRanking = state.trends.slice();
     state.trendAlignmentScores = {};
+    recruitRivalCreators();
     state.quests = buildQuests();
     state.quests.forEach((quest) => postQuestEmail(quest));
     state.meta.seedInfo = null;
@@ -3998,7 +4435,7 @@ function loadSlot(index, forceNew = false, options = {}) {
     const data = forceNew ? null : getSlotData(index);
     resetState(data);
     if (!data)
-        seedNewGame({ mode: options.mode });
+        seedNewGame({ mode: options.mode, difficulty: options.difficulty });
     session.activeSlot = index;
     session.lastSlotPayload = localStorage.getItem(slotKey(index));
     markUiLogStart();
@@ -4019,6 +4456,8 @@ function normalizeState() {
     if (!state.ui) {
         state.ui = {
             activeChart: "global",
+            trendScopeType: "global",
+            trendScopeTarget: defaultTrendNation(),
             genreTheme: "All",
             genreMood: "All",
             slotTarget: null,
@@ -4036,6 +4475,10 @@ function normalizeState() {
     }
     if (!state.ui.activeChart)
         state.ui.activeChart = "global";
+    if (!state.ui.trendScopeType)
+        state.ui.trendScopeType = "global";
+    if (!state.ui.trendScopeTarget)
+        state.ui.trendScopeTarget = defaultTrendNation();
     if (!state.ui.genreTheme)
         state.ui.genreTheme = "All";
     if (!state.ui.genreMood)
@@ -4068,6 +4511,14 @@ function normalizeState() {
             state.ui.trackSlots.producerIds[0] = legacy.producerId;
     }
     ensureTrackSlotArrays();
+    ensureTrackSlotVisibility();
+    if (typeof state.ui.createHelpOpen !== "boolean")
+        state.ui.createHelpOpen = false;
+    if (typeof state.ui.createAdvancedOpen !== "boolean")
+        state.ui.createAdvancedOpen = false;
+    if (!state.ui.trackPanelTab || (state.ui.trackPanelTab !== "active" && state.ui.trackPanelTab !== "archive")) {
+        state.ui.trackPanelTab = "active";
+    }
     if (typeof state.ui.focusEraId === "undefined")
         state.ui.focusEraId = null;
     if (state.ui.focusEraId !== null && typeof state.ui.focusEraId !== "string")
@@ -4108,8 +4559,10 @@ function normalizeState() {
             plannedReleaseIds: []
         };
     }
+    if (!state.ui.sidePanelRestore)
+        state.ui.sidePanelRestore = {};
     if (!state.ui.activeView)
-        state.ui.activeView = "charts";
+        state.ui.activeView = "dashboard";
     if (state.ui.activeView === "promotion") {
         state.ui.activeView = "logs";
     }
@@ -4207,11 +4660,19 @@ function normalizeState() {
     }
     if (typeof state.ui.slotTarget === "undefined")
         state.ui.slotTarget = null;
-    if (!state.ui.createStage || !["sheet", "demo", "master"].includes(state.ui.createStage)) {
+    if (!state.ui.createStage || !["sheet", "demo", "master", "all"].includes(state.ui.createStage)) {
         state.ui.createStage = "sheet";
     }
     if (typeof state.ui.createTrackId === "undefined")
         state.ui.createTrackId = null;
+    if (!state.ui.createTrackIds || typeof state.ui.createTrackIds !== "object") {
+        state.ui.createTrackIds = { demo: state.ui.createTrackId || null, master: null };
+    }
+    if (typeof state.ui.createTrackIds.demo === "undefined") {
+        state.ui.createTrackIds.demo = state.ui.createTrackId || null;
+    }
+    if (typeof state.ui.createTrackIds.master === "undefined")
+        state.ui.createTrackIds.master = null;
     if (!["solo", "collab"].includes(state.ui.recommendAllMode)) {
         state.ui.recommendAllMode = "solo";
     }
@@ -4263,10 +4724,17 @@ function normalizeState() {
     });
     if (!state.trends)
         state.trends = [];
+    if (!Array.isArray(state.trendRanking)) {
+        state.trendRanking = Array.isArray(state.trends) ? state.trends.slice() : [];
+    }
+    if (!state.trendAlignmentScores || typeof state.trendAlignmentScores !== "object") {
+        state.trendAlignmentScores = {};
+    }
     if (!state.acts.length && state.creators.length)
         seedActs();
     if (!state.meta)
         state.meta = { savedAt: null, version: 3, questIdCounter: 0 };
+    state.meta.difficulty = normalizeDifficultyId(state.meta.difficulty);
     if (typeof state.meta.questIdCounter !== "number")
         state.meta.questIdCounter = 0;
     if (!Array.isArray(state.meta.achievementsUnlocked))
@@ -4348,6 +4816,7 @@ function normalizeState() {
         state.population.campaignSplitStage = null;
     if (state.label && !state.label.country)
         state.label.country = "Annglora";
+    normalizeTrendScope();
     if (state.label) {
         state.label.cash = Math.round(state.label.cash ?? 0);
         const snapshot = computePopulationSnapshot();
@@ -4475,6 +4944,9 @@ function refreshSelectOptions() {
     if (genreMoodFilter) {
         genreMoodFilter.innerHTML = [`<option value="All">All Moods</option>`, ...MOODS.map((m) => `<option value="${m}">${m}</option>`)].join("");
     }
+    const trendScopeSelect = $("trendScopeSelect");
+    if (trendScopeSelect)
+        trendScopeSelect.value = state.ui.trendScopeType || "global";
     const eraRolloutSelect = $("eraRolloutSelect");
     if (eraRolloutSelect) {
         eraRolloutSelect.innerHTML = ROLLOUT_PRESETS.map((preset) => `<option value="${preset.id}">${preset.label}</option>`).join("");
@@ -4825,12 +5297,16 @@ function renderAutoAssignModal() {
         return `
       <div class="auto-assign-role">
         <h3>${label}</h3>
-        ${candidates.map((creator) => `
+        ${candidates.map((creator) => {
+            const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
+            return `
           <div class="list-item">
             <div class="auto-assign-candidate">
               <div>
                 <div class="item-title">${creator.name}</div>
-                <div class="muted">ID ${creator.id} • Skill <span class="grade-text" data-grade="${scoreGrade(creator.skill)}">${creator.skill}</span> • Stamina ${creator.stamina}</div>
+                <div class="bar"><span style="width:${staminaPct}%"></span></div>
+                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">ID ${creator.id} | Skill <span class="grade-text" data-grade="${scoreGrade(creator.skill)}">${creator.skill}</span></div>
               </div>
               <div class="actions">
                 ${creator.ready ? "" : `<span class="tag low">Low stamina</span>`}
@@ -4839,7 +5315,8 @@ function renderAutoAssignModal() {
             </div>
             <div class="muted">Needs ${req} stamina for ${label} stage</div>
           </div>
-        `).join("")}
+        `;
+        }).join("")}
       </div>
     `;
     });
@@ -4862,6 +5339,19 @@ function renderTime() {
         }
         modeEl.setAttribute("title", mode.label || "");
         modeEl.setAttribute("aria-label", mode.label ? `Game mode: ${mode.label}` : "Game mode");
+    }
+    const difficulty = getGameDifficulty(state.meta?.difficulty);
+    const difficultyEl = $("gameDifficultyDisplay");
+    if (difficultyEl) {
+        difficultyEl.textContent = difficulty?.label || "-";
+        if (difficulty?.id) {
+            difficultyEl.dataset.difficulty = difficulty.id;
+        }
+        else {
+            difficultyEl.removeAttribute("data-difficulty");
+        }
+        difficultyEl.setAttribute("title", difficulty?.label || "");
+        difficultyEl.setAttribute("aria-label", difficulty?.label ? `Game difficulty: ${difficulty.label}` : "Game difficulty");
     }
 }
 function renderFocusEraStatus() {
@@ -5020,6 +5510,141 @@ function renderTopBar() {
         $("topTrendDisplay").textContent = topTrend ? `Trend: ${topTrend}` : "Trend: -";
     }
 }
+function renderDashboard() {
+    const statsEl = $("dashboardStats");
+    if (!statsEl)
+        return;
+    const weekLabel = $("dashboardWeekLabel");
+    if (weekLabel)
+        weekLabel.textContent = `Week ${weekIndex() + 1}`;
+    const dateLabel = $("dashboardDateLabel");
+    if (dateLabel)
+        dateLabel.textContent = formatDate(state.time.epochMs);
+    const activeTracks = state.tracks.filter((track) => track.status !== "Released");
+    const releasedTracks = state.tracks.filter((track) => track.status === "Released");
+    const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
+    const focusEra = getFocusedEra();
+    const studioCounts = getStudioUsageCounts();
+    const ownedSlots = getOwnedStudioSlots();
+    const totalSlots = ownedSlots + studioCounts.leased;
+    const topTrend = state.trends?.[0] || "-";
+    const topAct = getTopActSnapshot();
+    const stats = [
+        { label: "Cash", value: formatMoney(state.label.cash), detail: `Weekly ${formatMoney(state.economy.lastRevenue || 0)}` },
+        { label: "Active Tracks", value: formatCount(activeTracks.length), detail: `Released ${formatCount(releasedTracks.length)}` },
+        { label: "Creators", value: formatCount(state.creators.length), detail: `Acts ${formatCount(state.acts.length)}` },
+        { label: "Studios", value: `${studioCounts.total}/${totalSlots}`, detail: `Owned ${ownedSlots}` },
+        { label: "Active Eras", value: formatCount(activeEras.length), detail: focusEra ? `Focus ${focusEra.name}` : "No focus era" },
+        { label: "Top Trend", value: topTrend, detail: topAct ? `Top Act ${topAct.name}` : "Top Act -" }
+    ];
+    statsEl.innerHTML = stats.map((stat) => `
+    <div class="dashboard-stat">
+      <div class="stat-label">${stat.label}</div>
+      <div class="stat-value">${stat.value}</div>
+      <div class="tiny muted">${stat.detail}</div>
+    </div>
+  `).join("");
+    const workOrdersEl = $("dashboardWorkOrders");
+    if (workOrdersEl) {
+        const activeOrders = state.workOrders.filter((order) => order.status === "In Progress");
+        if (!activeOrders.length) {
+            workOrdersEl.innerHTML = `<div class="muted">No active work orders.</div>`;
+        }
+        else {
+            const now = state.time.epochMs;
+            const list = activeOrders
+                .slice(0, 5)
+                .map((order) => {
+                const track = getTrack(order.trackId);
+                const crewIds = getWorkOrderCreatorIds(order);
+                const crew = crewIds.map((id) => getCreator(id)).filter(Boolean);
+                const lead = crew[0] || null;
+                const crewLabel = lead ? (crew.length > 1 ? `${lead.name} +${crew.length - 1}` : lead.name) : "Unassigned";
+                const stage = STAGES[order.stageIndex];
+                const hoursLeft = Math.max(0, Math.ceil((order.endAt - now) / HOUR_MS));
+                return `
+            <div class="list-item">
+              <div class="list-row">
+                <div>
+                  <div class="item-title">${track ? track.title : "Unknown"}</div>
+                  <div class="muted">${stage?.name || "Stage"} | ${crewLabel}</div>
+                </div>
+                <div class="pill">${hoursLeft}h</div>
+              </div>
+            </div>
+          `;
+            });
+            workOrdersEl.innerHTML = list.join("");
+        }
+    }
+    const queueEl = $("dashboardReleaseQueue");
+    if (queueEl) {
+        if (!state.releaseQueue.length) {
+            queueEl.innerHTML = `<div class="muted">No releases scheduled.</div>`;
+        }
+        else {
+            const list = state.releaseQueue
+                .slice()
+                .sort((a, b) => (a.releaseAt || 0) - (b.releaseAt || 0))
+                .slice(0, 5)
+                .map((entry) => {
+                const track = getTrack(entry.trackId);
+                const date = entry.releaseAt ? formatDate(entry.releaseAt) : "TBD";
+                const distribution = entry.distribution || entry.note || "Digital";
+                return `
+            <div class="list-item">
+              <div class="list-row">
+                <div>
+                  <div class="item-title">${track ? track.title : "Unknown"}</div>
+                  <div class="muted">${date} | ${distribution}</div>
+                </div>
+              </div>
+            </div>
+          `;
+            });
+            queueEl.innerHTML = list.join("");
+        }
+    }
+    const chartsEl = $("dashboardChartsList");
+    if (chartsEl) {
+        const entries = (state.charts.global || []).slice(0, 5);
+        if (!entries.length) {
+            chartsEl.innerHTML = `<div class="muted">No chart entries yet.</div>`;
+        }
+        else {
+            chartsEl.innerHTML = entries.map((entry) => `
+        <div class="list-item">
+          <div class="list-row">
+            <div>
+              <div class="item-title">#${entry.rank} ${entry.track.title}</div>
+              <div class="muted">${entry.track.label} | ${entry.track.genre || "Genre -"} </div>
+            </div>
+            <div class="pill">${formatCount(entry.score)}</div>
+          </div>
+        </div>
+      `).join("");
+        }
+    }
+    const eraList = $("dashboardEraList");
+    if (eraList) {
+        if (!activeEras.length) {
+            eraList.innerHTML = `<div class="muted">No active eras.</div>`;
+        }
+        else {
+            eraList.innerHTML = activeEras.map((era) => `
+        <div class="list-item">
+          <div class="list-row">
+            <div>
+              <div class="item-title">${era.name}</div>
+              <div class="muted">${ERA_STAGES[era.stageIndex] || "Active"} | Week ${era.stageWeek}</div>
+            </div>
+            ${focusEra && focusEra.id === era.id ? `<span class="pill">Focus</span>` : ""}
+          </div>
+        </div>
+      `).join("");
+        }
+    }
+}
 function getTopActSnapshot() {
     const entries = state.marketTracks.filter((track) => track.isPlayer && track.actId);
     if (!entries.length)
@@ -5042,10 +5667,10 @@ function getTopActSnapshot() {
 }
 function alignmentColor(alignment) {
     if (alignment === "Safe")
-        return "#ffffff";
+        return "var(--align-safe)";
     if (alignment === "Risky")
-        return "#111111";
-    return "#999999";
+        return "var(--align-risky)";
+    return "var(--align-neutral)";
 }
 function populationStageForYear(year) {
     const stage = POPULATION_STAGES.find((entry) => year >= entry.startYear && year < entry.endYear);
@@ -5452,10 +6077,13 @@ function renderInventory() {
     $("inventoryList").innerHTML = ready.map((track) => `
     <div class="list-item">
       <div class="list-row">
-        <div>
-          <div class="item-title">${track.title}</div>
-          <div class="muted">Item: Track • ID ${track.id}</div>
-          <div class="muted">${track.status} • ${formatGenreKeyLabel(track.genre)}</div>
+        <div class="item-main">
+          <div class="content-thumb" aria-hidden="true"></div>
+          <div>
+            <div class="item-title">${track.title}</div>
+            <div class="muted">Item: Track  ID ${track.id}</div>
+            <div class="muted">${track.status}  ${formatGenreKeyLabel(track.genre)}</div>
+          </div>
         </div>
         <div class="pill grade" data-grade="${qualityGrade(track.quality)}">${qualityGrade(track.quality)}</div>
       </div>
@@ -5626,6 +6254,46 @@ function renderActs() {
     });
     $("actList").innerHTML = list.join("");
 }
+function creatorInitials(name) {
+    if (!name)
+        return "ID";
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length)
+        return "ID";
+    const hasHangul = /[\uAC00-\uD7A3]/.test(name);
+    if (hasHangul && parts.length > 1) {
+        const givenName = parts.slice(1).join(" ").trim();
+        if (givenName)
+            return givenName;
+    }
+    const initials = parts.slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("");
+    return initials || "ID";
+}
+function renderCreatorFallbackSymbols({ unassigned = false } = {}) {
+    const emoji = unassigned ? UNASSIGNED_CREATOR_EMOJI : CREATOR_FALLBACK_EMOJI;
+    return `<span class="avatar-symbols" aria-hidden="true"><span class="material-symbols-rounded avatar-icon">${CREATOR_FALLBACK_ICON}</span><span class="avatar-emoji">${emoji}</span></span>`;
+}
+function safeAvatarUrl(url) {
+    if (!url)
+        return "";
+    return encodeURI(String(url)).replace(/\"/g, "%22").replace(/'/g, "%27");
+}
+function getCreatorPortraitUrl(creator) {
+    const raw = creator?.portraitUrl;
+    if (!raw)
+        return null;
+    const trimmed = String(raw).trim();
+    return trimmed ? trimmed : null;
+}
+function renderCreatorAvatar(creator) {
+    const initials = creatorInitials(creator?.name || "");
+    const portraitUrl = getCreatorPortraitUrl(creator);
+    const hasImage = Boolean(portraitUrl);
+    const imageStyle = hasImage ? ` style="background-image: url('${safeAvatarUrl(portraitUrl)}')"` : "";
+    const className = hasImage ? "creator-avatar has-image" : "creator-avatar has-symbols";
+    const content = hasImage ? initials : renderCreatorFallbackSymbols();
+    return `<div class="${className}" aria-hidden="true"${imageStyle}>${content}</div>`;
+}
 function renderCreators() {
     const busyIds = getBusyCreatorIds("In Progress");
     const list = state.creators.map((creator) => {
@@ -5635,24 +6303,29 @@ function renderCreators() {
         const roleText = roleLabel(creator.role);
         const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
         const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
+        const nationalityPill = renderNationalityPill(creator.country);
         const memberships = state.acts.filter((act) => act.memberIds.includes(creator.id)).map((act) => act.name);
         const actText = memberships.length ? memberships.join(", ") : "No Act";
         return `
       <div class="list-item" data-entity-type="creator" data-entity-id="${creator.id}" data-entity-name="${creator.name}" draggable="true">
           <div class="list-row">
-            <div>
-              <div class="item-title">${creator.name}</div>
-              <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
-              <div class="muted">Acts: ${actText}</div>
-              <div class="muted">Preferred Themes:</div>
-            <div class="time-row">${themeCells}</div>
-            <div class="muted">Preferred Moods:</div>
-            <div class="time-row">${moodCells}</div>
+            <div class="creator-card">
+              ${renderCreatorAvatar(creator)}
+              <div>
+                <div class="item-title">${creator.name}</div>
+                <div class="bar"><span style="width:${staminaPct}%"></span></div>
+                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
+                <div class="muted">Acts: ${actText}</div>
+                <div class="time-row">${nationalityPill}</div>
+                <div class="muted">Preferred Themes:</div>
+              <div class="time-row">${themeCells}</div>
+              <div class="muted">Preferred Moods:</div>
+              <div class="time-row">${moodCells}</div>
+            </div>
           </div>
           <div class="pill">${busy ? "Busy" : "Ready"}</div>
         </div>
-          <div class="bar"><span style="width:${staminaPct}%"></span></div>
-          <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
         </div>
       `;
     });
@@ -5671,24 +6344,48 @@ function renderMarket() {
         input.checked = filters[key] !== false;
     });
     const pool = state.marketCreators || [];
-    const filtered = pool.filter((creator) => filters[creator.role] !== false);
-    const list = filtered.map((creator) => {
-        const skillGrade = scoreGrade(creator.skill);
-        const roleText = roleLabel(creator.role);
-        return `
-      <div class="list-item">
-        <div class="list-row">
-          <div>
-            <div class="item-title">${creator.name}</div>
-            <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
+    const columns = MARKET_ROLES.map((role) => {
+        const roleLabelText = roleLabel(role);
+        const roleCreators = pool.filter((creator) => creator.role === role);
+        const list = roleCreators.map((creator) => {
+            const skillGrade = scoreGrade(creator.skill);
+            const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
+            const nationalityPill = renderNationalityPill(creator.country);
+            return `
+        <div class="list-item">
+          <div class="list-row">
+            <div class="creator-card">
+              ${renderCreatorAvatar(creator)}
+              <div>
+                <div class="item-title">${creator.name}</div>
+                <div class="bar"><span style="width:${staminaPct}%"></span></div>
+                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">ID ${creator.id} | ${roleLabelText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
+                <div class="time-row">${nationalityPill}</div>
+              </div>
+            </div>
+            <button type="button" data-sign="${creator.id}">Sign ${formatMoney(creator.signCost || 0)}</button>
           </div>
-          <button type="button" data-sign="${creator.id}">Sign ${formatMoney(creator.signCost || 0)}</button>
+        </div>
+      `;
+        });
+        const emptyMsg = pool.length
+            ? `No ${roleLabelText} Creator IDs available.`
+            : "No Creator IDs available.";
+        const columnState = filters[role] === false ? " is-hidden" : "";
+        return `
+      <div class="ccc-market-column${columnState}" data-role="${role}">
+        <div class="ccc-market-head">
+          <div class="ccc-market-title">${roleLabelText}s</div>
+          <div class="tiny muted">${roleCreators.length} available</div>
+        </div>
+        <div class="list ccc-market-list">
+          ${list.length ? list.join("") : `<div class="muted">${emptyMsg}</div>`}
         </div>
       </div>
     `;
     });
-    const emptyMsg = pool.length ? "No Creator IDs match the filters." : "No Creator IDs available.";
-    listEl.innerHTML = list.length ? list.join("") : `<div class="muted">${emptyMsg}</div>`;
+    listEl.innerHTML = columns.join("");
 }
 function renderWorkOrders() {
     const listEl = $("workOrderList");
@@ -5787,13 +6484,16 @@ function renderTracks() {
                 return `
       <div class="list-item" data-entity-type="track" data-entity-id="${track.id}" data-entity-name="${track.title}" draggable="true">
         <div class="list-row">
+          <div class="item-main">
+            <div class="content-thumb" aria-hidden="true"></div>
             <div>
               <div class="item-title">${track.title}</div>
               <div class="muted">ID ${track.id} | Item: Track</div>
               <div class="muted">${genreLabel}</div>
               <div class="muted">${themeTag} ${alignTag}</div>
-            <div class="muted">${actLine}</div>
-            <div class="muted">Distribution: ${track.distribution || "Digital"}</div>
+              <div class="muted">${actLine}</div>
+              <div class="muted">Distribution: ${track.distribution || "Digital"}</div>
+            </div>
           </div>
           <div class="badge grade" data-grade="${grade}">${grade}</div>
         </div>
@@ -5824,11 +6524,14 @@ function renderTracks() {
         return `
       <div class="list-item" data-entity-type="track" data-entity-id="${track.id}" data-entity-name="${track.title}" draggable="true">
         <div class="list-row">
-          <div>
-            <div class="item-title">${track.title}</div>
-            <div class="muted">ID ${track.id} | ${genreLabel}</div>
-            <div class="muted">${actLine}</div>
-            <div class="muted">Released ${releaseDate} | ${track.distribution || "Digital"}</div>
+          <div class="item-main">
+            <div class="content-thumb" aria-hidden="true"></div>
+            <div>
+              <div class="item-title">${track.title}</div>
+              <div class="muted">ID ${track.id} | ${genreLabel}</div>
+              <div class="muted">${actLine}</div>
+              <div class="muted">Released ${releaseDate} | ${track.distribution || "Digital"}</div>
+            </div>
           </div>
           <div class="badge grade" data-grade="${grade}">${grade}</div>
         </div>
@@ -5836,6 +6539,16 @@ function renderTracks() {
     `;
     });
     archiveList.innerHTML = archiveItems.join("");
+    const activeTab = state.ui.trackPanelTab || "active";
+    document.querySelectorAll("[data-track-tab]").forEach((tab) => {
+        const isActive = tab.dataset.trackTab === activeTab;
+        tab.classList.toggle("active", isActive);
+        tab.setAttribute("aria-pressed", String(isActive));
+    });
+    document.querySelectorAll("[data-track-panel]").forEach((panel) => {
+        const isActive = panel.dataset.trackPanel === activeTab;
+        panel.classList.toggle("hidden", !isActive);
+    });
 }
 function renderEraStatus() {
     const eraBox = $("eraStatus");
@@ -5921,14 +6634,17 @@ function renderReleaseDesk() {
             return `
         <div class="list-item">
           <div class="list-row">
-            <div>
-              <div class="item-title">${track.title}</div>
-              <div class="muted">${genreLabel} | <span class="grade-text" data-grade="${grade}">${grade}</span>${isReady ? "" : ` | ${statusLabel}`}</div>
-              <div class="muted">${themeTag} ${alignTag}</div>
-              <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
-              <div class="muted">Modifier: ${modifierName}</div>
-              <div class="muted">Recommended: ${recLabel} - ${rec.reason}</div>
-              ${actSelect}
+            <div class="item-main">
+              <div class="content-thumb" aria-hidden="true"></div>
+              <div>
+                <div class="item-title">${track.title}</div>
+                <div class="muted">${genreLabel} | <span class="grade-text" data-grade="${grade}">${grade}</span>${isReady ? "" : ` | ${statusLabel}`}</div>
+                <div class="muted">${themeTag} ${alignTag}</div>
+                <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
+                <div class="muted">Modifier: ${modifierName}</div>
+                <div class="muted">Recommended: ${recLabel} - ${rec.reason}</div>
+                ${actSelect}
+              </div>
             </div>
             <div class="time-row">
               <button type="button" data-release="now" data-track="${track.id}"${canReleaseNow ? "" : " disabled"}>Release</button>
@@ -5955,9 +6671,16 @@ function renderReleaseDesk() {
         const distribution = entry.distribution || entry.note || "Digital";
         return `
       <div class="list-item">
-        <div class="item-title">${track ? track.title : "Unknown"}</div>
-        <div class="muted">${date} | ${distribution}</div>
-        <div class="muted">Act: ${track ? (act ? act.name : "Unassigned") : "Unknown"} | Project: ${project} (${projectType})</div>
+        <div class="list-row">
+          <div class="item-main">
+            <div class="content-thumb" aria-hidden="true"></div>
+            <div>
+              <div class="item-title">${track ? track.title : "Unknown"}</div>
+              <div class="muted">${date} | ${distribution}</div>
+              <div class="muted">Act: ${track ? (act ? act.name : "Unassigned") : "Unknown"} | Project: ${project} (${projectType})</div>
+            </div>
+          </div>
+        </div>
       </div>
     `;
     });
@@ -5967,11 +6690,81 @@ function renderTrends() {
     const listEl = $("trendList");
     if (!listEl)
         return;
-    const list = state.trends.map((trend, index) => {
+    normalizeTrendScope();
+    const scopeType = state.ui.trendScopeType || "global";
+    const scopeTarget = state.ui.trendScopeTarget || "";
+    const scopeSelect = $("trendScopeSelect");
+    const targetSelect = $("trendScopeTarget");
+    const targetLabel = $("trendScopeTargetLabel");
+    const scopeMeta = $("trendScopeMeta");
+    if (scopeSelect)
+        scopeSelect.value = scopeType;
+    let ranking = [];
+    let alignmentScores = {};
+    if (scopeType === "nation") {
+        if (targetLabel)
+            targetLabel.textContent = "Nation";
+        if (targetSelect) {
+            targetSelect.disabled = false;
+            targetSelect.innerHTML = NATIONS.map((nation) => `<option value="${nation}">${nation}</option>`).join("");
+            targetSelect.value = scopeTarget;
+        }
+        const entries = state.charts.nations[scopeTarget] || [];
+        const snapshot = buildTrendSnapshot(entries);
+        ranking = snapshot.ranking;
+        alignmentScores = snapshot.alignmentScores;
+    }
+    else if (scopeType === "region") {
+        if (targetLabel)
+            targetLabel.textContent = "Region";
+        if (targetSelect) {
+            targetSelect.disabled = false;
+            targetSelect.innerHTML = REGION_DEFS.map((region) => `<option value="${region.id}">${region.label}</option>`).join("");
+            targetSelect.value = scopeTarget;
+        }
+        const entries = state.charts.regions[scopeTarget] || [];
+        const snapshot = buildTrendSnapshot(entries);
+        ranking = snapshot.ranking;
+        alignmentScores = snapshot.alignmentScores;
+    }
+    else {
+        if (targetLabel)
+            targetLabel.textContent = "Nation/Region";
+        if (targetSelect) {
+            targetSelect.disabled = true;
+            targetSelect.innerHTML = `<option value="global">Global</option>`;
+        }
+        const fallback = buildTrendSnapshot(state.charts.global || []);
+        ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : fallback.ranking;
+        const hasAlignment = state.trendAlignmentScores && Object.keys(state.trendAlignmentScores).length;
+        alignmentScores = hasAlignment ? state.trendAlignmentScores : fallback.alignmentScores;
+    }
+    const visible = ranking.slice(0, TREND_LIST_LIMIT);
+    if (scopeMeta) {
+        const label = trendScopeLabel(scopeType, scopeTarget);
+        scopeMeta.textContent = visible.length
+            ? `Showing ${label} Top ${visible.length} trends.`
+            : `No trends available for ${label}.`;
+    }
+    const list = visible.map((trend, index) => {
         const theme = themeFromGenre(trend);
         const mood = moodFromGenre(trend);
+        const isTop = index < TREND_DETAIL_COUNT;
+        const leader = isTop ? trendAlignmentLeader(trend, alignmentScores) : null;
+        const detail = isTop
+            ? `
+        <div class="trend-detail">
+          <div class="trend-detail-row">
+            <span class="trend-detail-pill">Alignment push</span>
+            ${leader
+                ? `${renderAlignmentTag(leader.alignment)} <span class="muted">${leader.share}% of trend points</span>`
+                : `<span class="muted">No clear alignment leader</span>`}
+          </div>
+        </div>
+      `
+            : "";
         return `
-      <div class="list-item">
+      <div class="list-item trend-item${isTop ? " trend-item--top" : ""}">
         <div class="list-row">
           <div>
             <div class="item-title">#${index + 1} ${formatGenreKeyLabel(trend)}</div>
@@ -5979,16 +6772,18 @@ function renderTrends() {
           </div>
           <div class="badge warn">Hot</div>
         </div>
+        ${detail}
       </div>
     `;
     });
-    listEl.innerHTML = list.join("");
+    listEl.innerHTML = list.length ? list.join("") : `<div class="muted">No trends yet.</div>`;
 }
 function renderCreateTrends() {
     const listEl = $("createTrendList");
     if (!listEl)
         return;
-    const list = (state.trends || []).slice(0, 3).map((trend, index) => {
+    const ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : (state.trends || []);
+    const list = ranking.slice(0, TREND_DETAIL_COUNT).map((trend, index) => {
         const theme = themeFromGenre(trend);
         const mood = moodFromGenre(trend);
         return `
@@ -6583,6 +7378,8 @@ function updateGenrePreview() {
     $("genrePreview").textContent = `Planned Genre: ${formatGenreLabel(theme, mood)}`;
 }
 function stageLabelFromId(stageId) {
+    if (stageId === "all")
+        return "All Stages";
     if (stageId === "demo")
         return "Demo Recording";
     if (stageId === "master")
@@ -6601,23 +7398,26 @@ function renderActiveStudiosSelect() {
     if (!select)
         return;
     const stageId = state.ui.createStage || "sheet";
+    const isPipeline = stageId === "all";
     const stageIndex = stageIndexFromId(stageId);
     const stageLabel = stageLabelFromId(stageId);
     const labelEl = select.closest(".field")?.querySelector("label");
     if (labelEl)
         labelEl.textContent = `Active Studios (${stageLabel})`;
     const active = state.workOrders
-        .filter((order) => order.status === "In Progress" && order.stageIndex === stageIndex)
+        .filter((order) => order.status === "In Progress" && (isPipeline || order.stageIndex === stageIndex))
         .map((order) => {
         const track = getTrack(order.trackId);
         const crewIds = getWorkOrderCreatorIds(order);
         const crew = crewIds.map((id) => getCreator(id)).filter(Boolean);
         const lead = crew[0] || null;
+        const stageName = STAGES[order.stageIndex]?.name || stageLabelFromId(stageId);
         const crewLabel = lead ? (crew.length > 1 ? `${lead.name} +${crew.length - 1}` : lead.name) : null;
         return {
             slot: Number.isFinite(order.studioSlot) ? order.studioSlot : null,
             trackTitle: track ? track.title : "Unknown Track",
-            creatorName: crewLabel
+            creatorName: crewLabel,
+            stageName
         };
     })
         .sort((a, b) => (a.slot || 0) - (b.slot || 0));
@@ -6629,8 +7429,9 @@ function renderActiveStudiosSelect() {
         select.innerHTML = active
             .map((entry, index) => {
             const slotLabel = entry.slot ? `Studio ${entry.slot}` : `Studio ${index + 1}`;
-            const creatorLabel = entry.creatorName ? ` • ${entry.creatorName}` : "";
-            return `<option value="${entry.slot || index + 1}">${slotLabel} • ${entry.trackTitle}${creatorLabel}</option>`;
+            const stageLabelText = isPipeline ? ` | ${entry.stageName}` : "";
+            const creatorLabel = entry.creatorName ? ` | ${entry.creatorName}` : "";
+            return `<option value="${entry.slot || index + 1}">${slotLabel}${stageLabelText} | ${entry.trackTitle}${creatorLabel}</option>`;
         })
             .join("");
         select.disabled = false;
@@ -6644,40 +7445,43 @@ function renderActiveStudiosSelect() {
     }
 }
 function renderCreateStageTrackSelect() {
-    const select = $("stageTrackSelect");
-    if (!select)
-        return;
-    const meta = $("stageTrackMeta");
-    const stageId = state.ui.createStage || "sheet";
-    if (stageId === "sheet") {
-        select.innerHTML = "";
-        select.disabled = true;
+    const renderStageSelect = (stageId, selectId, metaId) => {
+        const select = $(selectId);
+        if (!select)
+            return;
+        const meta = $(metaId);
+        const isDemo = stageId === "demo";
+        const status = isDemo ? "Awaiting Demo" : "Awaiting Master";
+        const tracks = state.tracks.filter((track) => track.status === status);
+        if (!tracks.length) {
+            select.innerHTML = `<option value="">No tracks awaiting ${isDemo ? "demo recording" : "mastering"}.</option>`;
+            select.disabled = true;
+            if (state.ui.createTrackIds)
+                state.ui.createTrackIds[stageId] = null;
+            if (state.ui.createStage === stageId)
+                state.ui.createTrackId = null;
+            if (meta)
+                meta.textContent = `Awaiting ${isDemo ? "demo recordings" : "mastering"}: 0`;
+            return;
+        }
+        select.innerHTML = tracks
+            .map((track) => `<option value="${track.id}">${track.title}</option>`)
+            .join("");
+        const stored = state.ui.createTrackIds ? state.ui.createTrackIds[stageId] : null;
+        const preferred = tracks.some((track) => track.id === stored)
+            ? stored
+            : tracks[0].id;
+        if (state.ui.createTrackIds)
+            state.ui.createTrackIds[stageId] = preferred;
+        if (state.ui.createStage === stageId)
+            state.ui.createTrackId = preferred;
+        select.value = preferred;
+        select.disabled = false;
         if (meta)
-            meta.textContent = "Select Demo or Master to choose a track.";
-        return;
-    }
-    const isDemo = stageId === "demo";
-    const status = isDemo ? "Awaiting Demo" : "Awaiting Master";
-    const tracks = state.tracks.filter((track) => track.status === status);
-    if (!tracks.length) {
-        select.innerHTML = `<option value="">No tracks awaiting ${isDemo ? "demo recording" : "mastering"}.</option>`;
-        select.disabled = true;
-        state.ui.createTrackId = null;
-        if (meta)
-            meta.textContent = `Awaiting ${isDemo ? "demo recordings" : "mastering"}: 0`;
-        return;
-    }
-    select.innerHTML = tracks
-        .map((track) => `<option value="${track.id}">${track.title}</option>`)
-        .join("");
-    const preferred = tracks.some((track) => track.id === state.ui.createTrackId)
-        ? state.ui.createTrackId
-        : tracks[0].id;
-    state.ui.createTrackId = preferred;
-    select.value = preferred;
-    select.disabled = false;
-    if (meta)
-        meta.textContent = `Awaiting ${isDemo ? "demo recordings" : "mastering"}: ${tracks.length}`;
+            meta.textContent = `Awaiting ${isDemo ? "demo recordings" : "mastering"}: ${tracks.length}`;
+    };
+    renderStageSelect("demo", "demoTrackSelect", "demoTrackMeta");
+    renderStageSelect("master", "masterTrackSelect", "masterTrackMeta");
 }
 function renderCreateStageControls() {
     const stageButtons = document.querySelectorAll("[data-create-stage]");
@@ -6685,23 +7489,18 @@ function renderCreateStageControls() {
         return;
     const demoCount = state.tracks.filter((track) => track.status === "Awaiting Demo").length;
     const masterCount = state.tracks.filter((track) => track.status === "Awaiting Master").length;
-    const demoActive = state.workOrders.some((order) => order.status === "In Progress" && order.stageIndex === 1);
-    const masterActive = state.workOrders.some((order) => order.status === "In Progress" && order.stageIndex === 2);
     let stage = state.ui.createStage || "sheet";
-    const validStages = ["sheet", "demo", "master"];
+    const validStages = ["all", "sheet", "demo", "master"];
     if (!validStages.includes(stage)) {
         logEvent("Unknown creation stage selected. Reverting to Sheet Music.", "warn");
         stage = "sheet";
     }
-    if (stage === "demo" && demoCount === 0 && !demoActive)
-        stage = "sheet";
-    if (stage === "master" && masterCount === 0 && !masterActive)
-        stage = "sheet";
     state.ui.createStage = stage;
     const options = {
+        all: { label: "All Stages", disabled: false },
         sheet: { label: "Sheet Music", disabled: false },
-        demo: { label: `Demo Recording (${demoCount})`, disabled: demoCount === 0 && !demoActive },
-        master: { label: `Master Recording (${masterCount})`, disabled: masterCount === 0 && !masterActive }
+        demo: { label: `Demo Recording (${demoCount})`, disabled: false },
+        master: { label: `Master Recording (${masterCount})`, disabled: false }
     };
     stageButtons.forEach((btn) => {
         const id = btn.dataset.createStage;
@@ -6714,44 +7513,85 @@ function renderCreateStageControls() {
         btn.classList.toggle("active", isActive);
         btn.setAttribute("aria-pressed", String(isActive));
     });
-    const desiredRole = stage === "demo" ? "Performer" : stage === "master" ? "Producer" : "Songwriter";
+    const desiredRole = stage === "demo"
+        ? "Performer"
+        : stage === "master"
+            ? "Producer"
+            : stage === "sheet"
+                ? "Songwriter"
+                : null;
     const currentRole = parseTrackRoleTarget(state.ui.slotTarget || "")?.role || null;
-    if (currentRole !== desiredRole) {
+    if (desiredRole && currentRole !== desiredRole) {
         state.ui.slotTarget = `${TRACK_ROLE_TARGETS[desiredRole]}-1`;
     }
     renderCreateStageTrackSelect();
+    if (stage === "demo" || stage === "master") {
+        const tracked = state.ui.createTrackIds ? state.ui.createTrackIds[stage] : null;
+        state.ui.createTrackId = tracked || null;
+    }
     const startBtn = $("startTrackBtn");
     if (startBtn) {
         const crewMode = state.ui.recommendAllMode || "solo";
-        startBtn.textContent = stage === "demo"
+        const stageForButton = stage === "all" ? "sheet" : stage;
+        startBtn.textContent = stageForButton === "demo"
             ? "Start Demo Recording"
-            : stage === "master"
+            : stageForButton === "master"
                 ? "Start Master Recording"
                 : crewMode === "solo"
                     ? "Start Solo Tracks"
                     : "Start Sheet Music";
-        const needsTrack = stage === "demo" || stage === "master";
-        startBtn.disabled = needsTrack && !state.ui.createTrackId;
+        const needsTrack = stageForButton === "demo" || stageForButton === "master";
+        const stageTrackId = stageForButton === "demo" || stageForButton === "master"
+            ? (state.ui.createTrackIds ? state.ui.createTrackIds[stageForButton] : null)
+            : null;
+        startBtn.disabled = needsTrack && !stageTrackId;
+    }
+    const demoBtn = $("startDemoBtn");
+    if (demoBtn) {
+        const demoTrackId = state.ui.createTrackIds ? state.ui.createTrackIds.demo : null;
+        demoBtn.disabled = !demoTrackId;
+    }
+    const masterBtn = $("startMasterBtn");
+    if (masterBtn) {
+        const masterTrackId = state.ui.createTrackIds ? state.ui.createTrackIds.master : null;
+        masterBtn.disabled = !masterTrackId;
     }
     const recommendSelect = $("recommendAllMode");
     if (recommendSelect)
         recommendSelect.value = state.ui.recommendAllMode || "solo";
     const recommendHelp = $("recommendAllHelp");
     if (recommendHelp) {
-        recommendHelp.textContent = stage === "sheet"
-            ? "Solo starts separate sheet music for each assigned songwriter. Collab fills one track with everyone."
-            : "Solo tracks apply to sheet music only. Demo and master stages always run one track at a time.";
+        recommendHelp.textContent = stage === "all"
+            ? "Pipeline view: solo/collab applies to sheet music only. Demo and master stages always run one track at a time."
+            : stage === "sheet"
+                ? "Solo starts separate sheet music for each assigned songwriter. Collab fills one track with everyone."
+                : "Solo tracks apply to sheet music only. Demo and master stages always run one track at a time.";
     }
+    const isPipeline = stage === "all";
     document.querySelectorAll("[data-stage]").forEach((el) => {
         const stages = el.dataset.stage.split(",").map((value) => value.trim());
-        el.classList.toggle("hidden", !stages.includes(stage));
+        const visible = isPipeline ? true : stages.includes(stage);
+        el.classList.toggle("hidden", !visible);
     });
+    document.querySelectorAll("[data-stage-mode]").forEach((el) => {
+        const mode = el.dataset.stageMode;
+        const visible = (mode === "pipeline" && isPipeline) || (mode === "single" && !isPipeline);
+        el.classList.toggle("hidden", !visible);
+    });
+    const advanced = $("createAdvancedOptions");
+    if (advanced) {
+        const showAdvanced = (stage === "sheet" || stage === "all") && !!state.ui.createAdvancedOpen;
+        advanced.classList.toggle("hidden", !showAdvanced);
+    }
     renderActiveStudiosSelect();
 }
 function renderActiveView(view) {
-    const raw = view || state.ui.activeView || "charts";
+    const raw = view || state.ui.activeView || "dashboard";
     const active = raw === "promotion" ? "logs" : raw === "era" ? "eras" : raw;
-    if (active === "charts") {
+    if (active === "dashboard") {
+        renderDashboard();
+    }
+    else if (active === "charts") {
         renderCharts();
         renderReleaseDesk();
         renderSlots();
@@ -6782,7 +7622,6 @@ function renderActiveView(view) {
     else if (active === "world") {
         renderMarket();
         renderPopulation();
-        renderRoleActions();
         renderTrends();
         renderGenreIndex();
         renderEconomySummary();
@@ -6812,4 +7651,4 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, normalizeCreator, postCreatorSigned, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderActiveCampaigns, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, assignToSlot, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };
+export { session, state, $, clamp, formatMoney, formatCount, formatDate, openOverlay, closeOverlay, logEvent, makeTrackTitle, makeProjectTitle, makeLabelName, makeActName, makeEraName, handleFromName, makeAct, createTrack, startDemoStage, startMasterStage, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getAct, getCreator, getTrack, assignTrackAct, getStudioAvailableSlots, getEraById, getActiveEras, getFocusedEra, setFocusEraById, startEraForAct, endEraById, pickDistinct, uid, weekIndex, normalizeCreator, postCreatorSigned, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, renderAll, renderStats, renderSlots, renderActs, renderCreators, renderTracks, renderReleaseDesk, renderEraStatus, renderWallet, renderLossArchives, renderActiveCampaigns, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderSocialFeed, renderMainMenu, updateGenrePreview, formatWeekRangeLabel, renderAutoAssignModal, rankCandidates, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, recommendProjectType, assignToSlot, shakeSlot, shakeField, clearSlot, getSlotValue, getSlotElement, describeSlot, setSlotTarget, updateActMemberFields, advanceHours, releaseTrack, scheduleRelease, acceptBailout, declineBailout, refreshSelectOptions, computeCharts, buildMarketCreators, startGameLoop, setTimeSpeed, openMainMenu, closeMainMenu, saveToActiveSlot, markUiLogStart, getLossArchives, getSlotData, loadSlot, resetState, deleteSlot };

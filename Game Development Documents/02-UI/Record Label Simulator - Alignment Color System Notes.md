@@ -18,8 +18,10 @@
 `Alignment is intentionally represented in grayscale, to keep it visually distinct from Country and Theme colors:`
 
 - **`Safe:`** `White → #FFFFFF`  
-- **`Neutral:`** `Mid Gray → #999999 (approximate, can be adjusted slightly)`  
-- **`Risky:`** `Near Black → #000000 or #111111`
+- **`Neutral:`** `Neutral Gray → #999999`  
+- **`Risky:`** `Black → #000000`
+
+`White is reserved for Safe alignment cues. Do not use white as a nation or theme signal.`
 
 `Grayscale should appear as a subtle layer (icons, small tags, borders, status dots), not the dominant palette of the UI. It is a tonal overlay on top of more colorful systems (Country & Theme).`
 
@@ -32,11 +34,12 @@
 | `Country` | `Color Name` | `HEX` |
 | :---- | :---- | :---- |
 | `Annglora` | `Periwinkle` | `#CC99FF` |
-| `Bytenza` | `Blue` | `#0000FF` |
+| `Bytenza` | `Blue` | `#3333FF` |
 | `Crowlya` | `Yellow` | `#FFFF00` |
 
 `These colors are country identity, not content genre or mood.`  
 `Any brand, label, or store that is clearly tied to a country should use its country color as part of its palette (often as primary or secondary).`
+`Bytenza uses Blue for nation cues. Cyan is reserved for the Freedom theme.`
 
 `Example:`
 
@@ -64,6 +67,7 @@
 
 `Theme colors should be used for content genre / cosmetic identity, not for country or alignment.`  
 `They can overlay with country colors (e.g., Annglora + Freedom), as long as Alignment stays in grayscale.`
+`Cyan is Freedom only; do not use cyan for Bytenza or other nations.`
 
 ---
 
@@ -73,7 +77,7 @@
 
 1. **`Country Layer`** `– Where is this from?`  
      
-   - `Uses: Periwinkle / White / Yellow.`
+   - `Uses: Periwinkle / Blue / Yellow.`
 
    
 
@@ -86,6 +90,8 @@
 3. **`Alignment Layer`** `– How tonally risky is it?`  
      
    - `Uses: Black / Gray / White (grayscale only).`
+
+`Priority order is Country -> Theme -> Alignment (white Safe accents).`
 
 `These layers should never be collapsed into one, and Alignment in particular should not dominate the palette.`  
 

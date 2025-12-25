@@ -11,7 +11,7 @@
 | :---- | :---- | :---- | :---- | :---- | :---- |
 | `Color` | `Periwinkle` | `White` | `Yellow` |  |  |
 | `HEX Code` | `#CC99FF` | `#FFFFFF` | `#FFFF00` |  |  |
-| `Factor` | `FREEDOM` | `Love` | `Ambition` | `MORALITY` | `Power` |
+| `Factor` | `FREEDOM` | `Loyalty` | `Ambition` | `MORALITY` | `Power` |
 | `Color` | `Cyan` | `Magenta` | `Vivid Tangerine` | `Medium Spring Green` | `Light Coral` |
 | `HEX Code` | `#00FFFF` | `#FF33FF` | `#FF9900` | `#00CC33` | `#FF3333` |
 
@@ -30,7 +30,7 @@
 
 ` `
 
-| `Decision` | `Good Outcomes` | `Bad Outcomes` | ` ` | `FREEDOM` | `Love` | `Ambition` | `MORALITY` | `Power` |
+| `Decision` | `Good Outcomes` | `Bad Outcomes` | ` ` | `FREEDOM` | `Loyalty` | `Ambition` | `MORALITY` | `Power` |
 | ----- | ----- | ----- | :---- | ----- | ----- | ----- | ----- | ----- |
 | `STRAIGHTFORWARD` | `4` | `0` | `FLAM` | `1` | `1` | `1` | `1` | `0` |
 | `CHALLENGE` | `3` | `1` | `FAMP` | `1` | `0` | `1` | `1` | `1` |

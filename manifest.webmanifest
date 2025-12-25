@@ -1,0 +1,29 @@
+{
+  "name": "Record Label Simulator",
+  "short_name": "RLS",
+  "description": "Build and run a record label, manage creators, and release tracks.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#0f141c",
+  "theme_color": "#0f141c",
+  "categories": ["games", "music"],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

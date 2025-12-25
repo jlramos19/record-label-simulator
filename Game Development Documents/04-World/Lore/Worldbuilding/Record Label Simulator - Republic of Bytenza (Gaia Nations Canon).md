@@ -13,7 +13,7 @@
 
   `Dominant Color: Blue/Cyan (for images)`
 
-  * `The dominant color used for Bytenza's image generation is cyan, representing the country's futuristic orientation.`
+  * `The dominant color used for Bytenza's image generation is blue, representing the country's futuristic orientation.`
 
   `Language: Korean-speaking`
 
@@ -45,7 +45,7 @@
 
   `Artists: Artists reflect Bytenza's power-hungry focus and technological orientation`
 
-  * `Artists from Bytenza often reflect the country's power-driven focus, seen through elements such as the cyan primary lighting in images, their forward-thinking music themes, and their public image.`
+  * `Artists from Bytenza often reflect the country's power-driven focus, seen through elements such as the blue primary lighting in images, their forward-thinking music themes, and their public image.`
 
   `Ethnicity/Race of Artists: Asian and Oceanian`
 
@@ -209,7 +209,7 @@
 `- Bytenza's audience places high value on elements of power and governance, reflecting in their societal structure and cultural customs.`  
 ` `  
 `Dominant Color: Blue/Cyan (for images)`  
-`- The dominant color used for Bytenza's image generation is cyan, representing the country's futuristic orientation.`  
+`- The dominant color used for Bytenza's image generation is blue, representing the country's futuristic orientation.`  
 ` `  
 `Language: Korean-speaking`  
 `- The primary language of communication in Bytenza is Korean.`  
@@ -233,7 +233,7 @@
 `- In terms of international relations, Bytenza shares balanced relations with Crowlya, while it poses a threat to Annglora.`  
 ` `  
 `Artists: Artists reflect Bytenza's power-hungry focus and technological orientation`  
-`- Artists from Bytenza often reflect the country's power-driven focus, seen through elements such as the cyan primary lighting in images, their forward-thinking music themes, and their public image.`  
+`- Artists from Bytenza often reflect the country's power-driven focus, seen through elements such as the blue primary lighting in images, their forward-thinking music themes, and their public image.`  
 ` `  
 `Ethnicity/Race of Artists: Asian and Oceanian`  
 `- Artists from Bytenza are predominantly of Asian and Oceanian ethnicity.`  

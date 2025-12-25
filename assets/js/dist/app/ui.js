@@ -2,10 +2,10 @@
 import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
-import { buildPromoHint, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
-const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE } = game;
-const ROUTES = ["charts", "create", "releases", "eras", "roster", "world", "logs"];
-const DEFAULT_ROUTE = "charts";
+import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
+const { $, state, session, openOverlay, closeOverlay, renderAutoAssignModal, rankCandidates, renderSlots, logEvent, renderStats, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, createTrack, startDemoStage, startMasterStage, advanceHours, renderAll, makeActName, makeAct, renderActs, renderCreators, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, setFocusEraById, startEraForAct, endEraById, uid, weekIndex, renderEraStatus, renderTracks, renderReleaseDesk, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, buildMarketCreators, normalizeCreator, postCreatorSigned, openMainMenu, getSlotData, resetState, refreshSelectOptions, computeCharts, closeMainMenu, startGameLoop, setTimeSpeed, markUiLogStart, updateActMemberFields, renderQuickRecipes, renderCalendarList, renderGenreIndex, renderStudiosList, renderRoleActions, renderCharts, renderWallet, acceptBailout, declineBailout, renderSocialFeed, updateGenrePreview, renderMainMenu, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, shakeSlot, shakeField, getSlotElement, getSlotValue, describeSlot, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, ensureMarketCreators, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY } = game;
+const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
+const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
     promotion: "logs",
     era: "eras"
@@ -13,6 +13,7 @@ const ROUTE_ALIASES = {
 const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
 const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
 const GAME_MODE_KEY = "rls_game_mode_v1";
+const GAME_DIFFICULTY_KEY = "rls_game_difficulty_v1";
 let activeRoute = DEFAULT_ROUTE;
 let hasMountedRoute = false;
 let chartHistoryRequestId = 0;
@@ -113,12 +114,18 @@ const PANEL_STATES = {
     expanded: "expanded",
     open: "open"
 };
-const MAIN_SURFACES = ["charts", "create-track", "release-desk", "era-desk"];
+const MAIN_SURFACES = ["dashboard-overview", "charts", "create-track", "release-desk", "era-desk"];
 const VIEW_PANEL_STATES = {
     open: "open",
     hidden: "hidden"
 };
 const VIEW_DEFAULTS = {
+    dashboard: {
+        "dashboard-overview": VIEW_PANEL_STATES.open,
+        "dashboard-pipeline": VIEW_PANEL_STATES.open,
+        "dashboard-charts": VIEW_PANEL_STATES.open,
+        "dashboard-eras": VIEW_PANEL_STATES.open
+    },
     charts: {
         "charts": VIEW_PANEL_STATES.open,
         "release-desk": VIEW_PANEL_STATES.open,
@@ -127,19 +134,16 @@ const VIEW_DEFAULTS = {
     create: {
         "create-track": VIEW_PANEL_STATES.open,
         "create-trends": VIEW_PANEL_STATES.open,
-        "tracks": VIEW_PANEL_STATES.open,
-        "track-archive": VIEW_PANEL_STATES.open
+        "tracks": VIEW_PANEL_STATES.open
     },
     releases: {
         "release-desk": VIEW_PANEL_STATES.open,
-        "tracks": VIEW_PANEL_STATES.open,
-        "track-archive": VIEW_PANEL_STATES.open
+        "tracks": VIEW_PANEL_STATES.open
     },
     eras: {
         "era-desk": VIEW_PANEL_STATES.open,
         "calendar": VIEW_PANEL_STATES.open,
-        "tracks": VIEW_PANEL_STATES.open,
-        "track-archive": VIEW_PANEL_STATES.open
+        "tracks": VIEW_PANEL_STATES.open
     },
     roster: {
         "harmony-hub": VIEW_PANEL_STATES.open,
@@ -231,6 +235,43 @@ function syncGameModeSelect() {
             const nextMode = modes.find((mode) => mode.id === next);
             if (hint)
                 hint.textContent = nextMode?.description || "";
+        });
+    }
+}
+function getStoredGameDifficulty() {
+    if (typeof localStorage === "undefined")
+        return DEFAULT_GAME_DIFFICULTY;
+    return localStorage.getItem(GAME_DIFFICULTY_KEY) || DEFAULT_GAME_DIFFICULTY;
+}
+function setStoredGameDifficulty(difficultyId) {
+    if (typeof localStorage === "undefined")
+        return;
+    localStorage.setItem(GAME_DIFFICULTY_KEY, difficultyId);
+}
+function getSelectedGameDifficultyId() {
+    const select = $("difficultySelect");
+    return select?.value || getStoredGameDifficulty();
+}
+function syncDifficultySelect() {
+    const select = $("difficultySelect");
+    if (!select)
+        return;
+    const difficulties = listGameDifficulties();
+    select.innerHTML = difficulties.map((difficulty) => `<option value="${difficulty.id}">${difficulty.label}</option>`).join("");
+    const stored = getStoredGameDifficulty();
+    select.value = difficulties.some((difficulty) => difficulty.id === stored) ? stored : DEFAULT_GAME_DIFFICULTY;
+    const hint = $("difficultyHint");
+    const active = difficulties.find((difficulty) => difficulty.id === select.value);
+    if (hint)
+        hint.textContent = active?.description || "";
+    if (!select.dataset.bound) {
+        select.dataset.bound = "1";
+        select.addEventListener("change", () => {
+            const next = select.value || DEFAULT_GAME_DIFFICULTY;
+            setStoredGameDifficulty(next);
+            const nextDifficulty = difficulties.find((difficulty) => difficulty.id === next);
+            if (hint)
+                hint.textContent = nextDifficulty?.description || "";
         });
     }
 }
@@ -406,9 +447,8 @@ function applyPanelStates(route, root) {
         panel.dataset.state = normalized;
         panel.style.width = entry.width || "";
         panel.style.height = entry.height || "";
-        panel.hidden = isHidden;
+        setPanelVisibility(panel, !isHidden);
         panel.classList.remove("panel--mini");
-        panel.classList.toggle("panel--hidden", isHidden);
         addPanelActions(panel);
         updateViewPanelActions(panel, normalized);
         clampPanelRect(panel);
@@ -443,6 +483,7 @@ function setViewPanelState(route, key, nextState) {
     saveViewPanelState(store);
     applyPanelStates(route, root);
     renderPanelMenu();
+    syncSidePanelsButton(root);
     requestAnimationFrame(() => {
         const panelAfter = root ? root.querySelector(`.panel.card[data-panel="${key}"]`) : null;
         const rectAfter = serializeRect(panelAfter);
@@ -530,6 +571,57 @@ function syncViewColumns(root) {
     const hasVisible = Array.from(side.querySelectorAll(".panel.card")).some((panel) => !panel.hidden);
     root.classList.toggle("view--single", !hasVisible);
 }
+function getViewSidePanels(root) {
+    const scope = root || document.querySelector(".view");
+    if (!scope)
+        return [];
+    return Array.from(scope.querySelectorAll(".view-side .panel.card"));
+}
+function syncSidePanelsButton(root) {
+    const btn = $("sidePanelsBtn");
+    if (!btn)
+        return;
+    const panels = getViewSidePanels(root);
+    if (!panels.length) {
+        btn.disabled = true;
+        btn.classList.remove("active");
+        btn.setAttribute("aria-pressed", "false");
+        btn.title = "No side panels in this view.";
+        return;
+    }
+    const anyVisible = panels.some((panel) => !panel.classList.contains("panel-hidden"));
+    btn.disabled = false;
+    btn.classList.toggle("active", anyVisible);
+    btn.setAttribute("aria-pressed", String(anyVisible));
+    btn.title = anyVisible ? "Hide side panels" : "Show side panels";
+}
+function toggleSidePanels() {
+    const route = state.ui.activeView || activeRoute;
+    const root = document.querySelector(".view");
+    const panels = getViewSidePanels(root);
+    if (!panels.length)
+        return;
+    const anyVisible = panels.some((panel) => !panel.classList.contains("panel-hidden"));
+    if (anyVisible) {
+        const openKeys = panels
+            .filter((panel) => !panel.classList.contains("panel-hidden"))
+            .map((panel) => panelKey(panel))
+            .filter(Boolean);
+        if (!state.ui.sidePanelRestore)
+            state.ui.sidePanelRestore = {};
+        state.ui.sidePanelRestore[route] = openKeys;
+        openKeys.forEach((key) => setViewPanelState(route, key, VIEW_PANEL_STATES.hidden));
+    }
+    else {
+        const restoreKeys = state.ui.sidePanelRestore?.[route];
+        const keys = restoreKeys && restoreKeys.length
+            ? restoreKeys
+            : panels.map((panel) => panelKey(panel)).filter(Boolean);
+        keys.forEach((key) => setViewPanelState(route, key, VIEW_PANEL_STATES.open));
+    }
+    syncSidePanelsButton(root);
+    saveToActiveSlot();
+}
 function updateRoute(route) {
     const next = ROUTES.includes(route) ? route : DEFAULT_ROUTE;
     if (activeRoute === next && hasMountedRoute)
@@ -567,6 +659,7 @@ function mountView(route) {
     ensureSlotDropdowns();
     updateSlotDropdowns();
     applyPanelStates(route, root);
+    syncSidePanelsButton(root);
     setupPanelResizers(root);
     bindViewHandlers(route, root);
     renderAll();
@@ -859,6 +952,7 @@ function resetViewLayout() {
     updateRoute(DEFAULT_ROUTE);
     renderPanelMenu();
 }
+const PROMO_BUDGET_MIN = 100;
 function getPromoInflationMultiplier() {
     const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
     const baseYear = state.meta?.startYear || new Date(state.time?.startEpochMs || state.time?.epochMs || Date.now()).getUTCFullYear();
@@ -866,17 +960,79 @@ function getPromoInflationMultiplier() {
     const annualInflation = 0.02;
     return Math.pow(1 + annualInflation, yearsElapsed);
 }
+function promoBudgetBaseCost(typeId) {
+    const details = getPromoTypeDetails(typeId);
+    return Math.max(PROMO_BUDGET_MIN, details.cost);
+}
+function setPromoBudgetToBaseCost(root, typeId) {
+    const scope = root || document;
+    const input = scope.querySelector("#promoBudget");
+    if (!input)
+        return;
+    input.min = String(PROMO_BUDGET_MIN);
+    input.value = String(promoBudgetBaseCost(typeId));
+}
+function normalizePromoBudget(root, typeId) {
+    const scope = root || document;
+    const input = scope.querySelector("#promoBudget");
+    const baseCost = promoBudgetBaseCost(typeId);
+    if (!input)
+        return baseCost;
+    input.min = String(PROMO_BUDGET_MIN);
+    const raw = Number(input.value);
+    const next = Number.isFinite(raw) ? Math.max(PROMO_BUDGET_MIN, raw) : baseCost;
+    if (String(next) !== input.value)
+        input.value = String(next);
+    return next;
+}
+function hydratePromoTypeCards(root) {
+    const scope = root || document;
+    const cards = scope.querySelectorAll("[data-promo-type]");
+    if (!cards.length)
+        return;
+    cards.forEach((card) => {
+        const typeId = card.dataset.promoType;
+        if (!typeId)
+            return;
+        const details = getPromoTypeDetails(typeId);
+        const label = card.querySelector("[data-promo-label]");
+        if (label)
+            label.textContent = details.label;
+        const requirement = card.querySelector("[data-promo-requirement]");
+        if (requirement)
+            requirement.textContent = `Requirement: ${details.requirement}`;
+        const cost = card.querySelector("[data-promo-cost]");
+        if (cost)
+            cost.textContent = `Typical cost: ${formatMoney(details.cost)}`;
+    });
+}
+function syncPromoTypeCards(root, typeId) {
+    const scope = root || document;
+    const cards = scope.querySelectorAll("[data-promo-type]");
+    if (!cards.length)
+        return;
+    cards.forEach((card) => {
+        const isActive = card.dataset.promoType === typeId;
+        card.classList.toggle("is-active", isActive);
+        card.setAttribute("aria-checked", isActive ? "true" : "false");
+        const status = card.querySelector("[data-promo-status]");
+        if (status)
+            status.textContent = isActive ? "Selected" : "Select";
+    });
+}
 function updatePromoTypeHint(root) {
     const scope = root || document;
     const select = scope.querySelector("#promoTypeSelect");
     const hint = scope.querySelector("#promoTypeHint");
-    if (!select || !hint)
-        return;
+    const typeId = select ? select.value : DEFAULT_PROMO_TYPE;
     const inflationMultiplier = getPromoInflationMultiplier();
-    hint.textContent = buildPromoHint(select.value, inflationMultiplier);
+    if (hint)
+        hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)}`;
+    syncPromoTypeCards(scope, typeId);
+    setPromoBudgetToBaseCost(scope, typeId);
     const budgetInput = scope.querySelector("#promoBudget");
     if (budgetInput) {
-        const { adjustedCost } = getPromoTypeCosts(select.value, inflationMultiplier);
+        const { adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
         budgetInput.placeholder = formatMoney(adjustedCost);
     }
 }
@@ -902,13 +1058,19 @@ function bindGlobalHandlers() {
     on("menuBtn", "click", () => {
         openMainMenu();
         syncGameModeSelect();
+        syncDifficultySelect();
         updateTimeControlButtons();
         syncTimeControlAria();
+    });
+    on("tutorialBtn", "click", () => {
+        renderRoleActions();
+        openOverlay("tutorialModal");
     });
     on("panelMenuBtn", "click", () => {
         renderPanelMenu();
         openOverlay("panelMenu");
     });
+    on("sidePanelsBtn", "click", () => toggleSidePanels());
     on("panelMenuClose", "click", () => closeOverlay("panelMenu"));
     on("resetLayoutBtn", "click", () => {
         resetViewLayout();
@@ -989,6 +1151,7 @@ function bindGlobalHandlers() {
         openOverlay("quickRecipesModal");
     });
     on("quickRecipesClose", "click", () => closeOverlay("quickRecipesModal"));
+    on("tutorialClose", "click", () => closeOverlay("tutorialModal"));
     on("calendarClose", "click", () => closeOverlay("calendarModal"));
     const refreshCalendar = () => {
         renderCalendarList("calendarList", 4);
@@ -1025,6 +1188,7 @@ function bindGlobalHandlers() {
         if (!session.activeSlot) {
             openMainMenu();
             syncGameModeSelect();
+            syncDifficultySelect();
             updateTimeControlButtons();
             syncTimeControlAria();
         }
@@ -1183,7 +1347,8 @@ function bindGlobalHandlers() {
                 if (!ok)
                     return;
                 const mode = getSelectedGameModeId();
-                loadSlot(slot, true, { mode });
+                const difficulty = getSelectedGameDifficultyId();
+                loadSlot(slot, true, { mode, difficulty });
                 exitMenuToGame();
             }
         });
@@ -1317,6 +1482,74 @@ function bindViewHandlers(route, root) {
             }
         });
     }
+    const syncCreatePanelToggles = () => {
+        const help = root.querySelector("#createHelp");
+        const helpBtn = root.querySelector("#createHelpToggle");
+        if (help)
+            help.classList.toggle("hidden", !state.ui.createHelpOpen);
+        if (helpBtn) {
+            helpBtn.classList.toggle("active", !!state.ui.createHelpOpen);
+            helpBtn.setAttribute("aria-expanded", String(!!state.ui.createHelpOpen));
+        }
+        const advanced = root.querySelector("#createAdvancedOptions");
+        const advancedBtn = root.querySelector("#createAdvancedToggle");
+        if (advanced)
+            advanced.classList.toggle("hidden", !state.ui.createAdvancedOpen);
+        if (advancedBtn) {
+            advancedBtn.classList.toggle("active", !!state.ui.createAdvancedOpen);
+            advancedBtn.setAttribute("aria-expanded", String(!!state.ui.createAdvancedOpen));
+        }
+    };
+    if (route === "create") {
+        syncCreatePanelToggles();
+        on("createHelpToggle", "click", () => {
+            state.ui.createHelpOpen = !state.ui.createHelpOpen;
+            syncCreatePanelToggles();
+            saveToActiveSlot();
+        });
+        on("createAdvancedToggle", "click", () => {
+            state.ui.createAdvancedOpen = !state.ui.createAdvancedOpen;
+            syncCreatePanelToggles();
+            saveToActiveSlot();
+        });
+        root.addEventListener("click", (e) => {
+            const moreBtn = e.target.closest("[data-slot-more]");
+            const lessBtn = e.target.closest("[data-slot-less]");
+            const role = moreBtn?.dataset.slotMore || lessBtn?.dataset.slotLess;
+            if (!role)
+                return;
+            const limit = TRACK_ROLE_LIMITS?.[role] || 1;
+            const minVisible = Math.min(3, limit);
+            if (!state.ui.trackSlotVisible)
+                state.ui.trackSlotVisible = {};
+            const current = Number(state.ui.trackSlotVisible[role]) || minVisible;
+            const key = TRACK_ROLE_KEYS[role];
+            const assigned = Array.isArray(state.ui.trackSlots?.[key])
+                ? state.ui.trackSlots[key].filter(Boolean).length
+                : 0;
+            if (moreBtn) {
+                state.ui.trackSlotVisible[role] = Math.min(limit, current + 1);
+            }
+            else if (lessBtn) {
+                state.ui.trackSlotVisible[role] = Math.max(minVisible, Math.max(assigned, current - 1));
+            }
+            renderSlots();
+            saveToActiveSlot();
+        });
+    }
+    const trackTabs = root.querySelectorAll("[data-track-tab]");
+    if (trackTabs.length) {
+        trackTabs.forEach((tab) => {
+            tab.addEventListener("click", () => {
+                const next = tab.dataset.trackTab;
+                if (!next)
+                    return;
+                state.ui.trackPanelTab = next;
+                renderTracks();
+                saveToActiveSlot();
+            });
+        });
+    }
     if (route === "charts") {
         root.addEventListener("click", (e) => {
             if (!state.ui.chartHistoryWeek)
@@ -1329,6 +1562,26 @@ function bindViewHandlers(route, root) {
     }
     if (route === "logs") {
         on("promoTypeSelect", "change", () => updatePromoTypeHint(root));
+        on("promoBudget", "change", () => {
+            const typeId = root.querySelector("#promoTypeSelect")?.value || DEFAULT_PROMO_TYPE;
+            normalizePromoBudget(root, typeId);
+        });
+        const promoGrid = root.querySelector("#promoTypeGrid");
+        if (promoGrid) {
+            promoGrid.addEventListener("click", (e) => {
+                const card = e.target.closest("[data-promo-type]");
+                if (!card)
+                    return;
+                const typeId = card.dataset.promoType;
+                if (!typeId)
+                    return;
+                const select = root.querySelector("#promoTypeSelect");
+                if (select)
+                    select.value = typeId;
+                updatePromoTypeHint(root);
+            });
+        }
+        hydratePromoTypeCards(root);
         updatePromoTypeHint(root);
     }
     on("chartWeekBtn", "click", () => {
@@ -1353,18 +1606,36 @@ function bindViewHandlers(route, root) {
             if (!stageId)
                 return;
             state.ui.createStage = stageId;
-            const target = stageId === "demo"
-                ? primaryTrackSlotTarget("Performer")
-                : stageId === "master"
-                    ? primaryTrackSlotTarget("Producer")
-                    : primaryTrackSlotTarget("Songwriter");
+            let target = state.ui.slotTarget;
+            if (stageId === "demo") {
+                target = primaryTrackSlotTarget("Performer");
+            }
+            else if (stageId === "master") {
+                target = primaryTrackSlotTarget("Producer");
+            }
+            else if (stageId === "sheet") {
+                target = primaryTrackSlotTarget("Songwriter");
+            }
+            else if (!target) {
+                target = primaryTrackSlotTarget("Songwriter");
+            }
             state.ui.slotTarget = target;
             renderAll();
             saveToActiveSlot();
         });
     }
-    on("stageTrackSelect", "change", (e) => {
-        state.ui.createTrackId = e.target.value || null;
+    on("demoTrackSelect", "change", (e) => {
+        if (state.ui.createTrackIds)
+            state.ui.createTrackIds.demo = e.target.value || null;
+        if (state.ui.createStage === "demo")
+            state.ui.createTrackId = state.ui.createTrackIds.demo;
+        renderAll();
+    });
+    on("masterTrackSelect", "change", (e) => {
+        if (state.ui.createTrackIds)
+            state.ui.createTrackIds.master = e.target.value || null;
+        if (state.ui.createStage === "master")
+            state.ui.createTrackId = state.ui.createTrackIds.master;
         renderAll();
     });
     on("themeSelect", "change", () => {
@@ -1386,6 +1657,9 @@ function bindViewHandlers(route, root) {
     on("trackRecommendAll", "click", recommendAllCreators);
     on("autoAssignBtn", "click", autoAssignCreators);
     on("startTrackBtn", "click", startTrackFromUI);
+    on("startSheetBtn", "click", startSheetFromUI);
+    on("startDemoBtn", "click", startDemoFromUI);
+    on("startMasterBtn", "click", startMasterFromUI);
     on("genreThemeFilter", "change", (e) => {
         state.ui.genreTheme = e.target.value;
         renderGenreIndex();
@@ -1393,6 +1667,14 @@ function bindViewHandlers(route, root) {
     on("genreMoodFilter", "change", (e) => {
         state.ui.genreMood = e.target.value;
         renderGenreIndex();
+    });
+    on("trendScopeSelect", "change", (e) => {
+        state.ui.trendScopeType = e.target.value;
+        renderAll();
+    });
+    on("trendScopeTarget", "change", (e) => {
+        state.ui.trendScopeTarget = e.target.value;
+        renderAll();
     });
     const readyList = root.querySelector("#readyList");
     if (readyList)
@@ -1668,6 +1950,7 @@ function exportDebugBundle() {
         `Week: ${snapshot.week}`,
         `Cash: ${formatMoney(snapshot.cash)}`,
         `Active Slot: ${snapshot.activeSlot || "-"}`,
+        `Difficulty: ${state.meta?.difficulty || DEFAULT_GAME_DIFFICULTY}`,
         "",
         "## Event Counts"
     ];
@@ -1711,6 +1994,7 @@ function exportLossArchive(entry) {
         `Generated: ${new Date().toISOString()}`,
         `Label: ${entry.label || "-"}`,
         `Result: ${entry.result || "loss"}`,
+        `Difficulty: ${entry.difficulty || "-"}`,
         `Reason: ${entry.reason || "-"}`,
         `Slot: ${entry.slot || "-"}`,
         `Week: ${entry.week || "-"}`,
@@ -1859,8 +2143,15 @@ function updateTrackRecommendation() {
     const selectedModifier = getModifier(selectedModifierId);
     const recModifier = getModifier(rec.modifierId);
     const stage = state.ui.createStage || "sheet";
-    const stageLabel = stage === "demo" ? "Demo Recording" : stage === "master" ? "Master Recording" : "Sheet Music";
-    const stageIndex = stage === "demo" ? 1 : stage === "master" ? 2 : 0;
+    const stageForCalc = stage === "all" ? "sheet" : stage;
+    const stageLabel = stage === "all"
+        ? "Pipeline"
+        : stage === "demo"
+            ? "Demo Recording"
+            : stage === "master"
+                ? "Master Recording"
+                : "Sheet Music";
+    const stageIndex = stageForCalc === "demo" ? 1 : stageForCalc === "master" ? 2 : 0;
     const stageInfo = STAGES[stageIndex];
     const songwriterCount = getTrackSlotIds("Songwriter").length;
     const performerCount = getTrackSlotIds("Performer").length;
@@ -1956,7 +2247,8 @@ function assignAllCreatorsToSlots() {
 function recommendAllCreators() {
     const rec = recommendTrackPlan();
     const stage = state.ui.createStage || "sheet";
-    applyTrackRecommendationPlan(rec, stage);
+    const stageForPlan = stage === "all" ? "sheet" : stage;
+    applyTrackRecommendationPlan(rec, stageForPlan);
     const summary = assignAllCreatorsToSlots();
     renderSlots();
     saveToActiveSlot();
@@ -2328,50 +2620,66 @@ function startSoloTracksFromUI() {
         $("projectTypeSelect").value = "Single";
     renderAll();
 }
-function startTrackFromUI() {
-    const stage = state.ui.createStage || "sheet";
-    if (stage === "demo") {
-        const trackId = state.ui.createTrackId || $("stageTrackSelect")?.value;
-        if (!trackId) {
-            logEvent("Select a track awaiting demo recording.", "warn");
-            return;
-        }
-        const track = getTrack(trackId);
-        if (!track) {
-            logEvent("Track not found for demo recording.", "warn");
-            return;
-        }
-        const mood = $("moodSelect") ? $("moodSelect").value : "";
-        const performerIds = getTrackSlotIds("Performer");
-        const started = startDemoStage(track, mood, performerIds);
-        if (started) {
-            logChoice("track_stage", { trackId, action: "demo", mood, performerIds });
-            logUiEvent("action_submit", { action: "start_demo", trackId, mood, performerIds });
-            renderAll();
-        }
+function getSelectedStageTrackId(stageId) {
+    if (stageId === "demo") {
+        const selected = (state.ui.createTrackIds && state.ui.createTrackIds.demo)
+            || $("demoTrackSelect")?.value
+            || null;
+        if (state.ui.createTrackIds)
+            state.ui.createTrackIds.demo = selected || null;
+        return selected || null;
+    }
+    if (stageId === "master") {
+        const selected = (state.ui.createTrackIds && state.ui.createTrackIds.master)
+            || $("masterTrackSelect")?.value
+            || null;
+        if (state.ui.createTrackIds)
+            state.ui.createTrackIds.master = selected || null;
+        return selected || null;
+    }
+    return null;
+}
+function startDemoFromUI() {
+    const trackId = getSelectedStageTrackId("demo");
+    if (!trackId) {
+        logEvent("Select a track awaiting demo recording.", "warn");
         return;
     }
-    if (stage === "master") {
-        const trackId = state.ui.createTrackId || $("stageTrackSelect")?.value;
-        if (!trackId) {
-            logEvent("Select a track awaiting mastering.", "warn");
-            return;
-        }
-        const track = getTrack(trackId);
-        if (!track) {
-            logEvent("Track not found for mastering.", "warn");
-            return;
-        }
-        const producerIds = getTrackSlotIds("Producer");
-        const alignment = $("trackAlignment") ? $("trackAlignment").value : "";
-        const started = startMasterStage(track, producerIds, alignment);
-        if (started) {
-            logChoice("track_stage", { trackId, action: "master", producerIds, alignment });
-            logUiEvent("action_submit", { action: "start_master", trackId, producerIds, alignment });
-            renderAll();
-        }
+    const track = getTrack(trackId);
+    if (!track) {
+        logEvent("Track not found for demo recording.", "warn");
         return;
     }
+    const mood = $("moodSelect") ? $("moodSelect").value : "";
+    const performerIds = getTrackSlotIds("Performer");
+    const started = startDemoStage(track, mood, performerIds);
+    if (started) {
+        logChoice("track_stage", { trackId, action: "demo", mood, performerIds });
+        logUiEvent("action_submit", { action: "start_demo", trackId, mood, performerIds });
+        renderAll();
+    }
+}
+function startMasterFromUI() {
+    const trackId = getSelectedStageTrackId("master");
+    if (!trackId) {
+        logEvent("Select a track awaiting mastering.", "warn");
+        return;
+    }
+    const track = getTrack(trackId);
+    if (!track) {
+        logEvent("Track not found for mastering.", "warn");
+        return;
+    }
+    const producerIds = getTrackSlotIds("Producer");
+    const alignment = $("trackAlignment") ? $("trackAlignment").value : "";
+    const started = startMasterStage(track, producerIds, alignment);
+    if (started) {
+        logChoice("track_stage", { trackId, action: "master", producerIds, alignment });
+        logUiEvent("action_submit", { action: "start_master", trackId, producerIds, alignment });
+        renderAll();
+    }
+}
+function startSheetFromUI() {
     if (state.ui.recommendAllMode === "solo") {
         startSoloTracksFromUI();
         return;
@@ -2465,6 +2773,18 @@ function startTrackFromUI() {
     if ($("projectTypeSelect"))
         $("projectTypeSelect").value = "Single";
     renderAll();
+}
+function startTrackFromUI() {
+    const stage = state.ui.createStage || "sheet";
+    if (stage === "demo") {
+        startDemoFromUI();
+        return;
+    }
+    if (stage === "master") {
+        startMasterFromUI();
+        return;
+    }
+    startSheetFromUI();
 }
 function createActFromUI() {
     const name = $("actName").value.trim() || makeActName();
@@ -2608,9 +2928,9 @@ function pickPromoTrackFromFocus() {
 }
 function runPromotion() {
     const trackId = state.ui.promoSlots.trackId;
-    const budget = Number($("promoBudget").value);
-    const promoType = $("promoTypeSelect") ? $("promoTypeSelect").value : "musicVideo";
+    const promoType = $("promoTypeSelect") ? $("promoTypeSelect").value : DEFAULT_PROMO_TYPE;
     const promoDetails = getPromoTypeDetails(promoType);
+    const budget = normalizePromoBudget(document, promoType);
     if (!trackId) {
         logEvent("No released track selected for promo push.", "warn");
         return;
@@ -2830,6 +3150,7 @@ export function initUI() {
     }
     openMainMenu();
     syncGameModeSelect();
+    syncDifficultySelect();
 }
 function setupPanelControls() {
     document.querySelectorAll(".panel.card").forEach((panel) => {

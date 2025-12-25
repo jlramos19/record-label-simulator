@@ -72,7 +72,7 @@
 
 **`LYRICS:`**
 
-`Supports: Love, Ambition, MORALITY`  
+`Supports: Loyalty, Ambition, MORALITY`  
 ` `
 
 **`SPONSOR A PRODUCT`**
