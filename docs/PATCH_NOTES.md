@@ -1,5 +1,16 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1552Z)
+- Rollout Strategies now persist per Era/Act with weekly drop/event husks, manual expansion, and auto-run gating that logs deterministic block reasons.
+- Calendar projection now includes scheduled rollout events alongside release queue entries (all timestamps snap to whole-hour cadence; releases at Friday 00:00).
+- Era completion generates a reusable “what happened” rollout husk with an opt-out flag to limit save bloat.
+
+## 2025-12-25 (RLS-PATCH-20251225-1545Z)
+- Rival AI now selects rollout husks (starter + era-derived) to schedule releases and promo events in the rival queue.
+- Rollout events are tracked in `state.scheduledEvents` and surface in Calendar projections alongside scheduled releases.
+- Rival promo budgets now use a fixed wallet-percentage independent of player auto promo settings.
+- Era rollout strategy controls now create strategies, add drops/events, and expand schedules to the calendar.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1530Z)
 - Create pipeline now puts Recommend creator(s) above each stage start button and surfaces a short reason when start is disabled.
 - Start buttons stay gated by stage prerequisites (inputs, assignments, cash, studio slots) while existing validation still blocks invalid creation.

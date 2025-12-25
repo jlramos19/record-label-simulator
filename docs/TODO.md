@@ -1,5 +1,7 @@
 # TODO
 
+- [ ] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
+- [ ] RLS-AI-COMPETE-001: Guarantee at least one rival in competitive rollout mode per planning cycle, with deterministic selection and budget gates.
 - [ ] RLS-PROMO-AUTO-001: Define auto promo wallet-percentage budgeting for player + rivals and document the rule.
 - [ ] RLS-OPS-LIVEEDIT-001: Define live-edit guardrails, release patch stamping, and cache/version rules for hosted builds.
 - [ ] RLS-PROMO-LOGS-001: Remove Loss Archives and Debug Bundle panels from Promotions view; keep internal logging for balance review.

@@ -10,6 +10,7 @@ Auto promo uses a fixed percentage of the label wallet cash to fund promo pushes
 
 ## Timing
 - Auto promo checks run during the weekly charts update after promo weeks age.
+- Rival husk promos are scheduled into `state.rivalReleaseQueue` and execute on their scheduled hour.
 
 ## Player rules
 - Auto promo is toggled in the Promotions view.
@@ -18,8 +19,9 @@ Auto promo uses a fixed percentage of the label wallet cash to fund promo pushes
 - Auto promo uses the current promo type selection and respects facility slot limits.
 
 ## AI rules
-- Rival labels auto promo their most recent released track without active promo weeks.
-- AI promo budgets use the same wallet-percentage rule.
+- Rival labels schedule promo events via the husk planner (primary path).
+- If no husk promo is scheduled for the upcoming week, rivals may fall back to auto promo on their most recent released track without active promo weeks.
+- AI promo budgets use a fixed wallet-percentage rule (independent of player settings).
 
 ## Related
 - `docs/systems/promo/broadcast-studios.md`

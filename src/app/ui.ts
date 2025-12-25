@@ -45,9 +45,16 @@ const {
   getActiveEras,
   getStudioAvailableSlots,
   getFocusedEra,
+  getRolloutPlanningEra,
   setFocusEraById,
   startEraForAct,
   endEraById,
+  createRolloutStrategyForEra,
+  getRolloutStrategyById,
+  setSelectedRolloutStrategyId,
+  addRolloutStrategyDrop,
+  addRolloutStrategyEvent,
+  expandRolloutStrategy,
   uid,
   weekIndex,
   renderEraStatus,
@@ -2256,6 +2263,12 @@ function bindViewHandlers(route, root) {
   });
   on("startEraBtn", "click", startEraFromUI);
   on("endEraBtn", "click", endEraFromUI);
+  on("rolloutStrategyCreate", "click", createRolloutStrategyFromUI);
+  on("rolloutStrategySelect", "change", selectRolloutStrategyFromUI);
+  on("rolloutStrategyAddDrop", "click", addRolloutDropFromUI);
+  on("rolloutStrategyAddEvent", "click", addRolloutEventFromUI);
+  on("rolloutStrategyAutoRun", "change", toggleRolloutStrategyAutoRunFromUI);
+  on("rolloutStrategyExpand", "click", expandRolloutStrategyFromUI);
 
   on("saveBtn", "click", () => {
     if (!session.activeSlot) {
@@ -3327,6 +3340,116 @@ function endEraFromUI() {
     return;
   }
   logUiEvent("action_submit", { action: "end_era", eraId: era.id });
+  renderEraStatus();
+  saveToActiveSlot();
+}
+
+function getSelectedRolloutStrategyIdFromUI() {
+  const select = $("rolloutStrategySelect");
+  if (select && select.value) return select.value;
+  return state.ui?.viewContext?.rolloutStrategyId || null;
+}
+
+function getRolloutWeekFromUI() {
+  const input = $("rolloutStrategyWeek");
+  if (!input) return null;
+  const value = Math.floor(Number(input.value) || 0);
+  return value > 0 ? value : null;
+}
+
+function createRolloutStrategyFromUI() {
+  const era = getRolloutPlanningEra();
+  if (!era) {
+    logEvent("Focus an active era to create a rollout strategy.", "warn");
+    return;
+  }
+  const strategy = createRolloutStrategyForEra(era);
+  if (!strategy) return;
+  setSelectedRolloutStrategyId(strategy.id);
+  logUiEvent("action_submit", { action: "rollout_strategy_create", eraId: era.id, strategyId: strategy.id });
+  renderEraStatus();
+  saveToActiveSlot();
+}
+
+function selectRolloutStrategyFromUI(e) {
+  const strategyId = e.target.value || null;
+  setSelectedRolloutStrategyId(strategyId);
+  logUiEvent("action_submit", { action: "rollout_strategy_select", strategyId });
+  renderEraStatus();
+  saveToActiveSlot();
+}
+
+function addRolloutDropFromUI() {
+  const strategyId = getSelectedRolloutStrategyIdFromUI();
+  const weekNumber = getRolloutWeekFromUI();
+  const contentId = $("rolloutStrategyDropId")?.value.trim();
+  if (!strategyId) {
+    logEvent("Select a rollout strategy first.", "warn");
+    return;
+  }
+  if (!weekNumber) {
+    logEvent("Select a valid rollout week.", "warn");
+    return;
+  }
+  if (!contentId) {
+    logEvent("Drop requires a Track ID.", "warn");
+    return;
+  }
+  const ok = addRolloutStrategyDrop(strategyId, weekNumber, contentId);
+  if (!ok) return;
+  logUiEvent("action_submit", { action: "rollout_drop_add", strategyId, week: weekNumber, trackId: contentId });
+  $("rolloutStrategyDropId").value = "";
+  renderEraStatus();
+  saveToActiveSlot();
+}
+
+function addRolloutEventFromUI() {
+  const strategyId = getSelectedRolloutStrategyIdFromUI();
+  const weekNumber = getRolloutWeekFromUI();
+  const actionType = $("rolloutStrategyEventType")?.value || "";
+  const contentId = $("rolloutStrategyEventContent")?.value.trim();
+  if (!strategyId) {
+    logEvent("Select a rollout strategy first.", "warn");
+    return;
+  }
+  if (!weekNumber) {
+    logEvent("Select a valid rollout week.", "warn");
+    return;
+  }
+  if (!actionType) {
+    logEvent("Event requires an action type.", "warn");
+    return;
+  }
+  const ok = addRolloutStrategyEvent(strategyId, weekNumber, actionType, contentId);
+  if (!ok) return;
+  logUiEvent("action_submit", { action: "rollout_event_add", strategyId, week: weekNumber, actionType, contentId });
+  $("rolloutStrategyEventContent").value = "";
+  renderEraStatus();
+  saveToActiveSlot();
+}
+
+function toggleRolloutStrategyAutoRunFromUI(e) {
+  const strategyId = getSelectedRolloutStrategyIdFromUI();
+  if (!strategyId) return;
+  const strategy = getRolloutStrategyById(strategyId);
+  if (!strategy) return;
+  strategy.autoRun = Boolean(e.target.checked);
+  if (strategy.autoRun && strategy.status === "Draft") strategy.status = "Active";
+  logEvent(strategy.autoRun ? "Rollout auto-run enabled." : "Rollout auto-run disabled.");
+  logUiEvent("action_submit", { action: "rollout_auto_run", strategyId, enabled: strategy.autoRun });
+  renderEraStatus();
+  saveToActiveSlot();
+}
+
+function expandRolloutStrategyFromUI() {
+  const strategyId = getSelectedRolloutStrategyIdFromUI();
+  if (!strategyId) {
+    logEvent("Select a rollout strategy first.", "warn");
+    return;
+  }
+  const result = expandRolloutStrategy(strategyId, { mode: "manual" });
+  if (!result) return;
+  logUiEvent("action_submit", { action: "rollout_expand", strategyId, ...result });
   renderEraStatus();
   saveToActiveSlot();
 }

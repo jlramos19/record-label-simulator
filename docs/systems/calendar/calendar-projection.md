@@ -1,13 +1,13 @@
 # Calendar Projection (Web MVP)
 
 ## Intent
-The Calendar is a projection layer over existing scheduling data. It does not replace scheduling systems, change save formats, or introduce new event types. The Calendar view reads current state and renders timelines; simulation logic remains authoritative.
+The Calendar is a projection layer over existing scheduling data. It does not replace scheduling systems or change save formats. The Calendar view reads current state and renders timelines; simulation logic remains authoritative.
 
 ## Sources (Read-Only)
 - Label scheduled drops: `state.releaseQueue`.
 - Label scheduled events: `state.scheduledEvents`.
 - Label released drops: `state.marketTracks` where `isPlayer` is true.
-- Rival scheduled drops: `state.rivalReleaseQueue`.
+- Rival scheduled drops and promos: `state.rivalReleaseQueue` (entries may include release or promo kinds).
 - Rival released drops: `state.marketTracks` where `isPlayer` is false.
 - Eras: `state.era.active` and active Act metadata.
 

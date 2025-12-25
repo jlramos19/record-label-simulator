@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { fetchChartSnapshot, listChartWeeks, storeChartSnapshot } from "./db.js";
-import { DEFAULT_PROMO_TYPE } from "./promo_types.js";
+import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
 import { CalendarView, useCalendarProjection } from "./calendar.js";
 
 const LIVE_SYNC_INTERVAL_MS = 500;
@@ -17,10 +17,10 @@ const LOSS_ARCHIVE_KEY = "rls_loss_archive_v1";
 const LOSS_ARCHIVE_LIMIT = 3;
 const SEED_CALIBRATION_KEY = "rls_seed_calibration_v1";
 
-const HOURLY_TICK_FRAME_LIMIT = 48;
-const HOURLY_TICK_WARNING_THRESHOLD = 12;
+const QUARTER_TICK_FRAME_LIMIT = 48 * QUARTERS_PER_HOUR;
+const QUARTER_TICK_WARNING_THRESHOLD = 12 * QUARTERS_PER_HOUR;
 const WEEKLY_UPDATE_WARN_MS = 50;
-const HOURLY_TICK_WARN_MS = 25;
+const QUARTER_TICK_WARN_MS = 25;
 const TICK_FRAME_WARN_MS = 33;
 const STATE_VERSION = 4;
 
@@ -40,10 +40,12 @@ const TREND_WINDOW_WEEKS = 4;
 const MARKET_TRACK_ACTIVE_LIMIT = 600;
 const MARKET_TRACK_ARCHIVE_LIMIT = 2400;
 const WEEKLY_SCHEDULE = {
-  releaseProcessing: { day: 5, hour: 0 },
-  trendsUpdate: { day: 5, hour: 12 },
-  chartUpdate: { day: 6, hour: 0 }
+  releaseProcessing: { day: 5, hour: 0, minute: 0 },
+  trendsUpdate: { day: 5, hour: 12, minute: 0 },
+  chartUpdate: { day: 6, hour: 0, minute: 0 }
 };
+const ROLLOUT_EVENT_SCHEDULE = { day: 2, hour: 12, minute: 0 };
+const ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS = 24;
 const UNASSIGNED_SLOT_LABEL = "?";
 const UNASSIGNED_CREATOR_LABEL = "Unassigned";
 const CREATOR_FALLBACK_ICON = "person";
@@ -100,6 +102,13 @@ const DEFAULT_GAME_DIFFICULTY = "medium";
 const AUTO_PROMO_BUDGET_PCT = 0.05;
 const AUTO_PROMO_MIN_BUDGET = 100;
 const AUTO_PROMO_RIVAL_TYPE = "eyeriSocialPost";
+const RIVAL_COMPETE_CASH_BUFFER = Math.round(STARTING_CASH * 0.1);
+const RIVAL_COMPETE_DROP_COST = 1200;
+const AI_PROMO_BUDGET_PCT = AUTO_PROMO_BUDGET_PCT;
+const HUSK_PROMO_DEFAULT_TYPE = AUTO_PROMO_RIVAL_TYPE;
+const HUSK_PROMO_DAY = 6;
+const HUSK_PROMO_HOUR = 12;
+const HUSK_MAX_RELEASE_STEPS = 4;
 
 const TRACK_ROLE_KEYS = {
   Songwriter: "songwriterIds",
@@ -396,9 +405,12 @@ function makeDefaultState() {
       epochMs: BASE_EPOCH,
       startEpochMs: BASE_EPOCH,
       totalHours: 0,
+      totalQuarters: 0,
       speed: "pause",
       secPerHourPlay: 2.5,
       secPerHourFast: 1,
+      secPerQuarterPlay: 2.5 / QUARTERS_PER_HOUR,
+      secPerQuarterFast: 1 / QUARTERS_PER_HOUR,
       acc: 0,
       lastTick: null,
       lastYear: new Date(BASE_EPOCH).getUTCFullYear()
@@ -421,6 +433,7 @@ function makeDefaultState() {
     tracks: [],
     workOrders: [],
     releaseQueue: [],
+    scheduledEvents: [],
     marketTracks: [],
     trends: [],
     trendRanking: [],
@@ -431,7 +444,7 @@ function makeDefaultState() {
     rivals: [],
     quests: [],
     events: [],
-    resourceTickLedger: { hours: [] },
+    resourceTickLedger: { hours: [], pendingHour: null },
     ui: {
       activeChart: "global",
       trendScopeType: "global",
@@ -466,7 +479,8 @@ function makeDefaultState() {
         releaseId: null,
         projectId: null,
         plannedReleaseIds: [],
-        selectedRolloutTemplateId: null
+        selectedRolloutTemplateId: null,
+        rolloutStrategyId: null
       },
       eraPlan: {
         actId: null,
@@ -521,6 +535,7 @@ function makeDefaultState() {
       activeView: "dashboard"
     },
     era: { active: [], history: [] },
+    rolloutStrategies: [],
     economy: {
       lastRevenue: 0,
       lastUpkeep: 0,
@@ -560,7 +575,8 @@ function makeDefaultState() {
       winShown: false,
       endShown: false,
       autoSave: { enabled: false, minutes: 5, lastSavedAt: null },
-      autoRollout: { enabled: false, lastCheckedAt: null, budgetPct: AUTO_PROMO_BUDGET_PCT }
+      autoRollout: { enabled: false, lastCheckedAt: null, budgetPct: AUTO_PROMO_BUDGET_PCT },
+      keepEraRolloutHusks: true
     }
   };
 }
@@ -569,8 +585,12 @@ const state = makeDefaultState();
 
 function getStartEpochMsFromState() {
   if (state.time && typeof state.time.startEpochMs === "number") return state.time.startEpochMs;
+  const totalQuarters = Number.isFinite(state.time?.totalQuarters) ? state.time.totalQuarters : null;
   const totalHours = typeof state.time?.totalHours === "number" ? state.time.totalHours : 0;
   const epoch = typeof state.time?.epochMs === "number" ? state.time.epochMs : BASE_EPOCH;
+  if (Number.isFinite(totalQuarters)) {
+    return epoch - totalQuarters * QUARTER_HOUR_MS;
+  }
   return epoch - totalHours * HOUR_MS;
 }
 
@@ -580,6 +600,7 @@ function applyGameMode(modeId) {
   state.time.epochMs = startEpochMs;
   state.time.startEpochMs = startEpochMs;
   state.time.totalHours = 0;
+  state.time.totalQuarters = 0;
   state.time.lastYear = mode.startYear;
   if (!state.meta) state.meta = {};
   state.meta.gameMode = mode.id;
@@ -1019,6 +1040,13 @@ function pickUniqueName(list, existingNames, suffix) {
   return `${pickOne(list)} ${suffix || "II"}`;
 }
 
+function seededPickUniqueName(list, existingNames, suffix, rng) {
+  const existing = new Set(existingNames.filter(Boolean));
+  const available = list.filter((name) => !existing.has(name));
+  if (available.length) return seededPick(available, rng);
+  return `${seededPick(list, rng)} ${suffix || "II"}`;
+}
+
 function buildCreatorName(country, existingNames) {
   const parts = CREATOR_NAME_PARTS[country] || CREATOR_NAME_PARTS.Annglora;
   const existing = new Set(existingNames.filter(Boolean));
@@ -1039,6 +1067,15 @@ function buildCompositeName(prefixes, suffixes, existingNames, fallbackList, suf
     if (!existing.has(name)) return name;
   }
   return pickUniqueName(fallbackList, existingNames, suffix);
+}
+
+function buildCompositeNameSeeded(prefixes, suffixes, existingNames, fallbackList, suffix, rng) {
+  const existing = new Set(existingNames.filter(Boolean));
+  for (let i = 0; i < 24; i += 1) {
+    const name = `${seededPick(prefixes, rng)} ${seededPick(suffixes, rng)}`.replace(/\s+/g, " ").trim();
+    if (!existing.has(name)) return name;
+  }
+  return seededPickUniqueName(fallbackList, existingNames, suffix, rng);
 }
 
 function fillTemplate(template, tokens) {
@@ -1680,6 +1717,11 @@ function weekIndex() {
   return Math.floor(state.time.totalHours / WEEK_HOURS);
 }
 
+function weekIndexForEpochMs(epochMs) {
+  const startEpoch = getStartEpochMsFromState();
+  return Math.floor((epochMs - startEpoch) / (WEEK_HOURS * HOUR_MS));
+}
+
 function getUtcDayHour(epochMs) {
   const date = new Date(epochMs);
   return { day: date.getUTCDay(), hour: date.getUTCHours() };
@@ -1717,6 +1759,23 @@ function startOfDayEpochMs(epochMs) {
 
 function endOfDayEpochMs(epochMs) {
   return startOfDayEpochMs(epochMs) + DAY_MS;
+}
+
+function weekStartEpochMs(weekNumber) {
+  const safeWeek = Math.max(1, Math.floor(Number(weekNumber) || 1));
+  return getStartEpochMsFromState() + (safeWeek - 1) * WEEK_HOURS * HOUR_MS;
+}
+
+function rolloutReleaseTimestampForWeek(weekNumber) {
+  const weekStart = weekStartEpochMs(weekNumber);
+  return weekStart + WEEKLY_SCHEDULE.releaseProcessing.day * DAY_MS + WEEKLY_SCHEDULE.releaseProcessing.hour * HOUR_MS;
+}
+
+function rolloutEventTimestampForWeek(weekNumber, eventIndex = 0) {
+  const weekStart = weekStartEpochMs(weekNumber);
+  const base = weekStart + ROLLOUT_EVENT_SCHEDULE.day * DAY_MS + ROLLOUT_EVENT_SCHEDULE.hour * HOUR_MS;
+  const offset = Math.max(0, Math.floor(eventIndex || 0));
+  return base + offset * HOUR_MS;
 }
 
 function ensurePromoFacilities() {
@@ -2045,6 +2104,81 @@ function postEraComplete(era) {
     type: "era",
     order: 2
   });
+}
+
+function generateEraRolloutHusk(era) {
+  if (!era || state.meta?.keepEraRolloutHusks === false) return null;
+  if (era.rolloutHuskGenerated) return null;
+  const startAt = Number.isFinite(era.startedAt)
+    ? era.startedAt
+    : weekStartEpochMs(Number.isFinite(era.startedWeek) ? era.startedWeek : weekIndex() + 1);
+  const endAt = Number.isFinite(era.completedAt) ? era.completedAt : state.time.epochMs;
+  const startWeek = Number.isFinite(era.startedWeek)
+    ? era.startedWeek
+    : weekNumberFromEpochMs(startAt) || weekIndex() + 1;
+  const endWeek = Number.isFinite(era.completedWeek)
+    ? era.completedWeek
+    : weekNumberFromEpochMs(endAt) || startWeek;
+  const weekCount = Math.max(1, endWeek - startWeek + 1);
+  const strategy = {
+    id: uid("RS"),
+    actId: era.actId,
+    eraId: era.id,
+    weeks: buildRolloutWeeks(weekCount),
+    status: "Archived",
+    createdAt: state.time.epochMs,
+    source: "GeneratedAtEraEnd",
+    autoRun: false
+  };
+  const occurrences = [];
+  const releases = state.marketTracks.filter((entry) => entry.isPlayer
+    && Number.isFinite(entry.releasedAt)
+    && entry.releasedAt >= startAt
+    && entry.releasedAt <= endAt
+    && (entry.eraId === era.id || (!entry.eraId && entry.actId === era.actId)));
+  releases.forEach((entry) => {
+    occurrences.push({
+      type: "drop",
+      ts: entry.releasedAt,
+      contentId: entry.trackId || null
+    });
+  });
+  const scheduledEvents = ensureScheduledEventsStore().filter((entry) => Number.isFinite(entry.scheduledAt)
+    && entry.scheduledAt >= startAt
+    && entry.scheduledAt <= endAt
+    && (entry.eraId === era.id || (!entry.eraId && entry.actId === era.actId))
+    && entry.status !== "Cancelled");
+  scheduledEvents.forEach((entry) => {
+    occurrences.push({
+      type: "event",
+      ts: entry.completedAt || entry.scheduledAt,
+      actionType: entry.actionType,
+      contentId: entry.contentId || null
+    });
+  });
+  occurrences.sort((a, b) => a.ts - b.ts);
+  occurrences.forEach((occurrence) => {
+    const weekNumber = weekNumberFromEpochMs(occurrence.ts);
+    if (!weekNumber) return;
+    const weekIndex = weekNumber - startWeek;
+    if (weekIndex < 0 || weekIndex >= strategy.weeks.length) return;
+    if (occurrence.type === "drop") {
+      const drop = makeRolloutDrop(occurrence.contentId);
+      drop.status = "Completed";
+      drop.completedAt = occurrence.ts;
+      drop.scheduledAt = occurrence.ts;
+      strategy.weeks[weekIndex].drops.push(drop);
+      return;
+    }
+    const eventItem = makeRolloutEvent(occurrence.actionType, occurrence.contentId);
+    eventItem.status = "Completed";
+    eventItem.completedAt = occurrence.ts;
+    eventItem.scheduledAt = occurrence.ts;
+    strategy.weeks[weekIndex].events.push(eventItem);
+  });
+  ensureRolloutStrategies().push(strategy);
+  era.rolloutHuskGenerated = true;
+  return strategy;
 }
 
 const ALIGNMENT_THEME_PRIORITIES = {
@@ -2613,7 +2747,8 @@ function buildRivals() {
     cash: STARTING_CASH,
     wallet: { cash: STARTING_CASH },
     studio: { slots: STARTING_STUDIO_SLOTS },
-    creators: []
+    creators: [],
+    aiPlan: { lastPlannedWeek: null, lastHuskId: null, lastPlannedAt: null }
   }));
 }
 
@@ -2636,6 +2771,20 @@ function makeSeededRng(seed) {
     x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
     return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+function hashString(value) {
+  const raw = String(value || "");
+  let hash = 2166136261;
+  for (let i = 0; i < raw.length; i += 1) {
+    hash ^= raw.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function makeStableSeed(parts) {
+  return hashString(Array.isArray(parts) ? parts.join("|") : parts);
 }
 
 function seededRand(min, max, rng) {
@@ -2765,6 +2914,17 @@ function pickTrackLanguage(country) {
   return weights[0]?.lang || "en";
 }
 
+function pickTrackLanguageSeeded(country, rng) {
+  const weights = COUNTRY_LANGUAGE_WEIGHTS[country] || COUNTRY_LANGUAGE_WEIGHTS.Annglora;
+  const roll = typeof rng === "function" ? rng() : Math.random();
+  let acc = 0;
+  for (const entry of weights) {
+    acc += entry.weight;
+    if (roll <= acc) return entry.lang;
+  }
+  return weights[0]?.lang || "en";
+}
+
 function makeTrackTitleByCountry(theme, mood, country) {
   const existing = [
     ...state.tracks.map((track) => track.title),
@@ -2779,9 +2939,28 @@ function makeTrackTitleByCountry(theme, mood, country) {
   return base;
 }
 
+function makeTrackTitleByCountrySeeded(theme, mood, country, rng) {
+  const existing = [
+    ...state.tracks.map((track) => track.title),
+    ...state.marketTracks.map((track) => track.title)
+  ];
+  const lang = pickTrackLanguageSeeded(country, rng);
+  const pool = trackPoolByLang(lang);
+  const base = seededPickUniqueName(pool, existing, "II", rng);
+  if (theme && mood && rng && rng() < 0.35) {
+    return `${base} (${formatGenreLabel(theme, mood)})`;
+  }
+  return base;
+}
+
 function makeRivalActName() {
   const existing = state.marketTracks.map((track) => track.actName);
   return buildCompositeName(NAME_PARTS.actPrefix, NAME_PARTS.actSuffix, existing, ACT_NAMES, "Unit");
+}
+
+function makeRivalActNameSeeded(rng) {
+  const existing = state.marketTracks.map((track) => track.actName);
+  return buildCompositeNameSeeded(NAME_PARTS.actPrefix, NAME_PARTS.actSuffix, existing, ACT_NAMES, "Unit", rng);
 }
 
 function makeProjectTitle() {
@@ -2796,6 +2975,20 @@ function makeProjectTitle() {
   return existing.includes(composed)
     ? pickUniqueName(PROJECT_TITLES, existing, "Edition")
     : pickUniqueName([composed, ...PROJECT_TITLES], existing, "Edition");
+}
+
+function makeProjectTitleSeeded(rng) {
+  const existing = [
+    ...state.tracks.map((track) => track.projectName).filter(Boolean),
+    ...state.marketTracks.map((track) => track.projectName).filter(Boolean)
+  ];
+  const composed = fillTemplate(seededPick(PROJECT_TITLE_TEMPLATES, rng), {
+    prefix: seededPick(NAME_PARTS.projectPrefix, rng),
+    suffix: seededPick(NAME_PARTS.projectSuffix, rng)
+  });
+  return existing.includes(composed)
+    ? seededPickUniqueName(PROJECT_TITLES, existing, "Edition", rng)
+    : seededPickUniqueName([composed, ...PROJECT_TITLES], existing, "Edition", rng);
 }
 
 function computeQualityPotential(track) {
@@ -3102,6 +3295,111 @@ function registerEraContent(era, type, id) {
   }
 }
 
+function ensureRolloutStrategies() {
+  if (!Array.isArray(state.rolloutStrategies)) state.rolloutStrategies = [];
+  return state.rolloutStrategies;
+}
+
+function ensureScheduledEventsStore() {
+  if (!Array.isArray(state.scheduledEvents)) state.scheduledEvents = [];
+  return state.scheduledEvents;
+}
+
+function rolloutWeekCountFromEra(era) {
+  const weeks = Array.isArray(era?.rolloutWeeks) ? era.rolloutWeeks : (ROLLOUT_PRESETS[1]?.weeks || []);
+  const total = weeks.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+  return Math.max(1, Math.floor(total || 0));
+}
+
+function buildRolloutWeeks(count) {
+  const total = Math.max(1, Math.floor(Number(count) || 0));
+  return Array.from({ length: total }, () => ({ drops: [], events: [] }));
+}
+
+function makeRolloutDrop(contentId) {
+  return {
+    id: uid("RD"),
+    contentId,
+    contentType: "Track",
+    status: "Planned",
+    scheduledAt: null,
+    completedAt: null,
+    lastAttemptAt: null,
+    lastAttemptReason: null
+  };
+}
+
+function makeRolloutEvent(actionType, contentId) {
+  return {
+    id: uid("RE"),
+    actionType,
+    contentId: contentId || null,
+    status: "Planned",
+    scheduledAt: null,
+    completedAt: null,
+    lastAttemptAt: null,
+    lastAttemptReason: null
+  };
+}
+
+function createRolloutStrategyForEra(era, { source = "PlayerPlanned", status = "Draft" } = {}) {
+  if (!era) return null;
+  const strategy = {
+    id: uid("RS"),
+    actId: era.actId,
+    eraId: era.id,
+    weeks: buildRolloutWeeks(rolloutWeekCountFromEra(era)),
+    status,
+    createdAt: state.time.epochMs,
+    source,
+    autoRun: false
+  };
+  ensureRolloutStrategies().push(strategy);
+  era.rolloutStrategyId = strategy.id;
+  return strategy;
+}
+
+function getRolloutStrategyById(id) {
+  if (!id) return null;
+  return ensureRolloutStrategies().find((strategy) => strategy.id === id) || null;
+}
+
+function getRolloutStrategiesForEra(eraId) {
+  if (!eraId) return [];
+  return ensureRolloutStrategies().filter((strategy) => strategy.eraId === eraId);
+}
+
+function getRolloutPlanningEra() {
+  const focus = getFocusedEra();
+  if (focus) return focus;
+  const active = getActiveEras().filter((era) => era.status === "Active");
+  return active.length === 1 ? active[0] : null;
+}
+
+function setSelectedRolloutStrategyId(strategyId) {
+  if (!state.ui.viewContext) {
+    state.ui.viewContext = {
+      actId: null,
+      eraId: null,
+      releaseId: null,
+      projectId: null,
+      plannedReleaseIds: [],
+      selectedRolloutTemplateId: null,
+      rolloutStrategyId: null
+    };
+  }
+  if (typeof state.ui.viewContext.rolloutStrategyId !== "string") {
+    state.ui.viewContext.rolloutStrategyId = null;
+  }
+  state.ui.viewContext.rolloutStrategyId = strategyId || null;
+  const strategy = getRolloutStrategyById(strategyId);
+  if (strategy) {
+    const era = getEraById(strategy.eraId);
+    if (era) era.rolloutStrategyId = strategy.id;
+  }
+  return strategy;
+}
+
 function startEraForAct({ actId, name, rolloutId, contentType, contentId, source }) {
   const act = getAct(actId);
   const rollout =
@@ -3120,8 +3418,12 @@ function startEraForAct({ actId, name, rolloutId, contentType, contentId, source
     startedWeek: weekIndex() + 1,
     startedAt: state.time.epochMs,
     status: "Active",
+    completedWeek: null,
+    completedAt: null,
     contentTypes: [],
-    contentItems: []
+    contentItems: [],
+    rolloutStrategyId: null,
+    rolloutHuskGenerated: false
   };
   registerEraContent(era, contentType, contentId);
   state.era.active.push(era);
@@ -3133,14 +3435,21 @@ function archiveEra(era, status) {
   if (!era) return;
   if (status) era.status = status;
   if (!era.completedWeek) era.completedWeek = weekIndex() + 1;
+  if (!era.completedAt) era.completedAt = state.time.epochMs;
   if (!state.era.history.some((entry) => entry.id === era.id)) {
     state.era.history.push({
       id: era.id,
       name: era.name,
       actId: era.actId,
       completedWeek: era.completedWeek,
+      completedAt: era.completedAt,
       status: era.status || status || "Ended",
-      contentTypes: era.contentTypes || []
+      contentTypes: era.contentTypes || [],
+      rolloutId: era.rolloutId || null,
+      rolloutWeeks: Array.isArray(era.rolloutWeeks) ? era.rolloutWeeks.slice() : null,
+      startedWeek: era.startedWeek || null,
+      startedAt: era.startedAt || null,
+      rolloutStrategyId: era.rolloutStrategyId || null
     });
   }
 }
@@ -3152,7 +3461,9 @@ function endEraById(eraId, reason) {
   const [era] = active.splice(index, 1);
   era.status = "Ended";
   era.completedWeek = weekIndex() + 1;
+  era.completedAt = state.time.epochMs;
   archiveEra(era, "Ended");
+  generateEraRolloutHusk(era);
   if (state.ui.focusEraId === era.id) state.ui.focusEraId = null;
   logEvent(`Era ended: ${era.name}${reason ? ` (${reason})` : ""}.`);
   return era;
@@ -3181,6 +3492,66 @@ function ensureEraForTrack(track, source) {
   });
   track.eraId = era.id;
   return era;
+}
+
+function resolveRolloutWeekIndex(strategy, weekNumber) {
+  if (!strategy || !Array.isArray(strategy.weeks)) return null;
+  const index = Math.floor(Number(weekNumber) || 0) - 1;
+  if (!Number.isFinite(index) || index < 0 || index >= strategy.weeks.length) return null;
+  return index;
+}
+
+function rolloutEventLabel(actionType) {
+  const details = actionType && PROMO_TYPE_DETAILS[actionType] ? PROMO_TYPE_DETAILS[actionType] : null;
+  if (details?.label) return details.label;
+  return actionType || "Event";
+}
+
+function addRolloutStrategyDrop(strategyId, weekNumber, contentId) {
+  const strategy = getRolloutStrategyById(strategyId);
+  if (!strategy) return false;
+  const weekIndex = resolveRolloutWeekIndex(strategy, weekNumber);
+  if (weekIndex === null) {
+    logEvent("Rollout week is out of range.", "warn");
+    return false;
+  }
+  const track = getTrack(contentId);
+  if (!track) {
+    logEvent("Drop requires a valid Track ID.", "warn");
+    return false;
+  }
+  const week = strategy.weeks[weekIndex];
+  if (week.drops.some((drop) => drop.contentId === track.id)) {
+    logEvent("Drop already exists in this rollout week.", "warn");
+    return false;
+  }
+  week.drops.push(makeRolloutDrop(track.id));
+  logEvent(`Rollout week ${weekIndex + 1}: added drop "${track.title}".`);
+  return true;
+}
+
+function addRolloutStrategyEvent(strategyId, weekNumber, actionType, contentId) {
+  const strategy = getRolloutStrategyById(strategyId);
+  if (!strategy) return false;
+  const weekIndex = resolveRolloutWeekIndex(strategy, weekNumber);
+  if (weekIndex === null) {
+    logEvent("Rollout week is out of range.", "warn");
+    return false;
+  }
+  if (!actionType) {
+    logEvent("Event requires an action type.", "warn");
+    return false;
+  }
+  if (contentId) {
+    const track = getTrack(contentId);
+    if (!track) {
+      logEvent("Event content ID not found.", "warn");
+      return false;
+    }
+  }
+  strategy.weeks[weekIndex].events.push(makeRolloutEvent(actionType, contentId));
+  logEvent(`Rollout week ${weekIndex + 1}: added ${rolloutEventLabel(actionType)} event.`);
+  return true;
 }
 
 function getRivalByName(name) {
@@ -3892,6 +4263,7 @@ function releaseTrack(track, note, distribution) {
   markCreatorRelease(getTrackCreatorIds(track), track.releasedAt);
   logEvent(`Released "${track.title}" to market${note ? ` (${note})` : ""}.`);
   postTrackRelease(track);
+  markRolloutDropsReleasedByTrack(track.id, track.releasedAt);
   return true;
 }
 
@@ -3932,6 +4304,48 @@ function scheduleRelease(track, hoursFromNow, distribution, note) {
   return true;
 }
 
+function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, suppressLog = false } = {}) {
+  if (!track || !track.actId || !getAct(track.actId)) {
+    return { ok: false, reason: "Track missing Act assignment." };
+  }
+  const isReady = track.status === "Ready";
+  const isMastering = isMasteringTrack(track);
+  if (!isReady && !isMastering) {
+    return { ok: false, reason: "Track not release-ready." };
+  }
+  if (!track.genre && track.theme && track.mood) {
+    track.genre = makeGenre(track.theme, track.mood);
+  }
+  if (!track.genre) {
+    return { ok: false, reason: "Track missing genre." };
+  }
+  const existing = state.releaseQueue.find((entry) => entry.trackId === track.id);
+  if (existing) {
+    return { ok: true, alreadyScheduled: true, entry: existing };
+  }
+  const now = state.time.epochMs;
+  if (!Number.isFinite(releaseAt) || releaseAt <= now) {
+    return { ok: false, reason: "Release window is in the past." };
+  }
+  const dist = distribution || track.distribution || "Digital";
+  const releaseNote = note || dist;
+  const entry = {
+    id: uid("RL"),
+    trackId: track.id,
+    releaseAt,
+    note: releaseNote,
+    distribution: dist,
+    ...(rolloutMeta || {})
+  };
+  state.releaseQueue.push(entry);
+  if (isReady) track.status = "Scheduled";
+  ensureEraForTrack(track, "Release scheduled");
+  if (!suppressLog) {
+    logEvent(`Scheduled "${track.title}" for release on ${formatDate(releaseAt)}.`);
+  }
+  return { ok: true, entry };
+}
+
 function processReleaseQueue() {
   const now = state.time.epochMs;
   const remaining = [];
@@ -3950,6 +4364,293 @@ function processReleaseQueue() {
     }
   });
   state.releaseQueue = remaining;
+}
+
+function shouldLogRolloutBlock(item, reason, mode) {
+  if (mode === "manual") return true;
+  if (!item) return true;
+  if (item.lastAttemptReason !== reason) return true;
+  const lastAt = Number.isFinite(item.lastAttemptAt) ? item.lastAttemptAt : 0;
+  if (!lastAt) return true;
+  const cooldownMs = ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS * HOUR_MS;
+  return state.time.epochMs - lastAt >= cooldownMs;
+}
+
+function recordRolloutBlock(item, reason, mode, label) {
+  if (!item) return;
+  item.status = "Blocked";
+  item.lastAttemptAt = state.time.epochMs;
+  item.lastAttemptReason = reason;
+  if (shouldLogRolloutBlock(item, reason, mode)) {
+    logEvent(`${label} blocked: ${reason}`, "warn");
+  }
+}
+
+function markRolloutDropScheduled(drop, scheduledAt) {
+  if (!drop) return;
+  drop.status = "Scheduled";
+  drop.scheduledAt = scheduledAt;
+  drop.lastAttemptReason = null;
+}
+
+function markRolloutDropCompleted(drop, completedAt) {
+  if (!drop) return;
+  drop.status = "Completed";
+  drop.completedAt = completedAt;
+  drop.lastAttemptReason = null;
+}
+
+function markRolloutEventScheduled(eventItem, scheduledAt) {
+  if (!eventItem) return;
+  eventItem.status = "Scheduled";
+  eventItem.scheduledAt = scheduledAt;
+  eventItem.lastAttemptReason = null;
+}
+
+function markRolloutEventCompleted(eventItem, completedAt) {
+  if (!eventItem) return;
+  eventItem.status = "Completed";
+  eventItem.completedAt = completedAt;
+  eventItem.lastAttemptReason = null;
+}
+
+function markRolloutDropsReleasedByTrack(trackId, releasedAt) {
+  if (!trackId) return;
+  ensureRolloutStrategies().forEach((strategy) => {
+    strategy.weeks?.forEach((week) => {
+      week?.drops?.forEach((drop) => {
+        if (drop?.contentId === trackId) {
+          markRolloutDropCompleted(drop, releasedAt);
+        }
+      });
+    });
+  });
+}
+
+function markRolloutEventStatusFromSchedule(entry) {
+  if (!entry?.rolloutStrategyId || !entry?.rolloutItemId) return;
+  const strategy = getRolloutStrategyById(entry.rolloutStrategyId);
+  if (!strategy) return;
+  strategy.weeks?.forEach((week) => {
+    week?.events?.forEach((eventItem) => {
+      if (eventItem?.id === entry.rolloutItemId) {
+        markRolloutEventCompleted(eventItem, entry.completedAt || entry.scheduledAt);
+      }
+    });
+  });
+}
+
+function countScheduledFacilityUsage(facilityId, epochMs) {
+  if (!facilityId) return 0;
+  const start = startOfDayEpochMs(epochMs);
+  const end = endOfDayEpochMs(epochMs);
+  return ensureScheduledEventsStore().filter((entry) => entry.facilityId === facilityId
+    && entry.scheduledAt >= start
+    && entry.scheduledAt < end
+    && entry.status === "Scheduled").length;
+}
+
+function scheduleRolloutDrop(strategy, era, weekIndex, drop, mode) {
+  if (!strategy || !drop) return { ok: false, skipped: true };
+  if (strategy.status === "Archived") {
+    recordRolloutBlock(drop, "Strategy is archived.", mode, "Rollout drop");
+    return { ok: false, blocked: true };
+  }
+  if (drop.status === "Completed") return { ok: true, completed: true };
+  if (drop.status === "Scheduled") return { ok: true, alreadyScheduled: true };
+  if (!era || era.status !== "Active") {
+    recordRolloutBlock(drop, "Era is not active.", mode, "Rollout drop");
+    return { ok: false, blocked: true };
+  }
+  const track = getTrack(drop.contentId);
+  if (!track) {
+    recordRolloutBlock(drop, "Track not found.", mode, "Rollout drop");
+    return { ok: false, blocked: true };
+  }
+  if (track.status === "Released") {
+    markRolloutDropCompleted(drop, track.releasedAt || state.time.epochMs);
+    return { ok: true, completed: true };
+  }
+  const existing = state.releaseQueue.find((entry) => entry.trackId === track.id);
+  if (existing) {
+    markRolloutDropScheduled(drop, existing.releaseAt);
+    return { ok: true, alreadyScheduled: true };
+  }
+  const isReady = track.status === "Ready";
+  const isMastering = isMasteringTrack(track);
+  if (!isReady && !isMastering) {
+    recordRolloutBlock(drop, "Track not release-ready.", mode, "Rollout drop");
+    return { ok: false, blocked: true };
+  }
+  if (!track.genre && track.theme && track.mood) {
+    track.genre = makeGenre(track.theme, track.mood);
+  }
+  if (!track.genre) {
+    recordRolloutBlock(drop, "Track missing genre.", mode, "Rollout drop");
+    return { ok: false, blocked: true };
+  }
+  const baseWeek = Number.isFinite(era.startedWeek) ? era.startedWeek : weekIndex() + 1;
+  const weekNumber = baseWeek + Math.max(0, weekIndex);
+  const releaseAt = rolloutReleaseTimestampForWeek(weekNumber);
+  if (releaseAt <= state.time.epochMs) {
+    recordRolloutBlock(drop, "Release window is in the past.", mode, "Rollout drop");
+    return { ok: false, blocked: true };
+  }
+  const result = scheduleReleaseAt(track, releaseAt, {
+    distribution: track.distribution,
+    note: "Rollout Strategy",
+    rolloutMeta: {
+      rolloutStrategyId: strategy.id,
+      rolloutItemId: drop.id,
+      rolloutWeekIndex: weekIndex
+    },
+    suppressLog: mode !== "manual"
+  });
+  if (!result.ok) {
+    recordRolloutBlock(drop, result.reason || "Release scheduling failed.", mode, "Rollout drop");
+    return { ok: false, blocked: true };
+  }
+  markRolloutDropScheduled(drop, result.entry?.releaseAt || releaseAt);
+  return { ok: true, scheduled: true };
+}
+
+function scheduleRolloutEvent(strategy, era, weekIndex, eventItem, eventIndex, mode) {
+  if (!strategy || !eventItem) return { ok: false, skipped: true };
+  if (strategy.status === "Archived") {
+    recordRolloutBlock(eventItem, "Strategy is archived.", mode, "Rollout event");
+    return { ok: false, blocked: true };
+  }
+  if (eventItem.status === "Completed") return { ok: true, completed: true };
+  if (eventItem.status === "Scheduled") return { ok: true, alreadyScheduled: true };
+  if (!era || era.status !== "Active") {
+    recordRolloutBlock(eventItem, "Era is not active.", mode, "Rollout event");
+    return { ok: false, blocked: true };
+  }
+  if (!eventItem.actionType) {
+    recordRolloutBlock(eventItem, "Event action type missing.", mode, "Rollout event");
+    return { ok: false, blocked: true };
+  }
+  let track = null;
+  if (eventItem.contentId) {
+    track = getTrack(eventItem.contentId);
+    if (!track) {
+      recordRolloutBlock(eventItem, "Event content not found.", mode, "Rollout event");
+      return { ok: false, blocked: true };
+    }
+    if (track.status !== "Released" || !track.marketId) {
+      recordRolloutBlock(eventItem, "Event requires a released track.", mode, "Rollout event");
+      return { ok: false, blocked: true };
+    }
+  }
+  const baseWeek = Number.isFinite(era.startedWeek) ? era.startedWeek : weekIndex() + 1;
+  const weekNumber = baseWeek + Math.max(0, weekIndex);
+  const eventAt = rolloutEventTimestampForWeek(weekNumber, eventIndex);
+  if (eventAt <= state.time.epochMs) {
+    recordRolloutBlock(eventItem, "Event window is in the past.", mode, "Rollout event");
+    return { ok: false, blocked: true };
+  }
+  const existing = ensureScheduledEventsStore().find((entry) => entry.rolloutItemId === eventItem.id);
+  if (existing) {
+    markRolloutEventScheduled(eventItem, existing.scheduledAt);
+    return { ok: true, alreadyScheduled: true };
+  }
+  const facilityId = getPromoFacilityForType(eventItem.actionType);
+  if (facilityId) {
+    const dayIndex = getUtcDayIndex(eventAt);
+    const capacity = facilityId === "broadcast"
+      ? (BROADCAST_SLOT_SCHEDULE[dayIndex] || 0)
+      : FILMING_STUDIO_SLOTS;
+    const used = countScheduledFacilityUsage(facilityId, eventAt);
+    if (used >= capacity) {
+      recordRolloutBlock(eventItem, `No ${promoFacilityLabel(facilityId)} slots available on ${DAYS[dayIndex]}.`, mode, "Rollout event");
+      return { ok: false, blocked: true };
+    }
+  }
+  const entry = {
+    id: uid("SE"),
+    scheduledAt: eventAt,
+    actionType: eventItem.actionType,
+    contentId: eventItem.contentId || null,
+    actId: strategy.actId,
+    eraId: strategy.eraId,
+    status: "Scheduled",
+    facilityId: facilityId || null,
+    rolloutStrategyId: strategy.id,
+    rolloutItemId: eventItem.id,
+    rolloutWeekIndex: weekIndex
+  };
+  ensureScheduledEventsStore().push(entry);
+  markRolloutEventScheduled(eventItem, eventAt);
+  if (mode === "manual") {
+    logEvent(`Scheduled rollout event: ${rolloutEventLabel(eventItem.actionType)} on ${formatDate(eventAt)}.`);
+  }
+  return { ok: true, scheduled: true };
+}
+
+function expandRolloutStrategy(strategyId, { mode = "manual" } = {}) {
+  const strategy = getRolloutStrategyById(strategyId);
+  if (!strategy) {
+    if (mode === "manual") logEvent("Rollout strategy not found.", "warn");
+    return null;
+  }
+  const era = getEraById(strategy.eraId);
+  if (!era) {
+    if (mode === "manual") logEvent("Rollout strategy requires an active era.", "warn");
+    return null;
+  }
+  let scheduled = 0;
+  let blocked = 0;
+  let completed = 0;
+  let alreadyScheduled = 0;
+  const weeks = Array.isArray(strategy.weeks) ? strategy.weeks : [];
+  weeks.forEach((week, weekIndex) => {
+    const drops = Array.isArray(week?.drops) ? week.drops : [];
+    const events = Array.isArray(week?.events) ? week.events : [];
+    drops.forEach((drop) => {
+      const result = scheduleRolloutDrop(strategy, era, weekIndex, drop, mode);
+      if (result?.scheduled) scheduled += 1;
+      else if (result?.completed) completed += 1;
+      else if (result?.alreadyScheduled) alreadyScheduled += 1;
+      else if (result?.blocked) blocked += 1;
+    });
+    events.forEach((eventItem, eventIndex) => {
+      const result = scheduleRolloutEvent(strategy, era, weekIndex, eventItem, eventIndex, mode);
+      if (result?.scheduled) scheduled += 1;
+      else if (result?.completed) completed += 1;
+      else if (result?.alreadyScheduled) alreadyScheduled += 1;
+      else if (result?.blocked) blocked += 1;
+    });
+  });
+  if (scheduled > 0 && strategy.status === "Draft") strategy.status = "Active";
+  if (mode === "manual") {
+    const summary = `Rollout expanded: ${scheduled} scheduled, ${alreadyScheduled} already scheduled, ${completed} completed, ${blocked} blocked.`;
+    logEvent(summary);
+  }
+  return { scheduled, alreadyScheduled, completed, blocked };
+}
+
+function runAutoRolloutStrategies() {
+  const strategies = ensureRolloutStrategies().filter((strategy) => strategy.autoRun && strategy.status !== "Archived");
+  strategies.forEach((strategy) => {
+    expandRolloutStrategy(strategy.id, { mode: "auto" });
+  });
+}
+
+function processScheduledEvents() {
+  const now = state.time.epochMs;
+  const entries = ensureScheduledEventsStore();
+  entries.forEach((entry) => {
+    if (entry.status !== "Scheduled") return;
+    if (!Number.isFinite(entry.scheduledAt)) return;
+    if (entry.scheduledAt > now) return;
+    entry.status = "Completed";
+    entry.completedAt = now;
+    const track = entry.contentId ? getTrack(entry.contentId) : null;
+    const label = rolloutEventLabel(entry.actionType);
+    const detail = track ? ` for "${track.title}"` : "";
+    logEvent(`Scheduled event executed: ${label}${detail}.`);
+    markRolloutEventStatusFromSchedule(entry);
+  });
 }
 
 function scoreTrack(track, regionName) {
@@ -5048,47 +5749,407 @@ function ageMarketTracks() {
   paginateMarketTracks();
 }
 
-function generateRivalReleases() {
-  state.rivals.forEach((rival) => {
-    const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.5;
-    const chance = clamp(0.18 + momentum * 0.35, 0.2, 0.6);
-    if (Math.random() < chance) {
-      const themePool = rival.focusThemes?.length ? rival.focusThemes : THEMES;
-      const moodPool = rival.focusMoods?.length ? rival.focusMoods : MOODS;
-      let theme = Math.random() < 0.8 ? pickOne(themePool) : pickOne(THEMES);
-      let mood = Math.random() < 0.8 ? pickOne(moodPool) : pickOne(MOODS);
-      if (state.trends?.length) {
-        const trend = pickOne(state.trends);
-        const trendTheme = themeFromGenre(trend);
-        const trendMood = moodFromGenre(trend);
-        if (rivalHasTrendCoverage(rival, trendTheme, trendMood) && Math.random() < 0.7) {
-          theme = trendTheme;
-          mood = trendMood;
-        }
-      }
-      let quality = clampQuality(rand(55, 95) + Math.round(momentum * 8));
-      if (mood === "Boring") quality = clampQuality(quality - 12);
-      const genre = makeGenre(theme, mood);
-      const releasePlan = planRivalRelease(genre, quality);
-      const crew = pickRivalReleaseCrew(rival, theme, mood);
-      state.rivalReleaseQueue.push({
-        id: uid("RR"),
-        releaseAt: releasePlan.releaseAt,
-        title: makeTrackTitleByCountry(theme, mood, rival.country),
-        label: rival.name,
-        actName: makeRivalActName(),
-        projectName: makeProjectTitle(),
-        theme,
-        mood,
-        alignment: rival.alignment,
-        country: rival.country,
-        quality,
-        genre,
-        distribution: releasePlan.distribution,
-        creatorIds: crew.map((creator) => creator.id)
-      });
-    }
+const HUSK_STARTERS = [
+  {
+    id: "starter-lite",
+    label: "Starter Lite",
+    source: "starter",
+    cadence: [
+      { kind: "release", weekOffset: 0 },
+      { kind: "promo", weekOffset: 0, day: HUSK_PROMO_DAY, hour: HUSK_PROMO_HOUR, promoType: HUSK_PROMO_DEFAULT_TYPE }
+    ],
+    eligibleCategories: { releases: ["Single"], promos: [HUSK_PROMO_DEFAULT_TYPE] },
+    context: { alignmentTags: ALIGNMENTS.slice(), trendTags: [], outcomeScore: 38 }
+  },
+  {
+    id: "starter-pulse",
+    label: "Starter Pulse",
+    source: "starter",
+    cadence: [
+      { kind: "release", weekOffset: 0 },
+      { kind: "promo", weekOffset: 0, day: HUSK_PROMO_DAY, hour: HUSK_PROMO_HOUR, promoType: HUSK_PROMO_DEFAULT_TYPE },
+      { kind: "release", weekOffset: 1 },
+      { kind: "promo", weekOffset: 1, day: HUSK_PROMO_DAY, hour: HUSK_PROMO_HOUR, promoType: HUSK_PROMO_DEFAULT_TYPE }
+    ],
+    eligibleCategories: { releases: ["Single"], promos: [HUSK_PROMO_DEFAULT_TYPE] },
+    context: { alignmentTags: ALIGNMENTS.slice(), trendTags: [], outcomeScore: 45 }
+  },
+  {
+    id: "starter-surge",
+    label: "Starter Surge",
+    source: "starter",
+    cadence: [
+      { kind: "release", weekOffset: 0 },
+      { kind: "promo", weekOffset: 0, day: HUSK_PROMO_DAY, hour: HUSK_PROMO_HOUR, promoType: "musicVideo" },
+      { kind: "release", weekOffset: 2 },
+      { kind: "promo", weekOffset: 2, day: HUSK_PROMO_DAY, hour: HUSK_PROMO_HOUR, promoType: "musicVideo" }
+    ],
+    eligibleCategories: { releases: ["Single", "EP", "Album"], promos: ["musicVideo"] },
+    context: { alignmentTags: ALIGNMENTS.slice(), trendTags: [], outcomeScore: 52 }
+  }
+];
+
+function normalizeHuskContext(husk) {
+  const context = husk?.context || {};
+  return {
+    alignmentTags: Array.isArray(context.alignmentTags) ? context.alignmentTags.filter(Boolean) : [],
+    trendTags: Array.isArray(context.trendTags) ? context.trendTags.filter(Boolean) : [],
+    outcomeScore: Number.isFinite(context.outcomeScore) ? clamp(context.outcomeScore, 0, 100) : 0
+  };
+}
+
+function normalizeHuskCadence(cadence) {
+  const list = Array.isArray(cadence) ? cadence : [];
+  return list
+    .map((step) => ({
+      kind: step?.kind === "promo" ? "promo" : "release",
+      weekOffset: Number.isFinite(step?.weekOffset) ? Math.max(0, Math.floor(step.weekOffset)) : 0,
+      day: Number.isFinite(step?.day) ? clamp(Math.floor(step.day), 0, 6) : HUSK_PROMO_DAY,
+      hour: Number.isFinite(step?.hour) ? clamp(Math.floor(step.hour), 0, 23) : HUSK_PROMO_HOUR,
+      promoType: step?.promoType || HUSK_PROMO_DEFAULT_TYPE
+    }))
+    .sort((a, b) => {
+      if (a.weekOffset !== b.weekOffset) return a.weekOffset - b.weekOffset;
+      if (a.kind === b.kind) return 0;
+      return a.kind === "release" ? -1 : 1;
+    });
+}
+
+function topTags(list, limit = 3) {
+  const counts = {};
+  list.forEach((value) => {
+    if (!value) return;
+    counts[value] = (counts[value] || 0) + 1;
   });
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([tag]) => tag);
+}
+
+function averageMetric(list, getter, fallback = 0) {
+  if (!Array.isArray(list) || !list.length) return fallback;
+  const total = list.reduce((sum, entry) => sum + getter(entry), 0);
+  return total / list.length;
+}
+
+function buildEraHusk(era) {
+  if (!era || era.status !== "Complete") return null;
+  const tracks = state.tracks.filter((track) => track.eraId === era.id);
+  const marketEntries = state.marketTracks.filter((entry) => entry.eraId === era.id);
+  const releaseTimes = [
+    ...marketEntries.map((entry) => entry.releasedAt),
+    ...tracks.map((track) => track.releasedAt)
+  ].filter((stamp) => Number.isFinite(stamp));
+  const releaseOffsets = [];
+  if (releaseTimes.length) {
+    releaseTimes.sort((a, b) => a - b);
+    const baseWeek = weekIndexForEpochMs(releaseTimes[0]);
+    releaseTimes.forEach((stamp) => {
+      const offset = weekIndexForEpochMs(stamp) - baseWeek;
+      if (offset >= 0 && !releaseOffsets.includes(offset)) releaseOffsets.push(offset);
+    });
+  } else if (Array.isArray(era.rolloutWeeks) && era.rolloutWeeks.length) {
+    releaseOffsets.push(0);
+  }
+  if (!releaseOffsets.length) return null;
+  releaseOffsets.sort((a, b) => a - b);
+  const trimmedOffsets = releaseOffsets.slice(0, HUSK_MAX_RELEASE_STEPS);
+  const releaseSteps = trimmedOffsets.map((offset) => ({ kind: "release", weekOffset: offset }));
+  const promoSteps = trimmedOffsets.map((offset) => ({
+    kind: "promo",
+    weekOffset: offset,
+    day: HUSK_PROMO_DAY,
+    hour: HUSK_PROMO_HOUR,
+    promoType: HUSK_PROMO_DEFAULT_TYPE
+  }));
+  const cadence = normalizeHuskCadence([...releaseSteps, ...promoSteps]);
+  const genres = [
+    ...tracks.map((track) => track.genre),
+    ...marketEntries.map((entry) => entry.genre)
+  ];
+  const alignments = [
+    ...tracks.map((track) => track.alignment),
+    ...marketEntries.map((entry) => entry.alignment)
+  ].filter(Boolean);
+  const releaseTypes = Array.from(new Set(tracks.map((track) => track.projectType).filter(Boolean)));
+  const qualitySources = tracks.concat(marketEntries);
+  const qualityAvg = averageMetric(qualitySources, (entry) => clampQuality(entry.quality || 0), 55);
+  const weeksAvg = averageMetric(marketEntries, (entry) => entry.weeksOnChart || 0, 0);
+  const peakAvg = averageMetric(marketEntries, (entry) => entry.chartHistory?.global?.peak || 0, 0);
+  const peakScore = peakAvg ? clamp(100 - peakAvg, 0, 100) : 50;
+  const longevityScore = clamp(weeksAvg * 8, 0, 100);
+  const outcomeScore = Math.round(qualityAvg * 0.5 + peakScore * 0.3 + longevityScore * 0.2);
+  return {
+    id: `era-${era.id}`,
+    label: `${era.name} Husk`,
+    source: "era",
+    cadence,
+    eligibleCategories: {
+      releases: releaseTypes.length ? releaseTypes : ["Single"],
+      promos: [HUSK_PROMO_DEFAULT_TYPE]
+    },
+    context: {
+      alignmentTags: Array.from(new Set(alignments)),
+      trendTags: topTags(genres, 4),
+      outcomeScore
+    }
+  };
+}
+
+function buildHuskLibrary() {
+  const starters = HUSK_STARTERS.map((husk) => ({
+    ...husk,
+    cadence: normalizeHuskCadence(husk.cadence),
+    context: normalizeHuskContext(husk)
+  }));
+  const eraHusks = Array.isArray(state.era?.history)
+    ? state.era.history.map((era) => buildEraHusk(era)).filter(Boolean)
+    : [];
+  const byId = new Map();
+  starters.concat(eraHusks).forEach((husk) => {
+    if (!husk?.id) return;
+    if (!byId.has(husk.id)) byId.set(husk.id, husk);
+  });
+  return Array.from(byId.values());
+}
+
+function estimateHuskPromoBudget(husk, walletCash) {
+  const steps = normalizeHuskCadence(husk?.cadence);
+  const promoSteps = steps.filter((step) => step.kind === "promo");
+  if (!promoSteps.length) return 0;
+  const perPromo = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
+  if (!perPromo) return Number.POSITIVE_INFINITY;
+  return perPromo * promoSteps.length;
+}
+
+function scoreHuskForRival(husk, rival, trends) {
+  const context = normalizeHuskContext(husk);
+  const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
+  const budgetCost = estimateHuskPromoBudget(husk, walletCash);
+  const trendList = Array.isArray(trends) ? trends : [];
+  let trendScore = 0.35;
+  if (trendList.length) {
+    if (context.trendTags.length) {
+      const matches = context.trendTags.filter((tag) => trendList.includes(tag)).length;
+      trendScore = context.trendTags.length ? matches / context.trendTags.length : 0.35;
+    } else {
+      trendScore = 0.45;
+    }
+  }
+  let alignmentScore = 0.5;
+  if (context.alignmentTags.length) {
+    alignmentScore = context.alignmentTags.includes(rival.alignment) ? 1 : 0;
+  }
+  const budgetScore = budgetCost === 0
+    ? 1
+    : budgetCost === Number.POSITIVE_INFINITY
+      ? 0
+      : clamp(walletCash / budgetCost, 0, 1);
+  const outcomeScore = clamp(context.outcomeScore / 100, 0, 1);
+  const score = trendScore * 40 + alignmentScore * 30 + budgetScore * 20 + outcomeScore * 10;
+  const eligible = budgetCost === 0 || budgetCost <= walletCash;
+  return { score, eligible, budgetCost };
+}
+
+function selectHuskForRival(rival, husks) {
+  const trendList = Array.isArray(state.trends) ? state.trends : [];
+  const currentWeek = weekIndex();
+  const scored = husks.map((husk) => {
+    const { score, eligible } = scoreHuskForRival(husk, rival, trendList);
+    const seed = makeStableSeed([currentWeek, rival.id, husk.id]);
+    const rng = makeSeededRng(seed);
+    return { husk, score, eligible, jitter: rng() * 0.01 };
+  });
+  const eligible = scored.filter((entry) => entry.eligible);
+  const pool = eligible.length ? eligible : scored;
+  if (!pool.length) return null;
+  pool.sort((a, b) => {
+    if (a.score !== b.score) return b.score - a.score;
+    return b.jitter - a.jitter;
+  });
+  return pool[0].husk;
+}
+
+function safeSeededPick(list, rng, fallbackList = []) {
+  const pool = Array.isArray(list) && list.length ? list : fallbackList;
+  if (!pool.length) return "";
+  return seededPick(pool, rng);
+}
+
+function pickRivalThemeMood(rival, husk, rng) {
+  const focusThemes = Array.isArray(rival.focusThemes) && rival.focusThemes.length ? rival.focusThemes : THEMES;
+  const focusMoods = Array.isArray(rival.focusMoods) && rival.focusMoods.length ? rival.focusMoods : MOODS;
+  let theme = safeSeededPick(focusThemes, rng, THEMES);
+  let mood = safeSeededPick(focusMoods, rng, MOODS);
+  const trendList = Array.isArray(state.trends) ? state.trends : [];
+  if (trendList.length) {
+    const context = normalizeHuskContext(husk);
+    const trendPool = context.trendTags.length
+      ? trendList.filter((genre) => context.trendTags.includes(genre))
+      : trendList;
+    if (trendPool.length) {
+      const trendGenre = seededPick(trendPool, rng);
+      const trendTheme = themeFromGenre(trendGenre);
+      const trendMood = moodFromGenre(trendGenre);
+      if (trendTheme && trendMood && (rivalHasTrendCoverage(rival, trendTheme, trendMood) || rng() < 0.45)) {
+        theme = trendTheme;
+        mood = trendMood;
+      }
+    }
+  }
+  if (!theme) theme = safeSeededPick(THEMES, rng, THEMES);
+  if (!mood) mood = safeSeededPick(MOODS, rng, MOODS);
+  return { theme, mood };
+}
+
+function hasRivalQueueEntry(label, queueType, targetWeekIndex) {
+  return state.rivalReleaseQueue.some((entry) => {
+    if (entry.label !== label) return false;
+    const kind = entry.queueType || "release";
+    if (kind !== queueType) return false;
+    return weekIndexForEpochMs(entry.releaseAt) === targetWeekIndex;
+  });
+}
+
+function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek }) {
+  const seed = makeStableSeed([planWeek, rival.id, husk.id, stepIndex, "release"]);
+  const rng = makeSeededRng(seed);
+  const { theme, mood } = pickRivalThemeMood(rival, husk, rng);
+  const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.5;
+  const outcomeBoost = Math.round((normalizeHuskContext(husk).outcomeScore - 50) / 10);
+  let quality = clampQuality(seededRand(55, 92, rng) + Math.round(momentum * 8) + outcomeBoost);
+  if (mood === "Boring") quality = clampQuality(quality - 12);
+  const genre = makeGenre(theme, mood);
+  const releasePlan = recommendReleasePlan({ genre, quality });
+  const crew = pickRivalReleaseCrew(rival, theme, mood);
+  return {
+    id: uid("RR"),
+    queueType: "release",
+    huskId: husk.id,
+    huskSource: husk.source,
+    planWeek,
+    releaseAt,
+    title: makeTrackTitleByCountrySeeded(theme, mood, rival.country, rng),
+    label: rival.name,
+    actName: makeRivalActNameSeeded(rng),
+    projectName: makeProjectTitleSeeded(rng),
+    theme,
+    mood,
+    alignment: rival.alignment,
+    country: rival.country,
+    quality,
+    genre,
+    distribution: releasePlan.distribution,
+    creatorIds: crew.map((creator) => creator.id)
+  };
+}
+
+function planRivalPromoEntry({ rival, husk, promoAt, stepIndex, planWeek, promoType }) {
+  const seed = makeStableSeed([planWeek, rival.id, husk.id, stepIndex, "promo"]);
+  const rng = makeSeededRng(seed);
+  const details = getPromoTypeDetails(promoType);
+  return {
+    id: uid("RP"),
+    queueType: "promo",
+    huskId: husk.id,
+    huskSource: husk.source,
+    planWeek,
+    releaseAt: promoAt,
+    title: details.label,
+    actName: "Promotion",
+    label: rival.name,
+    promoType,
+    promoSeed: rng()
+  };
+}
+
+function scheduleHuskForRival(rival, husk) {
+  if (!husk) return;
+  const steps = normalizeHuskCadence(husk.cadence);
+  if (!steps.length) return;
+  const now = state.time.epochMs;
+  const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
+  const promoBudget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
+  const promoBudgetSlots = promoBudget ? Math.floor(walletCash / promoBudget) : 0;
+  let promoScheduled = 0;
+  const planWeek = weekIndex();
+  const baseReleaseAt = getReleaseAsapAt(now);
+  const baseWeekIndex = weekIndexForEpochMs(baseReleaseAt);
+  steps.forEach((step, index) => {
+    const weekOffset = Number.isFinite(step.weekOffset) ? Math.max(0, step.weekOffset) : 0;
+    const targetWeekIndex = baseWeekIndex + weekOffset;
+    if (step.kind === "release") {
+      if (hasRivalQueueEntry(rival.name, "release", targetWeekIndex)) return;
+      const releaseAt = baseReleaseAt + weekOffset * WEEK_HOURS * HOUR_MS;
+      if (releaseAt <= now) return;
+      state.rivalReleaseQueue.push(planRivalReleaseEntry({
+        rival,
+        husk,
+        releaseAt,
+        stepIndex: index,
+        planWeek
+      }));
+      return;
+    }
+    if (!promoBudget || promoScheduled >= promoBudgetSlots) return;
+    if (hasRivalQueueEntry(rival.name, "promo", targetWeekIndex)) return;
+    const weekStart = getStartEpochMsFromState() + targetWeekIndex * WEEK_HOURS * HOUR_MS;
+    let promoAt = weekStart + step.day * DAY_MS + step.hour * HOUR_MS;
+    while (promoAt <= now) {
+      promoAt += WEEK_HOURS * HOUR_MS;
+    }
+    state.rivalReleaseQueue.push(planRivalPromoEntry({
+      rival,
+      husk,
+      promoAt,
+      stepIndex: index,
+      planWeek,
+      promoType: step.promoType || HUSK_PROMO_DEFAULT_TYPE
+    }));
+    promoScheduled += 1;
+  });
+}
+
+function generateRivalReleases() {
+  if (!Array.isArray(state.rivals) || !state.rivals.length) return;
+  const huskLibrary = buildHuskLibrary();
+  const fallbackHusk = HUSK_STARTERS[0] || null;
+  state.rivals.forEach((rival) => {
+    if (!rival) return;
+    if (!rival.aiPlan) rival.aiPlan = { lastPlannedWeek: null, lastHuskId: null, lastPlannedAt: null };
+    const currentWeek = weekIndex();
+    if (rival.aiPlan.lastPlannedWeek === currentWeek) return;
+    const husk = selectHuskForRival(rival, huskLibrary) || fallbackHusk;
+    if (!husk) return;
+    scheduleHuskForRival(rival, husk);
+    rival.aiPlan.lastPlannedWeek = currentWeek;
+    rival.aiPlan.lastHuskId = husk.id;
+    rival.aiPlan.lastPlannedAt = state.time.epochMs;
+  });
+}
+
+function processRivalPromoEntry(entry) {
+  const rival = getRivalByName(entry.label);
+  if (!rival) return false;
+  const promoType = entry.promoType || AUTO_PROMO_RIVAL_TYPE;
+  const market = pickRivalAutoPromoTrack(rival);
+  if (!market || (market.promoWeeks || 0) > 0) return false;
+  const walletCash = rival.wallet?.cash ?? rival.cash;
+  const budget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
+  if (!budget || walletCash < budget || rival.cash < budget) return false;
+  const facilityId = getPromoFacilityForType(promoType);
+  if (facilityId) {
+    const reservation = reservePromoFacilitySlot(facilityId, promoType, market.trackId);
+    if (!reservation.ok) return false;
+  }
+  rival.cash -= budget;
+  if (!rival.wallet) rival.wallet = { cash: rival.cash };
+  rival.wallet.cash = rival.cash;
+  const boostWeeks = promoWeeksFromBudget(budget);
+  market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
+  markRivalPromoActivity(rival.name, state.time.epochMs);
+  return true;
 }
 
 function processRivalReleaseQueue() {
@@ -5097,6 +6158,11 @@ function processRivalReleaseQueue() {
   const remaining = [];
   state.rivalReleaseQueue.forEach((entry) => {
     if (entry.releaseAt <= now) {
+      const queueType = entry.queueType || "release";
+      if (queueType === "promo") {
+        processRivalPromoEntry(entry);
+        return;
+      }
       state.marketTracks.push({
         id: uid("MK"),
         trackId: null,
@@ -5143,9 +6209,11 @@ function advanceEraWeek() {
       if (era.stageIndex >= ERA_STAGES.length) {
         era.status = "Complete";
         era.completedWeek = weekIndex() + 1;
+        era.completedAt = state.time.epochMs;
         archiveEra(era, "Complete");
         logEvent(`Era complete: ${era.name}.`);
         postEraComplete(era);
+        generateEraRolloutHusk(era);
         return;
       }
       logEvent(`Era shift: ${era.name} moved to ${ERA_STAGES[era.stageIndex]}.`);
@@ -5213,10 +6281,25 @@ function pickRivalAutoPromoTrack(rival) {
   }, candidates[0]);
 }
 
+function hasScheduledRivalPromo(rival, weeksAhead = 1) {
+  if (!rival) return false;
+  const now = state.time.epochMs;
+  const currentWeek = weekIndexForEpochMs(now);
+  const maxWeek = currentWeek + Math.max(0, weeksAhead);
+  return state.rivalReleaseQueue.some((entry) => {
+    if (entry.label !== rival.name) return false;
+    const kind = entry.queueType || "release";
+    if (kind !== "promo") return false;
+    if (!Number.isFinite(entry.releaseAt) || entry.releaseAt <= now) return false;
+    return weekIndexForEpochMs(entry.releaseAt) <= maxWeek;
+  });
+}
+
 function runAutoPromoForRivals() {
   if (!Array.isArray(state.rivals) || !state.rivals.length) return;
-  const pct = autoPromoBudgetPct();
+  const pct = AI_PROMO_BUDGET_PCT;
   state.rivals.forEach((rival) => {
+    if (hasScheduledRivalPromo(rival, 1)) return;
     const market = pickRivalAutoPromoTrack(rival);
     if (!market) return;
     const walletCash = rival.wallet?.cash ?? rival.cash;
@@ -5445,7 +6528,9 @@ async function runHourlyTick() {
   processWorkOrders();
   processReleaseQueue();
   processRivalReleaseQueue();
+  processScheduledEvents();
   expirePromoFacilityBookings();
+  runAutoRolloutStrategies();
   await runScheduledWeeklyEvents(state.time.epochMs);
   runYearTicksIfNeeded(currentYear());
 }
@@ -5776,7 +6861,8 @@ function normalizeState() {
       releaseId: null,
       projectId: null,
       plannedReleaseIds: [],
-      selectedRolloutTemplateId: null
+      selectedRolloutTemplateId: null,
+      rolloutStrategyId: null
     };
   }
   if (!state.ui.eraPlan) {
@@ -5936,6 +7022,12 @@ function normalizeState() {
     if (typeof rival.cash !== "number") rival.cash = STARTING_CASH;
     if (!rival.wallet) rival.wallet = { cash: rival.cash };
     if (!rival.studio) rival.studio = { slots: STARTING_STUDIO_SLOTS };
+    if (!rival.aiPlan || typeof rival.aiPlan !== "object") {
+      rival.aiPlan = { lastPlannedWeek: null, lastHuskId: null, lastPlannedAt: null };
+    }
+    if (typeof rival.aiPlan.lastPlannedWeek !== "number") rival.aiPlan.lastPlannedWeek = null;
+    if (typeof rival.aiPlan.lastHuskId !== "string") rival.aiPlan.lastHuskId = null;
+    if (typeof rival.aiPlan.lastPlannedAt !== "number") rival.aiPlan.lastPlannedAt = null;
   });
   if (!state.trends) state.trends = [];
   if (!state.resourceTickLedger || typeof state.resourceTickLedger !== "object") {
@@ -5984,6 +7076,7 @@ function normalizeState() {
     state.meta.autoRollout.budgetPct = AUTO_PROMO_BUDGET_PCT;
   }
   state.meta.autoRollout.budgetPct = clamp(state.meta.autoRollout.budgetPct, 0, 1);
+  if (typeof state.meta.keepEraRolloutHusks !== "boolean") state.meta.keepEraRolloutHusks = true;
   if (!state.meta.seedInfo) state.meta.seedInfo = null;
   if (!state.meta.seedHistory) state.meta.seedHistory = null;
   if (!state.meta.seedCalibration) state.meta.seedCalibration = null;
@@ -6007,6 +7100,82 @@ function normalizeState() {
     state.era.active = legacy;
   }
   if (!Array.isArray(state.era.history)) state.era.history = [];
+  state.era.active = state.era.active.filter(Boolean).map((era) => {
+    if (!Array.isArray(era.contentTypes)) era.contentTypes = [];
+    if (!Array.isArray(era.contentItems)) era.contentItems = [];
+    if (typeof era.completedWeek !== "number") era.completedWeek = null;
+    if (typeof era.completedAt !== "number") era.completedAt = null;
+    if (typeof era.rolloutStrategyId !== "string") era.rolloutStrategyId = null;
+    if (typeof era.rolloutHuskGenerated !== "boolean") era.rolloutHuskGenerated = false;
+    return era;
+  });
+  state.era.history = state.era.history.filter(Boolean).map((era) => {
+    if (!Array.isArray(era.contentTypes)) era.contentTypes = [];
+    if (typeof era.completedWeek !== "number") era.completedWeek = null;
+    if (typeof era.completedAt !== "number") era.completedAt = null;
+    if (typeof era.rolloutStrategyId !== "string") era.rolloutStrategyId = null;
+    return era;
+  });
+  if (!Array.isArray(state.rolloutStrategies)) state.rolloutStrategies = [];
+  state.rolloutStrategies = state.rolloutStrategies.filter(Boolean).map((strategy) => {
+    const next = strategy || {};
+    if (!next.id) next.id = uid("RS");
+    if (typeof next.actId !== "string") next.actId = next.actId || null;
+    if (typeof next.eraId !== "string") next.eraId = next.eraId || null;
+    if (!Array.isArray(next.weeks) || !next.weeks.length) {
+      const era = next.eraId ? getEraById(next.eraId) : null;
+      next.weeks = buildRolloutWeeks(rolloutWeekCountFromEra(era));
+    }
+    if (!next.status) next.status = "Draft";
+    if (!next.source) next.source = "PlayerPlanned";
+    if (typeof next.createdAt !== "number") next.createdAt = state.time?.epochMs || Date.now();
+    if (typeof next.autoRun !== "boolean") next.autoRun = false;
+    next.weeks = next.weeks.map((week) => {
+      const safeWeek = week || {};
+      const drops = Array.isArray(safeWeek.drops) ? safeWeek.drops : [];
+      const events = Array.isArray(safeWeek.events) ? safeWeek.events : [];
+      safeWeek.drops = drops.map((drop) => {
+        const nextDrop = drop || {};
+        if (!nextDrop.id) nextDrop.id = uid("RD");
+        if (!nextDrop.contentType) nextDrop.contentType = "Track";
+        if (!nextDrop.status) nextDrop.status = "Planned";
+        if (typeof nextDrop.scheduledAt !== "number") nextDrop.scheduledAt = null;
+        if (typeof nextDrop.completedAt !== "number") nextDrop.completedAt = null;
+        if (typeof nextDrop.lastAttemptAt !== "number") nextDrop.lastAttemptAt = null;
+        if (typeof nextDrop.lastAttemptReason !== "string") nextDrop.lastAttemptReason = null;
+        return nextDrop;
+      });
+      safeWeek.events = events.map((eventItem) => {
+        const nextEvent = eventItem || {};
+        if (!nextEvent.id) nextEvent.id = uid("RE");
+        if (!nextEvent.actionType) nextEvent.actionType = DEFAULT_PROMO_TYPE;
+        if (!nextEvent.status) nextEvent.status = "Planned";
+        if (typeof nextEvent.scheduledAt !== "number") nextEvent.scheduledAt = null;
+        if (typeof nextEvent.completedAt !== "number") nextEvent.completedAt = null;
+        if (typeof nextEvent.lastAttemptAt !== "number") nextEvent.lastAttemptAt = null;
+        if (typeof nextEvent.lastAttemptReason !== "string") nextEvent.lastAttemptReason = null;
+        return nextEvent;
+      });
+      return safeWeek;
+    });
+    return next;
+  });
+  if (!Array.isArray(state.scheduledEvents)) state.scheduledEvents = [];
+  state.scheduledEvents = state.scheduledEvents.filter(Boolean).map((entry) => {
+    const next = entry || {};
+    if (!next.id) next.id = uid("SE");
+    if (!next.status) next.status = "Scheduled";
+    if (typeof next.scheduledAt !== "number") next.scheduledAt = state.time?.epochMs || Date.now();
+    if (typeof next.completedAt !== "number") next.completedAt = null;
+    if (!next.actionType) next.actionType = DEFAULT_PROMO_TYPE;
+    if (typeof next.actId !== "string") next.actId = next.actId || null;
+    if (typeof next.eraId !== "string") next.eraId = next.eraId || null;
+    if (typeof next.facilityId !== "string") next.facilityId = getPromoFacilityForType(next.actionType) || null;
+    if (typeof next.rolloutStrategyId !== "string") next.rolloutStrategyId = next.rolloutStrategyId || null;
+    if (typeof next.rolloutItemId !== "string") next.rolloutItemId = next.rolloutItemId || null;
+    if (typeof next.rolloutWeekIndex !== "number") next.rolloutWeekIndex = null;
+    return next;
+  });
   if (!state.social) state.social = { posts: [] };
   if (!Array.isArray(state.social.posts)) state.social.posts = [];
   if (!state.promoFacilities || typeof state.promoFacilities !== "object") {
@@ -6021,6 +7190,14 @@ function normalizeState() {
   state.promoFacilities.broadcast.bookings = state.promoFacilities.broadcast.bookings.filter(Boolean);
   state.promoFacilities.filming.bookings = state.promoFacilities.filming.bookings.filter(Boolean);
   if (!Array.isArray(state.rivalReleaseQueue)) state.rivalReleaseQueue = [];
+  state.rivalReleaseQueue = state.rivalReleaseQueue.filter(Boolean).map((entry) => {
+    const next = entry || {};
+    const queueType = next.queueType || "release";
+    next.queueType = queueType;
+    if (queueType === "promo" && !next.promoType) next.promoType = AUTO_PROMO_RIVAL_TYPE;
+    if (typeof next.releaseAt !== "number") next.releaseAt = state.time?.epochMs || Date.now();
+    return next;
+  });
   if (!state.population) state.population = { snapshot: null, lastUpdateYear: 0, lastUpdateAt: null, campaignSplit: null, campaignSplitStage: null };
   if (typeof state.population.lastUpdateYear !== "number") {
     const derivedYear = state.population.lastUpdateAt
@@ -6513,10 +7690,9 @@ function recommendReleasePlan(track) {
 
 function planRivalRelease(genre, quality) {
   const plan = recommendReleasePlan({ genre, quality });
-  const jitter = plan.scheduleKey === "now" ? rand(0, 12) : rand(0, 24);
   return {
     distribution: plan.distribution,
-    releaseAt: state.time.epochMs + (plan.scheduleHours + jitter) * HOUR_MS
+    releaseAt: getReleaseAsapAt(state.time.epochMs)
   };
 }
 
@@ -7506,6 +8682,23 @@ function buildCalendarSources() {
       distribution: entry.distribution || entry.note || "Digital"
     };
   });
+  const rolloutEvents = ensureScheduledEventsStore()
+    .filter((entry) => Number.isFinite(entry.scheduledAt))
+    .map((entry) => {
+    const track = entry.contentId ? getTrack(entry.contentId) : null;
+    const act = entry.actId ? getAct(entry.actId) : track ? getAct(track.actId) : null;
+    const typeLabel = rolloutEventLabel(entry.actionType);
+    return {
+      id: entry.id,
+      ts: entry.scheduledAt,
+      title: track ? track.title : typeLabel,
+      actName: act ? act.name : "Unknown",
+      label: labelName,
+      kind: "labelEvent",
+      typeLabel
+    };
+  });
+  labelScheduled.push(...rolloutEvents);
   const labelReleased = state.marketTracks
     .filter((entry) => entry.isPlayer)
     .map((entry) => ({
@@ -7518,16 +8711,22 @@ function buildCalendarSources() {
       typeLabel: "Released",
       distribution: entry.distribution || "Digital"
     }));
-  const rivalScheduled = state.rivalReleaseQueue.map((entry) => ({
-    id: entry.id,
-    ts: entry.releaseAt,
-    title: entry.title,
-    actName: entry.actName || "Unknown",
-    label: entry.label,
-    kind: "rivalScheduled",
-    typeLabel: "Rival Scheduled",
-    distribution: entry.distribution || "Digital"
-  }));
+  const rivalScheduled = state.rivalReleaseQueue.map((entry) => {
+    const queueType = entry.queueType || "release";
+    const isPromo = queueType === "promo";
+    const promoLabel = isPromo ? getPromoTypeDetails(entry.promoType).label : null;
+    const title = entry.title || (isPromo ? promoLabel : "Unknown Track");
+    return {
+      id: entry.id,
+      ts: entry.releaseAt,
+      title,
+      actName: entry.actName || (isPromo ? "Promotion" : "Unknown"),
+      label: entry.label,
+      kind: isPromo ? "rivalPromo" : "rivalScheduled",
+      typeLabel: isPromo ? "Rival Promo" : "Rival Scheduled",
+      distribution: isPromo ? promoLabel : (entry.distribution || "Digital")
+    };
+  });
   const rivalReleased = state.marketTracks
     .filter((entry) => !entry.isPlayer)
     .map((entry) => ({
@@ -8301,6 +9500,105 @@ function renderTracks() {
   renderTrackHistoryPanel(activeTab);
 }
 
+function renderRolloutStrategyPlanner() {
+  const select = $("rolloutStrategySelect");
+  const summary = $("rolloutStrategySummary");
+  const weekInput = $("rolloutStrategyWeek");
+  const dropInput = $("rolloutStrategyDropId");
+  const eventTypeSelect = $("rolloutStrategyEventType");
+  const eventContentInput = $("rolloutStrategyEventContent");
+  const autoRunToggle = $("rolloutStrategyAutoRun");
+  const expandBtn = $("rolloutStrategyExpand");
+  const addDropBtn = $("rolloutStrategyAddDrop");
+  const addEventBtn = $("rolloutStrategyAddEvent");
+  const createBtn = $("rolloutStrategyCreate");
+  if (!select || !summary) return;
+
+  const era = getRolloutPlanningEra();
+  if (!era) {
+    select.innerHTML = `<option value="">No active era</option>`;
+    summary.innerHTML = `<div class="muted">Focus an active era to plan a rollout strategy.</div>`;
+    if (weekInput) weekInput.disabled = true;
+    if (dropInput) dropInput.disabled = true;
+    if (eventTypeSelect) eventTypeSelect.disabled = true;
+    if (eventContentInput) eventContentInput.disabled = true;
+    if (autoRunToggle) autoRunToggle.disabled = true;
+    if (expandBtn) expandBtn.disabled = true;
+    if (addDropBtn) addDropBtn.disabled = true;
+    if (addEventBtn) addEventBtn.disabled = true;
+    if (createBtn) createBtn.disabled = true;
+    return;
+  }
+
+  const strategies = getRolloutStrategiesForEra(era.id);
+  if (!strategies.length) {
+    select.innerHTML = `<option value="">No strategy yet</option>`;
+    summary.innerHTML = `<div class="muted">No rollout strategies yet. Click New to create one.</div>`;
+    if (weekInput) weekInput.disabled = true;
+    if (dropInput) dropInput.disabled = true;
+    if (eventTypeSelect) eventTypeSelect.disabled = true;
+    if (eventContentInput) eventContentInput.disabled = true;
+    if (autoRunToggle) autoRunToggle.disabled = true;
+    if (expandBtn) expandBtn.disabled = true;
+    if (addDropBtn) addDropBtn.disabled = true;
+    if (addEventBtn) addEventBtn.disabled = true;
+    if (createBtn) createBtn.disabled = false;
+    return;
+  }
+
+  select.innerHTML = strategies.map((strategy) => (
+    `<option value="${strategy.id}">${strategy.id} | ${strategy.status}</option>`
+  )).join("");
+
+  const desiredId = state.ui.viewContext?.rolloutStrategyId || era.rolloutStrategyId || strategies[0].id;
+  const activeStrategy = strategies.find((strategy) => strategy.id === desiredId) || strategies[0];
+  select.value = activeStrategy.id;
+  setSelectedRolloutStrategyId(activeStrategy.id);
+
+  if (eventTypeSelect) {
+    eventTypeSelect.innerHTML = Object.keys(PROMO_TYPE_DETAILS)
+      .map((key) => `<option value="${key}">${PROMO_TYPE_DETAILS[key].label}</option>`)
+      .join("");
+    if (!eventTypeSelect.value) eventTypeSelect.value = DEFAULT_PROMO_TYPE;
+  }
+
+  if (weekInput) {
+    weekInput.disabled = false;
+    weekInput.max = String(activeStrategy.weeks.length);
+    const parsed = Math.max(1, Math.min(activeStrategy.weeks.length, Number(weekInput.value) || 1));
+    weekInput.value = String(parsed);
+  }
+  if (dropInput) dropInput.disabled = false;
+  if (eventTypeSelect) eventTypeSelect.disabled = false;
+  if (eventContentInput) eventContentInput.disabled = false;
+  if (autoRunToggle) {
+    autoRunToggle.disabled = false;
+    autoRunToggle.checked = Boolean(activeStrategy.autoRun);
+  }
+  if (expandBtn) expandBtn.disabled = false;
+  if (addDropBtn) addDropBtn.disabled = false;
+  if (addEventBtn) addEventBtn.disabled = false;
+  if (createBtn) createBtn.disabled = false;
+
+  const header = `
+    <div class="list-item">
+      <div class="item-title">Strategy ${activeStrategy.id}</div>
+      <div class="muted">Status: ${activeStrategy.status} | Source: ${activeStrategy.source} | Weeks: ${activeStrategy.weeks.length}</div>
+    </div>
+  `;
+  const rows = activeStrategy.weeks.map((week, index) => {
+    const dropCount = Array.isArray(week.drops) ? week.drops.length : 0;
+    const eventCount = Array.isArray(week.events) ? week.events.length : 0;
+    return `
+      <div class="list-item">
+        <div class="item-title">Week ${index + 1}</div>
+        <div class="muted">Drops ${dropCount} | Events ${eventCount}</div>
+      </div>
+    `;
+  });
+  summary.innerHTML = rows.length ? header + rows.join("") : `${header}<div class="muted">No rollout items yet.</div>`;
+}
+
 function renderEraStatus() {
   const eraBox = $("eraStatus");
   if (!eraBox) return;
@@ -8309,6 +9607,7 @@ function renderEraStatus() {
   const focusEra = getFocusedEra();
   if (!activeEras.length) {
     eraBox.innerHTML = `<div class="muted">No active Eras. Start one or schedule a release.</div>`;
+    renderRolloutStrategyPlanner();
     return;
   }
   eraBox.innerHTML = activeEras.map((era) => {
@@ -8337,6 +9636,7 @@ function renderEraStatus() {
       </div>
     `;
   }).join("");
+  renderRolloutStrategyPlanner();
 }
 
 function renderReleaseDesk() {
@@ -9257,43 +10557,124 @@ function renderCreateStageTrackSelect() {
   renderStageSelect("master", "masterTrackSelect", "masterTrackMeta");
 }
 
-function getCreateStageAvailability() {
-  const mode = state.ui.recommendAllMode || "solo";
+function getSheetStartPlan({ mode, theme, modifierId, cash } = {}) {
+  const resolvedMode = mode || state.ui.recommendAllMode || "solo";
+  const resolvedTheme = typeof theme === "string"
+    ? theme
+    : ($("themeSelect") ? $("themeSelect").value : "");
+  const resolvedModifierId = typeof modifierId === "string"
+    ? modifierId
+    : ($("modifierSelect") ? $("modifierSelect").value : "None");
+  const modifier = getModifier(resolvedModifierId);
   const assignedSongwriters = [...new Set(getTrackRoleIdsFromSlots("Songwriter"))];
   const req = staminaRequirement("Songwriter");
   const eligibleSongwriters = assignedSongwriters.filter((id) => {
     const creator = getCreator(id);
     return creator && creator.stamina >= req;
   });
-  const sheetReadyCount = mode === "collab"
-    ? (assignedSongwriters.length ? 1 : 0)
-    : eligibleSongwriters.length;
-  const theme = $("themeSelect") ? $("themeSelect").value : "";
-  const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
-  const modifier = getModifier(modifierId);
-  const sheetCrew = mode === "collab" ? assignedSongwriters : eligibleSongwriters;
-  const sheetCost = sheetCrew.length
-    ? (mode === "collab"
-      ? getStageCost(0, modifier, sheetCrew)
-      : Math.min(...sheetCrew.map((id) => getStageCost(0, modifier, [id]))))
-    : 0;
-  const sheetHasCrew = mode === "collab" ? assignedSongwriters.length > 0 : eligibleSongwriters.length > 0;
+  const cashOnHand = Number.isFinite(cash) ? cash : state.label.cash;
   const studioSlotsAvailable = getStudioAvailableSlots();
   const sheetStageSlots = getStageStudioAvailable(0);
-  const sheetCanStart = !!theme
-    && sheetHasCrew
-    && state.label.cash >= sheetCost
-    && studioSlotsAvailable > 0
-    && sheetStageSlots > 0;
+  const capacityLimit = Math.min(studioSlotsAvailable, sheetStageSlots);
+  const themeReady = !!resolvedTheme;
+
+  if (resolvedMode === "collab") {
+    const sheetCrew = assignedSongwriters;
+    const sheetCost = sheetCrew.length ? getStageCost(0, modifier, sheetCrew) : 0;
+    const canStart = themeReady
+      && sheetCrew.length > 0
+      && cashOnHand >= sheetCost
+      && capacityLimit > 0;
+    return {
+      mode: resolvedMode,
+      themeReady,
+      modifier,
+      assignedSongwriters,
+      eligibleSongwriters,
+      startableSongwriters: canStart ? sheetCrew : [],
+      startableCount: canStart ? 1 : 0,
+      capacityLimit,
+      studioSlotsAvailable,
+      sheetStageSlots,
+      stoppedByCash: themeReady && sheetCrew.length > 0 && cashOnHand < sheetCost,
+      stoppedByCapacity: themeReady && sheetCrew.length > 0 && capacityLimit <= 0,
+      staminaRequirement: req
+    };
+  }
+
+  if (!themeReady) {
+    return {
+      mode: resolvedMode,
+      themeReady,
+      modifier,
+      assignedSongwriters,
+      eligibleSongwriters,
+      startableSongwriters: [],
+      startableCount: 0,
+      capacityLimit,
+      studioSlotsAvailable,
+      sheetStageSlots,
+      stoppedByCash: false,
+      stoppedByCapacity: false,
+      staminaRequirement: req
+    };
+  }
+
+  let remainingCash = cashOnHand;
+  let remainingCapacity = capacityLimit;
+  let stoppedByCash = false;
+  let stoppedByCapacity = false;
+  const startableSongwriters = [];
+  for (let i = 0; i < eligibleSongwriters.length; i += 1) {
+    if (remainingCapacity <= 0) {
+      stoppedByCapacity = true;
+      break;
+    }
+    const songwriterId = eligibleSongwriters[i];
+    const stageCost = getStageCost(0, modifier, [songwriterId]);
+    if (remainingCash < stageCost) {
+      stoppedByCash = true;
+      break;
+    }
+    startableSongwriters.push(songwriterId);
+    remainingCash -= stageCost;
+    remainingCapacity -= 1;
+  }
+
+  return {
+    mode: resolvedMode,
+    themeReady,
+    modifier,
+    assignedSongwriters,
+    eligibleSongwriters,
+    startableSongwriters,
+    startableCount: startableSongwriters.length,
+    capacityLimit,
+    studioSlotsAvailable,
+    sheetStageSlots,
+    stoppedByCash,
+    stoppedByCapacity,
+    staminaRequirement: req
+  };
+}
+
+function getCreateStageAvailability() {
+  const theme = $("themeSelect") ? $("themeSelect").value : "";
+  const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
+  const sheetPlan = getSheetStartPlan({ theme, modifierId });
+  const sheetReadyCount = sheetPlan.startableCount;
+  const studioSlotsAvailable = sheetPlan.studioSlotsAvailable;
+  const sheetStageSlots = sheetPlan.sheetStageSlots;
+  const sheetCanStart = sheetPlan.startableCount > 0;
   const sheetReason = (() => {
-    if (!theme) return "Select a Theme to start sheet music.";
-    if (!assignedSongwriters.length) return "Assign a Songwriter ID to start sheet music.";
-    if (mode === "solo" && assignedSongwriters.length && !eligibleSongwriters.length) {
-      return `No available Songwriter creators with ${req} stamina.`;
+    if (!sheetPlan.themeReady) return "Select a Theme to start sheet music.";
+    if (!sheetPlan.assignedSongwriters.length) return "Assign a Songwriter ID to start sheet music.";
+    if (sheetPlan.mode === "solo" && sheetPlan.assignedSongwriters.length && !sheetPlan.eligibleSongwriters.length) {
+      return `No available Songwriter creators with ${sheetPlan.staminaRequirement} stamina.`;
     }
     if (sheetStageSlots <= 0) return "No studio slots available for sheet music. Wait for a studio to free up.";
     if (studioSlotsAvailable <= 0) return "No studio slots available. Finish a production or expand capacity first.";
-    if (state.label.cash < sheetCost) return "Not enough cash to start sheet music.";
+    if (sheetPlan.stoppedByCash && !sheetPlan.startableCount) return "Not enough cash to start sheet music.";
     return "";
   })();
 
@@ -9578,9 +10959,16 @@ export {
   getEraById,
   getActiveEras,
   getFocusedEra,
+  getRolloutPlanningEra,
   setFocusEraById,
   startEraForAct,
   endEraById,
+  createRolloutStrategyForEra,
+  getRolloutStrategyById,
+  setSelectedRolloutStrategyId,
+  addRolloutStrategyDrop,
+  addRolloutStrategyEvent,
+  expandRolloutStrategy,
   pickDistinct,
   uid,
   weekIndex,

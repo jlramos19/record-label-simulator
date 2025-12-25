@@ -2910,10 +2910,3 @@ Thursday, August 10, 2023
 
 
 
-
-
-   *From \<[https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Topoda%20Charts%20Alphabet%20and%20Vocabulary.docx](https://d.docs.live.net/624979245c410af5/Documents/Topoda%20Charts%20Documentation/Topoda%20Charts%20Alphabet%20and%20Vocabulary.docx)\>*
-
-
-
-
