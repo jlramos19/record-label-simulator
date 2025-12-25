@@ -13,7 +13,14 @@ const MAX_ARGS = 3;
 const HTTP_LOG_RE = /"(\w+)\s+([^\s]+)\s+HTTP\/[0-9.]+"\s+(\d{3})/;
 const ANSI_REGEX = /\u001b\[[0-9;]*[A-Za-z]/g;
 const ANSI_OSC_REGEX = /\u001b\][^\u0007]*\u0007/g;
-const NPM_CMD = process.platform === "win32" ? "npm.cmd" : "npm";
+const CMD_EXE = process.env.comspec || "cmd.exe";
+
+function spawnNpm(script, options) {
+  if (process.platform === "win32") {
+    return spawn(CMD_EXE, ["/d", "/s", "/c", `npm run ${script}`], options);
+  }
+  return spawn("npm", ["run", script], options);
+}
 
 const lineBuffers = new Map();
 
@@ -193,11 +200,11 @@ const run = async () => {
   let browser;
 
   try {
-    tsc = spawn(NPM_CMD, ["run", "watch"], { stdio: ["ignore", "pipe", "pipe"] });
+    tsc = spawnNpm("watch", { stdio: ["ignore", "pipe", "pipe"] });
     tsc.stdout.on("data", (d) => writeChunk(write, "tsc.stdout", d));
     tsc.stderr.on("data", (d) => writeChunk(write, "tsc.stderr", d));
 
-    server = spawn(NPM_CMD, ["run", "start"], { stdio: ["ignore", "pipe", "pipe"] });
+    server = spawnNpm("start", { stdio: ["ignore", "pipe", "pipe"] });
     server.stdout.on("data", (d) => writeChunk(write, "server.stdout", d, { skip: shouldSkipServerLine }));
     server.stderr.on("data", (d) => writeChunk(write, "server.stderr", d, { skip: shouldSkipServerLine }));
 
