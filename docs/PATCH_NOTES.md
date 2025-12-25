@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1717Z)
+- Guarded Creator roster rendering when the roster panel isn't mounted to prevent CCC sign crashes.
+
 ## 2025-12-25 (RLS-PATCH-20251225-1708Z)
 - Fixed Calendar view rendering crash caused by a missing CalendarView import.
 

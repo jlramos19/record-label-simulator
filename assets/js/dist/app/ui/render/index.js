@@ -1402,6 +1402,9 @@ function renderCreatorAvatar(creator) {
     return `<div class="${className}" aria-hidden="true"${imageStyle}>${content}</div>`;
 }
 function renderCreators() {
+    const creatorList = $("creatorList");
+    if (!creatorList)
+        return;
     const busyIds = getBusyCreatorIds("In Progress");
     const pool = state.creators || [];
     const columns = MARKET_ROLES.map((role) => {
@@ -1455,7 +1458,7 @@ function renderCreators() {
       </div>
     `;
     });
-    $("creatorList").innerHTML = columns.join("");
+    creatorList.innerHTML = columns.join("");
 }
 function renderMarket() {
     ensureMarketCreators({}, { replenish: false });
