@@ -3,3 +3,6 @@ usage-logs/
 .vscode/
 .DS_Store
 Thumbs.db
+tmp_*.txt
+tmp_*.ts
+src/app/ui/render/
