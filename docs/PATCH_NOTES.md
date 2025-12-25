@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251225-1255Z)
+- Release stamp updated; no gameplay changes.
+
 ## 2025-12-25 (Economy + Creator Skill)
 - Content production now charges per stage with new cost tiers (Sheet/Demo/Master) and skill-based scaling.
 - Stage availability checks now consider per-stage costs for Sheet/Demo/Master.
