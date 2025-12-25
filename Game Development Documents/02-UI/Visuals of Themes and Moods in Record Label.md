@@ -1,6 +1,6 @@
 `Mood visuals use motif iconography as the primary identity. Default display: {MoodName} {MotifIcon}. Colored-heart emojis are secondary/alt for alignment-style overlays only.`
 
-`The theme of the portrait is freedom, with the primary color palette being cyan. The background shows a blue sky, the unique visual element of the portrait is the white clouds, and the time of day is noon during midday.`
+`The theme of the portrait is freedom, with the primary color palette being cyan. The background shows a blue sky, the unique visual element of the portrait is the cyan-tinted clouds (white reserved for Safe alignment), and the time of day is noon during midday.`
 
 `The theme of the portrait is loyalty, with the primary color palette being magenta. The background shows a beach, the unique visual element of the portrait is the pink sand, and the time of day is dawn during sunrise.`
 
@@ -20,7 +20,7 @@
 
 `- **Background**: Sky`
 
-`- **Time of Day**: Noon (blue sky with white clouds)`
+`- **Time of Day**: Noon (blue sky with cyan-tinted clouds; white reserved for Safe alignment)`
 
 `### LOYALTY`
 
@@ -62,7 +62,7 @@
 
 `- Symbol: Dove`
 
-`- Color: White`
+`- Color: TBD (avoid white; reserved for Safe alignment)`
 
 `### ENERGIZING`
 
@@ -80,13 +80,13 @@
 
 `- Symbol: Crystal-clear Teardrop`
 
-`- Color: Dark Blue`
+`- Color: TBD (avoid blue; reserved for Bytenza nation)`
 
 `### THRILLING`
 
 `- Symbol: Flame`
 
-`- Color: Blue with Yellow Tip`
+`- Color: TBD (avoid blue; reserved for Bytenza nation)`
 
 `### ANGERING`
 
@@ -110,7 +110,7 @@
 
 `- Symbol: Arrow pointing up`
 
-`- Color: light grayish blue`
+`- Color: TBD (avoid blue/white; reserved for nation/alignment)`
 
 `Please let me know how you would like to assign or organize the moods in the table. This will help us ensure that each unique combination is properly defined and understood before we move on to combining them with themes.`
 

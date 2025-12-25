@@ -1,7 +1,7 @@
 Record Label Simulator \- Game Overview  
 Game Overview
 
-Concept: Record Label Simulator is an innovative strategy and simulation game where players take on the role of the CEO of a record label in a world shared by human and AI characters. As CEOs, players nurture artists to success while managing ‘FLAMP’ factors \- FREEDOM, Love, Ambition, MORALITY, and Power. Central to the game are the dynamics of three competing factions the player can choose from. The players' challenges and progress are tied not just to their individual actions and decisions but also to the faction they belong to.
+Concept: Record Label Simulator is an innovative strategy and simulation game where players take on the role of the CEO of a record label in a world shared by human and AI characters. As CEOs, players nurture artists to success while managing ‘FLAMP’ factors \- FREEDOM, Loyalty, Ambition, MORALITY, and Power. Central to the game are the dynamics of three competing factions the player can choose from. The players' challenges and progress are tied not just to their individual actions and decisions but also to the faction they belong to.
 
 content Genre: The game blends elements of the simulation, strategy, and micromanagement content genres to create a distinct gaming experience.
 

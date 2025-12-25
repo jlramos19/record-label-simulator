@@ -26,3 +26,8 @@
 
 ## **`Country Colors`**
 
+| `Country` | `Color Name` | `Hex` | `Color` |
+| ----- | ----- | ----- | ----- |
+| `Annglora` | `Annglora Periwinkle` | `#CC99FF` |  |
+| `Bytenza` | `Bytenza Blue` | `#3333FF` |  |
+| `Crowlya` | `Crowlya Yellow` | `#FFFF00` |  |

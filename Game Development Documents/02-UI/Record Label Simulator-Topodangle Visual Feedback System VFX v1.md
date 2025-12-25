@@ -46,7 +46,7 @@
 
 * `Primary tint: derive from Preferred Theme.`  
 * `Accent tint: derive from Preferred Mood (e.g., Thrilling = higher saturation; Calming = lower saturation).`  
-* `Country contextual tint (optional): Annglora = greens, Bytenza = cyans, Crowlya = golds (used sparingly behind the logo).`
+* `Country contextual tint (optional): Annglora = greens, Bytenza = blues, Crowlya = golds (used sparingly behind the logo).`
 
 ## **`Timing & motion (safe defaults)`**
 

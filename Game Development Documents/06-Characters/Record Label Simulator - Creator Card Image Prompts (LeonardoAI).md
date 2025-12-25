@@ -24,7 +24,16 @@ Prompt recipes for Creator card imagery in a futuristic aesthetic, with clear co
 
   * magenta (purple, violet)
 
-  * cyan (dark blue, sky blue)
+  * cyan (Freedom theme accents)
+
+### **Color semantics (canon)**
+
+* Nation cues are primary and come from silhouette/props/lighting style (tech/neon vs bioluminescent flora vs gem reflection).
+* Bytenza uses blue for nation accents; do not use cyan for nation cues.
+* Freedom theme uses cyan accents/motifs.
+* Safe alignment uses white accents/motifs.
+* Colors are layered, not exclusive (blue + cyan + white can coexist).
+* Crops: head-and-shoulders, centered on face, keep nation/theme/alignment accents in frame.
 
 ### **Mixed-background examples**
 
@@ -51,4 +60,3 @@ Western–Native American · East Asian–Middle Eastern · African–Latin Amer
 2. A rebellious and Neutral 18-year-old Albanian–Blackfoot mixed man. He wears foliage shorts and long wavy hair. He is a recorder in a bioluminescent forest at midday, framed by a biophilic theme.
 
 3. A poised and Safe 19-year-old Guyanese–Guaraní mixed man. He wears an orange suit-and-tie with golden accents. He is an A\&R intern in a spa, evoking opulence with warm lighting and steam.
-
