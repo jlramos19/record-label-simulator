@@ -40,6 +40,11 @@ const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
 const GAME_MODE_KEY = "rls_game_mode_v1";
 const GAME_DIFFICULTY_KEY = "rls_game_difficulty_v1";
 const START_PREFS_KEY = "rls_start_prefs_v1";
+const UI_THEME_KEY = "rls_ui_theme_v1";
+const UI_THEME_DEFAULT = "dark";
+const UI_THEME_META = { dark: "#330000", light: "#ccffff" };
+let uiThemeMediaQuery = null;
+let uiThemeMediaBound = false;
 let activeRoute = DEFAULT_ROUTE;
 let hasMountedRoute = false;
 let chartHistoryRequestId = 0;
@@ -52,6 +57,7 @@ let calendarWheelAcc = 0;
 let calendarWheelAt = 0;
 let calendarDragState = null;
 let timeJumpInFlight = false;
+let horizontalWheelBound = false;
 const TRACK_ROLE_KEYS = {
     Songwriter: "songwriterIds",
     Performer: "performerIds",
@@ -69,10 +75,133 @@ const ROLE_LABELS = {
     Producer: "Producer"
 };
 const STATE_EVENT = "rls:state-changed";
+const UI_RENDER_HOLD_SELECTOR = "button, [role=\"button\"], a, input, select, textarea, [data-ui-render-hold]";
+const UI_RENDER_HOLD_FALLBACK_MS = 3000;
 function emitStateChanged() {
     if (typeof window === "undefined")
         return;
     window.dispatchEvent(new Event(STATE_EVENT));
+}
+function ensureUiState() {
+    if (!state.ui)
+        state.ui = {};
+    return state.ui;
+}
+function isUiRenderHoldTarget(target) {
+    if (!target || !target.closest)
+        return false;
+    return Boolean(target.closest(UI_RENDER_HOLD_SELECTOR));
+}
+function startUiRenderHold() {
+    const ui = ensureUiState();
+    ui.renderHoldActive = true;
+    ui.renderHoldUntil = Date.now() + UI_RENDER_HOLD_FALLBACK_MS;
+}
+function extendUiRenderHold() {
+    const ui = ensureUiState();
+    if (!ui.renderHoldActive)
+        return;
+    ui.renderHoldUntil = Date.now() + UI_RENDER_HOLD_FALLBACK_MS;
+}
+function endUiRenderHold() {
+    const ui = ensureUiState();
+    ui.renderHoldActive = false;
+    ui.renderHoldUntil = 0;
+}
+function normalizeUiTheme(value) {
+    if (value === "dark" || value === "light" || value === "system")
+        return value;
+    return UI_THEME_DEFAULT;
+}
+function getStoredUiTheme() {
+    try {
+        return normalizeUiTheme(localStorage.getItem(UI_THEME_KEY));
+    }
+    catch (error) {
+        return UI_THEME_DEFAULT;
+    }
+}
+function setStoredUiTheme(value) {
+    try {
+        localStorage.setItem(UI_THEME_KEY, value);
+    }
+    catch (error) {
+        // Ignore storage failures (private mode, quota, etc.).
+    }
+}
+function getPreferredUiTheme() {
+    if (typeof window === "undefined" || !window.matchMedia)
+        return UI_THEME_DEFAULT;
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+function resolveUiTheme(value) {
+    const normalized = normalizeUiTheme(value);
+    return normalized === "system" ? getPreferredUiTheme() : normalized;
+}
+function updateMetaThemeColor(theme) {
+    if (typeof document === "undefined")
+        return;
+    const meta = document.querySelector("meta[name=\"theme-color\"]");
+    if (!meta)
+        return;
+    const color = UI_THEME_META[theme] || UI_THEME_META[UI_THEME_DEFAULT];
+    meta.setAttribute("content", color);
+}
+function handleUiThemeMedia(event) {
+    if (normalizeUiTheme(getStoredUiTheme()) !== "system")
+        return;
+    const theme = event?.matches ? "light" : "dark";
+    document.documentElement.dataset.uiTheme = theme;
+    updateMetaThemeColor(theme);
+}
+function bindUiThemeMedia(selected) {
+    if (typeof window === "undefined" || !window.matchMedia)
+        return;
+    if (!uiThemeMediaQuery) {
+        uiThemeMediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    }
+    if (selected === "system") {
+        if (!uiThemeMediaBound) {
+            if (uiThemeMediaQuery.addEventListener) {
+                uiThemeMediaQuery.addEventListener("change", handleUiThemeMedia);
+            }
+            else if (uiThemeMediaQuery.addListener) {
+                uiThemeMediaQuery.addListener(handleUiThemeMedia);
+            }
+            uiThemeMediaBound = true;
+        }
+    }
+    else if (uiThemeMediaBound && uiThemeMediaQuery) {
+        if (uiThemeMediaQuery.removeEventListener) {
+            uiThemeMediaQuery.removeEventListener("change", handleUiThemeMedia);
+        }
+        else if (uiThemeMediaQuery.removeListener) {
+            uiThemeMediaQuery.removeListener(handleUiThemeMedia);
+        }
+        uiThemeMediaBound = false;
+    }
+}
+function applyUiTheme(value, { persist = false } = {}) {
+    const normalized = normalizeUiTheme(value);
+    if (persist) {
+        setStoredUiTheme(normalized);
+    }
+    const resolved = resolveUiTheme(normalized);
+    if (typeof document !== "undefined") {
+        document.documentElement.dataset.uiTheme = resolved;
+    }
+    updateMetaThemeColor(resolved);
+    bindUiThemeMedia(normalized);
+    syncUiThemeSelect(normalized);
+}
+function syncUiThemeSelect(value) {
+    const select = $("uiThemeSelect");
+    if (!select)
+        return;
+    const normalized = normalizeUiTheme(value || getStoredUiTheme());
+    if (select.value !== normalized) {
+        select.value = normalized;
+    }
 }
 function calendarAnchorWeek() {
     return Number.isFinite(state.ui?.calendarWeekIndex) ? state.ui.calendarWeekIndex : weekIndex();
@@ -1579,6 +1708,21 @@ function getPromoInflationMultiplier() {
     const annualInflation = 0.02;
     return Math.pow(1 + annualInflation, yearsElapsed);
 }
+function isPromoPrimeTimeEnabled() {
+    return Boolean(state.ui?.promoPrimeTime);
+}
+function resolvePromoTypeVariant(typeId) {
+    if (typeId === "livePerformance" && isPromoPrimeTimeEnabled())
+        return "primeShowcase";
+    return typeId;
+}
+function resolvePromoTypeCardDetails(typeId) {
+    return getPromoTypeDetails(resolvePromoTypeVariant(typeId));
+}
+function derivePromoTypesForRun(typeIds) {
+    const list = Array.isArray(typeIds) ? typeIds : [typeIds];
+    return list.map((typeId) => resolvePromoTypeVariant(typeId)).filter(Boolean);
+}
 function promoBudgetBaseCost(typeId) {
     const details = getPromoTypeDetails(typeId);
     return Math.max(PROMO_BUDGET_MIN, details.cost);
@@ -1741,7 +1885,7 @@ function hydratePromoTypeCards(root) {
         const typeId = card.dataset.promoType;
         if (!typeId)
             return;
-        const details = getPromoTypeDetails(typeId);
+        const details = resolvePromoTypeCardDetails(typeId);
         const label = card.querySelector("[data-promo-label]");
         if (label)
             label.textContent = details.label;
@@ -1794,23 +1938,49 @@ function syncPromoBudgetCards(root, { trackContext, lockouts = {}, inflationMult
         const typeId = card.dataset.promoType;
         if (!typeId)
             return;
+        const effectiveType = resolvePromoTypeVariant(typeId);
         const isLocked = Boolean(lockouts?.[typeId]);
-        const budget = setPromoBudgetForType(typeId, state.ui?.promoBudgets?.[typeId], inflationMultiplier);
+        const budgetKey = effectiveType;
+        const budget = setPromoBudgetForType(budgetKey, state.ui?.promoBudgets?.[budgetKey], inflationMultiplier);
         const input = card.querySelector("[data-promo-budget]");
         if (input) {
             input.min = String(PROMO_BUDGET_MIN);
             input.step = "100";
             input.value = String(budget);
             input.disabled = isLocked;
-            input.dataset.promoType = typeId;
+            input.dataset.promoType = budgetKey;
         }
         const efficiency = card.querySelector("[data-promo-efficiency]");
         if (efficiency)
-            efficiency.textContent = buildPromoEfficiencyText(typeId, budget, inflationMultiplier);
+            efficiency.textContent = buildPromoEfficiencyText(effectiveType, budget, inflationMultiplier);
         const expectation = card.querySelector("[data-promo-expectation]");
         if (expectation)
             expectation.textContent = buildPromoExpectationText(budget, track, act);
     });
+}
+function syncPrimeTimeToggle(root, trackContext) {
+    const scope = root || document;
+    const toggle = scope.querySelector("#promoPrimeTimeToggle");
+    if (!toggle)
+        return;
+    const enabled = isPromoPrimeTimeEnabled();
+    if (toggle.checked !== enabled)
+        toggle.checked = enabled;
+    const note = scope.querySelector("[data-promo-primetime-note]");
+    if (!note)
+        return;
+    if (!enabled) {
+        note.textContent = "Upgrade to Prime Time for higher cost + prestige gates.";
+        return;
+    }
+    const actId = trackContext?.act?.id || state.ui?.promoSlots?.actId || null;
+    const trackId = trackContext?.track?.id || null;
+    const eligibility = typeof game.checkPrimeShowcaseEligibility === "function"
+        ? game.checkPrimeShowcaseEligibility(actId, trackId)
+        : { ok: true, reason: "" };
+    note.textContent = eligibility.ok
+        ? "Prime Time eligible."
+        : `Prime Time locked: ${eligibility.reason || "Requirements not met."}`;
 }
 function buildPromoFacilityHint(typeId) {
     const facility = getPromoFacilityForType(typeId);
@@ -1857,7 +2027,8 @@ function updateAutoPromoSummary(scope) {
     const selectedTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
         ? state.ui.promoTypes
         : [state.ui?.promoType || DEFAULT_PROMO_TYPE];
-    const typeLabels = selectedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
+    const effectiveTypes = derivePromoTypesForRun(selectedTypes);
+    const typeLabels = selectedTypes.map((typeId) => resolvePromoTypeCardDetails(typeId).label).join(", ");
     const totalSpend = budgetPerType * selectedTypes.length;
     const scheduleHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
     const scheduleText = formatHourCountdown(scheduleHours);
@@ -1882,7 +2053,7 @@ function updateAutoPromoSummary(scope) {
             readiness = "No active era";
     }
     const pctLabel = `${Math.round(pct * 100)}%`;
-    const facilityHint = buildPromoFacilityHints(selectedTypes);
+    const facilityHint = buildPromoFacilityHints(effectiveTypes);
     const facilityLine = facilityHint ? `<div class="muted">${facilityHint}</div>` : "";
     const budgetLine = budgetPerType
         ? `${formatMoney(budgetPerType)} each (${formatMoney(totalSpend)} total)`
@@ -1910,20 +2081,24 @@ function updatePromoTypeHint(root) {
         select.value = primaryType;
     state.ui.promoTypes = selectedTypes.slice();
     state.ui.promoType = primaryType || DEFAULT_PROMO_TYPE;
+    syncPrimeTimeToggle(scope, trackContext);
     const inflationMultiplier = getPromoInflationMultiplier();
+    hydratePromoTypeCards(scope);
     syncPromoTypeCards(scope, selectedTypes, lockouts);
     syncPromoBudgetCards(scope, { trackContext, lockouts, inflationMultiplier });
-    const { budgets, total } = getPromoBudgetsForTypes(selectedTypes, inflationMultiplier);
+    const effectiveTypes = derivePromoTypesForRun(selectedTypes);
+    const { budgets, total } = getPromoBudgetsForTypes(effectiveTypes, inflationMultiplier);
     const totalSpend = formatMoney(total);
-    const perTypeSpend = selectedTypes.length === 1 ? formatMoney(budgets[selectedTypes[0]]) : null;
+    const perTypeSpend = selectedTypes.length === 1 ? formatMoney(budgets[effectiveTypes[0]]) : null;
     if (hint) {
         if (selectedTypes.length === 1) {
             const typeId = selectedTypes[0];
-            hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)} | Budget: ${perTypeSpend || totalSpend} | Total: ${totalSpend}${buildPromoFacilityHint(typeId)}`;
+            const effectiveType = resolvePromoTypeVariant(typeId);
+            hint.textContent = `Selected: ${buildPromoHint(effectiveType, inflationMultiplier)} | Budget: ${perTypeSpend || totalSpend} | Total: ${totalSpend}${buildPromoFacilityHint(effectiveType)}`;
         }
         else {
-            const labels = selectedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
-            const facilityHint = buildPromoFacilityHints(selectedTypes);
+            const labels = selectedTypes.map((typeId) => resolvePromoTypeCardDetails(typeId).label).join(", ");
+            const facilityHint = buildPromoFacilityHints(effectiveTypes);
             const facilitySuffix = facilityHint ? ` | ${facilityHint}` : "";
             hint.textContent = `Selected (${selectedTypes.length}): ${labels}. Budgets are per type; total spend: ${totalSpend}${facilitySuffix}`;
         }
@@ -2029,6 +2204,25 @@ function bindGlobalHandlers() {
             section.classList.toggle("hidden", section.dataset.tutorialSection !== tabId);
         });
     };
+    document.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "mouse" && event.button !== 0)
+            return;
+        if (!isUiRenderHoldTarget(event.target))
+            return;
+        startUiRenderHold();
+    }, { capture: true });
+    document.addEventListener("pointermove", () => {
+        extendUiRenderHold();
+    }, { passive: true });
+    document.addEventListener("pointerup", () => {
+        endUiRenderHold();
+    }, { capture: true });
+    document.addEventListener("pointercancel", () => {
+        endUiRenderHold();
+    }, { capture: true });
+    window.addEventListener("blur", () => {
+        endUiRenderHold();
+    });
     on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
     on("playBtn", "click", () => { setTimeSpeed("play"); });
     on("fastBtn", "click", () => { setTimeSpeed("fast"); });
@@ -2045,6 +2239,7 @@ function bindGlobalHandlers() {
         openMainMenu();
         syncGameModeSelect();
         syncDifficultySelect();
+        syncUiThemeSelect();
         updateTimeControlButtons();
         syncTimeControlAria();
     });
@@ -2079,6 +2274,9 @@ function bindGlobalHandlers() {
         syncTimeControlAria();
     });
     on("menuSaveBtn", "click", () => handleManualSave(true));
+    on("uiThemeSelect", "change", (e) => {
+        applyUiTheme(e.target.value, { persist: true });
+    });
     on("saveNowBtn", "click", () => handleManualSave(false));
     const lossList = $("usageLedgerList");
     if (lossList) {
@@ -2218,6 +2416,7 @@ function bindGlobalHandlers() {
             openMainMenu();
             syncGameModeSelect();
             syncDifficultySelect();
+            syncUiThemeSelect();
             updateTimeControlButtons();
             syncTimeControlAria();
         }
@@ -2793,6 +2992,13 @@ function bindViewHandlers(route, root) {
             const lockouts = getPromoTypeLockouts(trackContext);
             syncPromoTypeCards(root, [typeId], lockouts);
             updatePromoTypeHint(root);
+        });
+        on("promoPrimeTimeToggle", "change", (e) => {
+            if (!state.ui)
+                state.ui = {};
+            state.ui.promoPrimeTime = Boolean(e.target.checked);
+            updatePromoTypeHint(root);
+            saveToActiveSlot();
         });
         const promoGrid = root.querySelector("#promoTypeGrid");
         if (promoGrid) {
@@ -4574,13 +4780,27 @@ function runPromotion() {
         return;
     }
     const inflationMultiplier = getPromoInflationMultiplier();
-    const { budgets, total: totalCost } = getPromoBudgetsForTypes(selectedTypes, inflationMultiplier);
+    const effectiveTypes = derivePromoTypesForRun(selectedTypes);
+    if (!effectiveTypes.length) {
+        logEvent("No available promo types for this promo target.", "warn");
+        return;
+    }
+    if (isPromoPrimeTimeEnabled() && selectedTypes.includes("livePerformance")) {
+        const eligibility = typeof game.checkPrimeShowcaseEligibility === "function"
+            ? game.checkPrimeShowcaseEligibility(act.id, trackContext.track?.id || null)
+            : { ok: true, reason: "" };
+        if (!eligibility.ok) {
+            logEvent(eligibility.reason || "Prime Time eligibility not met.", "warn");
+            return;
+        }
+    }
+    const { budgets, total: totalCost } = getPromoBudgetsForTypes(effectiveTypes, inflationMultiplier);
     if (!totalCost || Number.isNaN(totalCost)) {
         logEvent("Promo budget total must be greater than 0.", "warn");
         return;
     }
     if (state.label.cash < totalCost) {
-        const label = selectedTypes.length > 1 ? "promo pushes" : "promo push";
+        const label = effectiveTypes.length > 1 ? "promo pushes" : "promo push";
         logEvent(`Not enough cash for ${label}.`, "warn");
         return;
     }
@@ -4599,7 +4819,7 @@ function runPromotion() {
         logEvent("Track is not active on the market.", "warn");
         return;
     }
-    const facilityNeeds = getPromoFacilityNeeds(selectedTypes);
+    const facilityNeeds = getPromoFacilityNeeds(effectiveTypes);
     for (const [facilityId, count] of Object.entries(facilityNeeds)) {
         const availability = getPromoFacilityAvailability(facilityId);
         if (availability.available < count) {
@@ -4609,7 +4829,7 @@ function runPromotion() {
             return;
         }
     }
-    for (const promoType of selectedTypes) {
+    for (const promoType of effectiveTypes) {
         const facilityId = getPromoFacilityForType(promoType);
         if (!facilityId)
             continue;
@@ -4624,7 +4844,7 @@ function runPromotion() {
         recordTrackPromoCost(trackContext.track, totalCost);
     let boostWeeks = 0;
     const weeksByType = {};
-    selectedTypes.forEach((promoType) => {
+    effectiveTypes.forEach((promoType) => {
         const budget = budgets[promoType];
         const weeks = promoWeeksFromBudget(budget);
         weeksByType[promoType] = weeks;
@@ -4643,7 +4863,7 @@ function runPromotion() {
         trackContext.track.promo = promo;
     }
     act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
-    state.meta.promoRuns = (state.meta.promoRuns || 0) + selectedTypes.length;
+    state.meta.promoRuns = (state.meta.promoRuns || 0) + effectiveTypes.length;
     const promoIds = Array.from(new Set([
         ...(trackContext.track?.creators?.songwriterIds || []),
         ...(trackContext.track?.creators?.performerIds || []),
@@ -4653,7 +4873,8 @@ function runPromotion() {
     if (promoIds.length)
         markCreatorPromo(promoIds);
     const promoStamp = state.time.epochMs;
-    selectedTypes.forEach((promoType) => {
+    const hasPerformanceTape = effectiveTypes.some((promoType) => promoType === "livePerformance" || promoType === "primeShowcase");
+    effectiveTypes.forEach((promoType) => {
         const budget = budgets[promoType];
         const weeks = weeksByType[promoType] || boostWeeks;
         game.recordPromoUsage({ track: trackContext.track, market, act, promoType, atMs: promoStamp });
@@ -4678,19 +4899,29 @@ function runPromotion() {
                 releaseDate,
                 channel: trackContext.track?.distribution || "Broadcast",
                 handle: handleFromName(state.label.name, "Label"),
-                cost: budget
+                cost: budget,
+                requirement: getPromoTypeDetails(promoType).requirement
             });
         }
     });
     if (typeof postFromTemplate === "function") {
+        if (hasPerformanceTape) {
+            postFromTemplate("performanceTape", {
+                trackTitle: trackContext.track ? trackContext.track.title : act.name,
+                actName: act.name,
+                releaseDate,
+                channel: trackContext.track?.distribution || "Broadcast",
+                handle: handleFromName(state.label.name, "Label")
+            });
+        }
         renderSocialFeed();
     }
     else {
         logEvent("Promo template posting not available.", "warn");
     }
-    const promoLabels = selectedTypes.map((promoType) => getPromoTypeDetails(promoType).label).join(", ");
-    const verb = selectedTypes.length > 1 ? "Promo pushes funded" : "Promo push funded";
-    const spendNote = selectedTypes.length > 1 ? ` Total spend: ${formatMoney(totalCost)}.` : "";
+    const promoLabels = effectiveTypes.map((promoType) => getPromoTypeDetails(promoType).label).join(", ");
+    const verb = effectiveTypes.length > 1 ? "Promo pushes funded" : "Promo push funded";
+    const spendNote = effectiveTypes.length > 1 ? ` Total spend: ${formatMoney(totalCost)}.` : "";
     const releaseNote = trackContext.isScheduled ? ` Release on ${releaseDate}.` : "";
     const targetLabel = trackContext.track ? `"${trackContext.track.title}"` : `Act "${act.name}"`;
     logEvent(`${verb} for ${targetLabel} (${promoLabels}) (+${boostWeeks} weeks).${spendNote}${releaseNote}`);
@@ -4700,9 +4931,12 @@ function handleReleaseActRecommendation(e) {
     const btn = e.target.closest("button[data-act-recommend]");
     if (!btn)
         return;
-    const track = getTrack(btn.dataset.actRecommend);
-    if (!track)
+    const trackId = btn.dataset.actRecommend;
+    const track = getTrack(trackId);
+    if (!track) {
+        logEvent(`Act recommendation failed: track ${trackId || "unknown"} not found.`, "warn");
         return;
+    }
     const recommendation = recommendActForTrack(track);
     if (!recommendation.actId) {
         logEvent(recommendation.reason || "No act recommendation available.", "warn");
@@ -4745,9 +4979,12 @@ function handleReleaseAction(e) {
     const btn = e.target.closest("button[data-release]");
     if (!btn)
         return;
-    const track = getTrack(btn.dataset.track);
-    if (!track)
+    const trackId = btn.dataset.track;
+    const track = getTrack(trackId);
+    if (!track) {
+        logEvent(`Release action failed: track ${trackId || "unknown"} not found.`, "warn");
         return;
+    }
     const isReady = track.status === "Ready";
     if (!track.actId || !getAct(track.actId)) {
         logEvent("Cannot release track: assign an Act first.", "warn");
@@ -4836,10 +5073,12 @@ function signCreatorById(id) {
     renderAll();
 }
 export async function initUI() {
+    applyUiTheme(getStoredUiTheme());
     ensureSlotDropdowns();
     updateSlotDropdowns();
     ensureSocialDetailModal();
     setupOverlayDismissals();
+    setupHorizontalWheelScroll();
     window.addEventListener("resize", () => clampAllPanels());
     bindGlobalHandlers();
     setupRankingWindowDrag();
@@ -4866,6 +5105,7 @@ export async function initUI() {
     syncGameModeSelect();
     syncDifficultySelect();
     syncStartPreferenceSelects();
+    syncUiThemeSelect();
     recordSessionReady("main-menu");
 }
 function setupPanelControls() {
@@ -5076,6 +5316,56 @@ function scanAllPanelsForOverflow() {
         });
     }
     catch (e) { }
+}
+function findHorizontalScrollTarget(start) {
+    let el = start instanceof Element ? start : null;
+    while (el && el !== document.body && el !== document.documentElement) {
+        if (!(el instanceof HTMLElement)) {
+            el = el.parentElement;
+            continue;
+        }
+        const style = getComputedStyle(el);
+        const overflowX = style.overflowX;
+        if (overflowX === "auto" || overflowX === "scroll" || overflowX === "overlay") {
+            const maxScroll = el.scrollWidth - el.clientWidth;
+            if (maxScroll > 1) {
+                const overflowY = style.overflowY;
+                const hasVertical = (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay")
+                    && (el.scrollHeight - el.clientHeight > 1);
+                return { element: el, hasVertical };
+            }
+        }
+        el = el.parentElement;
+    }
+    return null;
+}
+function handleHorizontalWheel(e) {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey)
+        return;
+    const target = findHorizontalScrollTarget(e.target);
+    if (!target)
+        return;
+    const deltaX = Number.isFinite(e.deltaX) ? e.deltaX : 0;
+    const deltaY = Number.isFinite(e.deltaY) ? e.deltaY : 0;
+    if (!deltaX && !deltaY)
+        return;
+    const usingHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+    if (target.hasVertical && !e.shiftKey && !usingHorizontal)
+        return;
+    const delta = usingHorizontal ? deltaX : deltaY;
+    if (!delta)
+        return;
+    const before = target.element.scrollLeft;
+    target.element.scrollLeft = before + delta;
+    if (target.element.scrollLeft !== before) {
+        e.preventDefault();
+    }
+}
+function setupHorizontalWheelScroll() {
+    if (horizontalWheelBound || typeof document === "undefined")
+        return;
+    horizontalWheelBound = true;
+    document.addEventListener("wheel", handleHorizontalWheel, { passive: false });
 }
 function setupOverlayDismissals() {
     // Close overlays when clicking outside the overlay-card

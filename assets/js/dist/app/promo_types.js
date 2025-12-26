@@ -17,7 +17,7 @@ const PROMO_TYPE_DETAILS = {
     },
     livePerformance: {
         label: "Live Performance",
-        requirement: "Venue slot + live-ready set",
+        requirement: "Venue slot + live-ready set (Prime Time upgrade available)",
         facility: "broadcast",
         supportsActOnly: true,
         requiresTrack: false,
@@ -51,7 +51,7 @@ const PROMO_TYPE_DETAILS = {
     },
     primeShowcase: {
         label: "Prime Time Showcase",
-        requirement: "Charting track + quality 70+ + act press kit",
+        requirement: "Top 10 act peak + Top 20 track peak + quality 80+",
         facility: "broadcast",
         supportsActOnly: true,
         requiresTrack: false,

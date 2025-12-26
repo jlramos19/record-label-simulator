@@ -5,7 +5,7 @@ import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./p
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
 import { ACT_NAMES, CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLES } from "./game/names.js";
-import { AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
+import { AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
 import { evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks, getProjectTrackLimits, normalizeProjectName, normalizeProjectType } from "./game/project-tracks.js";
 import { buildDefaultTrackSlotVisibility, buildEmptyTrackSlotList, parseTrackRoleTarget, roleLabel, trackRoleLimit } from "./game/track-roles.js";
 import { alignmentClass, countryColor, countryDemonym, formatGenreKeyLabel, formatGenreLabel, makeGenre, moodFromGenre, slugify, themeFromGenre } from "./game/label-utils.js";
@@ -247,6 +247,7 @@ function makeDefaultState() {
             eraSlots: { actId: null },
             promoType: DEFAULT_PROMO_TYPE,
             promoTypes: [DEFAULT_PROMO_TYPE],
+            promoPrimeTime: false,
             promoBudgets: Object.keys(PROMO_TYPE_DETAILS).reduce((acc, typeId) => {
                 acc[typeId] = PROMO_TYPE_DETAILS[typeId].cost;
                 return acc;
@@ -1648,6 +1649,86 @@ function findActChartingTrack(actId, minQuality = 0) {
         return null;
     return candidates.sort((a, b) => (b.quality || 0) - (a.quality || 0))[0];
 }
+function bestChartPeak(chartHistory) {
+    if (!chartHistory || typeof chartHistory !== "object")
+        return null;
+    let best = null;
+    Object.values(chartHistory).forEach((entry) => {
+        const peak = Number(entry?.peak);
+        if (!Number.isFinite(peak) || peak <= 0)
+            return;
+        best = best === null ? peak : Math.min(best, peak);
+    });
+    return best;
+}
+function getTrackPrestigePeak(track) {
+    if (!track)
+        return null;
+    const marketEntry = track.marketId
+        ? state.marketTracks.find((entry) => entry.id === track.marketId)
+        : null;
+    const fallbackEntry = state.marketTracks.find((entry) => entry.trackId === track.id);
+    return bestChartPeak((marketEntry || fallbackEntry)?.chartHistory);
+}
+function getActPrestigePeak(actId) {
+    if (!actId)
+        return null;
+    const act = getAct(actId);
+    if (!act)
+        return null;
+    let best = null;
+    state.marketTracks.forEach((entry) => {
+        if (entry.actId !== actId && entry.actName !== act.name)
+            return;
+        const peak = bestChartPeak(entry.chartHistory);
+        if (!Number.isFinite(peak) || peak <= 0)
+            return;
+        best = best === null ? peak : Math.min(best, peak);
+    });
+    return best;
+}
+function checkPrimeShowcaseEligibility(actId, trackId) {
+    if (!actId) {
+        return { ok: false, reason: "Select an Act to check Prime Time eligibility.", candidateTrack: null };
+    }
+    const act = getAct(actId);
+    if (!act) {
+        return { ok: false, reason: "Act not found for Prime Time eligibility.", candidateTrack: null };
+    }
+    const selectedTrack = trackId ? getTrack(trackId) : null;
+    const candidateTrack = selectedTrack || findActChartingTrack(actId, PRIME_SHOWCASE_MIN_QUALITY);
+    if (!candidateTrack) {
+        return { ok: false, reason: "Prime Time requires a charting track for the Act.", candidateTrack: null };
+    }
+    if (!isTrackCharting(candidateTrack.id)) {
+        return { ok: false, reason: "Prime Time requires a charting track.", candidateTrack };
+    }
+    const quality = Number(candidateTrack.quality || 0);
+    if (quality < PRIME_SHOWCASE_MIN_QUALITY) {
+        return {
+            ok: false,
+            reason: `Prime Time requires quality ${PRIME_SHOWCASE_MIN_QUALITY}+ content.`,
+            candidateTrack
+        };
+    }
+    const actPeak = getActPrestigePeak(actId);
+    if (!actPeak || actPeak > PRIME_SHOWCASE_MIN_ACT_PEAK) {
+        return {
+            ok: false,
+            reason: `Prime Time requires an Act with a Top ${PRIME_SHOWCASE_MIN_ACT_PEAK} chart peak.`,
+            candidateTrack
+        };
+    }
+    const trackPeak = getTrackPrestigePeak(candidateTrack);
+    if (!trackPeak || trackPeak > PRIME_SHOWCASE_MIN_TRACK_PEAK) {
+        return {
+            ok: false,
+            reason: `Prime Time requires a Track with a Top ${PRIME_SHOWCASE_MIN_TRACK_PEAK} chart peak.`,
+            candidateTrack
+        };
+    }
+    return { ok: true, reason: "", candidateTrack };
+}
 function scoreBroadcastStudioFit(studio, { alignment, theme, mood, labelCountry }) {
     if (!studio)
         return -1;
@@ -1720,6 +1801,17 @@ function resolveBroadcastProgramForPromo(promoType, { actId, trackId }) {
     if (minQuality > 0) {
         if (!candidateTrack || (candidateTrack.quality || 0) < minQuality) {
             return { ok: false, program, reason: `${program.label} requires quality ${minQuality}+ content.` };
+        }
+    }
+    if (program.id === "eyeris-prime-showcase") {
+        const eligibility = checkPrimeShowcaseEligibility(actId, selectedTrack?.id || candidateTrack?.id || null);
+        if (!eligibility.ok) {
+            return {
+                ok: false,
+                program,
+                reason: eligibility.reason || `${program.label} eligibility not met.`,
+                eligibleTrack: eligibility.candidateTrack || candidateTrack || null
+            };
         }
     }
     return { ok: true, program, eligibleTrack: candidateTrack };
@@ -4713,9 +4805,8 @@ function scheduleRelease(track, hoursFromNow, distribution, note) {
         return false;
     }
     const isReady = track.status === "Ready";
-    const isMastering = isMasteringTrack(track);
-    if (!isReady && !isMastering) {
-        logEvent("Only Ready or Mastering tracks can be scheduled for release.", "warn");
+    if (!isReady) {
+        logEvent("Only Ready (mastered) tracks can be scheduled for release.", "warn");
         return false;
     }
     if (!track.genre && track.theme && track.mood) {
@@ -4761,9 +4852,8 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
         return { ok: false, reason: "Track missing Act assignment." };
     }
     const isReady = track.status === "Ready";
-    const isMastering = isMasteringTrack(track);
-    if (!isReady && !isMastering) {
-        return { ok: false, reason: "Track not release-ready." };
+    if (!isReady) {
+        return { ok: false, reason: "Track must be mastered before scheduling." };
     }
     if (!track.genre && track.theme && track.mood) {
         track.genre = makeGenre(track.theme, track.mood);
@@ -4953,9 +5043,8 @@ function scheduleRolloutDrop(strategy, era, weekIndex, drop, mode) {
         return { ok: true, alreadyScheduled: true };
     }
     const isReady = track.status === "Ready";
-    const isMastering = isMasteringTrack(track);
-    if (!isReady && !isMastering) {
-        recordRolloutBlock(drop, "Track not release-ready.", mode, "Rollout drop");
+    if (!isReady) {
+        recordRolloutBlock(drop, "Track must be mastered before scheduling.", mode, "Rollout drop");
         return { ok: false, blocked: true };
     }
     if (!track.genre && track.theme && track.mood) {
@@ -5770,8 +5859,8 @@ const PROMO_METRIC_META = {
     eyeriSocialPost: { key: "likes", label: "Likes" },
     eyeriSocialAd: { key: "likes", label: "Likes" },
     musicVideo: { key: "views", label: "Views" },
-    livePerformance: { key: "views", label: "Views" },
-    primeShowcase: { key: "views", label: "Views" },
+    livePerformance: { key: "concurrent", label: "Concurrent" },
+    primeShowcase: { key: "concurrent", label: "Concurrent" },
     interview: { key: "comments", label: "Comments" }
 };
 function resolvePromoMetricMeta(promoType) {
@@ -5782,7 +5871,10 @@ function buildPromoEngagementMetrics(metrics) {
     const likes = roundToAudienceChunk(Number(safe.social || 0) * 1.1);
     const views = roundToAudienceChunk(Number(safe.streaming || 0) * 1.2 + Number(safe.airplay || 0) * 0.6);
     const comments = roundToAudienceChunk(Number(safe.social || 0) * 0.35 + Number(safe.airplay || 0) * 0.1);
-    return { likes, views, comments };
+    const concurrent = roundToAudienceChunk(Number(safe.airplay || 0) * 0.9
+        + Number(safe.streaming || 0) * 0.45
+        + Number(safe.social || 0) * 0.2);
+    return { likes, views, comments, concurrent };
 }
 function trackKey(entry) {
     return entry.trackId || entry.id || entry.title;
@@ -8480,24 +8572,41 @@ function runAutoPromoForPlayer() {
     const selectedTypes = Array.from(new Set(rawTypes)).filter(Boolean);
     if (!selectedTypes.length)
         return;
-    const usableTypes = track.promo?.musicVideoUsed
+    let usableTypes = track.promo?.musicVideoUsed
         ? selectedTypes.filter((typeId) => typeId !== "musicVideo")
         : selectedTypes;
     if (!usableTypes.length)
         return;
+    let resolvedTypes = usableTypes.slice();
+    if (state.ui?.promoPrimeTime && resolvedTypes.includes("livePerformance")) {
+        const eligibility = checkPrimeShowcaseEligibility(track.actId || null, track.id);
+        if (!eligibility.ok) {
+            resolvedTypes = resolvedTypes.filter((typeId) => typeId !== "livePerformance");
+            if (!resolvedTypes.length) {
+                logEvent(`Auto promo skipped: ${eligibility.reason || "Prime Time eligibility not met."}`, "warn");
+                return;
+            }
+            logEvent(`Auto promo note: ${eligibility.reason || "Prime Time eligibility not met."} Live performance skipped.`, "warn");
+        }
+        else {
+            resolvedTypes = resolvedTypes.map((typeId) => typeId === "livePerformance" ? "primeShowcase" : typeId);
+        }
+    }
+    if (!resolvedTypes.length)
+        return;
     const walletCash = state.label.wallet?.cash ?? state.label.cash;
     const budget = computeAutoPromoBudget(walletCash, autoPromoBudgetPct());
-    const totalCost = budget * usableTypes.length;
+    const totalCost = budget * resolvedTypes.length;
     if (!budget || walletCash < totalCost || state.label.cash < totalCost)
         return;
-    const facilityNeeds = promoFacilityNeeds(usableTypes);
+    const facilityNeeds = promoFacilityNeeds(resolvedTypes);
     for (const [facilityId, count] of Object.entries(facilityNeeds)) {
         const availability = getPromoFacilityAvailability(facilityId);
         if (availability.available < count)
             return;
     }
     const reservations = [];
-    for (const promoType of usableTypes) {
+    for (const promoType of resolvedTypes) {
         const facilityId = getPromoFacilityForType(promoType);
         if (!facilityId)
             continue;
@@ -8516,7 +8625,7 @@ function runAutoPromoForPlayer() {
     const act = track.actId ? getAct(track.actId) : null;
     if (act)
         act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
-    state.meta.promoRuns = (state.meta.promoRuns || 0) + usableTypes.length;
+    state.meta.promoRuns = (state.meta.promoRuns || 0) + resolvedTypes.length;
     const promoIds = [
         ...(track.creators?.songwriterIds || []),
         ...(track.creators?.performerIds || []),
@@ -8525,7 +8634,7 @@ function runAutoPromoForPlayer() {
     markCreatorPromo(promoIds);
     const promoStamp = state.time.epochMs;
     const promoLabel = market?.label || state.label?.name || "";
-    usableTypes.forEach((promoType) => {
+    resolvedTypes.forEach((promoType) => {
         recordPromoUsage({ track, market, act, promoType, atMs: promoStamp });
         recordPromoContent({
             promoType,
@@ -8541,7 +8650,7 @@ function runAutoPromoForPlayer() {
             isPlayer: true
         });
     });
-    const promoLabels = usableTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
+    const promoLabels = resolvedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
     const bookingNotes = reservations.map((booking) => {
         const facilityLabel = promoFacilityLabel(booking.facility);
         if (booking.facility !== "broadcast")
@@ -9224,6 +9333,7 @@ function normalizeState() {
             eraSlots: { actId: null },
             promoType: DEFAULT_PROMO_TYPE,
             promoTypes: [DEFAULT_PROMO_TYPE],
+            promoPrimeTime: false,
             promoSlots: { actId: null, trackId: null },
             tourDraftId: null,
             activeView: "charts"
@@ -9257,15 +9367,28 @@ function normalizeState() {
     state.ui.trendRankingLimit = normalizeCommunityTrendRankingLimit(state.ui.trendRankingLimit);
     if (!state.ui.promoType)
         state.ui.promoType = DEFAULT_PROMO_TYPE;
+    if (typeof state.ui.promoPrimeTime !== "boolean")
+        state.ui.promoPrimeTime = false;
+    if (state.ui.promoType === "primeShowcase") {
+        state.ui.promoType = "livePerformance";
+        state.ui.promoPrimeTime = true;
+    }
     if (!Array.isArray(state.ui.promoTypes) || !state.ui.promoTypes.length) {
         state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
     }
-    else {
-        state.ui.promoTypes = state.ui.promoTypes.filter(Boolean);
-        if (!state.ui.promoTypes.length) {
-            state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
+    let primeShowcaseSelected = false;
+    state.ui.promoTypes = state.ui.promoTypes.filter(Boolean).map((typeId) => {
+        if (typeId === "primeShowcase") {
+            primeShowcaseSelected = true;
+            return "livePerformance";
         }
+        return typeId;
+    });
+    if (!state.ui.promoTypes.length) {
+        state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
     }
+    if (primeShowcaseSelected)
+        state.ui.promoPrimeTime = true;
     if (!state.ui.promoBudgets || typeof state.ui.promoBudgets !== "object") {
         state.ui.promoBudgets = {};
     }
@@ -11007,7 +11130,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, countryColor, countryDemonym, createRolloutStrategyForEra, createTrack, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, reservePromoFacilitySlot, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, setSlotTarget, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, trendAlignmentLeader, uid, weekIndex, weekNumberFromEpochMs, };
+export { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, countryColor, countryDemonym, createRolloutStrategyForEra, createTrack, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, reservePromoFacilitySlot, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, setSlotTarget, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, trendAlignmentLeader, uid, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

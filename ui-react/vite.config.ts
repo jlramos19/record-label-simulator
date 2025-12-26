@@ -4,6 +4,9 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    "process.env.NODE_ENV": "\"production\""
+  },
   build: {
     outDir: path.resolve(__dirname, "../assets/js/ui-react"),
     emptyOutDir: true,

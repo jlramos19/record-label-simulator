@@ -102,6 +102,7 @@ declare const TRACKLIST: { title: string; act: string; theme: string; mood: stri
 declare const TRACK_TITLES_EN: string[];
 declare const TRACK_TITLES_KR: string[];
 declare const TRACK_TITLES_ES: string[];
+declare const TRACK_TITLE_TRANSLATIONS_KR: Record<string, string>;
 declare const SOCIAL_TEMPLATES: Record<string, unknown>;
 declare function postFromTemplate(id: string, vars?: Record<string, unknown>): void;
 declare const RLS_RELEASE: { patchId: string; timestamp: string; channel: string };

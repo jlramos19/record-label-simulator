@@ -1,5 +1,6 @@
 // @ts-nocheck
 import {
+  ACT_NAME_TRANSLATIONS,
   ACT_PROMO_WARNING_WEEKS,
   ACHIEVEMENTS,
   ACHIEVEMENT_TARGET,
@@ -96,6 +97,7 @@ import {
   normalizeRoleIds,
   parseTrackRoleTarget,
   pruneCreatorSignLockouts,
+  PROJECT_TITLE_TRANSLATIONS,
   qualityGrade,
   rankCandidates,
   recommendPhysicalRun,
@@ -137,7 +139,7 @@ import {
   getPromoInflationMultiplier
 } from "./promo-budget.js";
 
-const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
+const ACCESSIBLE_TEXT = { dark: "#000000", light: "#ffffff" };
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
   .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
 const CREATE_PENDING_EMOJIS = { sheet: "🎼", demo: "🎧" };
@@ -268,6 +270,70 @@ function renderCreatorName(creator, { stacked = true } = {}) {
   const hangul = getCreatorHangulName(creator);
   if (!hangul || !stacked) return romanized;
   return `<span class="name-stack"><span class="name-ko" lang="ko">${hangul}</span><span class="name-romanized">${romanized}</span></span>`;
+}
+
+const HANGUL_REGEX = /[\uAC00-\uD7A3]/;
+
+function splitNameSuffix(name) {
+  const raw = String(name || "").trim();
+  if (!raw) return { base: "", suffix: "" };
+  const match = raw.match(/^(.*?)(\s*\([^)]*\))$/);
+  if (!match) return { base: raw, suffix: "" };
+  return { base: match[1].trim(), suffix: match[2] };
+}
+
+function lookupTrackTitleTranslation(name) {
+  if (!name || !HANGUL_REGEX.test(name)) return "";
+  if (typeof TRACK_TITLE_TRANSLATIONS_KR === "object" && TRACK_TITLE_TRANSLATIONS_KR[name]) {
+    return TRACK_TITLE_TRANSLATIONS_KR[name];
+  }
+  return "";
+}
+
+function lookupProjectTitleTranslation(name) {
+  if (!name || !HANGUL_REGEX.test(name)) return "";
+  return PROJECT_TITLE_TRANSLATIONS?.[name] || "";
+}
+
+function renderLocalizedName(primary, translation, { lang = "ko" } = {}) {
+  if (!translation) return primary;
+  return `<span class="name-stack"><span class="name-ko" lang="${lang}">${primary}</span><span class="name-romanized">${translation}</span></span>`;
+}
+
+function renderTrackTitle(title) {
+  if (!title) return "";
+  const { base, suffix } = splitNameSuffix(title);
+  const translation = lookupTrackTitleTranslation(base);
+  if (!translation) return title;
+  return renderLocalizedName(`${base}${suffix}`, translation);
+}
+
+function renderProjectName(name) {
+  const raw = String(name || "").trim();
+  if (!raw) return "";
+  const singleMatch = raw.match(/^(.*)\s+-\s+Single$/);
+  if (singleMatch) {
+    const base = singleMatch[1].trim();
+    const baseTranslation = lookupProjectTitleTranslation(base) || lookupTrackTitleTranslation(base);
+    if (baseTranslation) {
+      return renderLocalizedName(`${base} - Single`, `${baseTranslation} - Single`);
+    }
+  }
+  const { base, suffix } = splitNameSuffix(raw);
+  const translation = lookupProjectTitleTranslation(base);
+  if (!translation) return raw;
+  return renderLocalizedName(`${base}${suffix}`, translation);
+}
+
+function renderActName(act) {
+  if (!act) return "";
+  const isObject = typeof act === "object";
+  const name = isObject ? String(act.name || "").trim() : String(act || "").trim();
+  if (!name) return "";
+  const allowTranslation = !isObject || act.type === "Group Act";
+  const translation = allowTranslation ? ACT_NAME_TRANSLATIONS?.[name] : "";
+  if (!translation) return name;
+  return renderLocalizedName(name, translation);
 }
 
 function isCreatorInAct(creatorId) {
@@ -541,10 +607,10 @@ function renderSlots() {
   if ($("actLeadSlot")) $("actLeadSlot").innerHTML = actLead ? renderCreatorName(actLead) : unassignedCreatorLabel;
   if ($("actMember2Slot")) $("actMember2Slot").innerHTML = actMember2 ? renderCreatorName(actMember2) : unassignedCreatorLabel;
   if ($("actMember3Slot")) $("actMember3Slot").innerHTML = actMember3 ? renderCreatorName(actMember3) : unassignedCreatorLabel;
-  if ($("trackActSlot")) $("trackActSlot").textContent = trackAct ? trackAct.name : unassignedLabel;
-  if ($("eraActSlot")) $("eraActSlot").textContent = eraAct ? eraAct.name : unassignedLabel;
-  if ($("promoTrackSlot")) $("promoTrackSlot").textContent = promoTrack ? promoTrack.title : unassignedLabel;
-  if ($("socialTrackSlot")) $("socialTrackSlot").textContent = socialTrack ? socialTrack.title : unassignedLabel;
+  if ($("trackActSlot")) $("trackActSlot").innerHTML = trackAct ? renderActName(trackAct) : unassignedLabel;
+  if ($("eraActSlot")) $("eraActSlot").innerHTML = eraAct ? renderActName(eraAct) : unassignedLabel;
+  if ($("promoTrackSlot")) $("promoTrackSlot").innerHTML = promoTrack ? renderTrackTitle(promoTrack.title) : unassignedLabel;
+  if ($("socialTrackSlot")) $("socialTrackSlot").innerHTML = socialTrack ? renderTrackTitle(socialTrack.title) : unassignedLabel;
 
   document.querySelectorAll(".id-slot").forEach((slot) => {
     if (slot.closest("#rls-react-trackslots-root")) return;
@@ -578,7 +644,7 @@ function renderSlots() {
       }
     } else if (type === "act") {
       const act = value ? getAct(value) : null;
-      valueEl.textContent = act ? act.name : unassignedLabel;
+      valueEl.innerHTML = act ? renderActName(act) : unassignedLabel;
       if (avatarEl) {
         avatarEl.classList.remove("has-image");
         avatarEl.classList.remove("is-empty");
@@ -592,7 +658,7 @@ function renderSlots() {
         const marketEntry = state.marketTracks.find((entry) => entry.trackId === value);
         if (marketEntry?.title) trackLabel = marketEntry.title;
       }
-      valueEl.textContent = trackLabel;
+      valueEl.innerHTML = trackLabel ? renderTrackTitle(trackLabel) : trackLabel;
       if (avatarEl) {
         avatarEl.classList.remove("has-image");
         avatarEl.classList.remove("is-empty");
@@ -1276,7 +1342,7 @@ function renderDashboard() {
             <div class="list-item">
               <div class="list-row">
                 <div>
-                  <div class="item-title">${track ? track.title : "Unknown"}</div>
+                  <div class="item-title">${track ? renderTrackTitle(track.title) : "Unknown"}</div>
                   <div class="muted">${crewLine}</div>
                   ${crewDetail}
                 </div>
@@ -1306,7 +1372,7 @@ function renderDashboard() {
             <div class="list-item">
               <div class="list-row">
                 <div>
-                  <div class="item-title">${track ? track.title : "Unknown"}</div>
+                  <div class="item-title">${track ? renderTrackTitle(track.title) : "Unknown"}</div>
                   <div class="muted">${date} | ${distribution}</div>
                 </div>
               </div>
@@ -1419,7 +1485,7 @@ function renderDashboard() {
           <div class="list-item">
             <div class="list-row">
               <div>
-                <div class="item-title">#${entry.rank} ${entry.title}</div>
+                <div class="item-title">#${entry.rank} ${renderTrackTitle(entry.title)}</div>
                 <div class="muted">${entry.typeLabel} | ${entry.actName} | ${entry.label}</div>
               </div>
               <div class="pill">${formatMoney(entry.impact)}</div>
@@ -1431,7 +1497,7 @@ function renderDashboard() {
           <div class="list-item">
             <div class="list-row">
               <div>
-                <div class="item-title">#${entry.rank} ${entry.projectName}</div>
+                <div class="item-title">#${entry.rank} ${renderProjectName(entry.projectName)}</div>
                 <div class="muted">${entry.projectType} | ${entry.actName || "-"} | ${entry.label || "-"}</div>
               </div>
               <div class="pill">${formatCount(entry.score)}</div>
@@ -1445,7 +1511,7 @@ function renderDashboard() {
             <div class="list-item">
               <div class="list-row">
                 <div>
-                  <div class="item-title">#${entry.rank} ${track?.title || "Unknown Track"}</div>
+                  <div class="item-title">#${entry.rank} ${track?.title ? renderTrackTitle(track.title) : "Unknown Track"}</div>
                   <div class="muted">${track?.label || "Unknown"} | ${renderTrackGenrePills(track, { fallback: "Genre -" })}</div>
                 </div>
                 <div class="pill">${formatCount(entry.score)}</div>
@@ -1920,7 +1986,7 @@ function renderActiveCampaigns() {
       <div class="list-item">
         <div class="list-row">
           <div>
-            <div class="item-title">${title}</div>
+            <div class="item-title">${renderTrackTitle(title)}</div>
             <div class="muted">${genreLabel}</div>
           </div>
           <div class="pill">${entry.promoWeeks}w</div>
@@ -1932,7 +1998,7 @@ function renderActiveCampaigns() {
       <div class="list-item">
         <div class="list-row">
           <div>
-            <div class="item-title">${act.name}</div>
+            <div class="item-title">${renderActName(act)}</div>
             <div class="muted">Act promo${act.alignment ? ` | ${renderAlignmentTag(act.alignment)}` : ""}</div>
           </div>
           <div class="pill">${act.promoWeeks}w</div>
@@ -2007,7 +2073,7 @@ function renderPromoAlerts() {
       <div class="list-item">
         <div class="list-row">
           <div>
-            <div class="item-title">${entry.act.name}</div>
+            <div class="item-title">${renderActName(entry.act)}</div>
             <div class="muted">Last promo ${lastPromoLabel} (${entry.weeksSince}w ago)${alignmentLine}</div>
             <div class="muted">Warning: no promo activity in ${ACT_PROMO_WARNING_WEEKS} weeks.</div>
           </div>
@@ -2018,15 +2084,16 @@ function renderPromoAlerts() {
   });
   trackAlerts.forEach(({ track, missing }) => {
     const missingLabels = missing.map((typeId) => PROMO_TYPE_DETAILS[typeId]?.label || typeId).join(", ");
-    const actName = track.actId ? getAct(track.actId)?.name : null;
+    const act = track.actId ? getAct(track.actId) : null;
+    const actLabel = act ? renderActName(act) : "Unassigned";
     const releaseLabel = track.releasedAt ? ` | Released ${formatShortDate(track.releasedAt)}` : "";
     blocks.push(`
       <div class="list-item">
         <div class="list-row">
           <div>
-            <div class="item-title">${track.title}</div>
+            <div class="item-title">${renderTrackTitle(track.title)}</div>
             <div class="muted">Missing promo: ${missingLabels}</div>
-            <div class="muted">Act: ${actName || "Unassigned"} | Status: ${track.status}${releaseLabel}</div>
+            <div class="muted">Act: ${actLabel} | Status: ${track.status}${releaseLabel}</div>
           </div>
           <span class="badge warn">Promo gap</span>
         </div>
@@ -2270,7 +2337,7 @@ function renderInventory() {
         <div class="item-main">
           <div class="content-thumb" aria-hidden="true"></div>
           <div>
-            <div class="item-title">${track.title}</div>
+            <div class="item-title">${renderTrackTitle(track.title)}</div>
             <div class="muted">Item: Track  ID ${track.id}</div>
             <div class="muted">${track.status}  ${renderTrackGenrePills(track)}</div>
           </div>
@@ -2350,7 +2417,7 @@ function renderCalendarEraList(eras) {
   return eras.map((era) => `
     <div class="list-item">
       <div class="item-title">${era.name}</div>
-      <div class="muted">Act: ${era.actName} | Stage: ${era.stageName}</div>
+      <div class="muted">Act: ${renderActName(era.actName)} | Stage: ${era.stageName}</div>
       <div class="muted">Started Week ${era.startedWeek} | Content: ${era.content}</div>
     </div>
   `).join("");
@@ -2555,7 +2622,7 @@ function renderActs() {
       <div class="list-item" data-entity-type="act" data-entity-id="${act.id}" data-entity-name="${act.name}" draggable="true">
           <div class="list-row">
             <div>
-              <div class="item-title">${act.name}</div>
+              <div class="item-title">${renderActName(act)}</div>
               <div class="muted">ID ${act.id} | ${act.type}</div>
               <div class="muted">${renderAlignmentTag(act.alignment)}</div>
             </div>
@@ -2830,7 +2897,7 @@ function renderWorkOrders() {
       <div class="list-item">
         <div class="list-row">
           <div>
-            <div class="item-title">${track ? track.title : "Unknown"}</div>
+            <div class="item-title">${track ? renderTrackTitle(track.title) : "Unknown"}</div>
             <div class="muted">${crewLine}</div>
             ${crewDetail}
           </div>
@@ -2952,8 +3019,8 @@ function renderTrackHistoryPanel(activeTab) {
         <div class="list-item track-history-item">
           <div class="list-row">
             <div>
-              <div class="item-title">${track.title}</div>
-              <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
+              <div class="item-title">${renderTrackTitle(track.title)}</div>
+              <div class="muted">Act: ${renderActName(act || "Unassigned")} | Project: ${renderProjectName(project)} (${projectType})</div>
               <div class="muted">Released ${releaseDate} | ${track.distribution || "Digital"}</div>
             </div>
           </div>
@@ -3029,7 +3096,7 @@ function renderTracks() {
     const alignTag = renderAlignmentTag(track.alignment);
     const actLine = activeView === "create"
       ? `Project: ${project} (${projectType})`
-      : `Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})`;
+      : `Act: ${renderActName(act || "Unassigned")} | Project: ${renderProjectName(project)} (${projectType})`;
     const era = track.eraId ? getEraById(track.eraId) : null;
     const eraName = era ? era.name : null;
     const focusSuffix = focusEra && era && focusEra.id === era.id ? " | Focus" : "";
@@ -3057,7 +3124,7 @@ function renderTracks() {
           <div class="item-main">
             <div class="content-thumb" aria-hidden="true"></div>
             <div>
-              <div class="item-title">${track.title}</div>
+              <div class="item-title">${renderTrackTitle(track.title)}</div>
               <div class="muted">ID ${track.id} | Item: Track</div>
               <div class="muted">${genreLabel}</div>
               <div class="muted">${themeTag} ${alignTag}</div>
@@ -3090,14 +3157,14 @@ function renderTracks() {
     const releaseDate = track.releasedAt ? formatDate(track.releasedAt) : "TBD";
     const grade = qualityGrade(track.quality);
     const genreLabel = renderTrackGenrePills(track, { fallback: "Genre: -" });
-    const actLine = `Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})`;
+    const actLine = `Act: ${renderActName(act || "Unassigned")} | Project: ${renderProjectName(project)} (${projectType})`;
     return `
       <div class="list-item" data-entity-type="track" data-entity-id="${track.id}" data-entity-name="${track.title}" draggable="true">
         <div class="list-row">
           <div class="item-main">
             <div class="content-thumb" aria-hidden="true"></div>
             <div>
-              <div class="item-title">${track.title}</div>
+              <div class="item-title">${renderTrackTitle(track.title)}</div>
               <div class="muted">ID ${track.id} | ${genreLabel}</div>
               <div class="muted">${actLine}</div>
               <div class="muted">Released ${releaseDate} | ${track.distribution || "Digital"}</div>
@@ -3252,7 +3319,7 @@ function renderEraStatus() {
         <div class="list-row">
           <div>
             <div class="item-title">${era.name}</div>
-            <div class="muted">Act: ${act ? act.name : "Unknown"}</div>
+            <div class="muted">Act: ${renderActName(act || "Unknown")}</div>
             <div class="muted">Stage: ${stageName} | ${stageProgress}</div>
             <div class="muted">Status: ${era.status} | Started Week ${era.startedWeek}</div>
             <div class="muted">Content: ${content}</div>
@@ -3373,8 +3440,8 @@ function renderEraHistoryPanel(targetEra) {
         <div class="list-item track-history-item">
           <div class="list-row">
             <div>
-              <div class="item-title">${track.title}</div>
-              <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
+              <div class="item-title">${renderTrackTitle(track.title)}</div>
+              <div class="muted">Act: ${renderActName(act || "Unassigned")} | Project: ${renderProjectName(project)} (${projectType})</div>
               <div class="muted">Released ${releaseDate} | ${track.distribution || "Digital"}</div>
             </div>
           </div>
@@ -3463,8 +3530,8 @@ function renderEraPerformance() {
     return `
       <tr>
         <td>
-          <div class="item-title">${track.title}</div>
-          <div class="muted">Act: ${act ? act.name : "Unassigned"} | Status: ${track.status}</div>
+          <div class="item-title">${renderTrackTitle(track.title)}</div>
+          <div class="muted">Act: ${renderActName(act || "Unassigned")} | Status: ${track.status}</div>
         </td>
         <td>
           <div>${projectType}</div>
@@ -3583,14 +3650,15 @@ function renderReleaseDesk() {
             ? "At cap"
             : `+${maxRemaining} slots`;
         const statusClass = minRemaining > 0 || maxRemaining === 0 ? "badge warn" : "badge";
-        const readyTotal = summary.readyCount + summary.masteringCount;
+        const readyLabel = `Ready ${formatCount(summary.readyCount)}`;
+        const masteringLabel = `Mastering ${formatCount(summary.masteringCount)}`;
         const actLabel = summary.actNames.size ? Array.from(summary.actNames).join(", ") : "Unassigned";
         return `
           <div class="list-item">
             <div class="list-row">
               <div>
-                <div class="item-title">${summary.projectName}</div>
-                <div class="muted">${summary.projectType} | Tracks ${summary.trackCount}/${limits.max} | Ready ${formatCount(readyTotal)} | Scheduled ${formatCount(summary.scheduledCount)} | Released ${formatCount(summary.releasedCount)}</div>
+                <div class="item-title">${renderProjectName(summary.projectName)}</div>
+                <div class="muted">${summary.projectType} | Tracks ${summary.trackCount}/${limits.max} | ${readyLabel} | ${masteringLabel} | Scheduled ${formatCount(summary.scheduledCount)} | Released ${formatCount(summary.releasedCount)}</div>
                 <div class="muted">Acts: ${actLabel}</div>
               </div>
               <div class="${statusClass}">${statusLabel}</div>
@@ -3613,7 +3681,6 @@ function renderReleaseDesk() {
   const readyHtml = readyTracks.length
     ? readyTracks.map((track) => {
       const isReady = track.status === "Ready";
-      const isMastering = isMasteringTrack(track);
       const act = getAct(track.actId);
       const actOptions = state.acts.map((entry) => `<option value="${entry.id}"${entry.id === track.actId ? " selected" : ""}>${entry.name}</option>`).join("");
       const actSelect = state.acts.length
@@ -3654,17 +3721,17 @@ function renderReleaseDesk() {
       const statusLabel = isReady ? "" : track.status === "In Production" ? "Mastering" : "Awaiting Master";
       const genreLabel = renderGenrePillsFromGenre(derivedGenre, { fallback: "-", alignment: track.alignment });
       const hasAct = Boolean(track.actId);
-      const canSchedule = hasAct && (isReady || isMastering);
+      const canSchedule = hasAct && isReady;
       return `
         <div class="list-item">
           <div class="list-row">
             <div class="item-main">
               <div class="content-thumb" aria-hidden="true"></div>
               <div>
-                <div class="item-title">${track.title}</div>
+                <div class="item-title">${renderTrackTitle(track.title)}</div>
                 <div class="muted">${genreLabel} | <span class="grade-text" data-grade="${grade}">${grade}</span>${isReady ? "" : ` | ${statusLabel}`}</div>
                 <div class="muted">${themeTag} ${alignTag}</div>
-                <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
+                <div class="muted">Act: ${renderActName(act || "Unassigned")} | Project: ${renderProjectName(project)} (${projectType})</div>
                 <div class="muted">${projectCountLine}</div>
                 <div class="muted">Modifier: ${modifierName}</div>
                 <div class="muted">Recommended: ${recLabel} - ${rec.reason}</div>
@@ -3684,13 +3751,14 @@ function renderReleaseDesk() {
         </div>
       `;
     }).join("")
-    : `<div class="muted">No ready or mastering tracks.</div>`;
+    : `<div class="muted">No release-ready tracks yet.</div>`;
   readyList.innerHTML = readyHtml;
 
   if (!state.releaseQueue.length) {
     $("releaseQueueList").innerHTML = `<div class="muted">No scheduled releases.</div>`;
     return;
   }
+  const now = state.time.epochMs;
   const queue = state.releaseQueue.map((entry) => {
     const track = getTrack(entry.trackId);
     const date = formatDate(entry.releaseAt);
@@ -3698,15 +3766,25 @@ function renderReleaseDesk() {
     const project = track ? (track.projectName || `${track.title} - Single`) : "Unknown";
     const projectType = track ? normalizeProjectType(track.projectType || "Single") : "Single";
     const distribution = entry.distribution || entry.note || "Digital";
+    const isPastDue = entry.releaseAt <= now;
+    const needsReady = track && isPastDue && !["Ready", "Scheduled", "Released"].includes(track.status);
+    let pendingStatus = "";
+    if (needsReady) {
+      const stageIndex = Number.isFinite(track.stageIndex) ? track.stageIndex : null;
+      if (stageIndex === 2) pendingStatus = "Pending mastering";
+      else if (stageIndex === 1) pendingStatus = "Pending demo";
+      else pendingStatus = "Pending production";
+    }
+    const statusNote = pendingStatus ? ` | ${pendingStatus}` : "";
     return `
       <div class="list-item">
         <div class="list-row">
           <div class="item-main">
             <div class="content-thumb" aria-hidden="true"></div>
             <div>
-              <div class="item-title">${track ? track.title : "Unknown"}</div>
-              <div class="muted">${date} | ${distribution}</div>
-              <div class="muted">Act: ${track ? (act ? act.name : "Unassigned") : "Unknown"} | Project: ${project} (${projectType})</div>
+              <div class="item-title">${track ? renderTrackTitle(track.title) : "Unknown"}</div>
+              <div class="muted">${date}${statusNote} | ${distribution}</div>
+              <div class="muted">Act: ${track ? renderActName(act || "Unassigned") : "Unknown"} | Project: ${renderProjectName(project)} (${projectType})</div>
             </div>
           </div>
         </div>
@@ -4083,7 +4161,7 @@ function renderCharts() {
       const contentLabel = contentType === "projects" ? "Project" : "Track";
       meta.textContent = `Top ${size} | ${scopeLabel} | ${contentLabel} charts | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
     } else if (contentType === "promotions") {
-      meta.textContent = `Top ${size} | ${scopeLabel} | Promotions chart | Metrics Likes / Views / Comments`;
+      meta.textContent = `Top ${size} | ${scopeLabel} | Promotions chart | Metrics Likes / Views / Comments / Concurrent`;
     } else {
       meta.textContent = `Top ${size} | ${scopeLabel} | Touring chart | Metric Attendance draw`;
     }
@@ -4112,7 +4190,7 @@ function renderCharts() {
           <tr>
             <td class="chart-rank">#${entry.rank}</td>
             <td class="chart-title">
-              <div class="item-title">${entry.projectName}</div>
+              <div class="item-title">${renderProjectName(entry.projectName)}</div>
               <div class="muted">${entry.projectType} | ${formatCount(trackCount)} track${trackCount === 1 ? "" : "s"}</div>
             </td>
             <td class="chart-label">${labelTag}</td>
@@ -4160,7 +4238,7 @@ function renderCharts() {
             <td class="chart-metrics">
               <div class="muted">${lastRank} | ${peak} | ${woc}</div>
               <div class="muted">${primaryLabel} ${formatCount(primaryValue)}</div>
-              <div class="muted">Likes ${formatCount(metrics.likes || 0)} | Views ${formatCount(metrics.views || 0)} | Comments ${formatCount(metrics.comments || 0)}</div>
+              <div class="muted">Likes ${formatCount(metrics.likes || 0)} | Views ${formatCount(metrics.views || 0)} | Comments ${formatCount(metrics.comments || 0)} | Concurrent ${formatCount(metrics.concurrent || 0)}</div>
             </td>
             <td class="chart-score">${formatCount(entry.score || 0)}</td>
           </tr>
@@ -4186,12 +4264,12 @@ function renderCharts() {
           <tr>
             <td class="chart-rank">#${entry.rank}</td>
             <td class="chart-title">
-              <div class="item-title">${entry.actName || "-"}</div>
+              <div class="item-title">${renderActName(entry.actName || "-")}</div>
               <div class="muted">Charting tracks ${formatCount(trackCount)}</div>
             </td>
             <td class="chart-label">${labelTag}</td>
             <td class="chart-act">
-              <div>${primaryTrack?.title || "-"}</div>
+              <div>${primaryTrack?.title ? renderTrackTitle(primaryTrack.title) : "-"}</div>
               <div class="muted">${genreLine}</div>
             </td>
             <td class="chart-align">${alignTag}</td>
@@ -4220,13 +4298,13 @@ function renderCharts() {
           <tr>
             <td class="chart-rank">#${entry.rank}</td>
             <td class="chart-title">
-              <div class="item-title">${track.title}</div>
+              <div class="item-title">${renderTrackTitle(track.title)}</div>
               <div class="muted">${renderTrackGenrePills(track, { fallback: "Genre -" })}</div>
             </td>
             <td class="chart-label">${labelTag}</td>
             <td class="chart-act">
-              <div>${actName}</div>
-              <div class="muted">${projectName}</div>
+              <div>${renderActName(actName)}</div>
+              <div class="muted">${renderProjectName(projectName)}</div>
             </td>
             <td class="chart-align">${alignTag}</td>
             <td class="chart-metrics">
@@ -4257,7 +4335,7 @@ function renderCharts() {
           statsMarkup = `
             <div class="muted">LW -- | Peak -- | WOC 0</div>
             <div class="muted">Engagement N/A</div>
-            <div class="muted">Likes N/A | Views N/A | Comments N/A</div>
+            <div class="muted">Likes N/A | Views N/A | Comments N/A | Concurrent N/A</div>
           `;
         } else if (contentType === "tours") {
           statsMarkup = `
@@ -5132,6 +5210,19 @@ function renderActiveView(view) {
   }
 }
 
+function shouldHoldActiveViewRender() {
+  const ui = state.ui;
+  if (!ui?.renderHoldActive) return false;
+  const now = Date.now();
+  const holdUntil = Number.isFinite(ui.renderHoldUntil) ? ui.renderHoldUntil : 0;
+  if (!holdUntil || now > holdUntil) {
+    ui.renderHoldActive = false;
+    ui.renderHoldUntil = 0;
+    return false;
+  }
+  return true;
+}
+
 function renderAll({ save = true } = {}) {
   syncLabelWallets();
   renderTime();
@@ -5139,7 +5230,9 @@ function renderAll({ save = true } = {}) {
   renderCreateNavBadge();
   renderReleaseNavBadge();
   renderTopBar();
-  renderActiveView(state.ui.activeView);
+  if (!shouldHoldActiveViewRender()) {
+    renderActiveView(state.ui.activeView);
+  }
   renderWallet();
   if (typeof window !== "undefined" && window.updateTimeControls) {
     window.updateTimeControls();

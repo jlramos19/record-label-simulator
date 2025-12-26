@@ -301,6 +301,41 @@ const SOCIAL_TEMPLATES = {
       };
     }
   },
+  primeShowcase: {
+    id: "primeShowcase",
+    title: "Prime Time Showcase",
+    type: "promo",
+    render: (vars) => {
+      const promo = promoDefaults(vars);
+      return {
+        title: `Prime Time Showcase: ${promo.actName}`,
+        lines: [
+          `${promo.actName} headlines Prime Time with "${promo.trackTitle}".`,
+          `Requirement: ${vars.requirement || "Top 10 act peak + Top 20 track peak + quality 80+"}`,
+          `Cost: ${promoCost(vars.cost, 15000)}`,
+          `Airing: ${promo.releaseDate}`
+        ],
+        type: "promo"
+      };
+    }
+  },
+  performanceTape: {
+    id: "performanceTape",
+    title: "Performance Tape",
+    type: "promo",
+    render: (vars) => {
+      const promo = promoDefaults(vars);
+      return {
+        title: `EyeriS Video: ${promo.actName} Live Tape`,
+        lines: [
+          `EyeriS Video uploads the performance tape from ${promo.actName}'s live set.`,
+          `Set: "${promo.trackTitle}"`,
+          `Tape window: ${promo.releaseDate}`
+        ],
+        type: "promo"
+      };
+    }
+  },
   eyeriSocialPost: {
     id: "eyeriSocialPost",
     title: "eyeriSocial Post",

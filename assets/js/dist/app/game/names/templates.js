@@ -17,6 +17,13 @@ export const ACT_NAMES = [
     "City Halo",
     "Gold Crown",
     "Nova Tide",
+    "RAW VOW",
+    "하늘 신호",
+    "새벽 파도",
+    "은빛 맥박",
+    "별빛 정원",
+    "검은 왕관",
+    "유리 합창",
 ];
 export const LABEL_NAMES = [
     "Hann Record Label",
@@ -69,7 +76,32 @@ export const PROJECT_TITLES = [
     "Lame",
     "Daggers",
     "De Atra Pa'lante",
+    "FIRST VOW: PROVOKE",
+    "RAGING AT THE MACHINE",
+    "HEAT RISES",
+    "유리의 도시",
+    "소음의 지도",
+    "불씨의 정원",
+    "첫 맹세: 도발",
+    "기계에 분노",
+    "열기 상승",
 ];
+export const ACT_NAME_TRANSLATIONS = {
+    "하늘 신호": "Sky Signal",
+    "새벽 파도": "Dawn Tide",
+    "은빛 맥박": "Silver Pulse",
+    "별빛 정원": "Starlight Garden",
+    "검은 왕관": "Black Crown",
+    "유리 합창": "Glass Chorus",
+};
+export const PROJECT_TITLE_TRANSLATIONS = {
+    "유리의 도시": "City of Glass",
+    "소음의 지도": "Atlas of Noise",
+    "불씨의 정원": "Garden of Ember",
+    "첫 맹세: 도발": "First Vow: Provoke",
+    "기계에 분노": "Raging at the Machine",
+    "열기 상승": "Heat Rises",
+};
 export const ERA_NAME_TEMPLATES = [
     "{act}: Dawn Phase",
     "{act}: Signal Run",

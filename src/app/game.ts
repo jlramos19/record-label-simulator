@@ -47,6 +47,9 @@ import {
   HUSK_PROMO_DAY,
   HUSK_PROMO_DEFAULT_TYPE,
   HUSK_PROMO_HOUR,
+  PRIME_SHOWCASE_MIN_ACT_PEAK,
+  PRIME_SHOWCASE_MIN_QUALITY,
+  PRIME_SHOWCASE_MIN_TRACK_PEAK,
   LABEL_DOMINANCE_MAX_BOOST,
   LABEL_DOMINANCE_MAX_PENALTY,
   LABEL_DOMINANCE_SMOOTHING,
@@ -373,6 +376,7 @@ function makeDefaultState() {
       eraSlots: { actId: null },
       promoType: DEFAULT_PROMO_TYPE,
       promoTypes: [DEFAULT_PROMO_TYPE],
+      promoPrimeTime: false,
       promoBudgets: Object.keys(PROMO_TYPE_DETAILS).reduce((acc, typeId) => {
         acc[typeId] = PROMO_TYPE_DETAILS[typeId].cost;
         return acc;
@@ -1787,6 +1791,83 @@ function findActChartingTrack(actId, minQuality = 0) {
   return candidates.sort((a, b) => (b.quality || 0) - (a.quality || 0))[0];
 }
 
+function bestChartPeak(chartHistory) {
+  if (!chartHistory || typeof chartHistory !== "object") return null;
+  let best = null;
+  Object.values(chartHistory).forEach((entry) => {
+    const peak = Number(entry?.peak);
+    if (!Number.isFinite(peak) || peak <= 0) return;
+    best = best === null ? peak : Math.min(best, peak);
+  });
+  return best;
+}
+
+function getTrackPrestigePeak(track) {
+  if (!track) return null;
+  const marketEntry = track.marketId
+    ? state.marketTracks.find((entry) => entry.id === track.marketId)
+    : null;
+  const fallbackEntry = state.marketTracks.find((entry) => entry.trackId === track.id);
+  return bestChartPeak((marketEntry || fallbackEntry)?.chartHistory);
+}
+
+function getActPrestigePeak(actId) {
+  if (!actId) return null;
+  const act = getAct(actId);
+  if (!act) return null;
+  let best = null;
+  state.marketTracks.forEach((entry) => {
+    if (entry.actId !== actId && entry.actName !== act.name) return;
+    const peak = bestChartPeak(entry.chartHistory);
+    if (!Number.isFinite(peak) || peak <= 0) return;
+    best = best === null ? peak : Math.min(best, peak);
+  });
+  return best;
+}
+
+function checkPrimeShowcaseEligibility(actId, trackId) {
+  if (!actId) {
+    return { ok: false, reason: "Select an Act to check Prime Time eligibility.", candidateTrack: null };
+  }
+  const act = getAct(actId);
+  if (!act) {
+    return { ok: false, reason: "Act not found for Prime Time eligibility.", candidateTrack: null };
+  }
+  const selectedTrack = trackId ? getTrack(trackId) : null;
+  const candidateTrack = selectedTrack || findActChartingTrack(actId, PRIME_SHOWCASE_MIN_QUALITY);
+  if (!candidateTrack) {
+    return { ok: false, reason: "Prime Time requires a charting track for the Act.", candidateTrack: null };
+  }
+  if (!isTrackCharting(candidateTrack.id)) {
+    return { ok: false, reason: "Prime Time requires a charting track.", candidateTrack };
+  }
+  const quality = Number(candidateTrack.quality || 0);
+  if (quality < PRIME_SHOWCASE_MIN_QUALITY) {
+    return {
+      ok: false,
+      reason: `Prime Time requires quality ${PRIME_SHOWCASE_MIN_QUALITY}+ content.`,
+      candidateTrack
+    };
+  }
+  const actPeak = getActPrestigePeak(actId);
+  if (!actPeak || actPeak > PRIME_SHOWCASE_MIN_ACT_PEAK) {
+    return {
+      ok: false,
+      reason: `Prime Time requires an Act with a Top ${PRIME_SHOWCASE_MIN_ACT_PEAK} chart peak.`,
+      candidateTrack
+    };
+  }
+  const trackPeak = getTrackPrestigePeak(candidateTrack);
+  if (!trackPeak || trackPeak > PRIME_SHOWCASE_MIN_TRACK_PEAK) {
+    return {
+      ok: false,
+      reason: `Prime Time requires a Track with a Top ${PRIME_SHOWCASE_MIN_TRACK_PEAK} chart peak.`,
+      candidateTrack
+    };
+  }
+  return { ok: true, reason: "", candidateTrack };
+}
+
 function scoreBroadcastStudioFit(studio, { alignment, theme, mood, labelCountry }) {
   if (!studio) return -1;
   const audience = studio.audience || {};
@@ -1851,6 +1932,17 @@ function resolveBroadcastProgramForPromo(promoType, { actId, trackId }) {
   if (minQuality > 0) {
     if (!candidateTrack || (candidateTrack.quality || 0) < minQuality) {
       return { ok: false, program, reason: `${program.label} requires quality ${minQuality}+ content.` };
+    }
+  }
+  if (program.id === "eyeris-prime-showcase") {
+    const eligibility = checkPrimeShowcaseEligibility(actId, selectedTrack?.id || candidateTrack?.id || null);
+    if (!eligibility.ok) {
+      return {
+        ok: false,
+        program,
+        reason: eligibility.reason || `${program.label} eligibility not met.`,
+        eligibleTrack: eligibility.candidateTrack || candidateTrack || null
+      };
     }
   }
   return { ok: true, program, eligibleTrack: candidateTrack };
@@ -4850,9 +4942,8 @@ function scheduleRelease(track, hoursFromNow, distribution, note) {
     return false;
   }
   const isReady = track.status === "Ready";
-  const isMastering = isMasteringTrack(track);
-  if (!isReady && !isMastering) {
-    logEvent("Only Ready or Mastering tracks can be scheduled for release.", "warn");
+  if (!isReady) {
+    logEvent("Only Ready (mastered) tracks can be scheduled for release.", "warn");
     return false;
   }
   if (!track.genre && track.theme && track.mood) {
@@ -4898,9 +4989,8 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
     return { ok: false, reason: "Track missing Act assignment." };
   }
   const isReady = track.status === "Ready";
-  const isMastering = isMasteringTrack(track);
-  if (!isReady && !isMastering) {
-    return { ok: false, reason: "Track not release-ready." };
+  if (!isReady) {
+    return { ok: false, reason: "Track must be mastered before scheduling." };
   }
   if (!track.genre && track.theme && track.mood) {
     track.genre = makeGenre(track.theme, track.mood);
@@ -5081,9 +5171,8 @@ function scheduleRolloutDrop(strategy, era, weekIndex, drop, mode) {
     return { ok: true, alreadyScheduled: true };
   }
   const isReady = track.status === "Ready";
-  const isMastering = isMasteringTrack(track);
-  if (!isReady && !isMastering) {
-    recordRolloutBlock(drop, "Track not release-ready.", mode, "Rollout drop");
+  if (!isReady) {
+    recordRolloutBlock(drop, "Track must be mastered before scheduling.", mode, "Rollout drop");
     return { ok: false, blocked: true };
   }
   if (!track.genre && track.theme && track.mood) {
@@ -5865,8 +5954,8 @@ const PROMO_METRIC_META = {
   eyeriSocialPost: { key: "likes", label: "Likes" },
   eyeriSocialAd: { key: "likes", label: "Likes" },
   musicVideo: { key: "views", label: "Views" },
-  livePerformance: { key: "views", label: "Views" },
-  primeShowcase: { key: "views", label: "Views" },
+  livePerformance: { key: "concurrent", label: "Concurrent" },
+  primeShowcase: { key: "concurrent", label: "Concurrent" },
   interview: { key: "comments", label: "Comments" }
 };
 
@@ -5879,7 +5968,12 @@ function buildPromoEngagementMetrics(metrics) {
   const likes = roundToAudienceChunk(Number(safe.social || 0) * 1.1);
   const views = roundToAudienceChunk(Number(safe.streaming || 0) * 1.2 + Number(safe.airplay || 0) * 0.6);
   const comments = roundToAudienceChunk(Number(safe.social || 0) * 0.35 + Number(safe.airplay || 0) * 0.1);
-  return { likes, views, comments };
+  const concurrent = roundToAudienceChunk(
+    Number(safe.airplay || 0) * 0.9
+    + Number(safe.streaming || 0) * 0.45
+    + Number(safe.social || 0) * 0.2
+  );
+  return { likes, views, comments, concurrent };
 }
 
 function trackKey(entry) {
@@ -8533,21 +8627,36 @@ function runAutoPromoForPlayer() {
     : [state.ui?.promoType || DEFAULT_PROMO_TYPE];
   const selectedTypes = Array.from(new Set(rawTypes)).filter(Boolean);
   if (!selectedTypes.length) return;
-  const usableTypes = track.promo?.musicVideoUsed
+  let usableTypes = track.promo?.musicVideoUsed
     ? selectedTypes.filter((typeId) => typeId !== "musicVideo")
     : selectedTypes;
   if (!usableTypes.length) return;
+  let resolvedTypes = usableTypes.slice();
+  if (state.ui?.promoPrimeTime && resolvedTypes.includes("livePerformance")) {
+    const eligibility = checkPrimeShowcaseEligibility(track.actId || null, track.id);
+    if (!eligibility.ok) {
+      resolvedTypes = resolvedTypes.filter((typeId) => typeId !== "livePerformance");
+      if (!resolvedTypes.length) {
+        logEvent(`Auto promo skipped: ${eligibility.reason || "Prime Time eligibility not met."}`, "warn");
+        return;
+      }
+      logEvent(`Auto promo note: ${eligibility.reason || "Prime Time eligibility not met."} Live performance skipped.`, "warn");
+    } else {
+      resolvedTypes = resolvedTypes.map((typeId) => typeId === "livePerformance" ? "primeShowcase" : typeId);
+    }
+  }
+  if (!resolvedTypes.length) return;
   const walletCash = state.label.wallet?.cash ?? state.label.cash;
   const budget = computeAutoPromoBudget(walletCash, autoPromoBudgetPct());
-  const totalCost = budget * usableTypes.length;
+  const totalCost = budget * resolvedTypes.length;
   if (!budget || walletCash < totalCost || state.label.cash < totalCost) return;
-  const facilityNeeds = promoFacilityNeeds(usableTypes);
+  const facilityNeeds = promoFacilityNeeds(resolvedTypes);
   for (const [facilityId, count] of Object.entries(facilityNeeds)) {
     const availability = getPromoFacilityAvailability(facilityId);
     if (availability.available < count) return;
   }
   const reservations = [];
-  for (const promoType of usableTypes) {
+  for (const promoType of resolvedTypes) {
     const facilityId = getPromoFacilityForType(promoType);
     if (!facilityId) continue;
     const reservation = reservePromoFacilitySlot(facilityId, promoType, track.id);
@@ -8561,7 +8670,7 @@ function runAutoPromoForPlayer() {
   market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
   const act = track.actId ? getAct(track.actId) : null;
   if (act) act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
-  state.meta.promoRuns = (state.meta.promoRuns || 0) + usableTypes.length;
+  state.meta.promoRuns = (state.meta.promoRuns || 0) + resolvedTypes.length;
   const promoIds = [
     ...(track.creators?.songwriterIds || []),
     ...(track.creators?.performerIds || []),
@@ -8570,7 +8679,7 @@ function runAutoPromoForPlayer() {
   markCreatorPromo(promoIds);
   const promoStamp = state.time.epochMs;
   const promoLabel = market?.label || state.label?.name || "";
-  usableTypes.forEach((promoType) => {
+  resolvedTypes.forEach((promoType) => {
     recordPromoUsage({ track, market, act, promoType, atMs: promoStamp });
     recordPromoContent({
       promoType,
@@ -8586,7 +8695,7 @@ function runAutoPromoForPlayer() {
       isPlayer: true
     });
   });
-  const promoLabels = usableTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
+  const promoLabels = resolvedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
   const bookingNotes = reservations.map((booking) => {
     const facilityLabel = promoFacilityLabel(booking.facility);
     if (booking.facility !== "broadcast") return facilityLabel;
@@ -9248,6 +9357,7 @@ function normalizeState() {
       eraSlots: { actId: null },
       promoType: DEFAULT_PROMO_TYPE,
       promoTypes: [DEFAULT_PROMO_TYPE],
+      promoPrimeTime: false,
       promoSlots: { actId: null, trackId: null },
       tourDraftId: null,
       activeView: "charts"
@@ -9275,14 +9385,26 @@ function normalizeState() {
   state.ui.labelRankingLimit = normalizeCommunityLabelRankingLimit(state.ui.labelRankingLimit);
   state.ui.trendRankingLimit = normalizeCommunityTrendRankingLimit(state.ui.trendRankingLimit);
   if (!state.ui.promoType) state.ui.promoType = DEFAULT_PROMO_TYPE;
+  if (typeof state.ui.promoPrimeTime !== "boolean") state.ui.promoPrimeTime = false;
+  if (state.ui.promoType === "primeShowcase") {
+    state.ui.promoType = "livePerformance";
+    state.ui.promoPrimeTime = true;
+  }
   if (!Array.isArray(state.ui.promoTypes) || !state.ui.promoTypes.length) {
     state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
-  } else {
-    state.ui.promoTypes = state.ui.promoTypes.filter(Boolean);
-    if (!state.ui.promoTypes.length) {
-      state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
-    }
   }
+  let primeShowcaseSelected = false;
+  state.ui.promoTypes = state.ui.promoTypes.filter(Boolean).map((typeId) => {
+    if (typeId === "primeShowcase") {
+      primeShowcaseSelected = true;
+      return "livePerformance";
+    }
+    return typeId;
+  });
+  if (!state.ui.promoTypes.length) {
+    state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
+  }
+  if (primeShowcaseSelected) state.ui.promoPrimeTime = true;
   if (!state.ui.promoBudgets || typeof state.ui.promoBudgets !== "object") {
     state.ui.promoBudgets = {};
   }
@@ -10898,6 +11020,7 @@ export {
   buildTrackHistoryScopes,
   chartScopeLabel,
   chartWeightsForScope,
+  checkPrimeShowcaseEligibility,
   clamp,
   clearSlot,
   collectTrendRanking,

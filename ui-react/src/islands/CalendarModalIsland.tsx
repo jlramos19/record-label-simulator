@@ -55,7 +55,7 @@ function resolveLabelColor(state, entry) {
 function resolveLabelTextColor(state, entry) {
   const label = entry?.label || state?.label?.name || "Label";
   const country = findRivalCountry(state, label) || state?.label?.country || "Annglora";
-  return country === "Bytenza" ? "#f4f1ea" : "#0b0f14";
+  return country === "Bytenza" ? "#ffffff" : "#000000";
 }
 
 function applyCalendarTab(tabId) {

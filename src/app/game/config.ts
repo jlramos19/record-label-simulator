@@ -127,6 +127,9 @@ export const HUSK_PROMO_DEFAULT_TYPE = AUTO_PROMO_RIVAL_TYPE;
 export const HUSK_PROMO_DAY = 6;
 export const HUSK_PROMO_HOUR = 12;
 export const HUSK_MAX_RELEASE_STEPS = 4;
+export const PRIME_SHOWCASE_MIN_QUALITY = 80;
+export const PRIME_SHOWCASE_MIN_ACT_PEAK = 10;
+export const PRIME_SHOWCASE_MIN_TRACK_PEAK = 20;
 
 export const TRACK_ROLE_KEYS = {
   Songwriter: "songwriterIds",

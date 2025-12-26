@@ -28,7 +28,7 @@ const BROADCAST_PROGRAMS = [
     id: "eyeris-prime-showcase",
     label: "Prime Time Showcase",
     tier: "high",
-    minQuality: 70,
+    minQuality: 80,
     requiresCharting: true,
     allowsActOnly: true
   }

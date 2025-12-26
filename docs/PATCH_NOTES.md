@@ -1,5 +1,36 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1344Z)
+- Release scheduling now requires mastered (Ready) tracks, preventing past-due releases for in-progress masters.
+- Release desk summaries now separate Ready vs Mastering counts, and past-due scheduled entries show pending production status.
+
+## 2025-12-26 (RLS-PATCH-20251226-1311Z)
+- Active-view re-renders now pause during pointer interactions to prevent missed button clicks at fast sim speeds.
+
+## 2025-12-26 (RLS-PATCH-20251226-1256Z)
+- Community Tools now docks as a right-side panel in the Community tab.
+
+## 2025-12-26 (RLS-PATCH-20251226-1250Z)
+- React calendar label text now uses grid-safe black/white for country color contrast.
+- React islands now define a production env flag to avoid a browser-only process error.
+
+# Patch Notes
+
+## 2025-12-26 (RLS-PATCH-20251226-1219Z)
+- Live Performance promo card now upgrades into Prime Time Showcases with eligibility gating and updated costs/requirements.
+- Promo charts now surface concurrent live audience metrics for live performances and Prime Time showcases.
+- Live performance broadcasts now generate EyeriS Video performance tapes, and auto promo respects Prime Time eligibility.
+
+## 2025-12-26 (RLS-PATCH-20251226-1215Z)
+- Added a UI theme selector with warm dark + cool light palettes and system preference support.
+- Pills and tags now follow mode palettes with alignment-based mood colors plus hard-shadow styling.
+
+
+## 2025-12-26 (RLS-PATCH-20251226-1213Z)
+- Prime Time Showcase now enforces Top 10 Act + Top 20 Track peaks with quality 80+; live performance metrics use concurrent audience.
+- Promo requirement copy updated to call out Prime Time upgrade and concurrent audience metrics.
+- Fixed a malformed UI theme change handler that blocked `tsc` builds.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1158Z)
 - Added `UI_REACT_ISLANDS_ENABLED` to gate React islands vs legacy UI paths for pills/tags, calendar modal, and track slots.
 - Legacy calendar modal and track-slot grid rendering are now skipped when React islands are enabled.
@@ -355,4 +386,3 @@
 - Calendar view now projects scheduling into a grid from existing release queues; Releases is labeled Calendar, and the Eras calendar panel is merged into the Calendar view (list modal retained).
 - Calendar grid now renders a 6-week window with preview weeks and snap navigation (wheel/drag/touch) that only shifts the calendar anchor.
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
-
