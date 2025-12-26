@@ -50,6 +50,15 @@ Rivals are eligible to compete when they can cover:
 - Operating cost estimates cap leased usage to preserve the planning reserve.
 The anchor rival is forced into participation even if it is below the budget gate (promo may be skipped when unaffordable).
 
+## CEO Requests + Ambition
+- Rival labels track the same CEO Requests as the player and pursue them as internal record-breaking goals.
+- Weekly evaluation updates each rival's unlocked request list and emits a log entry on unlocks.
+- Ambition score combines request progress, label share pressure, and a pre-3000 boost.
+- Ambition influences:
+  - Roster targets (sign more Creator IDs when behind on Roster Builder).
+  - Release quality boosts to drive chart performance.
+  - Cash stabilization floors to keep all rivals active through year 3000.
+
 ## Scheduling Rules
 - Uses `state.rivalReleaseQueue` (Calendar projection source).
 - Releases always land on Friday 00:00 (next available window).

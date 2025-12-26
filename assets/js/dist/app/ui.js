@@ -897,7 +897,6 @@ function applyCccTrendFilter(kind) {
             setThemeSelectAccent(select);
     }
     renderAll();
-    saveToActiveSlot();
 }
 function panelByKey(key) {
     return document.querySelector(`.panel.card[data-panel="${key}"]`);
@@ -2113,6 +2112,7 @@ function updateAutoPromoSummary(scope) {
     const summary = root.querySelector("#autoPromoSummary");
     if (!summary)
         return;
+    syncAutoPromoVisibility(root);
     const enabled = Boolean(state.meta?.autoRollout?.enabled);
     const slots = ensureAutoPromoSlots();
     const budgetSlots = ensureAutoPromoBudgetSlots() || [];
@@ -2226,6 +2226,14 @@ function updateAutoPromoBudgetTotal(scope, budgetSlots) {
     const slots = Array.isArray(budgetSlots) ? budgetSlots : ensureAutoPromoBudgetSlots() || [];
     const totalPct = slots.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
     totalEl.textContent = `Total allocation: ${Math.round(totalPct * 100)}% (max 100%)`;
+}
+function syncAutoPromoVisibility(scope) {
+    const root = scope || document;
+    const section = root.querySelector("#autoPromoTargetsSection");
+    if (!section)
+        return;
+    const enabled = Boolean(state.meta?.autoRollout?.enabled);
+    section.classList.toggle("hidden", !enabled);
 }
 function syncAutoPromoBudgetControls(scope) {
     const root = scope || document;
@@ -2600,9 +2608,7 @@ function bindGlobalHandlers() {
     on("bailoutAcceptBtn", "click", () => {
         if (acceptBailout()) {
             closeOverlay("bailoutModal");
-            renderStats();
             renderAll();
-            saveToActiveSlot();
         }
     });
     on("bailoutDeclineBtn", "click", () => {
@@ -3287,7 +3293,6 @@ function bindViewHandlers(route, root) {
             }
             state.ui.slotTarget = target;
             renderAll();
-            saveToActiveSlot();
             emitStateChanged();
         });
     }
@@ -3329,7 +3334,6 @@ function bindViewHandlers(route, root) {
     on("recommendAllMode", "change", (e) => {
         state.ui.recommendAllMode = e.target.value;
         renderAll();
-        saveToActiveSlot();
     });
     on("autoAssignBtn", "click", autoAssignCreators);
     on("startTrackBtn", "click", startTrackFromUI);
@@ -3390,7 +3394,6 @@ function bindViewHandlers(route, root) {
                 if (assigned) {
                     logUiEvent("action_submit", { action: "assign_act", trackId, actId });
                     renderAll();
-                    saveToActiveSlot();
                 }
             }
             if (releaseTypeSelect) {
@@ -3421,6 +3424,7 @@ function bindViewHandlers(route, root) {
         state.meta.autoRollout.enabled = e.target.checked;
         state.meta.autoRollout.lastCheckedAt = Date.now();
         logEvent(state.meta.autoRollout.enabled ? "Auto promo enabled." : "Auto promo disabled.");
+        syncAutoPromoVisibility(root);
         updateAutoPromoSummary(root);
         saveToActiveSlot();
     });
@@ -3460,6 +3464,7 @@ function bindViewHandlers(route, root) {
         autoRolloutToggle.checked = Boolean(state.meta.autoRollout?.enabled);
     }
     syncAutoPromoBudgetControls(root);
+    syncAutoPromoVisibility(root);
     updateAutoPromoSummary(root);
     on("refreshMarket", "click", () => {
         if (state.label.cash < 300) {
@@ -3481,17 +3486,14 @@ function bindViewHandlers(route, root) {
     on("cccThemeFilter", "change", (e) => {
         state.ui.cccThemeFilter = e.target.value || "All";
         renderAll();
-        saveToActiveSlot();
     });
     on("cccMoodFilter", "change", (e) => {
         state.ui.cccMoodFilter = e.target.value || "All";
         renderAll();
-        saveToActiveSlot();
     });
     on("cccSort", "change", (e) => {
         state.ui.cccSort = e.target.value || "default";
         renderAll();
-        saveToActiveSlot();
     });
     const marketList = root.querySelector("#marketList");
     if (marketList) {
@@ -3542,7 +3544,6 @@ function bindViewHandlers(route, root) {
             }
             state.ui.cccFilters[key] = e.target.checked;
             renderAll();
-            saveToActiveSlot();
         });
     });
     const actList = root.querySelector("#actList");
@@ -3641,7 +3642,6 @@ function bindViewHandlers(route, root) {
             refreshSelectOptions();
             await computeCharts();
             renderAll();
-            saveToActiveSlot();
             logEvent(`Loaded save file into Slot ${session.activeSlot}.`);
         }
         catch {

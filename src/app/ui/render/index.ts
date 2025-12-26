@@ -242,9 +242,10 @@ function renderAlignmentTag(alignment) {
 }
 
 /** @deprecated Replaced by React Pill/Tag components. */
-function renderThemeTag(theme) {
+function renderThemeTag(theme, options = {}) {
   const cls = `theme-${slugify(theme)}`;
-  return `<span class="tag tag--theme ${cls}"><span class="tag-dot"></span><span class="tag-label">${theme}</span></span>`;
+  const label = options?.label || theme;
+  return `<span class="tag tag--theme ${cls}"><span class="tag-dot"></span><span class="tag-label">${label}</span></span>`;
 }
 
 /** @deprecated Replaced by React Pill/Tag components. */
@@ -434,10 +435,11 @@ function renderLabelTag(label, country) {
 
 
 /** @deprecated Replaced by React Pill/Tag components. */
-function renderMoodTag(mood, alignment) {
+function renderMoodTag(mood, alignment, options = {}) {
   const emoji = getMoodEmoji(mood) || "\u2753";
   const cls = alignment ? alignmentClass(alignment) : "neutral";
-  return `<span class="tag tag--mood mood ${cls}"><span class="mood-emoji">${emoji}</span><span class="tag-label">${mood}</span></span>`;
+  const label = options?.label || mood;
+  return `<span class="tag tag--mood mood ${cls}"><span class="mood-emoji">${emoji}</span><span class="tag-label">${label}</span></span>`;
 }
 
 
@@ -474,7 +476,9 @@ function renderModifierFocus(modifier) {
 /** @deprecated Replaced by React Pill/Tag components. */
 function renderGenrePills(theme, mood, { fallback = "-", alignment } = {}) {
   if (!theme || !mood) return fallback;
-  return `<span class="genre-pills">${renderThemeTag(theme)} <span class="genre-connector">but it's</span> ${renderMoodTag(mood, alignment)}</span>`;
+  const themeTag = renderThemeTag(theme, { label: `${theme} but` });
+  const moodTag = renderMoodTag(mood, alignment, { label: `it's ${mood}` });
+  return `<span class="genre-pills"><span class="genre-line">${themeTag}</span><span class="genre-line">${moodTag}</span></span>`;
 }
 
 

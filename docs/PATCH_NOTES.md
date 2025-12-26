@@ -1,5 +1,15 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1859Z)
+- Reduced redundant auto-save writes after full UI refreshes to keep interactions smoother.
+- Bailout acceptance now avoids a duplicate stats render during the full UI refresh.
+
+## 2025-12-26 (RLS-PATCH-20251226-1852Z)
+- Auto promo targets now appear only while Auto Promo is enabled.
+
+## 2025-12-26 (RLS-PATCH-20251226-1851Z)
+- Trend/genre theme+mood pills now stack as "Theme but" over "it's Mood" to reduce overflow and preserve layout.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1826Z)
 - Top Labels "More" window now includes each label's most-used theme and mood column.
 - Broadcast and filming studios now include regional facilities with five daily slots split across morning/afternoon/night timeframes.

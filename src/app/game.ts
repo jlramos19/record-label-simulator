@@ -853,6 +853,15 @@ const CREATOR_ROSTER_CAP = 125;
 
 const STUDIO_CAP_PER_LABEL = 50;
 const ACHIEVEMENT_TARGET = 12;
+const RIVAL_REVENUE_MULT = 1;
+const RIVAL_UPKEEP_MULT = 0.7;
+const RIVAL_AMBITION_FLOOR = 0.35;
+const RIVAL_AMBITION_YEAR_BOOST = 0.1;
+const RIVAL_AMBITION_QUALITY_BOOST = 6;
+const RIVAL_AMBITION_ROSTER_BONUS = 3;
+const RIVAL_CASH_BASE = Math.round(STARTING_CASH * 0.4);
+const RIVAL_CASH_AMBITION_BOOST = Math.round(STARTING_CASH * 0.5);
+const RIVAL_CASH_YEAR_BOOST = Math.round(STARTING_CASH * 0.1);
 
 function currentYear() {
   return new Date(state.time.epochMs).getUTCFullYear();

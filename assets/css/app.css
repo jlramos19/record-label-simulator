@@ -2007,7 +2007,8 @@ select.theme-select {
 .tag--mood,
 .tag--country,
 .tag--alignment {
-  width: var(--tag-width, auto);
+  width: min(var(--tag-width), 100%);
+  max-width: 100%;
   justify-content: center;
   text-align: center;
   white-space: normal;
@@ -2018,7 +2019,8 @@ select.theme-select {
 .tag--alignment { --tag-width: var(--tag-width-alignment); }
 .tag--label,
 .rls-tag-label {
-  width: var(--tag-width-label);
+  width: min(var(--tag-width-label), 100%);
+  max-width: 100%;
   justify-content: center;
   text-align: center;
   white-space: normal;
@@ -2059,10 +2061,18 @@ select.theme-select {
 .tag.mood { text-transform: none; }
 .tag .mood-emoji { font-size: 12px; line-height: 1; }
 .genre-pills {
-  display: inline-flex;
+  display: inline-grid;
+  grid-auto-flow: row;
+  gap: 2px;
+  align-items: start;
+  justify-items: start;
+  max-width: 100%;
+}
+.genre-line {
+  display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  min-width: 0;
 }
 .genre-connector {
   font-size: 10px;

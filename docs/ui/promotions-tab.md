@@ -14,6 +14,7 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 - Auto Promo targets up to four slots; each slot has Act / Project / Track inputs and its own budget % allocation.
 - Auto Promo allocations must total 100% or less; each slot resolves Track -> Project -> Act, with act-only promos allowed for active eras.
 - Auto Promo target selects only list active-era acts/projects plus released or scheduled tracks.
+- Auto Promo targets display only when Auto Promo is enabled.
 - Act-only promos boost Act visibility; Act+Project promos boost project momentum; Act+Project+Track promos boost both.
 - Project promos can target projects in active eras; boosts apply across released + scheduled tracks in the project.
 - Track promos can target released or scheduled tracks; scheduled promos bank momentum for release.

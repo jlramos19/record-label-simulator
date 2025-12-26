@@ -8,6 +8,7 @@
 - [ ] RLS-CCC-DECLINE-001: Add decline reason logic + player-facing feedback for CCC signing, and update tutorial to split loops vs concepts.
 - [ ] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
 - [ ] RLS-AI-COMPETE-001: Guarantee at least one rival in competitive rollout mode per planning cycle, with deterministic selection and budget gates.
+- [ ] RLS-AI-ACHIEVEMENTS-001: Track CEO Requests for rival labels, surface the race on the Dashboard, and tune AI ambition to keep all 7 labels competitive through Year 3000.
 - [ ] RLS-PROMO-AUTO-001: Define auto promo wallet-percentage budgeting for player + rivals and document the rule.
 - [x] RLS-AUTO-CREATE-001: Add auto-create rules (cash reserve + budget percent, weekly cadence, max tracks, solo/collab) with Create view controls and status disclosure.
 - [ ] RLS-ROLE-RECORDER-001: Replace Performer naming with Recorder across UI copy + docs, keeping role labels consistent in gameplay surfaces.
