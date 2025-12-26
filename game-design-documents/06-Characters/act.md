@@ -109,6 +109,3 @@
 ## **`Conclusion`**
 
 `In RLS, an Act is the public-facing release identity—either a Solo Act or a Group Act—and it is the core object for branding, eras, rollouts, chart attribution, and audience visibility. It’s intentionally distinct from Creators, because Creators make the work while Acts are the stable “name the world sees,” keeping the simulation both deep and readable.`
-
-`Drop 7 when you’re ready.`
-
