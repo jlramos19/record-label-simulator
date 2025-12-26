@@ -1,4 +1,4 @@
-# `Topoda Charts Prompts for ChatGPT`
+# `Record Label Simulator Prompts for ChatGPT`
 
 Thursday, August 10, 2023
 3:20 AM

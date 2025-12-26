@@ -1,7 +1,7 @@
 // @ts-nocheck
-// Name pools derived from Topoda Charts vocabulary; ASCII-normalized for runtime stability.
+// Name pools derived from Record Label Simulator vocabulary; ASCII-normalized for runtime stability.
 
-const TOPODA_GIVEN_NAMES = [
+const RLS_GIVEN_NAMES = [
   "Alustor",
   "Astorian",
   "Adravian",
@@ -2089,57 +2089,399 @@ const EAST_ASIAN_NAMES = [
   "Zieger",
 ];
 
-const BYTENZA_GIVEN_SYLLABLES_PRIMARY = [
-  { hangul: "\ubbfc", romanized: "Min" },
-  { hangul: "\uc11c", romanized: "Seo" },
-  { hangul: "\uc9c0", romanized: "Ji" },
-  { hangul: "\ud604", romanized: "Hyeon" },
-  { hangul: "\ud558", romanized: "Ha" },
-  { hangul: "\ub3c4", romanized: "Do" },
-  { hangul: "\uc720", romanized: "Yu" },
-  { hangul: "\uc138", romanized: "Se" },
-  { hangul: "\uc218", romanized: "Su" },
-  { hangul: "\uc608", romanized: "Ye" },
-  { hangul: "\ucc44", romanized: "Chae" },
-  { hangul: "\uc724", romanized: "Yun" },
-  { hangul: "\ud0dc", romanized: "Tae" },
-  { hangul: "\ub098", romanized: "Na" },
-  { hangul: "\uc601", romanized: "Yeong" },
-  { hangul: "\uc900", romanized: "Jun" },
-  { hangul: "\uc740", romanized: "Eun" },
-  { hangul: "\ud638", romanized: "Ho" },
-  { hangul: "\uc7ac", romanized: "Jae" },
-  { hangul: "\uc6b0", romanized: "Woo" },
-  { hangul: "\uae30", romanized: "Gi" },
-  { hangul: "\ub2e4", romanized: "Da" },
-  { hangul: "\ub77c", romanized: "Ra" },
-  { hangul: "\uc194", romanized: "Sol" },
+const ANGLORAN_GIVEN_NAMES = [
+  "Liam",
+  "Noah",
+  "Oliver",
+  "James",
+  "Elijah",
+  "William",
+  "Henry",
+  "Lucas",
+  "Benjamin",
+  "Theodore",
+  "Jack",
+  "Alexander",
+  "Mason",
+  "Michael",
+  "Ethan",
+  "Daniel",
+  "Jacob",
+  "Logan",
+  "Jackson",
+  "Levi",
+  "Sebastian",
+  "Owen",
+  "Samuel",
+  "Matthew",
+  "Joseph",
+  "David",
+  "Carter",
+  "Wyatt",
+  "Julian",
+  "Luke",
+  "Grayson",
+  "Isaac",
+  "Jayden",
+  "Dylan",
+  "Nathan",
+  "Caleb",
+  "Hunter",
+  "Ryan",
+  "Thomas",
+  "Charles",
+  "Olivia",
+  "Emma",
+  "Charlotte",
+  "Amelia",
+  "Sophia",
+  "Isabella",
+  "Mia",
+  "Evelyn",
+  "Harper",
+  "Luna",
+  "Ella",
+  "Scarlett",
+  "Grace",
+  "Chloe",
+  "Lily",
+  "Hannah",
+  "Zoey",
+  "Nora",
+  "Riley",
+  "Aria",
+  "Addison",
+  "Aubrey",
+  "Hazel",
+  "Violet",
+  "Aurora",
+  "Stella",
+  "Lucy",
+  "Natalie",
+  "Leah",
+  "Anna",
+  "Sarah",
+  "Claire",
+  "Victoria",
+  "Brooklyn",
+  "Penelope",
+  "Naomi",
+  "Caroline",
+  "Alice",
+  "Sadie",
+  "Hailey",
+  "Maya",
 ];
 
-const BYTENZA_GIVEN_SYLLABLES_SECONDARY = [
-  { hangul: "\uc900", romanized: "Jun" },
-  { hangul: "\uc724", romanized: "Yun" },
-  { hangul: "\ub9bc", romanized: "Rim" },
-  { hangul: "\uc544", romanized: "A" },
-  { hangul: "\ube48", romanized: "Bin" },
-  { hangul: "\ud601", romanized: "Hyeok" },
-  { hangul: "\uc6b0", romanized: "Woo" },
-  { hangul: "\ud76c", romanized: "Hui" },
-  { hangul: "\uc601", romanized: "Yeong" },
-  { hangul: "\ubbfc", romanized: "Min" },
-  { hangul: "\ud638", romanized: "Ho" },
-  { hangul: "\uc5f0", romanized: "Yeon" },
-  { hangul: "\uc9c4", romanized: "Jin" },
-  { hangul: "\uc11c", romanized: "Seo" },
-  { hangul: "\ubcc4", romanized: "Byeol" },
-  { hangul: "\ud558", romanized: "Ha" },
-  { hangul: "\uc194", romanized: "Sol" },
-  { hangul: "\ub098", romanized: "Na" },
-  { hangul: "\ub9ac", romanized: "Ri" },
-  { hangul: "\uacbd", romanized: "Gyeong" },
+const ANGLORAN_SURNAMES = [
+  "Smith",
+  "Johnson",
+  "Williams",
+  "Brown",
+  "Jones",
+  "Miller",
+  "Davis",
+  "Wilson",
+  "Moore",
+  "Taylor",
+  "Anderson",
+  "Thomas",
+  "Jackson",
+  "White",
+  "Harris",
+  "Martin",
+  "Thompson",
+  "Robinson",
+  "Clark",
+  "Lewis",
+  "Walker",
+  "Hall",
+  "Allen",
+  "Young",
+  "King",
+  "Wright",
+  "Scott",
+  "Green",
+  "Baker",
+  "Adams",
+  "Nelson",
+  "Carter",
+  "Mitchell",
+  "Turner",
+  "Phillips",
+  "Campbell",
+  "Parker",
+  "Evans",
+  "Edwards",
+  "Collins",
+  "Stewart",
+  "Morris",
+  "Murphy",
+  "Cooper",
+  "Reed",
+  "Cook",
+  "Morgan",
+  "Bell",
+  "Bailey",
+  "Foster",
+  "Gray",
+  "Howard",
+  "Hughes",
+  "Jenkins",
+  "Kelly",
+  "Long",
+  "Russell",
+  "Sanders",
+  "Ward",
+  "Watson",
 ];
 
-const BYTENZA_SURNAME_SYLLABLES = [
+const CROWLYA_GIVEN_NAMES = [
+  "Jose",
+  "Juan",
+  "Luis",
+  "Carlos",
+  "Miguel",
+  "Javier",
+  "Diego",
+  "Fernando",
+  "Jorge",
+  "Pedro",
+  "Manuel",
+  "Rafael",
+  "Andres",
+  "Alejandro",
+  "Daniel",
+  "Sergio",
+  "Alberto",
+  "Ricardo",
+  "Eduardo",
+  "Enrique",
+  "Pablo",
+  "Mateo",
+  "Adrian",
+  "Martin",
+  "Victor",
+  "Angel",
+  "Gabriel",
+  "Hugo",
+  "Ivan",
+  "Marco",
+  "Maria",
+  "Ana",
+  "Sofia",
+  "Isabel",
+  "Lucia",
+  "Valeria",
+  "Camila",
+  "Gabriela",
+  "Daniela",
+  "Carmen",
+  "Elena",
+  "Paula",
+  "Sara",
+  "Adriana",
+  "Natalia",
+  "Julieta",
+  "Martina",
+  "Claudia",
+  "Irene",
+  "Laura",
+  "Patricia",
+  "Rocio",
+  "Marisol",
+  "Alicia",
+  "Andrea",
+  "Carolina",
+  "Victoria",
+  "Margarita",
+  "Beatriz",
+  "Teresa",
+];
+
+const CROWLYA_SURNAMES = [
+  "Garcia",
+  "Rodriguez",
+  "Martinez",
+  "Hernandez",
+  "Lopez",
+  "Gonzalez",
+  "Perez",
+  "Sanchez",
+  "Ramirez",
+  "Cruz",
+  "Flores",
+  "Gomez",
+  "Torres",
+  "Rivera",
+  "Morales",
+  "Ortiz",
+  "Gutierrez",
+  "Chavez",
+  "Mendoza",
+  "Rojas",
+  "Castillo",
+  "Vargas",
+  "Romero",
+  "Suarez",
+  "Dominguez",
+  "Herrera",
+  "Medina",
+  "Aguilar",
+  "Vega",
+  "Reyes",
+  "Cabrera",
+  "Silva",
+  "Delgado",
+  "Ramos",
+  "Moreno",
+  "Navarro",
+  "Campos",
+  "Soto",
+  "Valdez",
+  "Guerrero",
+  "Salazar",
+  "Ortega",
+  "Rivas",
+  "Espinoza",
+  "Molina",
+  "Vasquez",
+  "Lara",
+  "Bautista",
+  "Santiago",
+  "Carrillo",
+  "Pineda",
+  "Ibarra",
+  "Acosta",
+  "Espinosa",
+  "Ruiz",
+  "Alvarado",
+  "Figueroa",
+  "Lozano",
+  "Leon",
+  "Mora",
+];
+
+const BYTENZA_GIVEN_NAMES_2 = [
+  { hangul: "\ubbfc\uc900", romanized: "Minjun" },
+  { hangul: "\uc11c\uc900", romanized: "Seojun" },
+  { hangul: "\ud558\uc900", romanized: "Hajun" },
+  { hangul: "\ub3c4\uc724", romanized: "Doyun" },
+  { hangul: "\uc2dc\uc6b0", romanized: "Siwoo" },
+  { hangul: "\uc9c0\ud6c4", romanized: "Jihu" },
+  { hangul: "\uc900\uc6b0", romanized: "Junwoo" },
+  { hangul: "\ud604\uc6b0", romanized: "Hyeonwoo" },
+  { hangul: "\uc900\uc11c", romanized: "Junseo" },
+  { hangul: "\uc9c0\ud638", romanized: "Jiho" },
+  { hangul: "\uac74\uc6b0", romanized: "Geonwoo" },
+  { hangul: "\uc6b0\uc9c4", romanized: "Woojin" },
+  { hangul: "\uc120\uc6b0", romanized: "Seonwoo" },
+  { hangul: "\uc720\uc900", romanized: "Yujun" },
+  { hangul: "\uc9c0\ud658", romanized: "Jihwan" },
+  { hangul: "\uc740\uc6b0", romanized: "Eunwoo" },
+  { hangul: "\ubbfc\uc7ac", romanized: "Minjae" },
+  { hangul: "\uc815\uc6b0", romanized: "Jeongwoo" },
+  { hangul: "\uc2b9\ubbfc", romanized: "Seungmin" },
+  { hangul: "\ud0dc\ud604", romanized: "Taehyun" },
+  { hangul: "\ud0dc\uc900", romanized: "Taejun" },
+  { hangul: "\ub3d9\ud604", romanized: "Donghyeon" },
+  { hangul: "\uc900\ud601", romanized: "Junhyeok" },
+  { hangul: "\uc900\uc601", romanized: "Junyoung" },
+  { hangul: "\uc9c0\uc131", romanized: "Jiseong" },
+  { hangul: "\uc131\ubbfc", romanized: "Seongmin" },
+  { hangul: "\uc131\ud6c8", romanized: "Seonghun" },
+  { hangul: "\uc8fc\uc6d0", romanized: "Juwon" },
+  { hangul: "\uc131\uc900", romanized: "Seongjun" },
+  { hangul: "\uc7ac\uc724", romanized: "Jaeyun" },
+  { hangul: "\uc7ac\ud604", romanized: "Jaehyun" },
+  { hangul: "\uacbd\ubbfc", romanized: "Gyeongmin" },
+  { hangul: "\ud0dc\ubbfc", romanized: "Taemin" },
+  { hangul: "\uc2dc\uc724", romanized: "Siyun" },
+  { hangul: "\uc608\uc900", romanized: "Yejun" },
+  { hangul: "\ud558\uc728", romanized: "Hayul" },
+  { hangul: "\uc2dc\ud604", romanized: "Sihyeon" },
+  { hangul: "\ud604\uc900", romanized: "Hyeonjun" },
+  { hangul: "\ub3c4\ud604", romanized: "Dohyeon" },
+  { hangul: "\ubbfc\uc218", romanized: "Minsu" },
+  { hangul: "\ubbfc\ud638", romanized: "Minho" },
+  { hangul: "\uc601\uc900", romanized: "Yeongjun" },
+  { hangul: "\uc601\ubbfc", romanized: "Yeongmin" },
+  { hangul: "\uc2b9\uc6b0", romanized: "Seungwoo" },
+  { hangul: "\uc2b9\ud604", romanized: "Seunghyeon" },
+  { hangul: "\uc11c\uc5f0", romanized: "Seoyeon" },
+  { hangul: "\uc11c\uc724", romanized: "Seoyun" },
+  { hangul: "\uc9c0\uc6b0", romanized: "Jiwoo" },
+  { hangul: "\uc9c0\uc548", romanized: "Jian" },
+  { hangul: "\uc9c0\uc544", romanized: "Jia" },
+  { hangul: "\ud558\uc740", romanized: "Haeun" },
+  { hangul: "\ud558\uc724", romanized: "Hayoon" },
+  { hangul: "\uc9c0\ubbfc", romanized: "Jimin" },
+  { hangul: "\ucc44\uc6d0", romanized: "Chaewon" },
+  { hangul: "\ucc44\uc740", romanized: "Chaeun" },
+  { hangul: "\uc724\uc544", romanized: "Yuna" },
+  { hangul: "\uc218\uc544", romanized: "Sua" },
+  { hangul: "\uc218\ubbfc", romanized: "Sumin" },
+  { hangul: "\uc218\uc5f0", romanized: "Suyeon" },
+  { hangul: "\uc218\uc9c4", romanized: "Sujin" },
+  { hangul: "\uc218\ube48", romanized: "Subin" },
+  { hangul: "\uc608\uc740", romanized: "Yeeun" },
+  { hangul: "\uc608\uc9c4", romanized: "Yejin" },
+  { hangul: "\uc608\ub9b0", romanized: "Yerin" },
+  { hangul: "\uc608\ub098", romanized: "Yena" },
+  { hangul: "\uc608\uc9c0", romanized: "Yeji" },
+  { hangul: "\uc740\uc9c0", romanized: "Eunji" },
+  { hangul: "\uc740\uc11c", romanized: "Eunseo" },
+  { hangul: "\uc740\ud558", romanized: "Eunha" },
+  { hangul: "\uc740\ubcc4", romanized: "Eunbyeol" },
+  { hangul: "\uc720\uc9c4", romanized: "Yujin" },
+  { hangul: "\uc720\ub9ac", romanized: "Yuri" },
+  { hangul: "\uc9c0\ud61c", romanized: "Jihye" },
+  { hangul: "\uc9c0\uc740", romanized: "Jieun" },
+  { hangul: "\uc9c0\uc5f0", romanized: "Jiyeon" },
+  { hangul: "\uc9c0\ud604", romanized: "Jihyeon" },
+  { hangul: "\uc9c0\uc218", romanized: "Jisu" },
+  { hangul: "\ud61c\uc9c4", romanized: "Hyejin" },
+  { hangul: "\ud61c\uc6d0", romanized: "Hyewon" },
+  { hangul: "\ud558\ub298", romanized: "Haneul" },
+];
+
+const BYTENZA_GIVEN_NAMES_3 = [
+  { hangul: "\ubbfc\uc900\uc11c", romanized: "Minjunseo" },
+  { hangul: "\ubbfc\uc900\uc6b0", romanized: "Minjunwoo" },
+  { hangul: "\uc11c\uc900\uc6b0", romanized: "Seojunwoo" },
+  { hangul: "\uc11c\uc5f0\uc6b0", romanized: "Seoyeonwoo" },
+  { hangul: "\uc9c0\uc6b0\uc9c4", romanized: "Jiwoojin" },
+  { hangul: "\uc9c0\uc740\uc11c", romanized: "Jieunseo" },
+  { hangul: "\ud558\uc740\uc11c", romanized: "Haeunseo" },
+  { hangul: "\uc724\uc11c\uc544", romanized: "Yunseoa" },
+  { hangul: "\uc18c\uc5f0\uc6b0", romanized: "Soyeonwoo" },
+  { hangul: "\uc9c0\ubbfc\uc11c", romanized: "Jiminseo" },
+  { hangul: "\uc740\uc11c\uc724", romanized: "Eunseoyun" },
+  { hangul: "\uc11c\ud558\uc724", romanized: "Seohayun" },
+  { hangul: "\ud558\uc724\uc11c", romanized: "Hayunseo" },
+  { hangul: "\ucc44\uc6d0\uc11c", romanized: "Chaewonseo" },
+  { hangul: "\ud604\uc6b0\uc9c4", romanized: "Hyeonwoojin" },
+  { hangul: "\uc900\uc601\uc6b0", romanized: "Junyoungwoo" },
+  { hangul: "\ud0dc\ud604\uc6b0", romanized: "Taehyunwoo" },
+  { hangul: "\ub3c4\uc724\ud638", romanized: "Doyunho" },
+  { hangul: "\uc608\uc9c4\uc11c", romanized: "Yejinseo" },
+  { hangul: "\uc11c\ud604\uc6b0", romanized: "Seohyeonwoo" },
+];
+
+const BYTENZA_GIVEN_NAMES_4 = [
+  { hangul: "\ubbfc\uc900\uc11c\uc724", romanized: "Minjunseoyun" },
+  { hangul: "\uc11c\uc5f0\uc9c0\uc6b0", romanized: "Seoyeonjiwoo" },
+  { hangul: "\ud558\uc724\uc11c\uc5f0", romanized: "Hayunseoyeon" },
+  { hangul: "\uc9c0\uc6b0\uc11c\uc724", romanized: "Jiwooseoyun" },
+  { hangul: "\uc740\uc11c\uc9c0\uc6b0", romanized: "Eunseojiwoo" },
+  { hangul: "\uc11c\ud604\uc9c0\uc724", romanized: "Seohyeonjiyun" },
+  { hangul: "\uc9c0\ubbfc\uc11c\uc5f0", romanized: "Jiminseoyeon" },
+  { hangul: "\uc900\uc11c\ud558\uc724", romanized: "Junseohayun" },
+  { hangul: "\ud0dc\ud604\uc9c0\uc6b0", romanized: "Taehyeonjiwoo" },
+  { hangul: "\ub3c4\uc724\uc11c\ud604", romanized: "Doyunseohyeon" },
+];
+
+const BYTENZA_SURNAMES = [
   { hangul: "\uae40", romanized: "Kim" },
   { hangul: "\uc774", romanized: "Lee" },
   { hangul: "\ubc15", romanized: "Park" },
@@ -2172,68 +2514,15 @@ const BYTENZA_SURNAME_SYLLABLES = [
   { hangul: "\uc124", romanized: "Seol" },
 ];
 
-const buildBytenzaGivenNames = () => {
-  const names = [];
-  const seen = new Set();
-  const pushName = (syllables) => {
-    const hangul = syllables.map((entry) => entry.hangul).join("");
-    if (seen.has(hangul)) return false;
-    seen.add(hangul);
-    const romanized = syllables.map((entry) => entry.romanized).join("-");
-    names.push({ hangul, romanized });
-    return true;
-  };
-  const addTwo = (limit) => {
-    let added = 0;
-    for (let i = 0; i < BYTENZA_GIVEN_SYLLABLES_PRIMARY.length; i += 1) {
-      for (let j = 0; j < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; j += 1) {
-        if (pushName([BYTENZA_GIVEN_SYLLABLES_PRIMARY[i], BYTENZA_GIVEN_SYLLABLES_SECONDARY[j]])) {
-          added += 1;
-        }
-        if (added >= limit) return;
-      }
-    }
-  };
-  const addThree = (limit) => {
-    let added = 0;
-    for (let i = 0; i < BYTENZA_GIVEN_SYLLABLES_PRIMARY.length; i += 1) {
-      for (let j = 0; j < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; j += 1) {
-        for (let k = 0; k < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; k += 1) {
-          if (pushName([BYTENZA_GIVEN_SYLLABLES_PRIMARY[i], BYTENZA_GIVEN_SYLLABLES_SECONDARY[j], BYTENZA_GIVEN_SYLLABLES_SECONDARY[k]])) {
-            added += 1;
-          }
-          if (added >= limit) return;
-        }
-      }
-    }
-  };
-  const addFour = (limit) => {
-    let added = 0;
-    for (let i = 0; i < BYTENZA_GIVEN_SYLLABLES_PRIMARY.length; i += 1) {
-      for (let j = 0; j < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; j += 1) {
-        for (let k = 0; k < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; k += 1) {
-          for (let l = 0; l < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; l += 1) {
-            if (pushName([BYTENZA_GIVEN_SYLLABLES_PRIMARY[i], BYTENZA_GIVEN_SYLLABLES_SECONDARY[j], BYTENZA_GIVEN_SYLLABLES_SECONDARY[k], BYTENZA_GIVEN_SYLLABLES_SECONDARY[l]])) {
-              added += 1;
-            }
-            if (added >= limit) return;
-          }
-        }
-      }
-    }
-  };
-  addTwo(400);
-  addThree(300);
-  addFour(200);
-  return names;
-};
-
-const BYTENZA_GIVEN_NAMES = buildBytenzaGivenNames();
-const BYTENZA_SURNAMES = BYTENZA_SURNAME_SYLLABLES.slice();
+const BYTENZA_GIVEN_NAMES_ALL = [
+  ...BYTENZA_GIVEN_NAMES_2,
+  ...BYTENZA_GIVEN_NAMES_3,
+  ...BYTENZA_GIVEN_NAMES_4,
+];
 const CREATOR_NAME_PARTS = {
   // Annglora = North America + Europe
   Annglora: {
-    given: TOPODA_GIVEN_NAMES,
+    given: RLS_GIVEN_NAMES,
     surname: WESTERN_NAMES
   },
   // Bytenza = Asia + Oceania
@@ -2243,7 +2532,7 @@ const CREATOR_NAME_PARTS = {
   },
   // Crowlya = Africa + South America
   Crowlya: {
-    given: TOPODA_GIVEN_NAMES,
+    given: RLS_GIVEN_NAMES,
     surname: LATIN_NAMES
   }
 };
@@ -2345,7 +2634,7 @@ export {
   NAME_PARTS,
   PROJECT_TITLE_TEMPLATES,
   PROJECT_TITLES,
-  TOPODA_GIVEN_NAMES,
+  RLS_GIVEN_NAMES,
   TRACK_TITLE_TEMPLATES,
   WESTERN_NAMES
 };

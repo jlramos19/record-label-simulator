@@ -49,6 +49,6 @@
 
 ## **`Notes`**
 
-`This system is the canonical way to sign Creators. Legacy mechanics (Topoda Charts interview/A&R) are retired.`
+`This system is the canonical way to sign Creators. Legacy mechanics (Record Label Simulator interview/A&R) are retired.`
 
 `— End —`

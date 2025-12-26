@@ -1,4 +1,4 @@
-# Topoda Charts Web Modules
+# Record Label Simulator Web Modules
 
 ## Purpose
 Define the module responsibilities for the charts system in the web app.

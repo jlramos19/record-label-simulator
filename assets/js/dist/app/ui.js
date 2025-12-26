@@ -519,14 +519,20 @@ function getStartPreferenceElements() {
         return null;
     return { theme1, theme2, mood1, mood2 };
 }
-function sanitizeStartPreferences(prefs = {}) {
+function normalizeStartPreferences(prefs = {}) {
     const themePool = Array.isArray(THEMES) ? THEMES : [];
     const moodPool = Array.isArray(MOODS) ? MOODS : [];
-    const themes = Array.isArray(prefs.themes) ? prefs.themes : [];
-    const moods = Array.isArray(prefs.moods) ? prefs.moods : [];
-    const sanitizedThemes = [themes[0], themes[1]].map((theme) => (themePool.includes(theme) ? theme : ""));
-    const sanitizedMoods = [moods[0], moods[1]].map((mood) => (moodPool.includes(mood) ? mood : ""));
-    return { themes: sanitizedThemes, moods: sanitizedMoods };
+    const themes = Array.isArray(prefs.themes) ? prefs.themes.filter((theme) => themePool.includes(theme)) : [];
+    const moods = Array.isArray(prefs.moods) ? prefs.moods.filter((mood) => moodPool.includes(mood)) : [];
+    const uniqueThemes = [...new Set(themes)];
+    const uniqueMoods = [...new Set(moods)];
+    if (uniqueThemes.length < 2) {
+        uniqueThemes.push(...pickDistinct(themePool.filter((theme) => !uniqueThemes.includes(theme)), 2 - uniqueThemes.length));
+    }
+    if (uniqueMoods.length < 2) {
+        uniqueMoods.push(...pickDistinct(moodPool.filter((mood) => !uniqueMoods.includes(mood)), 2 - uniqueMoods.length));
+    }
+    return { themes: uniqueThemes.slice(0, 2), moods: uniqueMoods.slice(0, 2) };
 }
 function setStartPreferenceValues(prefs, options = {}) {
     const elements = getStartPreferenceElements();
@@ -534,33 +540,30 @@ function setStartPreferenceValues(prefs, options = {}) {
         return;
     const { theme1, theme2, mood1, mood2 } = elements;
     const { persist = true } = options;
-    const sanitized = sanitizeStartPreferences(prefs);
-    theme1.value = sanitized.themes[0] || "";
-    theme2.value = sanitized.themes[1] || "";
-    mood1.value = sanitized.moods[0] || "";
-    mood2.value = sanitized.moods[1] || "";
+    const normalized = normalizeStartPreferences(prefs);
+    theme1.value = normalized.themes[0] || "";
+    theme2.value = normalized.themes[1] || "";
+    mood1.value = normalized.moods[0] || "";
+    mood2.value = normalized.moods[1] || "";
     setThemeSelectAccent(theme1);
     setThemeSelectAccent(theme2);
     if (persist) {
-        saveStartPreferences({
-            themes: [theme1.value, theme2.value],
-            moods: [mood1.value, mood2.value]
-        });
+        saveStartPreferences(normalized);
     }
 }
 function readStartPreferences() {
     const elements = getStartPreferenceElements();
     if (!elements)
-        return sanitizeStartPreferences(loadStartPreferences() || {});
-    return sanitizeStartPreferences({
+        return normalizeStartPreferences(loadStartPreferences() || {});
+    return normalizeStartPreferences({
         themes: [elements.theme1.value, elements.theme2.value],
         moods: [elements.mood1.value, elements.mood2.value]
     });
 }
 function validateStartPreferences(prefs) {
-    const sanitized = sanitizeStartPreferences(prefs);
-    const themes = sanitized.themes;
-    const moods = sanitized.moods;
+    const normalized = normalizeStartPreferences(prefs);
+    const themes = normalized.themes;
+    const moods = normalized.moods;
     const hasMissingThemes = themes.some((theme) => !theme);
     const hasMissingMoods = moods.some((mood) => !mood);
     if (hasMissingThemes || hasMissingMoods) {
@@ -576,7 +579,7 @@ function validateStartPreferences(prefs) {
     if (moods[0] === moods[1]) {
         return { ok: false, message: "Pick two different Moods before starting.", fields: ["startMood1", "startMood2"] };
     }
-    return { ok: true, prefs: sanitized };
+    return { ok: true, prefs: normalized };
 }
 function pickRandomPreference(pool, exclude = []) {
     const safePool = Array.isArray(pool) ? pool : [];
@@ -600,7 +603,7 @@ function syncStartPreferenceSelects() {
     theme2.innerHTML = themeOptions;
     mood1.innerHTML = moodOptions;
     mood2.innerHTML = moodOptions;
-    setStartPreferenceValues(loadStartPreferences() || {}, { persist: false });
+    setStartPreferenceValues(loadStartPreferences() || {});
     bindThemeSelectAccent(theme1);
     bindThemeSelectAccent(theme2);
     const onChange = () => setStartPreferenceValues({
@@ -1387,20 +1390,52 @@ function normalizePromoBudget(root, typeIds) {
         input.value = String(next);
     return next;
 }
+function getPromoTrackContext(trackId) {
+    const track = trackId ? getTrack(trackId) : null;
+    const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
+    const isReleased = Boolean(track && track.status === "Released" && track.marketId);
+    const isScheduled = Boolean(scheduled && !isReleased);
+    return { track, scheduled, isReleased, isScheduled };
+}
+function getPromoTypeLockouts(context) {
+    const lockouts = {};
+    if (!context?.track)
+        return lockouts;
+    if (context.isScheduled)
+        lockouts.musicVideo = "After release";
+    if (context.track.promo?.musicVideoUsed)
+        lockouts.musicVideo = "Used";
+    return lockouts;
+}
+function getPromoTypeFallback(root, lockouts, fallbackTypeId) {
+    const scope = root || document;
+    const ordered = Array.from(scope.querySelectorAll("[data-promo-type]"))
+        .map((card) => card.dataset.promoType)
+        .filter(Boolean);
+    const fallbackOrder = ordered.length ? ordered : [fallbackTypeId || DEFAULT_PROMO_TYPE];
+    return fallbackOrder.find((typeId) => !lockouts?.[typeId]) || null;
+}
 function getSelectedPromoTypes(root) {
     const scope = root || document;
     return Array.from(scope.querySelectorAll("[data-promo-type].is-active"))
         .map((card) => card.dataset.promoType)
         .filter(Boolean);
 }
-function ensurePromoTypeSelection(root, fallbackTypeId) {
+function ensurePromoTypeSelection(root, fallbackTypeId, lockouts = {}) {
     const scope = root || document;
     let selected = getSelectedPromoTypes(scope);
     if (!selected.length) {
         const fallback = fallbackTypeId || DEFAULT_PROMO_TYPE;
         selected = [fallback];
-        syncPromoTypeCards(scope, selected);
     }
+    if (lockouts && Object.keys(lockouts).length) {
+        selected = selected.filter((typeId) => !lockouts[typeId]);
+        if (!selected.length) {
+            const fallback = getPromoTypeFallback(scope, lockouts, fallbackTypeId) || fallbackTypeId || DEFAULT_PROMO_TYPE;
+            selected = fallback ? [fallback] : [];
+        }
+    }
+    syncPromoTypeCards(scope, selected, lockouts);
     return selected;
 }
 function hydratePromoTypeCards(root) {
@@ -1424,19 +1459,34 @@ function hydratePromoTypeCards(root) {
             cost.textContent = `Typical cost: ${formatMoney(details.cost)}`;
     });
 }
-function syncPromoTypeCards(root, typeIds) {
+function syncPromoTypeCards(root, typeIds, lockouts = {}) {
     const scope = root || document;
     const cards = scope.querySelectorAll("[data-promo-type]");
     if (!cards.length)
         return;
     const selected = new Set((Array.isArray(typeIds) ? typeIds : [typeIds]).filter(Boolean));
     cards.forEach((card) => {
-        const isActive = selected.has(card.dataset.promoType);
+        const typeId = card.dataset.promoType;
+        const lockout = typeId ? lockouts?.[typeId] : null;
+        const isLocked = Boolean(lockout);
+        const isActive = Boolean(typeId && selected.has(typeId) && !isLocked);
         card.classList.toggle("is-active", isActive);
+        card.classList.toggle("is-disabled", isLocked);
+        if (isLocked) {
+            card.setAttribute("aria-disabled", "true");
+            card.setAttribute("disabled", "");
+        }
+        else {
+            card.removeAttribute("aria-disabled");
+            card.removeAttribute("disabled");
+        }
         card.setAttribute("aria-checked", isActive ? "true" : "false");
         const status = card.querySelector("[data-promo-status]");
-        if (status)
-            status.textContent = isActive ? "Selected" : "Select";
+        if (status) {
+            status.textContent = isLocked
+                ? (typeof lockout === "string" ? lockout : "Unavailable")
+                : (isActive ? "Selected" : "Select");
+        }
     });
 }
 function buildPromoFacilityHint(typeId) {
@@ -1475,14 +1525,16 @@ function updatePromoTypeHint(root) {
     const scope = root || document;
     const select = scope.querySelector("#promoTypeSelect");
     const hint = scope.querySelector("#promoTypeHint");
-    const selectedTypes = ensurePromoTypeSelection(scope, select ? select.value : DEFAULT_PROMO_TYPE);
+    const trackContext = getPromoTrackContext(state.ui?.promoSlots?.trackId);
+    const lockouts = getPromoTypeLockouts(trackContext);
+    const selectedTypes = ensurePromoTypeSelection(scope, select ? select.value : DEFAULT_PROMO_TYPE, lockouts);
     const primaryType = select && selectedTypes.includes(select.value) ? select.value : selectedTypes[0];
     if (select && primaryType)
         select.value = primaryType;
     state.ui.promoTypes = selectedTypes.slice();
     state.ui.promoType = primaryType || DEFAULT_PROMO_TYPE;
     const inflationMultiplier = getPromoInflationMultiplier();
-    syncPromoTypeCards(scope, selectedTypes);
+    syncPromoTypeCards(scope, selectedTypes, lockouts);
     setPromoBudgetToBaseCost(scope, selectedTypes);
     const budget = normalizePromoBudget(scope, selectedTypes);
     if (hint) {
@@ -1826,12 +1878,9 @@ function bindGlobalHandlers() {
                 const difficulty = getSelectedGameDifficultyId();
                 const startPreferences = getSelectedStartPreferences();
                 const validation = validateStartPreferences(startPreferences);
-                if (!validation.ok) {
-                    logEvent(validation.message, "warn");
-                    validation.fields.forEach((field) => shakeField(field));
-                    return;
-                }
-                await loadSlot(slot, true, { mode, difficulty, startPreferences: validation.prefs });
+                const normalizedPrefs = validation.prefs || startPreferences;
+                setStartPreferenceValues(normalizedPrefs);
+                await loadSlot(slot, true, { mode, difficulty, startPreferences: normalizedPrefs });
                 exitMenuToGame();
             }
         });
@@ -2076,7 +2125,9 @@ function bindViewHandlers(route, root) {
     if (route === "logs") {
         on("promoTypeSelect", "change", (e) => {
             const typeId = e.target.value || DEFAULT_PROMO_TYPE;
-            syncPromoTypeCards(root, [typeId]);
+            const trackContext = getPromoTrackContext(state.ui?.promoSlots?.trackId);
+            const lockouts = getPromoTypeLockouts(trackContext);
+            syncPromoTypeCards(root, [typeId], lockouts);
             updatePromoTypeHint(root);
         });
         on("promoBudget", "change", (e) => {
@@ -2093,28 +2144,39 @@ function bindViewHandlers(route, root) {
                 if (!typeId)
                     return;
                 const select = root.querySelector("#promoTypeSelect");
-                const selected = ensurePromoTypeSelection(root, select ? select.value : DEFAULT_PROMO_TYPE);
+                const trackContext = getPromoTrackContext(state.ui?.promoSlots?.trackId);
+                const lockouts = getPromoTypeLockouts(trackContext);
+                if (lockouts[typeId]) {
+                    const message = typeId === "musicVideo" && lockouts[typeId] === "Used"
+                        ? "Music video promo already used for this track."
+                        : "Music video promo unlocks after release.";
+                    logEvent(message, "warn");
+                    return;
+                }
+                const selected = ensurePromoTypeSelection(root, select ? select.value : DEFAULT_PROMO_TYPE, lockouts);
                 const isActive = selected.includes(typeId);
                 if (isActive && selected.length === 1)
                     return;
                 const nextSelected = isActive
                     ? selected.filter((id) => id !== typeId)
                     : Array.from(new Set([...selected, typeId]));
-                syncPromoTypeCards(root, nextSelected);
+                syncPromoTypeCards(root, nextSelected, lockouts);
                 if (select)
                     select.value = isActive ? (nextSelected[0] || typeId) : typeId;
                 updatePromoTypeHint(root);
             });
         }
         hydratePromoTypeCards(root);
+        const initTrackContext = getPromoTrackContext(state.ui?.promoSlots?.trackId);
+        const initLockouts = getPromoTypeLockouts(initTrackContext);
         if (Array.isArray(state.ui.promoTypes) && state.ui.promoTypes.length) {
-            syncPromoTypeCards(root, state.ui.promoTypes);
+            syncPromoTypeCards(root, state.ui.promoTypes, initLockouts);
             const select = root.querySelector("#promoTypeSelect");
             if (select)
                 select.value = state.ui.promoTypes[0];
         }
         else if (state.ui.promoType) {
-            syncPromoTypeCards(root, [state.ui.promoType]);
+            syncPromoTypeCards(root, [state.ui.promoType], initLockouts);
             const select = root.querySelector("#promoTypeSelect");
             if (select)
                 select.value = state.ui.promoType;
@@ -3605,32 +3667,61 @@ function pickPromoTrackFromFocus() {
         logEvent("Select a focus era before picking a promo track.", "warn");
         return;
     }
-    const candidates = state.tracks.filter((track) => track.status === "Released" && track.eraId === targetEra.id);
+    const candidates = state.tracks.filter((track) => {
+        if (track.eraId !== targetEra.id)
+            return false;
+        if (track.status === "Released")
+            return true;
+        return state.releaseQueue.some((entry) => entry.trackId === track.id);
+    });
     if (!candidates.length) {
-        logEvent("No released tracks found for the focused era.", "warn");
+        logEvent("No released or scheduled tracks found for the focused era.", "warn");
         return;
     }
     const picked = candidates.reduce((latest, track) => {
-        const latestStamp = latest.releasedAt || 0;
-        const nextStamp = track.releasedAt || 0;
-        return nextStamp >= latestStamp ? track : latest;
+        const latestSchedule = latest.status === "Released"
+            ? latest.releasedAt
+            : state.releaseQueue.find((entry) => entry.trackId === latest.id)?.releaseAt;
+        const entrySchedule = track.status === "Released"
+            ? track.releasedAt
+            : state.releaseQueue.find((entry) => entry.trackId === track.id)?.releaseAt;
+        const latestStamp = latestSchedule || 0;
+        const entryStamp = entrySchedule || 0;
+        return entryStamp >= latestStamp ? track : latest;
     }, candidates[0]);
     state.ui.promoSlots.trackId = picked.id;
     logUiEvent("action_submit", { action: "promo_focus_pick", eraId: targetEra.id, trackId: picked.id });
     logEvent(`Promo slot set to "${picked.title}".`);
     renderSlots();
     renderTracks();
+    updatePromoTypeHint(document);
     saveToActiveSlot();
 }
 function runPromotion() {
     const trackId = state.ui.promoSlots.trackId;
-    const selectedTypes = ensurePromoTypeSelection(document, $("promoTypeSelect") ? $("promoTypeSelect").value : DEFAULT_PROMO_TYPE);
-    const budget = normalizePromoBudget(document, selectedTypes);
-    const totalCost = budget * selectedTypes.length;
     if (!trackId) {
-        logEvent("No released track selected for promo push.", "warn");
+        logEvent("No scheduled or released track selected for promo push.", "warn");
         return;
     }
+    const trackContext = getPromoTrackContext(trackId);
+    const track = trackContext.track;
+    if (!track) {
+        logEvent("Track not found for promo push.", "warn");
+        return;
+    }
+    if (!trackContext.isReleased && !trackContext.isScheduled) {
+        logEvent("Promo push requires a scheduled or released track.", "warn");
+        return;
+    }
+    const select = $("promoTypeSelect");
+    const lockouts = getPromoTypeLockouts(trackContext);
+    const selectedTypes = ensurePromoTypeSelection(document, select ? select.value : DEFAULT_PROMO_TYPE, lockouts);
+    if (!selectedTypes.length) {
+        logEvent("No available promo types for this track.", "warn");
+        return;
+    }
+    const budget = normalizePromoBudget(document, selectedTypes);
+    const totalCost = budget * selectedTypes.length;
     if (budget <= 0 || Number.isNaN(budget)) {
         logEvent("Promo budget must be greater than 0.", "warn");
         return;
@@ -3640,22 +3731,22 @@ function runPromotion() {
         logEvent(`Not enough cash for ${label}.`, "warn");
         return;
     }
-    const track = getTrack(trackId);
-    if (!track || track.status !== "Released" || !track.marketId) {
-        logEvent("Track is not active on the market.", "warn");
-        return;
-    }
     const era = track.eraId ? getEraById(track.eraId) : null;
     if (!era || era.status !== "Active") {
         logEvent("Promo push requires a track from an active era.", "warn");
         return;
     }
     const act = getAct(track.actId);
-    const scheduled = state.releaseQueue.find((entry) => entry.trackId === track.id);
-    const releaseDate = scheduled ? formatDate(scheduled.releaseAt) : track.releasedAt ? formatDate(track.releasedAt) : "TBD";
-    const market = state.marketTracks.find((entry) => entry.id === track.marketId);
-    if (!market)
+    const releaseDate = trackContext.scheduled
+        ? formatDate(trackContext.scheduled.releaseAt)
+        : track.releasedAt ? formatDate(track.releasedAt) : "TBD";
+    const market = trackContext.isReleased
+        ? state.marketTracks.find((entry) => entry.id === track.marketId)
+        : null;
+    if (trackContext.isReleased && !market) {
+        logEvent("Track is not active on the market.", "warn");
         return;
+    }
     const facilityNeeds = getPromoFacilityNeeds(selectedTypes);
     for (const [facilityId, count] of Object.entries(facilityNeeds)) {
         const availability = getPromoFacilityAvailability(facilityId);
@@ -3678,7 +3769,18 @@ function runPromotion() {
     }
     state.label.cash -= totalCost;
     const boostWeeks = clamp(Math.floor(budget / 1200) + 1, 1, 4);
-    market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);
+    if (!track.promo || typeof track.promo !== "object") {
+        track.promo = { preReleaseWeeks: 0, musicVideoUsed: false };
+    }
+    if (trackContext.isReleased && market) {
+        market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);
+    }
+    else {
+        track.promo.preReleaseWeeks = Math.max(track.promo.preReleaseWeeks || 0, boostWeeks);
+    }
+    if (selectedTypes.includes("musicVideo")) {
+        track.promo.musicVideoUsed = true;
+    }
     state.meta.promoRuns = (state.meta.promoRuns || 0) + selectedTypes.length;
     const promoIds = [
         ...(track.creators?.songwriterIds || []),
@@ -3708,7 +3810,8 @@ function runPromotion() {
     const promoLabels = selectedTypes.map((promoType) => getPromoTypeDetails(promoType).label).join(", ");
     const verb = selectedTypes.length > 1 ? "Promo pushes funded" : "Promo push funded";
     const spendNote = selectedTypes.length > 1 ? ` Total spend: ${formatMoney(totalCost)}.` : "";
-    logEvent(`${verb} for "${track.title}" (${promoLabels}) (+${boostWeeks} weeks).${spendNote}`);
+    const releaseNote = trackContext.isScheduled ? ` Release on ${releaseDate}.` : "";
+    logEvent(`${verb} for "${track.title}" (${promoLabels}) (+${boostWeeks} weeks).${spendNote}${releaseNote}`);
     renderAll();
 }
 function handleReleaseActRecommendation(e) {

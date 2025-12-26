@@ -41,6 +41,6 @@
 
 ## **`Notes`**
 
-`Benjamin Hart replaces all references to external narrator placeholders. He is canonically linked to RLS systems and is no longer tied to legacy Topoda Charts framing.`
+`Benjamin Hart replaces all references to external narrator placeholders. He is canonically linked to RLS systems and is no longer tied to legacy Record Label Simulator framing.`
 
 `— End —`

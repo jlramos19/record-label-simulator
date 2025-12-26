@@ -1396,6 +1396,20 @@ select.theme-select {
 .promo-type-card:active {
   transform: translateY(1px);
 }
+.promo-type-card.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(15, 20, 28, 0.35);
+}
+.promo-type-card.is-disabled:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.promo-type-card.is-disabled .promo-type-status {
+  color: var(--muted);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
 .promo-type-row {
   display: flex;
   align-items: center;
@@ -1655,6 +1669,19 @@ select.theme-select {
 .tag.country-crowlya { background: var(--country-crowlya); color: #0b0f14; border-color: var(--country-crowlya); }
 .tag.mood { background: transparent; color: var(--text); border-color: rgba(255, 255, 255, 0.25); }
 .tag .mood-emoji { font-size: 12px; line-height: 1; }
+.genre-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.genre-connector {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: none;
+}
 .scroll-list { max-height: none; overflow: visible; }
 .act-members {
   display: flex;

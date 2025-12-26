@@ -1,7 +1,7 @@
-## **UX Design for Topoda Charts**
+## **UX Design for Record Label Simulator**
 
 **Purpose**  
-Define the user experience (UX) for **Topoda Charts** inside **Record Label Simulator**, focusing on: selecting and placing **IDs**, using **ID slots**, filtering, and turning inventory items into scheduled releases through the **Table → Calendar** loop.
+Define the user experience (UX) for **Record Label Simulator**, focusing on: selecting and placing **IDs**, using **ID slots**, filtering, and turning inventory items into scheduled releases through the **Table → Calendar** loop.
 
 ---
 

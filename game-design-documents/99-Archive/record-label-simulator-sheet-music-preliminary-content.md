@@ -74,6 +74,6 @@ Final Track quality benefits from strong alignment between the Sheet Music’s P
 
 ## **Notes**
 
-Legacy branding (Topoda Charts) and deprecated terms (Guider, Drives/FLAMP) are retired. Use current canon: Creator, Alignment, Preferred Theme, Preferred Mood.
+Legacy branding (Record Label Simulator) and deprecated terms (Guider, Drives/FLAMP) are retired. Use current canon: Creator, Alignment, Preferred Theme, Preferred Mood.
 
 — End —

@@ -1,4 +1,4 @@
-**`Countries for inspiration of names in Topoda Charts In-Game Universe`**  
+**`Countries for inspiration of names in Record Label Simulator In-Game Universe`**  
 `Thursday, August 10, 2023`  
 `3:30 AM`  
 ` `  

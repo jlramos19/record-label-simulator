@@ -1,7 +1,7 @@
   
 ` `
 
-# **`TOPODA CHARTS MAGAZINE/NEWS ARTICLE`**
+# **`RECORD LABEL SIMULATOR MAGAZINE/NEWS ARTICLE`**
 
 `Thursday, August 10, 2023`  
 `3:26 AM`  
@@ -14,7 +14,7 @@
 ` `  
 ` `
 
-# **`Topoda Charts: News Outlets`**
+# **`Record Label Simulator: News Outlets`**
 
 `Thursday, August 10, 2023`  
 `3:29 AM`  

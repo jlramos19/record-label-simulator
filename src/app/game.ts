@@ -211,7 +211,7 @@ const ROLE_ACTIONS = [
   {
     role: "Act",
     occupations: [
-      { name: "Promoter", actions: [{ verb: "promote", detail: "Run promo pushes for released tracks and eras.", status: "live" }] }
+      { name: "Promoter", actions: [{ verb: "promote", detail: "Run promo pushes for scheduled or released tracks and eras.", status: "live" }] }
     ]
   },
   {
@@ -1380,9 +1380,11 @@ function assignToSlot(targetId, entityType, entityId) {
   }
   if (entityType === "track" && targetId === "promo-track") {
     const track = getTrack(entityId);
-    if (!track || track.status !== "Released") {
+    const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
+    const isReleased = Boolean(track && track.status === "Released" && track.marketId);
+    if (!track || (!isReleased && !scheduled)) {
       shakeSlot(targetId);
-      logEvent("Promo slot requires a released Track ID.", "warn");
+      logEvent("Promo slot requires a scheduled or released Track ID.", "warn");
       return;
     }
     const era = track.eraId ? getEraById(track.eraId) : null;
@@ -3833,7 +3835,11 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
     quality: 0,
     completedAt: null,
     releasedAt: null,
-    marketId: null
+    marketId: null,
+    promo: {
+      preReleaseWeeks: 0,
+      musicVideoUsed: false
+    }
   };
   refreshTrackQuality(track, 0);
   state.tracks.push(track);
@@ -4161,6 +4167,7 @@ function releaseTrack(track, note, distribution) {
   track.releasedAt = state.time.epochMs;
   track.trendAtRelease = state.trends.includes(track.genre);
   track.distribution = distribution || track.distribution || "Digital";
+  const preReleaseWeeks = Math.max(0, track.promo?.preReleaseWeeks || 0);
   const act = getAct(track.actId);
   const era = track.eraId ? getEraById(track.eraId) : null;
   const projectName = track.projectName || `${track.title} - Single`;
@@ -4184,10 +4191,11 @@ function releaseTrack(track, note, distribution) {
     distribution: track.distribution,
     releasedAt: track.releasedAt,
     weeksOnChart: 0,
-    promoWeeks: 0
+    promoWeeks: preReleaseWeeks
   };
   track.marketId = marketEntry.id;
   state.marketTracks.push(marketEntry);
+  if (track.promo) track.promo.preReleaseWeeks = 0;
   markCreatorRelease(getTrackCreatorIds(track), track.releasedAt);
   logEvent(`Released "${track.title}" to market${note ? ` (${note})` : ""}.`);
   postTrackRelease(track);
@@ -5565,7 +5573,7 @@ function questTemplates() {
         createdAt: state.time.epochMs,
         reward: 3200,
         expReward: 420,
-        story: `Topoda Charts tip: deliver a ${formatGenreKeyLabel(genre)} track to steer the week.`,
+        story: `Record Label Simulator tip: deliver a ${formatGenreKeyLabel(genre)} track to steer the week.`,
         text: `Release 1 track in ${formatGenreKeyLabel(genre)}`,
         done: false,
         rewarded: false
@@ -6337,18 +6345,22 @@ function runAutoPromoForPlayer() {
   const rawTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
     ? state.ui.promoTypes
     : [state.ui?.promoType || DEFAULT_PROMO_TYPE];
-  const selectedTypes = Array.from(new Set(rawTypes));
+  const selectedTypes = Array.from(new Set(rawTypes)).filter(Boolean);
   if (!selectedTypes.length) return;
+  const usableTypes = track.promo?.musicVideoUsed
+    ? selectedTypes.filter((typeId) => typeId !== "musicVideo")
+    : selectedTypes;
+  if (!usableTypes.length) return;
   const walletCash = state.label.wallet?.cash ?? state.label.cash;
   const budget = computeAutoPromoBudget(walletCash, autoPromoBudgetPct());
-  const totalCost = budget * selectedTypes.length;
+  const totalCost = budget * usableTypes.length;
   if (!budget || walletCash < totalCost || state.label.cash < totalCost) return;
-  const facilityNeeds = promoFacilityNeeds(selectedTypes);
+  const facilityNeeds = promoFacilityNeeds(usableTypes);
   for (const [facilityId, count] of Object.entries(facilityNeeds)) {
     const availability = getPromoFacilityAvailability(facilityId);
     if (availability.available < count) return;
   }
-  for (const promoType of selectedTypes) {
+  for (const promoType of usableTypes) {
     const facilityId = getPromoFacilityForType(promoType);
     if (!facilityId) continue;
     const reservation = reservePromoFacilitySlot(facilityId, promoType, track.id);
@@ -6358,14 +6370,18 @@ function runAutoPromoForPlayer() {
   if (state.label.wallet) state.label.wallet.cash = state.label.cash;
   const boostWeeks = promoWeeksFromBudget(budget);
   market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
-  state.meta.promoRuns = (state.meta.promoRuns || 0) + selectedTypes.length;
+  state.meta.promoRuns = (state.meta.promoRuns || 0) + usableTypes.length;
   const promoIds = [
     ...(track.creators?.songwriterIds || []),
     ...(track.creators?.performerIds || []),
     ...(track.creators?.producerIds || [])
   ].filter(Boolean);
   markCreatorPromo(promoIds);
-  const spendNote = selectedTypes.length > 1 ? `${formatMoney(totalCost)} total` : formatMoney(totalCost);
+  if (usableTypes.includes("musicVideo")) {
+    if (!track.promo || typeof track.promo !== "object") track.promo = {};
+    track.promo.musicVideoUsed = true;
+  }
+  const spendNote = usableTypes.length > 1 ? `${formatMoney(totalCost)} total` : formatMoney(totalCost);
   logEvent(`Auto promo funded for "${track.title}" (+${boostWeeks} weeks, ${spendNote}).`);
 }
 
@@ -6493,7 +6509,7 @@ async function onYearTick(year) {
   state.meta.annualWinners = state.meta.annualWinners || [];
   state.meta.annualWinners.push({ year, label: winner, points: topPoints, resolvedBy });
   logEvent(`Annual Winner ${year}: ${winner} (${formatCount(topPoints)} points) [${resolvedBy}].`);
-  postSocial({ handle: "@TopodaCharts", title: `Annual Winner ${year}`, lines: [`${winner} secured the year with ${formatCount(topPoints)} points.`, `Tie-break: ${resolvedBy}`], type: "system", order: 1 });
+  postSocial({ handle: "@RLSCharts", title: `Annual Winner ${year}`, lines: [`${winner} secured the year with ${formatCount(topPoints)} points.`, `Tie-break: ${resolvedBy}`], type: "system", order: 1 });
   // Run end-of-year economy/housekeeping: award EXP, refresh quests
   awardExp(1200, `Year ${year} Season End` , true);
   // Reconcile win/loss state
@@ -7429,6 +7445,9 @@ function normalizeState() {
       if (typeof track.trendAtRelease !== "boolean") track.trendAtRelease = false;
       if (!track.projectType) track.projectType = "Single";
       if (!track.distribution) track.distribution = "Digital";
+      if (!track.promo || typeof track.promo !== "object") track.promo = {};
+      if (typeof track.promo.preReleaseWeeks !== "number") track.promo.preReleaseWeeks = 0;
+      if (typeof track.promo.musicVideoUsed !== "boolean") track.promo.musicVideoUsed = false;
       if (typeof track.stageIndex !== "number") {
         track.stageIndex = track.status === "Ready" ? STAGES.length : 0;
       }

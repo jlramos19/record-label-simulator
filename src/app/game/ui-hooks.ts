@@ -7,6 +7,7 @@ type UiHookMap = {
   renderMarket?: () => void;
   renderTime?: () => void;
   refreshSelectOptions?: () => void;
+  refreshPromoTypes?: () => void;
   updateGenrePreview?: () => void;
   openOverlay?: (id: string) => void;
   closeOverlay?: (id: string) => void;

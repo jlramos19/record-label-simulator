@@ -1,4 +1,4 @@
-Certainly, here are the updated ten fields for concept generation in Topoda Charts:
+Certainly, here are the updated ten fields for concept generation in Record Label Simulator:
 
 1\. Season  
 2\. Time of Day  

@@ -1,12 +1,12 @@
 # **Evolution of the Project’s Name**
 
-## **Phase 1 — Topoda Charts**
+## **Phase 1 — Studio Name (Topoda Charts)**
 
-Original Use: The earliest working title for the game itself.
+Original Use: Early studio placeholder used in drafts; not a game title.
 
 Status Now: No longer the name of the game.
 
-Current Role: Topoda Charts has been repurposed as the development company’s name, preserving its legacy while distinguishing it from the product.
+Current Role: Topoda Charts is the development company’s name, preserving its legacy while distinguishing it from the product.
 
 ## **Phase 2 — Record Label Simulator RLS**
 
@@ -20,4 +20,4 @@ Acronym: Always referred to as RLS in all documentation and in-game references.
 
 • The game went through three identity drafts before settling on RLS (Record Label Simulator).
 
-• Topoda Charts, once the prototype name of the game, has been reclaimed as the official name of the developing company.
+• Topoda Charts is the official name of the developing company; the game title remains Record Label Simulator (RLS).

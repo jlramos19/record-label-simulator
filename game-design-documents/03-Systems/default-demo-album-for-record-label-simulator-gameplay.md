@@ -1,4 +1,4 @@
-# **`Default demo album for Topoda Charts Gameplay Tutorial`**
+# **`Default demo album for Record Label Simulator Gameplay Tutorial`**
 
 `Derision`  
 `Entropy`  

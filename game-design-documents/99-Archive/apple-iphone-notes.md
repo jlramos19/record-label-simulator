@@ -82,7 +82,7 @@
 ` `  
 **`HOME`**
 
-`TOPODA CHARTS`  
+`RECORD LABEL SIMULATOR`  
 `GDD`  
 `ROADMAP`  
 `WHO I AM`  

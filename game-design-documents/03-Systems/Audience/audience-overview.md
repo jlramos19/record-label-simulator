@@ -1,10 +1,10 @@
-KeyMate(Google+GPT-4): \# Topoda Charts Consumption Algorithm
+KeyMate(Google+GPT-4): \# Record Label Simulator Consumption Algorithm
 
-This document outlines the core gameplay loop of the Topoda Charts music industry simulation game, focusing on the product consumption algorithm from the perspective of the audience.
+This document outlines the core gameplay loop of the Record Label Simulator music industry simulation game, focusing on the product consumption algorithm from the perspective of the audience.
 
 \#\# Overview
 
-Topoda Charts simulates a music industry where the audience, categorized into demographic subcultures, interacts with products (e.g., songs, music videos, digital merchandise) produced by a Record Label (record label). Emotional resonance, stemming from the product's themes and the audience's current mood, forms the basis of the consumption behavior.
+Record Label Simulator simulates a music industry where the audience, categorized into demographic subcultures, interacts with products (e.g., songs, music videos, digital merchandise) produced by a Record Label (record label). Emotional resonance, stemming from the product's themes and the audience's current mood, forms the basis of the consumption behavior.
 
 \#\# Consumptions Algorithm Steps
 
@@ -20,8 +20,8 @@ Topoda Charts simulates a music industry where the audience, categorized into de
 
 Remember that the size of subcultures is always rounded to the nearest 1,000 (\`1K\`) unit. This ensures statistical soundness and consistent demographic data representation.
 
-In a world with a population of \`10B\`, through a keen understanding of these interactions between moods, emotions, and feelings, you, as the Record Label CEO, can strategically create and market products for maximum reach, consumption, and influence. Master this emotional journey to succeed in the Topoda Charts universe.
+In a world with a population of \`10B\`, through a keen understanding of these interactions between moods, emotions, and feelings, you, as the Record Label CEO, can strategically create and market products for maximum reach, consumption, and influence. Master this emotional journey to succeed in the Record Label Simulator universe.
 
 \#\# More Information
 
-For more details on gameplay mechanics, CEO's drives, and other aspects of Topoda Charts, please refer to the related documentation in the Repository.
+For more details on gameplay mechanics, CEO's drives, and other aspects of Record Label Simulator, please refer to the related documentation in the Repository.

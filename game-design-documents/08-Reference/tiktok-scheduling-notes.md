@@ -17,7 +17,7 @@ TikTok Lessons Learned
    
    
    
-**TOPODA CHARTS: TIKTOK**
+**RECORD LABEL SIMULATOR: TIKTOK**
 
 1. **06AM**
 

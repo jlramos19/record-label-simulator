@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getOwnedStudioSlots, getReleaseAsapAt, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getOwnedStudioSlots, getReleaseAsapAt, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { CalendarView } from "../../calendar.js";
 import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
 import { buildMoodOptions, buildThemeOptions, bindThemeSelectAccent, getMoodEmoji, setThemeSelectAccent } from "../themeMoodOptions.js";
@@ -106,6 +106,25 @@ function renderMoodTag(mood) {
 function renderMoodLabel(mood) {
     const emoji = getMoodEmoji(mood) || "❓";
     return `<span class="tag mood">${mood} <span class="mood-emoji">${emoji}</span></span>`;
+}
+function renderGenrePills(theme, mood, { fallback = "-" } = {}) {
+    if (!theme || !mood)
+        return fallback;
+    return `<span class="genre-pills">${renderThemeTag(theme)} <span class="genre-connector">but it's</span> ${renderMoodTag(mood)}</span>`;
+}
+function renderGenrePillsFromGenre(genre, options = {}) {
+    if (!genre)
+        return options.fallback || "-";
+    const theme = themeFromGenre(genre);
+    const mood = moodFromGenre(genre);
+    return renderGenrePills(theme, mood, options);
+}
+function renderTrackGenrePills(track, options = {}) {
+    if (!track)
+        return options.fallback || "-";
+    const theme = track.theme || themeFromGenre(track.genre);
+    const mood = track.mood || moodFromGenre(track.genre);
+    return renderGenrePills(theme, mood, options);
 }
 function ensureTrackSlotGrid() {
     const grid = $("trackSlotGrid");
@@ -718,7 +737,7 @@ function renderTopBar() {
     const trendsMarkup = trendRanking.length
         ? trendRanking.slice(0, TREND_DETAIL_COUNT).map((trend, index) => `
         <div class="top-mini-item">
-          <span>${index + 1}. ${formatGenreKeyLabel(trend)}</span>
+          <span>${index + 1}. ${renderGenrePillsFromGenre(trend)}</span>
         </div>
       `).join("")
         : `<div class="muted">No trends yet</div>`;
@@ -854,7 +873,7 @@ function renderDashboard() {
           <div class="list-row">
             <div>
               <div class="item-title">#${entry.rank} ${entry.track.title}</div>
-              <div class="muted">${entry.track.label} | ${entry.track.genre || "Genre -"} </div>
+              <div class="muted">${entry.track.label} | ${renderTrackGenrePills(entry.track, { fallback: "Genre -" })}</div>
             </div>
             <div class="pill">${formatCount(entry.score)}</div>
           </div>
@@ -1011,7 +1030,7 @@ function renderActiveCampaigns() {
         <div class="list-row">
           <div>
             <div class="item-title">${title}</div>
-            <div class="muted">${entry.genre || "-"}</div>
+            <div class="muted">${renderGenrePillsFromGenre(entry.genre)}</div>
           </div>
           <div class="pill">${entry.promoWeeks}w</div>
         </div>
@@ -1191,7 +1210,7 @@ function renderQuickRecipes() {
         { title: "Performance", detail: "Assign Performer ID + Mood to craft the demo tone." },
         { title: "Production", detail: "Assign Producer ID to master the track quality." },
         { title: "Release", detail: "Move Ready tracks into Release Desk for scheduling." },
-        { title: "Promo Pushes", detail: "Assign a Released Track ID to the Promo Push Slot." }
+        { title: "Promo Pushes", detail: "Assign a Scheduled or Released Track ID to the Promo Push Slot." }
     ];
     $("quickRecipesList").innerHTML = recipes.map((recipe) => `
     <div class="list-item">
@@ -1254,7 +1273,7 @@ function renderInventory() {
           <div>
             <div class="item-title">${track.title}</div>
             <div class="muted">Item: Track  ID ${track.id}</div>
-            <div class="muted">${track.status}  ${formatGenreKeyLabel(track.genre)}</div>
+            <div class="muted">${track.status}  ${renderGenrePillsFromGenre(track.genre)}</div>
           </div>
         </div>
         <div class="pill grade" data-grade="${qualityGrade(track.quality)}">${qualityGrade(track.quality)}</div>
@@ -1851,7 +1870,7 @@ function renderTracks() {
                 const eraName = era ? era.name : null;
                 const focusSuffix = focusEra && era && focusEra.id === era.id ? " | Focus" : "";
                 const modifierName = track.modifier ? track.modifier.label : "None";
-                const genreLabel = track.genre || "Genre: -";
+                const genreLabel = renderTrackGenrePills(track, { fallback: "Genre: -" });
                 const activeOrder = track.status === "In Production"
                     ? state.workOrders.find((order) => order.trackId === track.id && order.status === "In Progress")
                     : null;
@@ -1907,7 +1926,7 @@ function renderTracks() {
         const projectType = track.projectType || "Single";
         const releaseDate = track.releasedAt ? formatDate(track.releasedAt) : "TBD";
         const grade = qualityGrade(track.quality);
-        const genreLabel = track.genre || "Genre: -";
+        const genreLabel = renderTrackGenrePills(track, { fallback: "Genre: -" });
         const actLine = `Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})`;
         return `
       <div class="list-item" data-entity-type="track" data-entity-id="${track.id}" data-entity-name="${track.title}" draggable="true">
@@ -2139,7 +2158,7 @@ function renderReleaseDesk() {
             const rec = derivedGenre ? recommendReleasePlan({ ...track, genre: derivedGenre }) : recommendReleasePlan(track);
             const recLabel = `${rec.distribution} ${rec.scheduleKey === "now" ? "now" : rec.scheduleKey === "fortnight" ? "+14d" : "+7d"}`;
             const statusLabel = isReady ? "" : track.status === "In Production" ? "Mastering" : "Awaiting Master";
-            const genreLabel = derivedGenre || "-";
+            const genreLabel = renderGenrePillsFromGenre(derivedGenre, { fallback: "-" });
             const hasAct = Boolean(track.actId);
             const canSchedule = hasAct && (isReady || isMastering);
             return `
@@ -2231,8 +2250,7 @@ function buildTrendRankingList({ limit = null, showMore = false } = {}) {
       <div class="list-item trend-item${isTop ? " trend-item--top" : ""}">
         <div class="list-row">
           <div>
-            <div class="item-title">#${index + 1} ${formatGenreKeyLabel(trend)}</div>
-            <div class="time-row">${renderThemeTag(theme)} ${renderMoodLabel(mood)}</div>
+            <div class="item-title">#${index + 1} ${renderGenrePills(theme, mood)}</div>
           </div>
           <div class="ranking-actions">
             <div class="badge warn">Hot</div>
@@ -2362,8 +2380,7 @@ function renderCreateTrends() {
       <div class="list-item">
         <div class="list-row">
           <div>
-            <div class="item-title">#${index + 1} ${formatGenreKeyLabel(trend)}</div>
-            <div class="time-row">${renderThemeTag(theme)} ${renderMoodLabel(mood)}</div>
+            <div class="item-title">#${index + 1} ${renderGenrePills(theme, mood)}</div>
           </div>
           <div class="badge warn">Hot</div>
         </div>
@@ -2386,15 +2403,13 @@ function renderGenreIndex() {
             if (moodFilter !== "All" && mood !== moodFilter)
                 return;
             const genre = makeGenre(theme, mood);
-            const label = formatGenreLabel(theme, mood);
+            const label = renderGenrePills(theme, mood);
             const hot = state.trends.includes(genre);
             list.push(`
         <div class="list-item">
           <div class="list-row">
             <div>
               <div class="item-title">${label}</div>
-              <div class="muted">${genre}</div>
-              <div class="muted">${renderThemeTag(theme)}</div>
             </div>
             ${hot ? `<div class="badge warn">Hot</div>` : `<div class="pill">Catalog</div>`}
           </div>
@@ -2554,7 +2569,7 @@ function renderCharts() {
           <td class="chart-rank">#${entry.rank}</td>
           <td class="chart-title">
             <div class="item-title">${track.title}</div>
-            <div class="muted">${track.genre}</div>
+            <div class="muted">${renderTrackGenrePills(track, { fallback: "Genre -" })}</div>
           </td>
           <td class="chart-label">${labelTag}</td>
           <td class="chart-act">
@@ -2899,11 +2914,14 @@ function updateGenrePreview() {
         return;
     const theme = themeSelect.value;
     const mood = moodSelect.value;
+    const preview = $("genrePreview");
+    if (!preview)
+        return;
     if (!theme || !mood) {
-        $("genrePreview").textContent = "Planned Genre: -";
+        preview.textContent = "Planned Genre: -";
         return;
     }
-    $("genrePreview").textContent = `Planned Genre: ${formatGenreLabel(theme, mood)}`;
+    preview.innerHTML = `Planned Genre: ${renderGenrePills(theme, mood)}`;
 }
 function stageLabelFromId(stageId) {
     if (stageId === "demo")

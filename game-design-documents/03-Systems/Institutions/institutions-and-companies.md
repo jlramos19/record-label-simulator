@@ -101,7 +101,7 @@
 
 ## **`Outdated Terms to Remove`**
 
-`• Record Label Simulator / Record Label Simulator / Topoda Charts (rename to Record Label Simulator).`  
+`• Record Label Simulator / Record Label Simulator / Record Label Simulator (rename to Record Label Simulator).`  
 `• A&R interview mini-games for signings (superseded by CCC flow).`  
 `• Guider/Guide occupations (superseded; promotion handled via Acts/Promoter and label strategy).`
 

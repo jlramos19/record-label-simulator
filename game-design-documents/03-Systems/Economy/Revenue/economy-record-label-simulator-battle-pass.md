@@ -1,14 +1,13 @@
-# Economy - Topoda Charts Battle Pass
+# Economy - Battle Pass
 
 Status: Proposed
 
 ## Overview
-The Topoda Charts Battle Pass is a seasonal progression system that rewards players for competing in the charts. It is optional, cosmetic-first, and framed as the "battle for the top of the charts."
+The Battle Pass is a seasonal progression system that rewards players for competing in the charts. It is optional, cosmetic-first, and framed as the "battle for the top of the charts."
 
 ## Naming and Brand Rationale
 - "Battle" refers to the competition for chart dominance, not violence.
-- "Topoda Charts" is the studio brand; "Topoda" derives from "Top of the."
-- Default product name: "Topoda Charts Battle Pass" (short: "Topoda Pass").
+- Product name: Battle Pass (no extra branding in the UI).
 
 ## Design Goals
 - Maintain a non-pay-to-win experience.

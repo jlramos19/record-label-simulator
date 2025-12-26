@@ -206,7 +206,7 @@ const SOCIAL_TEMPLATES = {
       title: vars.title || "Charts Updated",
       lines: vars.lines || [`#1: ${vars.top || "Unknown"}`],
       type: "chart",
-      handle: "@TopodaCharts"
+      handle: "@RLSCharts"
     })
   },
   systemNotice: {

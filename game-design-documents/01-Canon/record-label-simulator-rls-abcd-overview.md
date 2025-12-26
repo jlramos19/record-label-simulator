@@ -46,4 +46,4 @@ Shortlist used by ABC\&D to analyze countries and their arts ecosystems. Each ar
 
 • Canon naming: use “Record Label Simulator RLS”; Topoda Charts is the development company, not the game title.  
 • Document naming: avoid underscores; include full game name and the acronym RLS in file titles.  
-• Legacy drafts: mark any remaining Topoda Charts videogame references as historical and link to the RLS canon doc.
+• Legacy drafts: mark any remaining prototype-name references as historical and link to the RLS canon doc.

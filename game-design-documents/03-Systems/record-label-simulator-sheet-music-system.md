@@ -2,7 +2,7 @@
 
 ## **Purpose**
 
-Define Sheet Music as a core system in Record Label Simulator, aligned with current canon: Creator occupations (Songwriter, Recorder, Producer), Alignment (Safe/Neutral/Risky), Preferred Theme (5), and Preferred Mood (9). This document replaces legacy Topoda Charts devlog framing.
+Define Sheet Music as a core system in Record Label Simulator, aligned with current canon: Creator occupations (Songwriter, Recorder, Producer), Alignment (Safe/Neutral/Risky), Preferred Theme (5), and Preferred Mood (9). This document replaces legacy Record Label Simulator devlog framing.
 
 ## **Infobox — Systems**
 
@@ -57,6 +57,6 @@ Sheet Music quality results from a Songwriter’s skill, stamina state, and Them
 
 ## **Notes**
 
-Legacy terms (Guider, Hand of Cards, Drives) and Topoda Charts branding are retired. Use current terminology and systems only.
+Legacy terms (Guider, Hand of Cards, Drives) and Record Label Simulator branding are retired. Use current terminology and systems only.
 
 — End —

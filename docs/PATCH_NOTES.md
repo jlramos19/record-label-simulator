@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0307Z)
+- Starting preferences now auto-fill two distinct Themes and Moods and normalize duplicates so Create New always proceeds.
+- Theme/Mood pairings now render as pill tags with a "but it's" connector across trends, tracks, charts, and genre previews.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0248Z)
 - Calendar tabs no longer compress under the Calendar header.
 - Rival calendar events now show label color cues in the grid and list views.
@@ -42,7 +46,7 @@
 
 ## 2025-12-25 (RLS-PATCH-20251225-1644Z)
 - UI render/DOM helpers now live in `src/app/ui/`, with game logic calling `uiHooks` for UI refreshes.
-- Creator name pools moved into `src/app/game/names.ts`, sourced from the Topoda Charts vocabulary and mapped to regional lore.
+- Creator name pools moved into `src/app/game/names.ts`, sourced from the Record Label Simulator vocabulary and mapped to regional lore.
 - Added `npm run report:lines` to regenerate `docs/reports/file-line-counts.csv`.
 
 ## 2025-12-25 (RLS-PATCH-20251225-1637Z)
