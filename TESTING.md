@@ -49,5 +49,13 @@ runPopulationABTest({ startYear: 2025, endYear: 2075, runs: 10 })
 - Confirm `staminaSpentToday` resets at 12AM.
 - Confirm an overuse strike fires at most once per creator per day.
 
+9) Touring planning + booking (planned)
+- Open the Touring tab (right of Promotions); confirm the Touring Desk loads without console errors.
+- With no active Era or released Project/Track, attempt to plan a tour; expect disabled booking and a warning with a reason code in the Touring tab and Calendar timeline.
+- With an active Era + released content, select an Act, anchor Project/Track, and goal; confirm the planner captures the selections.
+- Add tour dates and venues; verify availability conflicts and double-booking are blocked with reason codes, and calendar entries appear for booked dates.
+- Choose a venue tier that mismatches projected attendance; confirm a warning appears but booking is not blocked.
+- With the touring balance flag disabled, confirm no wallet/momentum changes occur while logging still records bookings.
+
 Notes:
 - Population constants live in `assets/js/data/constants.js`, app logic in `src/app/game.ts`.

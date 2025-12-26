@@ -5,7 +5,7 @@ import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./p
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
 import { ACT_NAME_TRANSLATIONS, ACT_NAMES, CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLE_TRANSLATIONS, PROJECT_TITLES } from "./game/names.js";
-import { AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
+import { AI_CREATE_BUDGET_PCT, AI_CREATE_MIN_CASH, AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
 import { evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks, getProjectTrackLimits, normalizeProjectName, normalizeProjectType } from "./game/project-tracks.js";
 import { buildDefaultTrackSlotVisibility, buildEmptyTrackSlotList, parseTrackRoleTarget, roleLabel, trackRoleLimit } from "./game/track-roles.js";
 import { alignmentClass, countryColor, countryDemonym, formatGenreKeyLabel, formatGenreLabel, makeGenre, moodFromGenre, slugify, themeFromGenre } from "./game/label-utils.js";
@@ -750,6 +750,92 @@ function playerHasNationRank(maxRank) {
 function playerHasRegionRank(maxRank) {
     return REGION_DEFS.some((region) => (state.charts.regions[region.id] || []).some((entry) => entry.track.isPlayer && entry.rank <= maxRank));
 }
+function labelReleasePool(labelName) {
+    if (!labelName)
+        return [];
+    const active = Array.isArray(state.marketTracks) ? state.marketTracks : [];
+    const archived = Array.isArray(state.meta?.marketTrackArchive) ? state.meta.marketTrackArchive : [];
+    return active.concat(archived).filter((entry) => entry?.label === labelName);
+}
+function labelHasGlobalRank(labelName, maxRank) {
+    if (!labelName)
+        return false;
+    return (state.charts.global || []).some((entry) => resolveChartEntryLabel(entry) === labelName && entry.rank <= maxRank);
+}
+function labelBestGlobalRank(labelName) {
+    if (!labelName)
+        return null;
+    const ranks = (state.charts.global || [])
+        .filter((entry) => resolveChartEntryLabel(entry) === labelName)
+        .map((entry) => entry.rank)
+        .filter((rank) => Number.isFinite(rank));
+    return ranks.length ? Math.min(...ranks) : null;
+}
+function labelHasNationRank(labelName, maxRank) {
+    if (!labelName)
+        return false;
+    return NATIONS.some((nation) => (state.charts.nations[nation] || []).some((entry) => resolveChartEntryLabel(entry) === labelName && entry.rank <= maxRank));
+}
+function labelBestNationRank(labelName) {
+    if (!labelName)
+        return null;
+    const ranks = [];
+    NATIONS.forEach((nation) => {
+        (state.charts.nations[nation] || []).forEach((entry) => {
+            if (resolveChartEntryLabel(entry) === labelName && Number.isFinite(entry.rank))
+                ranks.push(entry.rank);
+        });
+    });
+    return ranks.length ? Math.min(...ranks) : null;
+}
+function labelHasRegionRank(labelName, maxRank) {
+    if (!labelName)
+        return false;
+    return REGION_DEFS.some((region) => (state.charts.regions[region.id] || []).some((entry) => resolveChartEntryLabel(entry) === labelName && entry.rank <= maxRank));
+}
+function labelBestRegionRank(labelName) {
+    if (!labelName)
+        return null;
+    const ranks = [];
+    REGION_DEFS.forEach((region) => {
+        (state.charts.regions[region.id] || []).forEach((entry) => {
+            if (resolveChartEntryLabel(entry) === labelName && Number.isFinite(entry.rank))
+                ranks.push(entry.rank);
+        });
+    });
+    return ranks.length ? Math.min(...ranks) : null;
+}
+function labelReleaseCount(labelName) {
+    return labelReleasePool(labelName).length;
+}
+function labelReleasedProjectCount(labelName) {
+    const projects = new Set();
+    labelReleasePool(labelName).forEach((entry) => {
+        const name = entry.projectName || `${entry.title || "Unknown"} - Single`;
+        if (name)
+            projects.add(name);
+    });
+    return projects.size;
+}
+function labelBestQuality(labelName) {
+    const qualities = labelReleasePool(labelName)
+        .map((entry) => entry.quality)
+        .filter((value) => Number.isFinite(value));
+    return qualities.length ? Math.max(...qualities) : 0;
+}
+function labelTrendReleaseCount(labelName) {
+    return labelReleasePool(labelName).filter((entry) => entry?.trendAtRelease).length;
+}
+function labelSharePercent(labelName) {
+    if (!labelName)
+        return 0;
+    const share = state.meta?.labelShare?.[labelName];
+    if (Number.isFinite(share))
+        return share * 100;
+    const scores = computeLabelScoresFromCharts();
+    const { shares } = computeLabelShares(scores, { smoothing: 1 });
+    return (shares[labelName] || 0) * 100;
+}
 const ACHIEVEMENTS = [
     {
         id: "REQ-01",
@@ -890,6 +976,95 @@ const ACHIEVEMENTS = [
         progress: () => state.meta.promoRuns
     }
 ];
+const RIVAL_ACHIEVEMENTS = ACHIEVEMENTS.map((definition) => {
+    const base = {
+        id: definition.id,
+        label: definition.label,
+        desc: definition.desc,
+        exp: definition.exp,
+        target: definition.target
+    };
+    switch (definition.id) {
+        case "REQ-01":
+            return {
+                ...base,
+                check: (rival) => labelHasGlobalRank(rival?.name, 1),
+                progress: (rival) => labelBestGlobalRank(rival?.name)
+            };
+        case "REQ-02":
+            return {
+                ...base,
+                check: (rival) => labelHasNationRank(rival?.name, 3),
+                progress: (rival) => labelBestNationRank(rival?.name)
+            };
+        case "REQ-03":
+            return {
+                ...base,
+                check: (rival) => labelHasRegionRank(rival?.name, 5),
+                progress: (rival) => labelBestRegionRank(rival?.name)
+            };
+        case "REQ-04":
+            return {
+                ...base,
+                check: (rival) => labelBestQuality(rival?.name) >= 90,
+                progress: (rival) => labelBestQuality(rival?.name)
+            };
+        case "REQ-05":
+            return {
+                ...base,
+                check: (rival) => labelReleaseCount(rival?.name) >= 12,
+                progress: (rival) => labelReleaseCount(rival?.name)
+            };
+        case "REQ-06":
+            return {
+                ...base,
+                check: (rival) => (rival?.eraCompletions || 0) >= 1,
+                progress: (rival) => rival?.eraCompletions || 0
+            };
+        case "REQ-07":
+            return {
+                ...base,
+                check: (rival) => labelTrendReleaseCount(rival?.name) >= 1,
+                progress: (rival) => labelTrendReleaseCount(rival?.name)
+            };
+        case "REQ-08":
+            return {
+                ...base,
+                check: (rival) => labelSharePercent(rival?.name) >= 4,
+                progress: (rival) => labelSharePercent(rival?.name)
+            };
+        case "REQ-09":
+            return {
+                ...base,
+                check: (rival) => (rival?.creators?.length || 0) >= 8,
+                progress: (rival) => rival?.creators?.length || 0
+            };
+        case "REQ-10":
+            return {
+                ...base,
+                check: (rival) => labelReleasedProjectCount(rival?.name) >= 4,
+                progress: (rival) => labelReleasedProjectCount(rival?.name)
+            };
+        case "REQ-11":
+            return {
+                ...base,
+                check: (rival) => (rival?.economy?.lastRevenue || 0) - (rival?.economy?.lastUpkeep || 0) >= 40000,
+                progress: (rival) => (rival?.economy?.lastRevenue || 0) - (rival?.economy?.lastUpkeep || 0)
+            };
+        case "REQ-12":
+            return {
+                ...base,
+                check: (rival) => (rival?.promoRuns || 0) >= 5,
+                progress: (rival) => rival?.promoRuns || 0
+            };
+        default:
+            return {
+                ...base,
+                check: () => false,
+                progress: () => 0
+            };
+    }
+});
 function awardExp(amount, note, silent = false) {
     const value = Math.max(0, Math.round(amount || 0));
     if (!value)
@@ -919,6 +1094,175 @@ function evaluateAchievements() {
             unlockAchievement(definition);
     });
     state.meta.achievements = state.meta.achievementsUnlocked.length;
+}
+function achievementProgressRatio(definition, value) {
+    if (!definition || typeof definition.target === "undefined")
+        return 0;
+    if (value === null || typeof value === "undefined")
+        return 0;
+    if (["REQ-01", "REQ-02", "REQ-03"].includes(definition.id)) {
+        const rank = Number(value);
+        if (!Number.isFinite(rank) || rank <= 0)
+            return 0;
+        return clamp(definition.target / rank, 0, 1);
+    }
+    const target = Number(definition.target);
+    if (!Number.isFinite(target) || target <= 0)
+        return 0;
+    return clamp(Number(value) / target, 0, 1);
+}
+function ensureRivalAchievementState(rival) {
+    if (!rival)
+        return;
+    if (!Array.isArray(rival.achievementsUnlocked))
+        rival.achievementsUnlocked = [];
+    if (typeof rival.achievements !== "number")
+        rival.achievements = rival.achievementsUnlocked.length;
+    rival.achievements = Math.max(rival.achievements, rival.achievementsUnlocked.length);
+    if (typeof rival.achievementsLocked !== "boolean")
+        rival.achievementsLocked = false;
+    if (typeof rival.achievementFocus !== "string")
+        rival.achievementFocus = null;
+    if (typeof rival.promoRuns !== "number")
+        rival.promoRuns = 0;
+    if (typeof rival.eraCompletions !== "number")
+        rival.eraCompletions = 0;
+    if (typeof rival.ambition !== "number")
+        rival.ambition = RIVAL_AMBITION_FLOOR;
+    if (!rival.economy || typeof rival.economy !== "object") {
+        rival.economy = { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, lastLeaseFees: 0 };
+    }
+    if (typeof rival.economy.lastRevenue !== "number")
+        rival.economy.lastRevenue = 0;
+    if (typeof rival.economy.lastUpkeep !== "number")
+        rival.economy.lastUpkeep = 0;
+    if (typeof rival.economy.lastWeek !== "number")
+        rival.economy.lastWeek = 0;
+    if (typeof rival.economy.lastLeaseFees !== "number")
+        rival.economy.lastLeaseFees = 0;
+}
+function unlockRivalAchievement(rival, definition) {
+    if (!rival || !definition || rival.achievementsLocked)
+        return;
+    if (!Array.isArray(rival.achievementsUnlocked))
+        rival.achievementsUnlocked = [];
+    if (rival.achievementsUnlocked.includes(definition.id))
+        return;
+    rival.achievementsUnlocked.push(definition.id);
+    rival.achievements = rival.achievementsUnlocked.length;
+    logEvent(`${rival.name} completed CEO Request ${definition.id}: ${definition.label}.`);
+}
+function pickRivalAchievementFocus(rival) {
+    if (!rival)
+        return null;
+    const unlocked = new Set(rival.achievementsUnlocked || []);
+    const options = RIVAL_ACHIEVEMENTS.filter((definition) => !unlocked.has(definition.id));
+    if (!options.length) {
+        rival.achievementFocus = null;
+        return null;
+    }
+    const scored = options.map((definition) => {
+        const value = typeof definition.progress === "function" ? definition.progress(rival) : 0;
+        const ratio = achievementProgressRatio(definition, value);
+        const seed = makeStableSeed([weekIndex(), rival.id || rival.name || "", definition.id, "focus"]);
+        const rng = makeSeededRng(seed);
+        return { id: definition.id, ratio, jitter: rng() * 0.02 };
+    });
+    scored.sort((a, b) => {
+        if (a.ratio !== b.ratio)
+            return b.ratio - a.ratio;
+        return b.jitter - a.jitter;
+    });
+    rival.achievementFocus = scored[0].id;
+    return rival.achievementFocus;
+}
+function evaluateRivalAchievements() {
+    if (!Array.isArray(state.rivals))
+        return;
+    state.rivals.forEach((rival) => {
+        ensureRivalAchievementState(rival);
+        if (rival.achievementsLocked)
+            return;
+        RIVAL_ACHIEVEMENTS.forEach((definition) => {
+            if (definition.check(rival))
+                unlockRivalAchievement(rival, definition);
+        });
+        rival.achievements = rival.achievementsUnlocked.length;
+        pickRivalAchievementFocus(rival);
+    });
+}
+function computeRivalAmbition(rival) {
+    if (!rival)
+        return RIVAL_AMBITION_FLOOR;
+    const total = RIVAL_ACHIEVEMENTS.length || ACHIEVEMENT_TARGET;
+    const unlocked = Array.isArray(rival.achievementsUnlocked) ? rival.achievementsUnlocked.length : 0;
+    const requestPressure = total ? clamp(1 - unlocked / total, 0, 1) : 0;
+    const share = state.meta?.labelShare?.[rival.name];
+    const targetShare = LABEL_DOMINANCE_TARGET_SHARE;
+    const sharePressure = (Number.isFinite(share) && targetShare > 0 && share < targetShare)
+        ? clamp((targetShare - share) / targetShare, 0, 1)
+        : 0;
+    let focusPressure = 0;
+    if (rival.achievementFocus) {
+        const focus = RIVAL_ACHIEVEMENTS.find((definition) => definition.id === rival.achievementFocus);
+        if (focus && typeof focus.progress === "function") {
+            const value = focus.progress(rival);
+            focusPressure = clamp(1 - achievementProgressRatio(focus, value), 0, 1);
+        }
+    }
+    const yearBoost = currentYear() < 3000 ? RIVAL_AMBITION_YEAR_BOOST : 0;
+    const raw = RIVAL_AMBITION_FLOOR + yearBoost + sharePressure * 0.4 + requestPressure * 0.25 + focusPressure * 0.2;
+    return clamp(raw, RIVAL_AMBITION_FLOOR, 1);
+}
+function refreshRivalAmbition() {
+    if (!Array.isArray(state.rivals))
+        return;
+    state.rivals.forEach((rival) => {
+        ensureRivalAchievementState(rival);
+        if (!rival.achievementFocus)
+            pickRivalAchievementFocus(rival);
+        rival.ambition = computeRivalAmbition(rival);
+    });
+}
+function ensureRivalCashFloor() {
+    if (!Array.isArray(state.rivals))
+        return;
+    const yearBoost = currentYear() < 3000 ? RIVAL_CASH_YEAR_BOOST : 0;
+    state.rivals.forEach((rival) => {
+        ensureRivalAchievementState(rival);
+        const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
+        const floor = Math.round(RIVAL_CASH_BASE + RIVAL_CASH_AMBITION_BOOST * ambition + yearBoost);
+        if (!Number.isFinite(rival.cash))
+            rival.cash = STARTING_CASH;
+        if (rival.cash < floor) {
+            rival.cash = floor;
+            if (!rival.wallet)
+                rival.wallet = { cash: rival.cash };
+            rival.wallet.cash = rival.cash;
+        }
+    });
+}
+function updateRivalPlanCompletion(rival, currentWeekIndex = weekIndex()) {
+    if (!rival?.aiPlan)
+        return false;
+    const startWeek = rival.aiPlan.windowStartWeekIndex;
+    const endWeek = rival.aiPlan.windowEndWeekIndex;
+    if (!Number.isFinite(startWeek) || !Number.isFinite(endWeek))
+        return false;
+    if (endWeek >= currentWeekIndex)
+        return false;
+    if (rival.aiPlan.lastCompletedWindow === endWeek)
+        return false;
+    const releases = labelReleasePool(rival.name);
+    const hasRelease = releases.some((entry) => {
+        const releaseWeek = weekIndexForEpochMs(entry.releasedAt);
+        return Number.isFinite(releaseWeek) && releaseWeek >= startWeek && releaseWeek <= endWeek;
+    });
+    if (!hasRelease)
+        return false;
+    rival.eraCompletions = Math.max(0, (rival.eraCompletions || 0) + 1);
+    rival.aiPlan.lastCompletedWindow = endWeek;
+    return true;
 }
 function pickUniqueName(list, existingNames, suffix) {
     const existing = new Set(existingNames.filter(Boolean));
@@ -2457,6 +2801,17 @@ function computeAutoCreateBudget(cash, pct = AUTO_CREATE_BUDGET_PCT, minCash = A
     const budget = Math.min(target, headroom);
     return budget > 0 ? budget : 0;
 }
+function rivalCreateBudgetPct(rival) {
+    const base = AI_CREATE_BUDGET_PCT;
+    const ambition = clamp(rival?.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
+    const focusBoost = ["REQ-01", "REQ-02", "REQ-03", "REQ-05"].includes(rival?.achievementFocus) ? 0.04 : 0;
+    const ambitionBoost = Math.max(0, ambition - RIVAL_AMBITION_FLOOR) * 0.08;
+    return clamp(base + focusBoost + ambitionBoost, 0, 0.35);
+}
+function rivalCreateMinCash() {
+    const base = Number.isFinite(AI_CREATE_MIN_CASH) ? AI_CREATE_MIN_CASH : 0;
+    return Math.max(0, Math.round(base));
+}
 function autoPromoBudgetPct() {
     const slotPcts = state.meta?.autoRollout?.budgetPctSlots;
     if (Array.isArray(slotPcts) && slotPcts.length) {
@@ -3591,6 +3946,13 @@ function buildRivals() {
         wallet: { cash: STARTING_CASH },
         studio: { slots: STARTING_STUDIO_SLOTS },
         creators: [],
+        achievementsUnlocked: [],
+        achievements: 0,
+        achievementFocus: null,
+        promoRuns: 0,
+        economy: { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, lastLeaseFees: 0 },
+        ambition: RIVAL_AMBITION_FLOOR,
+        eraCompletions: 0,
         aiPlan: {
             lastPlannedWeek: null,
             lastHuskId: null,
@@ -3599,6 +3961,10 @@ function buildRivals() {
             huskSource: null,
             windowStartWeekIndex: null,
             windowEndWeekIndex: null,
+            lastCompletedWindow: null,
+            dominanceScopeType: null,
+            dominanceScopeKey: null,
+            dominanceWeekIndex: null,
             competitive: false
         }
     }));
@@ -4951,12 +5317,18 @@ function recruitRivalCreators() {
     const trends = Array.isArray(state.trends) ? state.trends : [];
     state.rivals.forEach((rival) => {
         ensureRivalRoster(rival);
+        const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
+        const focusBoost = rival.achievementFocus === "REQ-09" ? 2 : 0;
+        const rosterBoost = Math.round(ambition * RIVAL_AMBITION_ROSTER_BONUS) + focusBoost;
+        const targetPerRole = RIVAL_MIN_PER_ROLE + rosterBoost;
         const counts = MARKET_ROLES.reduce((acc, role) => {
             acc[role] = rival.creators.filter((creator) => creator.role === role).length;
             return acc;
         }, {});
         const signed = [];
         const addRecruit = (role, trendTheme, trendMood) => {
+            if (rival.creators.length >= CREATOR_ROSTER_CAP)
+                return;
             const recruit = takeMarketRecruit(role, trendTheme, trendMood)
                 || buildRivalCreator(role, rival, trendTheme, trendMood);
             rival.creators.push(recruit);
@@ -4965,8 +5337,8 @@ function recruitRivalCreators() {
             counts[role] = (counts[role] || 0) + 1;
         };
         MARKET_ROLES.forEach((role) => {
-            let missing = Math.max(0, RIVAL_MIN_PER_ROLE - counts[role]);
-            while (missing > 0) {
+            let missing = Math.max(0, targetPerRole - counts[role]);
+            while (missing > 0 && rival.creators.length < CREATOR_ROSTER_CAP) {
                 const { theme, mood } = pickTrendTarget(trends);
                 addRecruit(role, theme, mood);
                 missing -= 1;
@@ -4977,7 +5349,7 @@ function recruitRivalCreators() {
             const mood = moodFromGenre(trend);
             return !rival.creators.some((creator) => creator.prefThemes?.includes(theme) && creator.prefMoods?.includes(mood));
         });
-        if (needsCoverage) {
+        if (needsCoverage && rival.creators.length < CREATOR_ROSTER_CAP) {
             const { theme, mood } = pickTrendTarget(trends);
             const neededRole = MARKET_ROLES.slice().sort((a, b) => counts[a] - counts[b])[0];
             addRecruit(neededRole, theme, mood);
@@ -5017,6 +5389,7 @@ function markRivalPromoActivity(labelName, promoAt, creatorIds = []) {
     const rival = getRivalByName(labelName);
     if (!rival || !Array.isArray(rival.creators) || !rival.creators.length)
         return;
+    rival.promoRuns = Math.max(0, (rival.promoRuns || 0) + 1);
     const ids = Array.isArray(creatorIds) && creatorIds.length
         ? creatorIds
         : [pickOne(rival.creators).id];
@@ -5590,6 +5963,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     const act = getAct(track.actId);
     const resolvedEra = era || (track.eraId ? getEraById(track.eraId) : null);
     const projectName = track.projectName || `${track.title} - Single`;
+    const projectType = normalizeProjectType(track.projectType || "Single");
     const creatorCountries = resolveCreatorCountriesFromTrack(track);
     const actCountry = resolveActCountryFromMembers(track.actId);
     const originCountry = actCountry || dominantValue(creatorCountries, null) || state.label.country || "Annglora";
@@ -5603,6 +5977,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
         eraId: track.eraId || null,
         eraName: resolvedEra ? resolvedEra.name : null,
         projectName,
+        projectType,
         isPlayer: true,
         theme: track.theme,
         mood: track.mood,
@@ -5613,6 +5988,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
         quality: track.quality,
         genre: track.genre,
         distribution: track.distribution,
+        trendAtRelease: track.trendAtRelease,
         releasedAt: track.releasedAt,
         weeksOnChart: 0,
         promoWeeks: preReleaseWeeks,
@@ -7518,9 +7894,18 @@ function archiveMarketTracks(entries) {
         label: entry.label || "",
         actId: entry.actId || null,
         actName: entry.actName || "",
+        projectName: entry.projectName || "",
+        projectType: normalizeProjectType(entry.projectType || "Single"),
         releasedAt: entry.releasedAt || now,
         archivedAt: now,
+        theme: entry.theme || "",
+        mood: entry.mood || "",
+        alignment: entry.alignment || "",
+        quality: Number.isFinite(entry.quality) ? entry.quality : 0,
         genre: entry.genre || "",
+        distribution: entry.distribution || "Digital",
+        trendAtRelease: Boolean(entry.trendAtRelease),
+        isPlayer: Boolean(entry.isPlayer),
         country: entry.country || "",
         actCountry: entry.actCountry || null,
         creatorCountries: Array.isArray(entry.creatorCountries) ? entry.creatorCountries.slice() : [],
@@ -8159,6 +8544,41 @@ function updateEconomy(globalScores) {
         order: 2
     });
 }
+function updateRivalEconomy(globalScores) {
+    if (!Array.isArray(state.rivals))
+        return;
+    const scores = Array.isArray(globalScores) ? globalScores : [];
+    const revenueRate = Number.isFinite(ECONOMY_TUNING?.revenuePerChartPoint)
+        ? ECONOMY_TUNING.revenuePerChartPoint
+        : 22;
+    const upkeepPerCreator = Number.isFinite(ECONOMY_TUNING?.upkeepPerCreator)
+        ? ECONOMY_TUNING.upkeepPerCreator
+        : 150;
+    const upkeepPerStudio = Number.isFinite(ECONOMY_TUNING?.upkeepPerOwnedStudio)
+        ? ECONOMY_TUNING.upkeepPerOwnedStudio
+        : 600;
+    const week = weekIndex() + 1;
+    state.rivals.forEach((rival) => {
+        ensureRivalAchievementState(rival);
+        const labelScores = scores.filter((entry) => resolveChartEntryLabel(entry) === rival.name);
+        let revenue = 0;
+        labelScores.forEach((entry) => {
+            revenue += Math.max(0, entry.score) * revenueRate;
+        });
+        revenue = Math.round(revenue * RIVAL_REVENUE_MULT);
+        const ownedSlots = clamp(Math.round(rival.studio?.slots || STARTING_STUDIO_SLOTS), 0, STUDIO_CAP_PER_LABEL);
+        const upkeepBase = (rival.creators?.length || 0) * upkeepPerCreator + ownedSlots * upkeepPerStudio;
+        const upkeep = Math.round(upkeepBase * RIVAL_UPKEEP_MULT);
+        rival.cash = Math.round((rival.cash ?? STARTING_CASH) + revenue - upkeep);
+        if (!rival.wallet)
+            rival.wallet = { cash: rival.cash };
+        rival.wallet.cash = rival.cash;
+        const leaseFees = Math.max(0, Math.round(rival.economy.lastLeaseFees || 0));
+        rival.economy.lastRevenue = revenue;
+        rival.economy.lastUpkeep = upkeep + leaseFees;
+        rival.economy.lastWeek = week;
+    });
+}
 function updateLabelReach() {
     const chartEntries = (state.charts.global || []).filter((entry) => entry.track.isPlayer);
     const points = chartEntries.reduce((sum, entry) => sum + Math.max(1, CHART_SIZES.global + 1 - entry.rank), 0);
@@ -8246,6 +8666,10 @@ function applyRivalStudioLeaseCosts() {
         return;
     const cap = STUDIO_CAP_PER_LABEL;
     state.rivals.forEach((rival) => {
+        if (!rival.economy || typeof rival.economy !== "object") {
+            rival.economy = { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, lastLeaseFees: 0 };
+        }
+        rival.economy.lastLeaseFees = 0;
         const ownedSlots = clamp(Math.round(rival.studio?.slots || STARTING_STUDIO_SLOTS), 0, cap);
         const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.35;
         const used = clamp(Math.round(cap * momentum), 0, cap);
@@ -8259,7 +8683,9 @@ function applyRivalStudioLeaseCosts() {
         const affordableLeased = Math.min(leased, Math.max(0, maxLeased));
         if (!affordableLeased)
             return;
-        rival.cash = Math.round(cash - affordableLeased * costPerSlotWeek);
+        const leaseFees = Math.round(affordableLeased * costPerSlotWeek);
+        rival.economy.lastLeaseFees = leaseFees;
+        rival.cash = Math.round(cash - leaseFees);
         if (!rival.wallet)
             rival.wallet = { cash: rival.cash };
         rival.wallet.cash = rival.cash;
@@ -8964,6 +9390,7 @@ function safeSeededPick(list, rng, fallbackList = []) {
 function pickRivalThemeMood(rival, husk, rng) {
     const focusThemes = Array.isArray(rival.focusThemes) && rival.focusThemes.length ? rival.focusThemes : THEMES;
     const focusMoods = Array.isArray(rival.focusMoods) && rival.focusMoods.length ? rival.focusMoods : MOODS;
+    const focusTrendBias = ["REQ-01", "REQ-02", "REQ-03", "REQ-07"].includes(rival?.achievementFocus);
     let theme = safeSeededPick(focusThemes, rng, THEMES);
     let mood = safeSeededPick(focusMoods, rng, MOODS);
     const trendList = Array.isArray(state.trends) ? state.trends : [];
@@ -8976,7 +9403,8 @@ function pickRivalThemeMood(rival, husk, rng) {
             const trendGenre = seededPick(trendPool, rng);
             const trendTheme = themeFromGenre(trendGenre);
             const trendMood = moodFromGenre(trendGenre);
-            if (trendTheme && trendMood && (rivalHasTrendCoverage(rival, trendTheme, trendMood) || rng() < 0.45)) {
+            const wantsTrend = focusTrendBias && rng() < 0.75;
+            if (trendTheme && trendMood && (wantsTrend || rivalHasTrendCoverage(rival, trendTheme, trendMood) || rng() < 0.45)) {
                 theme = trendTheme;
                 mood = trendMood;
             }
@@ -9003,13 +9431,17 @@ function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek }) 
     const rng = makeSeededRng(seed);
     const { theme, mood } = pickRivalThemeMood(rival, husk, rng);
     const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.5;
+    const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
     const outcomeBoost = Math.round((normalizeHuskContext(husk).outcomeScore - 50) / 10);
-    let quality = clampQuality(seededRand(55, 92, rng) + Math.round(momentum * 8) + outcomeBoost);
+    const ambitionBoost = Math.round(ambition * RIVAL_AMBITION_QUALITY_BOOST);
+    const focusBoost = rival.achievementFocus === "REQ-04" ? 4 : 0;
+    let quality = clampQuality(seededRand(55, 92, rng) + Math.round(momentum * 8) + outcomeBoost + ambitionBoost + focusBoost);
     if (mood === "Boring")
         quality = clampQuality(quality - 12);
     const genre = makeGenre(theme, mood);
     const releasePlan = recommendReleasePlan({ genre, quality });
     const crew = pickRivalReleaseCrew(rival, theme, mood);
+    const projectType = normalizeProjectType("Single");
     return {
         id: uid("RR"),
         queueType: "release",
@@ -9021,6 +9453,7 @@ function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek }) 
         label: rival.name,
         actName: makeRivalActNameSeeded(rng),
         projectName: makeProjectTitleSeeded(rng),
+        projectType,
         theme,
         mood,
         alignment: rival.alignment,
@@ -9109,17 +9542,64 @@ function canScheduleRivalPromoStep(rival, promoType, promoAt, promoBudgetSlots, 
     const scheduled = countScheduledPromoEventsForFacility(facilityId, promoAt);
     return scheduled < capacity;
 }
+function buildRivalReleaseBudget(rival) {
+    const walletCash = rival?.wallet?.cash ?? rival?.cash ?? 0;
+    const pct = rivalCreateBudgetPct(rival);
+    const minCash = rivalCreateMinCash();
+    const budgetCap = computeAutoCreateBudget(walletCash, pct, minCash);
+    return {
+        budgetCap,
+        spent: 0,
+        minCash,
+        pct,
+        blockedReason: ""
+    };
+}
+function spendRivalReleaseBudget(rival, budget, dropCost) {
+    if (!budget)
+        return { ok: true };
+    const cost = Number.isFinite(dropCost) ? Math.max(0, dropCost) : 0;
+    if (!cost)
+        return { ok: false, reason: "drop cost is 0." };
+    const budgetLeft = budget.budgetCap - budget.spent;
+    if (cost > budgetLeft) {
+        return { ok: false, reason: `budget cap ${formatMoney(budgetLeft)} below drop cost ${formatMoney(cost)}.` };
+    }
+    if (rival.cash - cost < budget.minCash) {
+        return { ok: false, reason: `cash reserve ${formatMoney(budget.minCash)} blocks drop cost ${formatMoney(cost)}.` };
+    }
+    rival.cash = Math.round(rival.cash - cost);
+    if (!rival.wallet)
+        rival.wallet = { cash: rival.cash };
+    rival.wallet.cash = rival.cash;
+    budget.spent += cost;
+    return { ok: true };
+}
+function rivalReleaseCrewCapacity(rival) {
+    if (!rival || !Array.isArray(rival.creators) || !rival.creators.length)
+        return 0;
+    const counts = MARKET_ROLES.map((role) => rival.creators.filter((creator) => creator.role === role).length);
+    const minCount = counts.length ? Math.min(...counts) : 0;
+    if (!Number.isFinite(minCount) || minCount <= 0)
+        return 0;
+    const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
+    const multiplier = 1 + Math.max(0, ambition - RIVAL_AMBITION_FLOOR) * 0.4;
+    return Math.max(1, Math.floor(minCount * multiplier));
+}
 function scheduleHuskForRival(rival, husk, options = {}) {
     if (!husk)
-        return;
+        return null;
     const steps = normalizeHuskCadence(husk.cadence);
     if (!steps.length)
-        return;
+        return null;
     const now = state.time.epochMs;
     const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
     const promoBudget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
     const promoBudgetSlots = promoBudget ? Math.floor(walletCash / promoBudget) : 0;
     let promoScheduled = 0;
+    const budget = options.budget || null;
+    const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
+    const stats = { releases: 0, promos: 0, blockedReason: "" };
     const planWeek = Number.isFinite(options.planWeek) ? options.planWeek : weekIndex();
     const baseWeekIndex = Number.isFinite(options.startWeekIndex)
         ? options.startWeekIndex
@@ -9138,6 +9618,14 @@ function scheduleHuskForRival(rival, husk, options = {}) {
             const releaseAt = rolloutReleaseTimestampForWeek(targetWeekIndex + 1);
             if (releaseAt <= now)
                 return;
+            const spendResult = spendRivalReleaseBudget(rival, budget, releaseCost);
+            if (!spendResult.ok) {
+                if (!stats.blockedReason)
+                    stats.blockedReason = spendResult.reason || "release budget blocked.";
+                if (budget && !budget.blockedReason)
+                    budget.blockedReason = stats.blockedReason;
+                return;
+            }
             state.rivalReleaseQueue.push(planRivalReleaseEntry({
                 rival,
                 husk,
@@ -9145,6 +9633,7 @@ function scheduleHuskForRival(rival, husk, options = {}) {
                 stepIndex: index,
                 planWeek
             }));
+            stats.releases += 1;
             return;
         }
         if (!allowPromo || !promoBudget)
@@ -9168,7 +9657,148 @@ function scheduleHuskForRival(rival, husk, options = {}) {
             promoType: step.promoType || HUSK_PROMO_DEFAULT_TYPE
         }));
         promoScheduled += 1;
+        stats.promos += 1;
     });
+    return stats;
+}
+function shouldRivalPursueMonopoly(rival, isAnchor) {
+    if (!rival)
+        return false;
+    if (!rival.aiPlan?.competitive && !isAnchor)
+        return false;
+    const focus = rival.achievementFocus;
+    if (["REQ-01", "REQ-02", "REQ-03"].includes(focus))
+        return true;
+    const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
+    if (isAnchor && ambition >= 0.5)
+        return true;
+    return ambition >= 0.75;
+}
+function chartEntriesForScope(scopeType, scopeKey) {
+    if (!state.charts)
+        return [];
+    if (scopeType === "global")
+        return state.charts.global || [];
+    if (scopeType === "nation")
+        return state.charts.nations?.[scopeKey] || [];
+    if (scopeType === "region")
+        return state.charts.regions?.[scopeKey] || [];
+    return [];
+}
+function countLabelEntries(entries, labelName) {
+    if (!labelName || !Array.isArray(entries))
+        return 0;
+    return entries.filter((entry) => resolveChartEntryLabel(entry) === labelName).length;
+}
+function countRivalQueuedReleases(labelName, targetWeekIndex) {
+    if (!labelName || !Number.isFinite(targetWeekIndex))
+        return 0;
+    return state.rivalReleaseQueue.filter((entry) => {
+        if (!entry || entry.label !== labelName)
+            return false;
+        const kind = entry.queueType || "release";
+        if (kind !== "release")
+            return false;
+        if (!Number.isFinite(entry.releaseAt))
+            return false;
+        return weekIndexForEpochMs(entry.releaseAt) === targetWeekIndex;
+    }).length;
+}
+function pickRivalDominanceRegion(rival) {
+    const nation = NATIONS.includes(rival?.country) ? rival.country : NATIONS[0];
+    const regions = REGION_DEFS.filter((region) => region.nation === nation);
+    if (!regions.length)
+        return null;
+    if (rival?.aiPlan?.dominanceScopeType === "region") {
+        const existing = regions.find((region) => region.id === rival.aiPlan.dominanceScopeKey);
+        if (existing)
+            return existing;
+    }
+    const scored = regions.map((region) => {
+        const entries = state.charts.regions?.[region.id] || [];
+        return { region, count: countLabelEntries(entries, rival.name) };
+    });
+    scored.sort((a, b) => b.count - a.count);
+    return scored[0]?.region || null;
+}
+function selectRivalDominanceTarget(rival) {
+    if (!rival)
+        return null;
+    const focus = rival.achievementFocus;
+    if (focus === "REQ-01") {
+        return { scopeType: "global", scopeKey: "global", size: CHART_SIZES.global };
+    }
+    if (focus === "REQ-02") {
+        const nation = NATIONS.includes(rival.country) ? rival.country : NATIONS[0];
+        return { scopeType: "nation", scopeKey: nation, size: CHART_SIZES.nation };
+    }
+    if (focus === "REQ-03") {
+        const region = pickRivalDominanceRegion(rival);
+        if (region)
+            return { scopeType: "region", scopeKey: region.id, size: CHART_SIZES.region };
+    }
+    const region = pickRivalDominanceRegion(rival);
+    if (region)
+        return { scopeType: "region", scopeKey: region.id, size: CHART_SIZES.region };
+    const nation = NATIONS.includes(rival.country) ? rival.country : NATIONS[0];
+    return { scopeType: "nation", scopeKey: nation, size: CHART_SIZES.nation };
+}
+function scheduleRivalDominancePush(rival, husk, options = {}) {
+    if (!rival || !husk)
+        return { releases: 0, target: null, reason: "no rival/husk." };
+    const target = options.target || selectRivalDominanceTarget(rival);
+    if (!target)
+        return { releases: 0, target: null, reason: "no target scope." };
+    const budget = options.budget || null;
+    if (!budget || budget.budgetCap <= 0) {
+        return { releases: 0, target, reason: "release budget is 0." };
+    }
+    const targetWeekIndex = Number.isFinite(options.targetWeekIndex)
+        ? options.targetWeekIndex
+        : getRivalPlanStartWeekIndex(state.time.epochMs);
+    const chartCount = countLabelEntries(chartEntriesForScope(target.scopeType, target.scopeKey), rival.name);
+    const queuedCount = countRivalQueuedReleases(rival.name, targetWeekIndex);
+    const needed = Math.max(0, target.size - chartCount - queuedCount);
+    if (!needed)
+        return { releases: 0, target, reason: "chart coverage met." };
+    const crewCap = rivalReleaseCrewCapacity(rival);
+    if (!crewCap)
+        return { releases: 0, target, reason: "no release crew capacity." };
+    const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
+    const budgetLeft = budget.budgetCap - budget.spent;
+    const maxByBudget = releaseCost > 0 ? Math.floor(budgetLeft / releaseCost) : 0;
+    const maxDrops = Math.min(needed, crewCap, maxByBudget);
+    if (!maxDrops)
+        return { releases: 0, target, reason: "release budget blocked." };
+    const planWeek = Number.isFinite(options.planWeek) ? options.planWeek : weekIndex();
+    const stepBase = Number.isFinite(options.stepOffset) ? options.stepOffset : 0;
+    const releaseAt = rolloutReleaseTimestampForWeek(targetWeekIndex + 1);
+    if (releaseAt <= state.time.epochMs) {
+        return { releases: 0, target, reason: "release window already passed." };
+    }
+    let added = 0;
+    let blockedReason = "";
+    for (let i = 0; i < maxDrops; i += 1) {
+        const spendResult = spendRivalReleaseBudget(rival, budget, releaseCost);
+        if (!spendResult.ok) {
+            blockedReason = spendResult.reason || "release budget blocked.";
+            break;
+        }
+        state.rivalReleaseQueue.push(planRivalReleaseEntry({
+            rival,
+            husk,
+            releaseAt,
+            stepIndex: stepBase + i,
+            planWeek
+        }));
+        added += 1;
+    }
+    if (added && rival.aiPlan) {
+        rival.aiPlan.dominanceScopeType = target.scopeType;
+        rival.aiPlan.dominanceScopeKey = target.scopeKey;
+        rival.aiPlan.dominanceWeekIndex = targetWeekIndex;
+    }
+    return { releases: added, target, reason: blockedReason };
 }
 function generateRivalReleases() {
     if (!Array.isArray(state.rivals) || !state.rivals.length)
@@ -9189,6 +9819,10 @@ function generateRivalReleases() {
                 huskSource: null,
                 windowStartWeekIndex: null,
                 windowEndWeekIndex: null,
+                lastCompletedWindow: null,
+                dominanceScopeType: null,
+                dominanceScopeKey: null,
+                dominanceWeekIndex: null,
                 competitive: false
             };
         }
@@ -9240,12 +9874,46 @@ function generateRivalReleases() {
         rival.aiPlan.lastPlannedWeek = currentWeek;
         rival.aiPlan.lastHuskId = husk.id;
         rival.aiPlan.lastPlannedAt = state.time.epochMs;
-        scheduleHuskForRival(rival, husk, {
-            planWeek: Number.isFinite(planWeekIndex) ? planWeekIndex : currentWeek,
-            startWeekIndex: planWeekIndex,
+        const budget = buildRivalReleaseBudget(rival);
+        const planWeek = Number.isFinite(planWeekIndex) ? planWeekIndex : currentWeek;
+        const startWeekIndex = Number.isFinite(planWeekIndex)
+            ? planWeekIndex
+            : getRivalPlanStartWeekIndex(state.time.epochMs);
+        const scheduleStats = scheduleHuskForRival(rival, husk, {
+            planWeek,
+            startWeekIndex,
             endWeekIndex: planEndWeekIndex,
-            allowPromo: force || eligible
+            allowPromo: force || eligible,
+            budget,
+            releaseCost: RIVAL_COMPETE_DROP_COST
         });
+        if (scheduleStats?.blockedReason && !scheduleStats.releases && (force || rival.aiPlan.competitive)) {
+            logEvent(`${rival.name} release plan paused: ${scheduleStats.blockedReason}`, "warn");
+        }
+        if (shouldRivalPursueMonopoly(rival, force)) {
+            const priorWeek = rival.aiPlan.dominanceWeekIndex;
+            const priorScope = rival.aiPlan.dominanceScopeKey;
+            const priorType = rival.aiPlan.dominanceScopeType;
+            const dominanceStats = scheduleRivalDominancePush(rival, husk, {
+                planWeek,
+                targetWeekIndex: startWeekIndex,
+                budget,
+                releaseCost: RIVAL_COMPETE_DROP_COST,
+                stepOffset: scheduleStats?.releases || 0
+            });
+            if (dominanceStats?.releases) {
+                const scopeKey = dominanceStats.target?.scopeType === "global"
+                    ? "global"
+                    : dominanceStats.target?.scopeKey;
+                const scopeLabel = scopeKey ? chartScopeLabel(scopeKey) : "chart";
+                const scopeChanged = priorWeek !== rival.aiPlan.dominanceWeekIndex
+                    || priorScope !== rival.aiPlan.dominanceScopeKey
+                    || priorType !== rival.aiPlan.dominanceScopeType;
+                if (scopeChanged) {
+                    logEvent(`${rival.name} queued ${dominanceStats.releases} dominance drops for the ${scopeLabel} chart.`);
+                }
+            }
+        }
     });
 }
 function collectRivalProjectMarkets(rival, anchorMarket) {
@@ -9332,6 +10000,8 @@ function processRivalReleaseQueue() {
             if (!creatorCountries.length && entry.country)
                 creatorCountries.push(entry.country);
             const actCountry = entry.country || dominantValue(creatorCountries, null);
+            const trendAtRelease = Array.isArray(state.trends) && entry.genre ? state.trends.includes(entry.genre) : false;
+            const projectType = normalizeProjectType(entry.projectType || "Single");
             state.marketTracks.push({
                 id: uid("MK"),
                 trackId: null,
@@ -9340,6 +10010,7 @@ function processRivalReleaseQueue() {
                 actId: null,
                 actName: entry.actName,
                 projectName: entry.projectName,
+                projectType,
                 isPlayer: false,
                 theme: entry.theme,
                 mood: entry.mood,
@@ -9350,6 +10021,7 @@ function processRivalReleaseQueue() {
                 quality: entry.quality,
                 genre: entry.genre,
                 distribution: entry.distribution || "Digital",
+                trendAtRelease,
                 releasedAt: entry.releaseAt,
                 weeksOnChart: 0,
                 promoWeeks: 0
@@ -9948,6 +10620,8 @@ function weeklyUpdate() {
     processCreatorInactivity();
     updateCreatorSkillDecay();
     processRivalCreatorInactivity();
+    refreshRivalAmbition();
+    ensureRivalCashFloor();
     recruitRivalCreators();
     generateRivalReleases();
     const { globalScores } = computeChartsLocal();
@@ -9957,6 +10631,7 @@ function weeklyUpdate() {
     updateCumulativeLabelPoints(labelScores);
     updateRivalMomentum(labelScores, labelCompetition);
     applyRivalStudioLeaseCosts();
+    updateRivalEconomy(globalScores);
     recordTrendLedgerSnapshot(globalScores);
     updateEconomy(globalScores);
     awardExp(Math.min(300, Math.round(state.economy.lastRevenue / 500)), null, true);
@@ -9965,11 +10640,14 @@ function weeklyUpdate() {
     refreshQuestPool();
     advanceEraWeek();
     ageMarketTracks();
+    state.rivals.forEach((rival) => updateRivalPlanCompletion(rival));
     runAutoCreateContent();
     maybeRunAutoPromo();
     processCreatorDepartures();
     applyBailoutIfNeeded();
     evaluateAchievements();
+    evaluateRivalAchievements();
+    refreshRivalAmbition();
     checkWinLoss(labelScores);
     uiHooks.renderAll?.();
     logDuration("weeklyUpdate", startTime, WEEKLY_UPDATE_WARN_MS, `(week ${week})`);
@@ -10346,6 +11024,8 @@ function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null
         const projectSize = seededRand(limits.min, maxSize, rngFn);
         const projectName = makeProjectTitleSeeded(rngFn);
         const actName = makeRivalActNameSeeded(rngFn);
+        const genre = makeGenre(theme, mood);
+        const trendAtRelease = Array.isArray(state.trends) ? state.trends.includes(genre) : false;
         for (let i = 0; i < projectSize && remaining > 0; i += 1) {
             let quality = clampQuality(seededRand(55, 95, rngFn) + Math.round(momentum * 6));
             if (mood === "Boring")
@@ -10367,7 +11047,9 @@ function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null
                 actCountry: rival.country,
                 creatorCountries: [rival.country],
                 quality,
-                genre: makeGenre(theme, mood),
+                genre,
+                distribution: "Digital",
+                trendAtRelease,
                 weeksOnChart: seededRand(0, 8, rngFn),
                 promoWeeks: seededRand(0, 4, rngFn)
             });
@@ -10451,6 +11133,8 @@ function seedNewGame(options = {}) {
     state.trendRanking = state.trends.slice();
     state.trendAlignmentScores = {};
     state.trendLedger = { weeks: [] };
+    refreshRivalAmbition();
+    ensureRivalCashFloor();
     recruitRivalCreators();
     state.quests = buildQuests();
     state.quests.forEach((quest) => postQuestEmail(quest));
@@ -10485,6 +11169,10 @@ async function loadSlot(index, forceNew = false, options = {}) {
         uiHooks.refreshSelectOptions?.();
         const chartResult = await computeCharts();
         maybeSeedTrendLedger(chartResult?.globalScores);
+        const labelScores = computeLabelScoresFromCharts();
+        refreshLabelCompetition(labelScores);
+        evaluateRivalAchievements();
+        refreshRivalAmbition();
         uiHooks.renderAll?.();
         if (!data && typeof window !== "undefined" && typeof window.resetViewLayout === "function") {
             window.resetViewLayout();
@@ -10904,6 +11592,32 @@ function normalizeState() {
             rival.wallet = { cash: rival.cash };
         if (!rival.studio)
             rival.studio = { slots: STARTING_STUDIO_SLOTS };
+        if (!Array.isArray(rival.achievementsUnlocked))
+            rival.achievementsUnlocked = [];
+        if (typeof rival.achievements !== "number")
+            rival.achievements = rival.achievementsUnlocked.length;
+        rival.achievements = Math.max(rival.achievements, rival.achievementsUnlocked.length);
+        if (typeof rival.achievementsLocked !== "boolean")
+            rival.achievementsLocked = false;
+        if (typeof rival.achievementFocus !== "string")
+            rival.achievementFocus = null;
+        if (typeof rival.promoRuns !== "number")
+            rival.promoRuns = 0;
+        if (typeof rival.eraCompletions !== "number")
+            rival.eraCompletions = 0;
+        if (typeof rival.ambition !== "number")
+            rival.ambition = RIVAL_AMBITION_FLOOR;
+        if (!rival.economy || typeof rival.economy !== "object") {
+            rival.economy = { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, lastLeaseFees: 0 };
+        }
+        if (typeof rival.economy.lastRevenue !== "number")
+            rival.economy.lastRevenue = 0;
+        if (typeof rival.economy.lastUpkeep !== "number")
+            rival.economy.lastUpkeep = 0;
+        if (typeof rival.economy.lastWeek !== "number")
+            rival.economy.lastWeek = 0;
+        if (typeof rival.economy.lastLeaseFees !== "number")
+            rival.economy.lastLeaseFees = 0;
         if (!rival.aiPlan || typeof rival.aiPlan !== "object") {
             rival.aiPlan = {
                 lastPlannedWeek: null,
@@ -10913,6 +11627,10 @@ function normalizeState() {
                 huskSource: null,
                 windowStartWeekIndex: null,
                 windowEndWeekIndex: null,
+                lastCompletedWindow: null,
+                dominanceScopeType: null,
+                dominanceScopeKey: null,
+                dominanceWeekIndex: null,
                 competitive: false
             };
         }
@@ -10930,6 +11648,14 @@ function normalizeState() {
             rival.aiPlan.windowStartWeekIndex = null;
         if (typeof rival.aiPlan.windowEndWeekIndex !== "number")
             rival.aiPlan.windowEndWeekIndex = null;
+        if (typeof rival.aiPlan.lastCompletedWindow !== "number")
+            rival.aiPlan.lastCompletedWindow = null;
+        if (typeof rival.aiPlan.dominanceScopeType !== "string")
+            rival.aiPlan.dominanceScopeType = null;
+        if (typeof rival.aiPlan.dominanceScopeKey !== "string")
+            rival.aiPlan.dominanceScopeKey = null;
+        if (typeof rival.aiPlan.dominanceWeekIndex !== "number")
+            rival.aiPlan.dominanceWeekIndex = null;
         if (typeof rival.aiPlan.competitive !== "boolean")
             rival.aiPlan.competitive = false;
     });
@@ -11371,6 +12097,8 @@ function normalizeState() {
             next.promoType = AUTO_PROMO_RIVAL_TYPE;
         if (typeof next.releaseAt !== "number")
             next.releaseAt = state.time?.epochMs || Date.now();
+        if (queueType === "release")
+            next.projectType = normalizeProjectType(next.projectType || "Single");
         return next;
     });
     if (!state.population)
@@ -11485,10 +12213,13 @@ function normalizeState() {
         state.marketTracks.forEach((entry) => {
             if (!entry.distribution)
                 entry.distribution = "Digital";
+            entry.projectType = normalizeProjectType(entry.projectType || "Single");
             if (typeof entry.releasedAt !== "number")
                 entry.releasedAt = state.time?.epochMs || Date.now();
             if (typeof entry.isPlayer !== "boolean")
                 entry.isPlayer = false;
+            if (typeof entry.trendAtRelease !== "boolean")
+                entry.trendAtRelease = false;
             if (!entry.promoTypesUsed || typeof entry.promoTypesUsed !== "object")
                 entry.promoTypesUsed = {};
             if (!entry.promoTypesLastAt || typeof entry.promoTypesLastAt !== "object")
@@ -11529,6 +12260,26 @@ function normalizeState() {
             else if (!entry.country && originMeta.actCountry) {
                 entry.country = originMeta.actCountry;
             }
+        });
+    }
+    if (state.meta?.marketTrackArchive?.length) {
+        state.meta.marketTrackArchive = state.meta.marketTrackArchive.filter(Boolean).map((entry) => {
+            if (!entry.distribution)
+                entry.distribution = "Digital";
+            entry.projectType = normalizeProjectType(entry.projectType || "Single");
+            if (typeof entry.trendAtRelease !== "boolean")
+                entry.trendAtRelease = false;
+            if (typeof entry.isPlayer !== "boolean")
+                entry.isPlayer = false;
+            if (!Number.isFinite(entry.quality))
+                entry.quality = 0;
+            if (!Number.isFinite(entry.releasedAt))
+                entry.releasedAt = state.time?.epochMs || Date.now();
+            if (!entry.projectName && entry.title)
+                entry.projectName = `${entry.title} - Single`;
+            if (!Array.isArray(entry.creatorCountries))
+                entry.creatorCountries = [];
+            return entry;
         });
     }
     if (!Array.isArray(state.releaseQueue))

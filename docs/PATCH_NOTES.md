@@ -1,5 +1,15 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-2019Z)
+- Rival rollout scheduling now applies a wallet-percent release budget and cash reserve before queuing drops.
+- Competitive rivals can queue additional dominance drops toward target chart scopes when budget + roster capacity allow.
+- Rival dominance pushes now surface a log entry when a chart push is queued.
+
+## 2025-12-26 (RLS-PATCH-20251226-2003Z)
+- Dashboard now includes CEO Requests progress plus a rival race panel showing each label's unlocked count and focus request.
+- Rival labels track CEO Requests, update ambition/cash floors, and boost roster growth + release quality to stay competitive through year 3000.
+- Market track archives now store project types and trend-at-release flags for long-horizon achievement tracking.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1859Z)
 - Reduced redundant auto-save writes after full UI refreshes to keep interactions smoother.
 - Bailout acceptance now avoids a duplicate stats render during the full UI refresh.

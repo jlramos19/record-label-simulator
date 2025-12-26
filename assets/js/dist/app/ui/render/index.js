@@ -2781,6 +2781,8 @@ function renderCalendarStructuresPanel() {
             }).join("");
         }
     }
+    renderAchievements();
+    renderRivalAchievementRace();
 }
 function renderCalendarList(targetId, weeks, projectionOverride) {
     const target = $(targetId);
@@ -2936,9 +2938,9 @@ function renderCreators() {
                 <div class="muted">Acts: ${actText}</div>
                 <div class="time-row">${nationalityPill}</div>
                 <div class="muted">Preferred Themes:</div>
-              <div class="time-row">${themeCells}</div>
-              <div class="muted">Preferred Moods:</div>
-              <div class="time-row">${moodCells}</div>
+                <div class="creator-pref-tags">${themeCells}</div>
+                <div class="muted">Preferred Moods:</div>
+                <div class="creator-pref-tags">${moodCells}</div>
             </div>
           </div>
           <div class="pill">${busy ? "Busy" : "Ready"}</div>
@@ -3087,9 +3089,9 @@ function renderMarket() {
                 <div class="muted">${renderCreatorSkillProgress(creator)}</div>
                 <div class="time-row">${nationalityPill}</div>
                 <div class="muted">Preferred Themes:</div>
-                <div class="time-row">${themeCells}</div>
+                <div class="creator-pref-tags">${themeCells}</div>
                 <div class="muted">Preferred Moods:</div>
-                <div class="time-row">${moodCells}</div>
+                <div class="creator-pref-tags">${moodCells}</div>
               </div>
             </div>
             <div>
@@ -4848,6 +4850,40 @@ function renderAchievements() {
         const noteText = notes.join(" ");
         summaryEl.textContent = `CEO Requests ${count} / ${ACHIEVEMENT_TARGET}${noteText ? ` | ${noteText}` : ""}`;
     }
+}
+function renderRivalAchievementRace() {
+    const listEl = $("rivalAchievementList");
+    if (!listEl)
+        return;
+    const rivals = Array.isArray(state.rivals) ? state.rivals.slice() : [];
+    if (!rivals.length) {
+        listEl.innerHTML = `<div class="muted">No rival labels yet.</div>`;
+        return;
+    }
+    const labelMap = new Map(ACHIEVEMENTS.map((entry) => [entry.id, entry.label]));
+    const sorted = rivals
+        .map((rival) => {
+        const unlocked = Array.isArray(rival.achievementsUnlocked) ? rival.achievementsUnlocked.length : 0;
+        const count = Math.max(unlocked, rival.achievements || 0);
+        return { rival, count };
+    })
+        .sort((a, b) => b.count - a.count || String(a.rival.name).localeCompare(String(b.rival.name)));
+    listEl.innerHTML = sorted.map(({ rival, count }) => {
+        const focusId = rival.achievementFocus;
+        const focusLabel = focusId ? labelMap.get(focusId) || "Unknown Request" : "None";
+        const focusText = focusId ? `${focusId} ${focusLabel}` : "No focus set";
+        return `
+      <div class="list-item rival-achievement-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${rival.name || "Rival Label"}</div>
+            <div class="muted">Focus ${focusText}</div>
+          </div>
+          <div class="badge">${count} / ${ACHIEVEMENT_TARGET}</div>
+        </div>
+      </div>
+    `;
+    }).join("");
 }
 function renderQuests() {
     renderAchievements();

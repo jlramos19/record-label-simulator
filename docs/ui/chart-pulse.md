@@ -12,9 +12,13 @@ Defines the Dashboard Chart Pulse panel as a live feed of projected Top 5 entrie
 - Promos: lists top promo moments scheduled inside each six-hour window.
 
 ## Scope controls
-- Scope tabs: Global, Nation, Region.
+- Scope tabs: Global, Nation, Region (labels render as `<Place> (Global|National|Regional)`).
 - Target selector updates based on scope type.
 - Global disables the target selector.
+
+## Naming
+- Global uses `Gaia` as the place label; national uses nation name; regional uses region label.
+- Chart handles for scope-aware posts follow `<Place>Charts`, defaulting to `GaiaCharts`.
 
 ## Cadence
 - Windows: Now, +6h, +12h, +18h, +24h, +30h.

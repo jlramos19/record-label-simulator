@@ -3,13 +3,13 @@
 - [ ] RLS-REFACTOR-MODULES-001: Split remaining large modules (`src/app/game.ts`, `src/app/ui.ts`, `src/app/ui/render/index.ts`) into feature-focused files; keep `src/app/game/config.ts` + `src/app/game/names/` as the pattern.
 - [ ] RLS-ERA-PERF-001: Replace the Eras side panel with a performance table + chart history, including per-track costs, earnings, and recommended physical runs.
 - [ ] RLS-ECONOMY-PHYSICAL-RUN-001: Define and implement the vinyl run estimator (fan/quality/trend/project-type factors, unit cost conversion) plus surfaced recommendations.
-- [ ] RLS-DOC-CHART-NAMING-001: Document chart scope naming (Gaia/Global, Nation/National, Region/Regional) and update chart/handle labels.
+- [x] RLS-DOC-CHART-NAMING-001: Document chart scope naming (Gaia/Global, Nation/National, Region/Regional) and update chart/handle labels. (Agent Codex, started 2025-12-26 16:13:48 -04:00, completed 2025-12-26 16:16:51 -04:00)
 - [ ] RLS-UI-CHARTS-SCOPE-001: Replace Charts scope tabs with nation -> region drilldown and keep content-type filters accessible in the Charts view.
 - [ ] RLS-CCC-DECLINE-001: Add decline reason logic + player-facing feedback for CCC signing, and update tutorial to split loops vs concepts.
 - [ ] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
 - [ ] RLS-AI-COMPETE-001: Guarantee at least one rival in competitive rollout mode per planning cycle, with deterministic selection and budget gates.
-- [ ] RLS-AI-ACHIEVEMENTS-001: Track CEO Requests for rival labels, surface the race on the Dashboard, and tune AI ambition to keep all 7 labels competitive through Year 3000.
-- [ ] RLS-PROMO-AUTO-001: Define auto promo wallet-percentage budgeting for player + rivals and document the rule.
+- [x] RLS-AI-ACHIEVEMENTS-001: Track CEO Requests for rival labels, surface the race on the Dashboard, and tune AI ambition to keep all 7 labels competitive through Year 3000. (Agent Codex, started 2025-12-26 16:14:27 -04:00, completed 2025-12-26 16:14:27 -04:00)
+- [x] RLS-PROMO-AUTO-001: Define auto promo wallet-percentage budgeting for player + rivals and document the rule. (Agent Codex, started 2025-12-26 16:19:17 -04:00, completed 2025-12-26 16:20:34 -04:00)
 - [x] RLS-AUTO-CREATE-001: Add auto-create rules (cash reserve + budget percent, weekly cadence, max tracks, solo/collab) with Create view controls and status disclosure.
 - [ ] RLS-ROLE-RECORDER-001: Replace Performer naming with Recorder across UI copy + docs, keeping role labels consistent in gameplay surfaces.
 - [ ] RLS-PROMO-ACT-001: Add Act promo targeting (act-only or act+content) with visible active act promo tracking.
@@ -41,7 +41,7 @@
 - [ ] RLS-TOUR-PROJECT-001: Add attendance + revenue projections as read-only (no wallet/chart impact yet).
 - [ ] RLS-TOUR-BALANCE-001: Add feature flag to keep touring effects disabled until tuning is approved.
 - [ ] RLS-TOUR-OBS-001: Surface warnings in Touring tab + Calendar for missing requirements or capacity mismatch.
-- [ ] RLS-TOUR-TEST-001: Add manual testing checklist for tour planning, booking, and conflict warnings.
+- [x] RLS-TOUR-TEST-001: Add manual testing checklist for tour planning, booking, and conflict warnings. (Agent Codex, started 2025-12-26 16:07:05 -04:00, completed 2025-12-26 16:07:51 -04:00)
 - [x] RLS-UI-COMMUNITY-RANKINGS-001: Split Community rankings toggles (Labels: Top 3/Top 8, Trends: Top 3/Top 40), with a full-list "More" action on #1.
 - [ ] Quarter-hour ticks: show stamina depletion + recharge every in-game hour across UI surfaces.
 - [ ] Producer overuse: add observability (why overused; when overuse strikes happen; when/why departure triggers).

@@ -5,6 +5,7 @@ Auto promo uses a percentage-based allocation of the label wallet cash to fund p
 ## Budget rule
 - Allocation is split across up to four auto promo slots (Slot 1-4); each slot has its own budget percent.
 - Total allocation across slots must be 100% or less.
+- If no slot percentages are set, auto promo falls back to the global auto promo percent (default 5%).
 - Budget per slot = wallet cash * slot percent (default 5% on Slot 1).
 - The slot budget applies per promo type; total spend scales with the number of selected promo types.
 - Auto promo only runs a slot when the computed budget meets the minimum promo spend ($100).
@@ -25,7 +26,7 @@ Auto promo uses a percentage-based allocation of the label wallet cash to fund p
 ## AI rules
 - Rival labels schedule promo events via the husk planner (primary path).
 - If no husk promo is scheduled for the upcoming week, rivals may fall back to auto promo on their most recent released track without active promo weeks.
-- AI promo budgets use a fixed wallet-percentage rule (independent of player settings).
+- AI promo budgets use a fixed wallet-percentage rule (default 5% of wallet cash) and ignore player auto promo settings.
 
 ## Related
 - `docs/systems/promo/broadcast-studios.md`

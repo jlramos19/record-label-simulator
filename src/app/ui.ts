@@ -704,7 +704,8 @@ const VIEW_DEFAULTS = {
     "dashboard-overview": VIEW_PANEL_STATES.open,
     "dashboard-pipeline": VIEW_PANEL_STATES.open,
     "dashboard-charts": VIEW_PANEL_STATES.open,
-    "dashboard-eras": VIEW_PANEL_STATES.open
+    "dashboard-eras": VIEW_PANEL_STATES.open,
+    "dashboard-achievements": VIEW_PANEL_STATES.open
   },
   charts: {
     "charts": VIEW_PANEL_STATES.open

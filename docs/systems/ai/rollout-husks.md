@@ -50,6 +50,16 @@ Rivals are eligible to compete when they can cover:
 - Operating cost estimates cap leased usage to preserve the planning reserve.
 The anchor rival is forced into participation even if it is below the budget gate (promo may be skipped when unaffordable).
 
+## Release Budget + Reserve
+- Rival release planning uses a wallet-percent budget with a minimum cash reserve (mirrors auto-create math).
+- Each scheduled release spends a fixed drop cost; scheduling stops when the budget cap or reserve is hit.
+- Release volume is capped by signed Creator IDs (per-role capacity) before budget is applied.
+
+## Chart Dominance Push
+- Competitive rivals (anchor first, then high-ambition labels) queue extra releases to chase chart monopolies.
+- Target scope follows their current focus (global/nation/region) and falls back to their home region when unspecified.
+- The push size uses chart size minus current label presence, then caps by budget + roster capacity.
+
 ## CEO Requests + Ambition
 - Rival labels track the same CEO Requests as the player and pursue them as internal record-breaking goals.
 - Weekly evaluation updates each rival's unlocked request list and emits a log entry on unlocks.

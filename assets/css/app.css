@@ -1003,6 +1003,13 @@ body::before {
   border: 1px solid var(--line);
   transition: transform 0.12s ease, border-color 0.12s ease;
 }
+.rival-achievement-item {
+  background: var(--surface-2);
+}
+.rival-achievement-item .badge {
+  min-width: 72px;
+  text-align: center;
+}
 .trend-item--top {
   border-color: rgba(var(--accent-rgb), 0.5);
   background: var(--surface-3-strong);
@@ -1913,6 +1920,16 @@ select.theme-select {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+}
+.creator-pref-tags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.creator-pref-tags .tag {
+  width: 100%;
+  justify-content: center;
 }
 .creator-avatar {
   height: 46px;
