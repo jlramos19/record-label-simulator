@@ -53,6 +53,7 @@ import {
   renderStudiosList,
   renderTime,
   renderTracks,
+  renderTutorialEconomy,
   renderWallet,
   updateActMemberFields,
   updateGenrePreview
@@ -74,6 +75,8 @@ const {
   makeProjectTitle,
   makeLabelName,
   getModifier,
+  purchaseModifier,
+  getProjectTrackLimits,
   staminaRequirement,
   getCreatorStaminaSpentToday,
   STAMINA_OVERUSE_LIMIT,
@@ -82,6 +85,7 @@ const {
   getAdjustedTotalStageHours,
   getStageCost,
   createTrack,
+  evaluateProjectTrackConstraints,
   startDemoStage,
   startMasterStage,
   advanceHours,
@@ -97,6 +101,8 @@ const {
   getFocusedEra,
   getRolloutPlanningEra,
   setFocusEraById,
+  setCheaterEconomyOverride,
+  setCheaterMode,
   startEraForAct,
   endEraById,
   createRolloutStrategyForEra,
@@ -115,9 +121,13 @@ const {
   getReleaseAsapHours,
   buildMarketCreators,
   normalizeCreator,
+  normalizeProjectName,
+  normalizeProjectType,
   postCreatorSigned,
   getSlotData,
   resetState,
+  computeAutoCreateBudget,
+  computeAutoPromoBudget,
   computeCharts,
   startGameLoop,
   setTimeSpeed,
@@ -125,10 +135,13 @@ const {
   formatCount,
   formatMoney,
   formatDate,
+  formatHourCountdown,
   formatWeekRangeLabel,
+  hoursUntilNextScheduledTime,
   moodFromGenre,
   themeFromGenre,
   TREND_DETAIL_COUNT,
+  WEEKLY_SCHEDULE,
   handleFromName,
   setSlotTarget,
   assignToSlot,
@@ -173,7 +186,7 @@ setUiHooks({
   refreshPromoTypes: () => updatePromoTypeHint(document)
 });
 
-const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
+const ROUTES = ["dashboard", "charts", "create", "release", "releases", "eras", "roster", "world", "logs", "tour"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
   promotion: "logs",
@@ -193,12 +206,16 @@ const CALENDAR_WHEEL_THRESHOLD = 120;
 const CALENDAR_WHEEL_RESET_MS = 320;
 const CALENDAR_DRAG_THRESHOLD = 80;
 const CALENDAR_VELOCITY_THRESHOLD = 0.55;
+const AUTO_SKIP_DAY_INTERVAL_MS = 12000;
 const AUTO_SKIP_WEEK_INTERVAL_MS = 7000;
 let calendarWheelAcc = 0;
 let calendarWheelAt = 0;
 let calendarDragState = null;
+let autoSkipDayTimer = null;
+let autoSkipDayInFlight = false;
 let autoSkipWeekTimer = null;
 let autoSkipWeekInFlight = false;
+let autoSkipPrevSpeed = null;
 
 const TRACK_ROLE_KEYS = {
   Songwriter: "songwriterIds",
@@ -509,16 +526,18 @@ const VIEW_DEFAULTS = {
   },
   charts: {
     "charts": VIEW_PANEL_STATES.open,
-    "release-desk": VIEW_PANEL_STATES.open,
     "label-rankings": VIEW_PANEL_STATES.open
   },
   create: {
     "create-track": VIEW_PANEL_STATES.open,
     "tracks": VIEW_PANEL_STATES.open
   },
+  release: {
+    "release-desk": VIEW_PANEL_STATES.open,
+    "release-projects": VIEW_PANEL_STATES.open
+  },
   releases: {
-    "calendar-view": VIEW_PANEL_STATES.open,
-    "release-desk": VIEW_PANEL_STATES.open
+    "calendar-view": VIEW_PANEL_STATES.open
   },
   eras: {
     "era-desk": VIEW_PANEL_STATES.open,
@@ -1126,8 +1145,9 @@ async function applyChartHistoryWeek(week, chartKey) {
 async function renderChartHistoryModal() {
   const list = $("chartHistoryList");
   const scopeLabel = chartScopeLabel(state.ui.activeChart || "global");
+  const contentLabel = state.ui.chartContentType === "projects" ? "Projects" : "Tracks";
   const scopeEl = $("chartHistoryScope");
-  if (scopeEl) scopeEl.textContent = `Scope: ${scopeLabel}`;
+  if (scopeEl) scopeEl.textContent = `Scope: ${scopeLabel} (${contentLabel})`;
   if (!list) return;
   const weeks = await listChartWeeks();
   const currentWeek = weekIndex() + 1;
@@ -1635,7 +1655,11 @@ function panelTitle(panel) {
 
 function isCorePanel(panel) {
   const title = panelTitle(panel);
-  return title === "Gameplay Screen: Charts" || title === "Create Track" || title === "Release Desk" || title === "Calendar";
+  return title === "Gameplay Screen: Charts"
+    || title === "Create Track"
+    || title === "Release Desk"
+    || title === "Release"
+    || title === "Calendar";
 }
 
 function applyDefaultLayout() {
@@ -1918,6 +1942,57 @@ function buildPromoFacilityHints(typeIds) {
   }).join(" | ");
 }
 
+function updateAutoPromoSummary(scope) {
+  const root = scope || document;
+  const summary = root.querySelector("#autoPromoSummary");
+  if (!summary) return;
+  const enabled = Boolean(state.meta?.autoRollout?.enabled);
+  const pctRaw = Number(state.meta?.autoRollout?.budgetPct ?? 0);
+  const pct = Number.isFinite(pctRaw) ? clamp(pctRaw, 0, 1) : 0;
+  const walletCash = state.label.wallet?.cash ?? state.label.cash ?? 0;
+  const budgetPerType = computeAutoPromoBudget(walletCash, pct);
+  const selectedTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
+    ? state.ui.promoTypes
+    : [state.ui?.promoType || DEFAULT_PROMO_TYPE];
+  const typeLabels = selectedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
+  const totalSpend = budgetPerType * selectedTypes.length;
+  const scheduleHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
+  const scheduleText = formatHourCountdown(scheduleHours);
+  const scheduleLabel = scheduleText === "-" ? "-" : `${scheduleText}h`;
+  const targetContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
+  const targetLabel = targetContext.track
+    ? `Track "${targetContext.track.title}"`
+    : targetContext.act
+      ? `Act "${targetContext.act.name}"`
+      : "No promo target";
+  let readiness = "Ready";
+  if (!enabled) readiness = "Disabled";
+  if (!targetContext.act) readiness = "Select an Act";
+  if (targetContext.track && !targetContext.isReleased && !targetContext.isScheduled) {
+    readiness = "Track must be scheduled or released";
+  }
+  if (targetContext.track?.eraId) {
+    const era = getEraById(targetContext.track.eraId);
+    if (!era || era.status !== "Active") readiness = "No active era";
+  }
+  const pctLabel = `${Math.round(pct * 100)}%`;
+  const facilityHint = buildPromoFacilityHints(selectedTypes);
+  const facilityLine = facilityHint ? `<div class="muted">${facilityHint}</div>` : "";
+  const budgetLine = budgetPerType
+    ? `${formatMoney(budgetPerType)} each (${formatMoney(totalSpend)} total)`
+    : `${formatMoney(0)} (auto promo will skip)`;
+  summary.innerHTML = `
+    <div class="list-item">
+      <div class="item-title">Auto Promo Plan</div>
+      <div class="muted">${enabled ? "Enabled" : "Disabled"} | Next check ${scheduleLabel} (chart update)</div>
+      <div class="muted">Target: ${targetLabel} | Status: ${readiness}</div>
+      <div class="muted">Types: ${typeLabels || "None"} | Budget ${pctLabel} = ${budgetLine}</div>
+      ${facilityLine}
+      <div class="muted">Steps: validate target, reserve facilities, apply promo weeks.</div>
+    </div>
+  `;
+}
+
 function updatePromoTypeHint(root) {
   const scope = root || document;
   const select = scope.querySelector("#promoTypeSelect");
@@ -1957,6 +2032,41 @@ function updatePromoTypeHint(root) {
     const label = selectedTypes.length > 1 ? "Fund Promo Pushes" : "Fund Promo Push";
     promoBtn.textContent = `${label} (${totalSpend})`;
   }
+  updateAutoPromoSummary(scope);
+}
+
+function updateAutoCreateSummary(scope) {
+  const root = scope || document;
+  const summary = root.querySelector("#autoCreateSummary");
+  if (!summary) return;
+  const settings = state.meta?.autoCreate;
+  if (!settings) {
+    summary.innerHTML = `<div class="muted">Auto create unavailable.</div>`;
+    return;
+  }
+  const enabled = Boolean(settings.enabled);
+  const pct = Number.isFinite(settings.budgetPct) ? clamp(settings.budgetPct, 0, 1) : 0;
+  const walletCash = state.label.wallet?.cash ?? state.label.cash ?? 0;
+  const reserve = Number.isFinite(settings.minCash) ? settings.minCash : 0;
+  const maxTracks = Number.isFinite(settings.maxTracks) ? settings.maxTracks : 1;
+  const budgetCap = computeAutoCreateBudget(walletCash, pct, reserve);
+  const scheduleHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
+  const scheduleText = formatHourCountdown(scheduleHours);
+  const scheduleLabel = scheduleText === "-" ? "-" : `${scheduleText}h`;
+  const modeLabel = settings.mode === "collab" ? "Collab" : "Solo";
+  const pctLabel = `${Math.round(pct * 100)}%`;
+  const last = settings.lastOutcome;
+  const lastLine = last?.message
+    ? `Last run ${last.at ? formatDate(last.at) : "-"}: ${last.message}`
+    : "No auto-create runs yet.";
+  summary.innerHTML = `
+    <div class="list-item">
+      <div class="item-title">Auto Create Plan</div>
+      <div class="muted">${enabled ? "Enabled" : "Disabled"} | Next check ${scheduleLabel} (chart update)</div>
+      <div class="muted">Budget cap ${formatMoney(budgetCap)} (${pctLabel}) | Reserve ${formatMoney(reserve)} | Max ${maxTracks} | Mode ${modeLabel}</div>
+      <div class="muted">${lastLine}</div>
+    </div>
+  `;
 }
 
 function bindGlobalHandlers() {
@@ -1973,12 +2083,21 @@ function bindGlobalHandlers() {
     if (refreshMenu) renderMainMenu();
     logEvent(`Saved Game Slot ${session.activeSlot}.`);
   };
+  const setTutorialTab = (tabId) => {
+    if (!tabId) return;
+    state.ui.tutorialTab = tabId;
+    document.querySelectorAll("#tutorialTabs .tab").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.tutorialTab === tabId);
+    });
+    document.querySelectorAll("[data-tutorial-section]").forEach((section) => {
+      section.classList.toggle("hidden", section.dataset.tutorialSection !== tabId);
+    });
+  };
 
   on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
   on("playBtn", "click", () => { setTimeSpeed("play"); });
   on("fastBtn", "click", () => { setTimeSpeed("fast"); });
-  on("skipDayBtn", "click", () => { void advanceHours(24, { renderQuarterly: false }); });
-  on("skipWeekBtn", "click", () => { void advanceHours(WEEK_HOURS, { renderQuarterly: false }); });
+  on("autoSkipDayBtn", "click", () => { toggleAutoSkipDay(); });
   on("autoSkipWeekBtn", "click", () => { toggleAutoSkipWeek(); });
   on("skipTimeBtn", "click", () => {
     const now = new Date(state.time.epochMs);
@@ -1999,6 +2118,8 @@ function bindGlobalHandlers() {
   on("rankingWindowClose", "click", () => closeRankingWindow());
   on("tutorialBtn", "click", () => {
     renderRoleActions();
+    renderTutorialEconomy();
+    setTutorialTab(state.ui.tutorialTab || "loops");
     openOverlay("tutorialModal");
   });
   on("panelMenuBtn", "click", () => {
@@ -2077,6 +2198,51 @@ function bindGlobalHandlers() {
   });
   on("quickRecipesClose", "click", () => closeOverlay("quickRecipesModal"));
   on("tutorialClose", "click", () => closeOverlay("tutorialModal"));
+  const tutorialTabs = $("tutorialTabs");
+  if (tutorialTabs) {
+    tutorialTabs.addEventListener("click", (e) => {
+      const tabBtn = e.target.closest("[data-tutorial-tab]");
+      if (!tabBtn) return;
+      const tabId = tabBtn.dataset.tutorialTab;
+      if (!tabId) return;
+      setTutorialTab(tabId);
+    });
+  }
+  const tutorialModal = $("tutorialModal");
+  if (tutorialModal) {
+    tutorialModal.addEventListener("change", (e) => {
+      const input = e.target.closest("[data-cheat-econ-key]");
+      if (!input) return;
+      const target = input.dataset.cheatEconTarget;
+      const key = input.dataset.cheatEconKey;
+      if (!target || !key) return;
+      if (!state.meta.cheaterMode) {
+        logEvent("Enable Cheater Mode in Settings to edit economy tuning.", "warn");
+        renderTutorialEconomy();
+        return;
+      }
+      let next = Number(input.value);
+      if (!Number.isFinite(next)) {
+        logEvent("Economy tuning values must be numeric.", "warn");
+        renderTutorialEconomy();
+        return;
+      }
+      const min = input.min !== "" ? Number(input.min) : null;
+      const max = input.max !== "" ? Number(input.max) : null;
+      if (Number.isFinite(min)) next = Math.max(next, min);
+      if (Number.isFinite(max)) next = Math.min(next, max);
+      input.value = String(next);
+      const ok = setCheaterEconomyOverride(target, key, next);
+      if (!ok) {
+        logEvent("Cheater economy tuning update failed.", "warn");
+        renderTutorialEconomy();
+        return;
+      }
+      renderTutorialEconomy();
+      renderAll({ save: false });
+      saveToActiveSlot();
+    });
+  }
   on("calendarClose", "click", () => closeOverlay("calendarModal"));
   const refreshCalendar = () => {
     renderCalendarView();
@@ -2203,6 +2369,18 @@ function bindGlobalHandlers() {
     const minutes = Number(e.target.value);
     state.meta.autoSave.minutes = clamp(minutes, 2, 10);
     state.meta.autoSave.lastSavedAt = Date.now();
+    saveToActiveSlot();
+  });
+  on("cheaterModeToggle", "change", (e) => {
+    if (!session.activeSlot) {
+      e.target.checked = Boolean(state.meta.cheaterMode);
+      logEvent("Select a game slot before changing cheater mode.", "warn");
+      return;
+    }
+    setCheaterMode(e.target.checked);
+    renderTutorialEconomy();
+    renderMainMenu();
+    renderAll({ save: false });
     saveToActiveSlot();
   });
 
@@ -2390,6 +2568,18 @@ function bindViewHandlers(route, root) {
     });
   }
 
+  const chartTypeTabs = root.querySelector("#chartTypeTabs");
+  if (chartTypeTabs) {
+    chartTypeTabs.addEventListener("click", (e) => {
+      const tab = e.target.closest(".tab");
+      if (!tab) return;
+      const next = tab.dataset.chartContent || "tracks";
+      if (next === state.ui.chartContentType) return;
+      state.ui.chartContentType = next;
+      renderCharts();
+    });
+  }
+
   const syncCreatePanelToggles = () => {
     const help = root.querySelector("#createHelp");
     const helpBtn = root.querySelector("#createHelpToggle");
@@ -2419,6 +2609,59 @@ function bindViewHandlers(route, root) {
       syncCreatePanelToggles();
       saveToActiveSlot();
     });
+    const syncAutoCreateControls = () => {
+      const toggle = root.querySelector("#autoCreateToggle");
+      const minCashInput = root.querySelector("#autoCreateMinCash");
+      const budgetInput = root.querySelector("#autoCreateBudgetPct");
+      const maxTracksInput = root.querySelector("#autoCreateMaxTracks");
+      const modeSelect = root.querySelector("#autoCreateMode");
+      if (toggle) toggle.checked = Boolean(state.meta?.autoCreate?.enabled);
+      if (minCashInput) minCashInput.value = String(Math.max(0, Math.round(state.meta?.autoCreate?.minCash ?? 0)));
+      if (budgetInput) budgetInput.value = String(Math.round((state.meta?.autoCreate?.budgetPct ?? 0) * 100));
+      if (maxTracksInput) maxTracksInput.value = String(Math.max(1, Math.round(state.meta?.autoCreate?.maxTracks ?? 1)));
+      if (modeSelect) modeSelect.value = state.meta?.autoCreate?.mode === "collab" ? "collab" : "solo";
+      updateAutoCreateSummary(root);
+    };
+    on("autoCreateToggle", "change", (e) => {
+      if (!state.meta.autoCreate) return;
+      state.meta.autoCreate.enabled = e.target.checked;
+      logEvent(state.meta.autoCreate.enabled ? "Auto create enabled." : "Auto create disabled.");
+      syncAutoCreateControls();
+      saveToActiveSlot();
+    });
+    on("autoCreateMinCash", "change", (e) => {
+      if (!state.meta.autoCreate) return;
+      const next = Math.max(0, Math.round(Number(e.target.value || 0)));
+      state.meta.autoCreate.minCash = next;
+      e.target.value = String(next);
+      updateAutoCreateSummary(root);
+      saveToActiveSlot();
+    });
+    on("autoCreateBudgetPct", "change", (e) => {
+      if (!state.meta.autoCreate) return;
+      const raw = Number(e.target.value || 0);
+      const pct = clamp(raw / 100, 0, 1);
+      state.meta.autoCreate.budgetPct = pct;
+      e.target.value = String(Math.round(pct * 100));
+      updateAutoCreateSummary(root);
+      saveToActiveSlot();
+    });
+    on("autoCreateMaxTracks", "change", (e) => {
+      if (!state.meta.autoCreate) return;
+      const raw = Math.round(Number(e.target.value || 1));
+      const next = clamp(raw, 1, 5);
+      state.meta.autoCreate.maxTracks = next;
+      e.target.value = String(next);
+      updateAutoCreateSummary(root);
+      saveToActiveSlot();
+    });
+    on("autoCreateMode", "change", (e) => {
+      if (!state.meta.autoCreate) return;
+      state.meta.autoCreate.mode = e.target.value === "collab" ? "collab" : "solo";
+      updateAutoCreateSummary(root);
+      saveToActiveSlot();
+    });
+    syncAutoCreateControls();
     root.addEventListener("click", (e) => {
       const moreBtn = e.target.closest("[data-slot-more]");
       const lessBtn = e.target.closest("[data-slot-less]");
@@ -2628,6 +2871,13 @@ function bindViewHandlers(route, root) {
     updateGenrePreview();
     updateTrackRecommendation();
   });
+  on("projectName", "input", () => {
+    renderCreateStageControls();
+  });
+  on("projectTypeSelect", "change", () => {
+    updateTrackRecommendation();
+    renderCreateStageControls();
+  });
   on("modifierSelect", "change", () => {
     updateTrackRecommendation();
   });
@@ -2710,6 +2960,18 @@ function bindViewHandlers(route, root) {
     state.meta.autoRollout.enabled = e.target.checked;
     state.meta.autoRollout.lastCheckedAt = Date.now();
     logEvent(state.meta.autoRollout.enabled ? "Auto promo enabled." : "Auto promo disabled.");
+    updateAutoPromoSummary(root);
+    saveToActiveSlot();
+  });
+  on("autoRolloutBudgetPct", "change", (e) => {
+    if (!state.meta.autoRollout) {
+      state.meta.autoRollout = { enabled: false, lastCheckedAt: null };
+    }
+    const raw = Number(e.target.value || 0);
+    const pct = clamp(raw / 100, 0, 1);
+    state.meta.autoRollout.budgetPct = pct;
+    e.target.value = String(Math.round(pct * 100));
+    updateAutoPromoSummary(root);
     saveToActiveSlot();
   });
 
@@ -2717,6 +2979,11 @@ function bindViewHandlers(route, root) {
   if (autoRolloutToggle) {
     autoRolloutToggle.checked = Boolean(state.meta.autoRollout?.enabled);
   }
+  const autoRolloutBudget = root.querySelector("#autoRolloutBudgetPct");
+  if (autoRolloutBudget) {
+    autoRolloutBudget.value = String(Math.round((state.meta.autoRollout?.budgetPct ?? 0) * 100));
+  }
+  updateAutoPromoSummary(root);
 
   on("refreshMarket", "click", () => {
     if (state.label.cash < 300) {
@@ -2757,6 +3024,30 @@ function bindViewHandlers(route, root) {
       const btn = e.target.closest("button[data-sign]");
       if (!btn || btn.disabled) return;
       signCreatorById(btn.dataset.sign);
+    });
+  }
+  const communityToolsList = root.querySelector("#communityToolsList");
+  if (communityToolsList) {
+    communityToolsList.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-modifier-buy]");
+      if (!btn || btn.disabled) return;
+      const modifierId = btn.dataset.modifierBuy;
+      if (!modifierId) return;
+      const inflationMultiplier = getPromoInflationMultiplier();
+      const result = purchaseModifier(modifierId, { inflationMultiplier });
+      logUiEvent("action_submit", {
+        action: "purchase_modifier",
+        modifierId,
+        outcome: result?.ok ? "success" : "failed",
+        cost: result?.cost
+      });
+      if (!result?.ok) {
+        shakeElement(btn);
+        renderAll();
+        return;
+      }
+      refreshSelectOptions();
+      renderAll();
     });
   }
   root.querySelectorAll("[data-ccc-filter]").forEach((input) => {
@@ -3310,6 +3601,8 @@ function updateRecommendations() {
 }
 
 window.updateRecommendations = updateRecommendations;
+window.updateAutoCreateSummary = () => updateAutoCreateSummary(document);
+window.updateAutoPromoSummary = () => updateAutoPromoSummary(document);
 
 function ensureSlotDropdowns() {
   document.querySelectorAll(".id-slot").forEach((slot) => {
@@ -3564,6 +3857,7 @@ function startSoloTracksFromUI() {
   const titleInput = $("trackTitle").value.trim();
   const projectNameInput = $("projectName").value.trim();
   const projectType = $("projectTypeSelect") ? $("projectTypeSelect").value : "Single";
+  const resolvedProjectType = normalizeProjectType(projectType);
   const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
   const modifier = getModifier(modifierId);
   const req = staminaRequirement("Songwriter");
@@ -3583,6 +3877,29 @@ function startSoloTracksFromUI() {
   }
   if (eligibleSongwriters.length < assignedSongwriters.length) {
     logEvent("Some songwriters were skipped due to low stamina.", "warn");
+  }
+  const projectCheck = projectNameInput
+    ? evaluateProjectTrackConstraints(projectNameInput, resolvedProjectType)
+    : null;
+  if (projectCheck && !projectCheck.ok) {
+    shakeField("projectName");
+    logEvent(projectCheck.reason, "warn");
+    return;
+  }
+  let maxTracksToCreate = eligibleSongwriters.length;
+  if (projectCheck?.limits && Number.isFinite(projectCheck.limits.max)) {
+    const remaining = projectCheck.limits.max - projectCheck.count;
+    if (remaining <= 0) {
+      logEvent(projectCheck.reason || "Project track limit reached.", "warn");
+      return;
+    }
+    if (remaining < maxTracksToCreate) {
+      logEvent(
+        `Only ${remaining} track slot${remaining === 1 ? "" : "s"} left for "${projectNameInput}" (${resolvedProjectType}).`,
+        "warn"
+      );
+      maxTracksToCreate = remaining;
+    }
   }
   const availableStudios = getStudioAvailableSlots();
   if (availableStudios <= 0) {
@@ -3611,7 +3928,7 @@ function startSoloTracksFromUI() {
   let startedCount = 0;
   let stoppedByCash = false;
   let stoppedByStudio = false;
-  for (let i = 0; i < eligibleSongwriters.length; i += 1) {
+  for (let i = 0; i < eligibleSongwriters.length && startedCount < maxTracksToCreate; i += 1) {
     const songwriterId = eligibleSongwriters[i];
     const stageCost = getStageCost(0, modifier, [songwriterId]);
     if (state.label.cash < stageCost) {
@@ -3630,7 +3947,7 @@ function startSoloTracksFromUI() {
       producerIds: [],
       actId: null,
       projectName,
-      projectType,
+      projectType: resolvedProjectType,
       modifierId
     });
     if (!track) {
@@ -3647,7 +3964,7 @@ function startSoloTracksFromUI() {
       producerIds: [],
       modifierId,
       projectName,
-      projectType,
+      projectType: resolvedProjectType,
       mode: "solo"
     });
     logUiEvent("action_submit", {
@@ -3655,7 +3972,7 @@ function startSoloTracksFromUI() {
       trackId: track.id,
       theme,
       mood,
-      projectType,
+      projectType: resolvedProjectType,
       mode: "solo",
       songwriterId
     });
@@ -3761,6 +4078,7 @@ function startSheetFromUI() {
   const title = $("trackTitle").value.trim() || makeTrackTitle(theme, mood);
   const projectName = $("projectName").value.trim() || makeProjectTitle();
   const projectType = $("projectTypeSelect") ? $("projectTypeSelect").value : "Single";
+  const resolvedProjectType = normalizeProjectType(projectType);
   const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
   const modifier = getModifier(modifierId);
   const songwriterIds = getTrackSlotIds("Songwriter");
@@ -3769,6 +4087,12 @@ function startSheetFromUI() {
   if (!songwriterIds.length) {
     shakeSlot(primaryTrackSlotTarget("Songwriter"));
     logEvent("Cannot create sheet music: assign a Songwriter ID.", "warn");
+    return;
+  }
+  const projectCheck = evaluateProjectTrackConstraints(projectName, resolvedProjectType);
+  if (!projectCheck.ok) {
+    shakeField("projectName");
+    logEvent(projectCheck.reason, "warn");
     return;
   }
   const availableStudios = getStudioAvailableSlots();
@@ -3803,7 +4127,7 @@ function startSheetFromUI() {
     producerIds,
     actId: null,
     projectName,
-    projectType,
+    projectType: resolvedProjectType,
     modifierId
   });
   if (!track) return;
@@ -3816,14 +4140,14 @@ function startSheetFromUI() {
     producerIds,
     modifierId,
     projectName,
-    projectType
+    projectType: resolvedProjectType
   });
   logUiEvent("action_submit", {
     action: "start_track",
     trackId: track.id,
     theme,
     mood,
-    projectType
+    projectType: resolvedProjectType
   });
   logEvent(`Created sheet music for "${track.title}" (Theme: ${track.theme}).`);
   $("trackTitle").value = "";
@@ -4658,20 +4982,33 @@ function updateTimeControlButtons() {
   if (pauseBtn) pauseBtn.classList.remove("active");
   if (playBtn) playBtn.classList.remove("active");
   if (fastBtn) fastBtn.classList.remove("active");
-  if (state.time.speed === "pause" && pauseBtn) pauseBtn.classList.add("active");
-  if (state.time.speed === "play" && playBtn) playBtn.classList.add("active");
-  if (state.time.speed === "fast" && fastBtn) fastBtn.classList.add("active");
+  const autoSkipActive = Boolean(autoSkipDayTimer || autoSkipWeekTimer);
+  if (!autoSkipActive) {
+    if (state.time.speed === "pause" && pauseBtn) pauseBtn.classList.add("active");
+    if (state.time.speed === "play" && playBtn) playBtn.classList.add("active");
+    if (state.time.speed === "fast" && fastBtn) fastBtn.classList.add("active");
+  }
+  updateAutoSkipDayButton();
   updateAutoSkipWeekButton();
 }
 
 // Accessibility: set aria-pressed on time controls
 function syncTimeControlAria() {
   const map = { pause: 'pauseBtn', play: 'playBtn', fast: 'fastBtn' };
+  const autoSkipActive = Boolean(autoSkipDayTimer || autoSkipWeekTimer);
   Object.keys(map).forEach((k) => {
     const el = $(map[k]);
     if (!el) return;
-    el.setAttribute('aria-pressed', state.time.speed === k ? 'true' : 'false');
+    el.setAttribute('aria-pressed', !autoSkipActive && state.time.speed === k ? 'true' : 'false');
   });
+}
+
+function updateAutoSkipDayButton() {
+  const btn = $("autoSkipDayBtn");
+  if (!btn) return;
+  const active = Boolean(autoSkipDayTimer);
+  btn.classList.toggle("active", active);
+  btn.setAttribute("aria-pressed", active ? "true" : "false");
 }
 
 function updateAutoSkipWeekButton() {
@@ -4682,6 +5019,89 @@ function updateAutoSkipWeekButton() {
   btn.setAttribute("aria-pressed", active ? "true" : "false");
 }
 
+function cacheAutoSkipPrevSpeed() {
+  if (autoSkipPrevSpeed !== null) return;
+  if (autoSkipDayTimer || autoSkipWeekTimer) return;
+  autoSkipPrevSpeed = state.time.speed;
+}
+
+function clearAutoSkipPrevSpeed() {
+  autoSkipPrevSpeed = null;
+}
+
+function restoreAutoSkipSpeed() {
+  if (autoSkipPrevSpeed === null) return;
+  const prev = autoSkipPrevSpeed;
+  autoSkipPrevSpeed = null;
+  setTimeSpeed(prev);
+}
+
+function stopAutoSkipDay({ silent = false } = {}) {
+  if (autoSkipDayTimer) {
+    clearInterval(autoSkipDayTimer);
+    autoSkipDayTimer = null;
+  }
+  autoSkipDayInFlight = false;
+  updateAutoSkipDayButton();
+  if (!silent) logEvent("Auto 24h disabled.");
+}
+
+async function runAutoSkipDayTick() {
+  if (autoSkipDayInFlight) return;
+  if (!session.activeSlot) {
+    stopAutoSkipDay({ silent: true });
+    clearAutoSkipPrevSpeed();
+    logEvent("Auto 24h stopped: no active slot.", "warn");
+    return;
+  }
+  if (state.meta?.gameOver) {
+    stopAutoSkipDay({ silent: true });
+    clearAutoSkipPrevSpeed();
+    logEvent("Auto 24h stopped: game over.", "warn");
+    return;
+  }
+  autoSkipDayInFlight = true;
+  try {
+    await advanceHours(24, { renderQuarterly: false });
+  } catch (error) {
+    console.error("autoSkipDay error:", error);
+    logEvent("Auto 24h failed; stopping.", "warn");
+    stopAutoSkipDay({ silent: true });
+    clearAutoSkipPrevSpeed();
+  } finally {
+    autoSkipDayInFlight = false;
+  }
+}
+
+function startAutoSkipDay() {
+  if (autoSkipDayTimer) return;
+  if (!session.activeSlot) {
+    logEvent("Select a game slot before auto-skipping.", "warn");
+    return;
+  }
+  if (state.meta?.gameOver) {
+    logEvent("Cannot auto-skip after game over.", "warn");
+    return;
+  }
+  cacheAutoSkipPrevSpeed();
+  stopAutoSkipWeek({ silent: true });
+  setTimeSpeed("pause", { skipAutoStop: true });
+  autoSkipDayTimer = setInterval(() => {
+    void runAutoSkipDayTick();
+  }, AUTO_SKIP_DAY_INTERVAL_MS);
+  updateAutoSkipDayButton();
+  logEvent("Auto 24h enabled (12s interval).");
+}
+
+function toggleAutoSkipDay() {
+  if (autoSkipDayTimer) {
+    stopAutoSkipDay();
+    if (!autoSkipWeekTimer) restoreAutoSkipSpeed();
+  } else {
+    startAutoSkipDay();
+  }
+}
+
 function stopAutoSkipWeek({ silent = false } = {}) {
   if (autoSkipWeekTimer) {
     clearInterval(autoSkipWeekTimer);
@@ -4689,19 +5109,21 @@ function stopAutoSkipWeek({ silent = false } = {}) {
   }
   autoSkipWeekInFlight = false;
   updateAutoSkipWeekButton();
-  if (!silent) logEvent("Auto skip week disabled.");
+  if (!silent) logEvent("Auto 7d disabled.");
 }
 
 async function runAutoSkipWeekTick() {
   if (autoSkipWeekInFlight) return;
   if (!session.activeSlot) {
     stopAutoSkipWeek({ silent: true });
-    logEvent("Auto skip stopped: no active slot.", "warn");
+    clearAutoSkipPrevSpeed();
+    logEvent("Auto 7d stopped: no active slot.", "warn");
     return;
   }
   if (state.meta?.gameOver) {
     stopAutoSkipWeek({ silent: true });
-    logEvent("Auto skip stopped: game over.", "warn");
+    clearAutoSkipPrevSpeed();
+    logEvent("Auto 7d stopped: game over.", "warn");
     return;
   }
   autoSkipWeekInFlight = true;
@@ -4709,8 +5131,9 @@ async function runAutoSkipWeekTick() {
     await advanceHours(WEEK_HOURS, { renderQuarterly: false });
   } catch (error) {
     console.error("autoSkipWeek error:", error);
-    logEvent("Auto skip week failed; stopping.", "warn");
+    logEvent("Auto 7d failed; stopping.", "warn");
     stopAutoSkipWeek({ silent: true });
+    clearAutoSkipPrevSpeed();
   } finally {
     autoSkipWeekInFlight = false;
   }
@@ -4726,16 +5149,20 @@ function startAutoSkipWeek() {
     logEvent("Cannot auto-skip after game over.", "warn");
     return;
   }
+  cacheAutoSkipPrevSpeed();
+  stopAutoSkipDay({ silent: true });
+  setTimeSpeed("pause", { skipAutoStop: true });
   autoSkipWeekTimer = setInterval(() => {
     void runAutoSkipWeekTick();
   }, AUTO_SKIP_WEEK_INTERVAL_MS);
   updateAutoSkipWeekButton();
-  logEvent("Auto skip week enabled (7s interval).");
+  logEvent("Auto 7d enabled (7s interval).");
 }
 
 function toggleAutoSkipWeek() {
   if (autoSkipWeekTimer) {
     stopAutoSkipWeek();
+    if (!autoSkipDayTimer) restoreAutoSkipSpeed();
   } else {
     startAutoSkipWeek();
   }

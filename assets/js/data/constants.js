@@ -182,12 +182,40 @@ const ECONOMY_BASELINES = {
   subscription: 14.99,
   governmentFunds: 1000000000000
 };
+const ECONOMY_TUNING = {
+  revenuePerChartPoint: 22,
+  upkeepPerCreator: 150,
+  upkeepPerOwnedStudio: 600,
+  promoWeekBudgetStep: 1200,
+  promoWeekBase: 1,
+  promoWeeksMin: 1,
+  promoWeeksMax: 4,
+  physicalUnitCostMin: 0.5
+};
+const ECONOMY_PRICE_MULTIPLIERS = { single: 1, ep: 1.55, album: 2.25 };
 const PRICE_PATTERN = [0.3, 0.7];
 
 const MODIFIERS = [
-  { id: "None", label: "None", qualityDelta: 0, hoursDelta: 0, costDelta: 0, desc: "No modifier." },
-  { id: "Sensory Sage", label: "Sensory Sage", qualityDelta: 8, hoursDelta: 1, costDelta: 200, desc: "Higher quality, slower output." },
-  { id: "Dispatch Dust", label: "Dispatch Dust", qualityDelta: -8, hoursDelta: -1, costDelta: -150, desc: "Faster output, lower quality." }
+  { id: "None", label: "None", qualityDelta: 0, hoursDelta: 0, costDelta: 0, basePrice: 0, desc: "No modifier." },
+  { id: "Sensory Sage", label: "Sensory Sage", qualityDelta: 8, hoursDelta: 1, costDelta: 200, basePrice: 12000, desc: "Higher quality, slower output." },
+  { id: "Dispatch Dust", label: "Dispatch Dust", qualityDelta: -8, hoursDelta: -1, costDelta: -150, basePrice: 9000, desc: "Faster output, lower quality." },
+  { id: "Cheering Citrus", label: "Cheering Citrus", qualityDelta: 6, hoursDelta: 0, costDelta: 0, basePrice: 6000, mood: "Cheering", desc: "Boosts quality for Cheering mood content." },
+  { id: "Saddening Shade", label: "Saddening Shade", qualityDelta: 6, hoursDelta: 0, costDelta: 0, basePrice: 6000, mood: "Saddening", desc: "Boosts quality for Saddening mood content." },
+  { id: "Thrilling Spark", label: "Thrilling Spark", qualityDelta: 6, hoursDelta: 0, costDelta: 0, basePrice: 6000, mood: "Thrilling", desc: "Boosts quality for Thrilling mood content." },
+  { id: "Almighty Aqua", label: "Almighty Aqua", qualityDelta: 6, hoursDelta: 0, costDelta: 0, basePrice: 6000, mood: "Angering", desc: "Boosts quality for Angering mood content." },
+  { id: "Calming Cloud", label: "Calming Cloud", qualityDelta: 6, hoursDelta: 0, costDelta: 0, basePrice: 6000, mood: "Calming", desc: "Boosts quality for Calming mood content." },
+  { id: "Energizing Ember", label: "Energizing Ember", qualityDelta: 6, hoursDelta: 0, costDelta: 0, basePrice: 6000, mood: "Energizing", desc: "Boosts quality for Energizing mood content." },
+  { id: "Uplifting Aura", label: "Uplifting Aura", qualityDelta: 6, hoursDelta: 0, costDelta: 0, basePrice: 6000, mood: "Uplifting", desc: "Boosts quality for Uplifting mood content." },
+  { id: "Boring Basalt", label: "Boring Basalt", qualityDelta: 6, hoursDelta: 0, costDelta: 0, basePrice: 6000, mood: "Boring", desc: "Boosts quality for Boring mood content." },
+  { id: "Daring Drift", label: "Daring Drift", qualityDelta: 6, hoursDelta: 0, costDelta: 0, basePrice: 6000, mood: "Daring", desc: "Boosts quality for Daring mood content." },
+  { id: "Freedom Forge", label: "Freedom Forge", qualityDelta: 5, hoursDelta: 0, costDelta: 0, basePrice: 5500, theme: "Freedom", desc: "Boosts quality for Freedom theme content." },
+  { id: "Loyalty Lattice", label: "Loyalty Lattice", qualityDelta: 5, hoursDelta: 0, costDelta: 0, basePrice: 5500, theme: "Loyalty", desc: "Boosts quality for Loyalty theme content." },
+  { id: "Ambition Apex", label: "Ambition Apex", qualityDelta: 5, hoursDelta: 0, costDelta: 0, basePrice: 5500, theme: "Ambition", desc: "Boosts quality for Ambition theme content." },
+  { id: "Morality Mirror", label: "Morality Mirror", qualityDelta: 5, hoursDelta: 0, costDelta: 0, basePrice: 5500, theme: "Morality", desc: "Boosts quality for Morality theme content." },
+  { id: "Power Prism", label: "Power Prism", qualityDelta: 5, hoursDelta: 0, costDelta: 0, basePrice: 5500, theme: "Power", desc: "Boosts quality for Power theme content." },
+  { id: "Safe Sentinel", label: "Safe Sentinel", qualityDelta: 4, hoursDelta: 0, costDelta: 0, basePrice: 4500, alignment: "Safe", desc: "Boosts quality for Safe alignment content." },
+  { id: "Neutral Nexus", label: "Neutral Nexus", qualityDelta: 4, hoursDelta: 0, costDelta: 0, basePrice: 4500, alignment: "Neutral", desc: "Boosts quality for Neutral alignment content." },
+  { id: "Risky Razor", label: "Risky Razor", qualityDelta: 4, hoursDelta: 0, costDelta: 0, basePrice: 4500, alignment: "Risky", desc: "Boosts quality for Risky alignment content." }
 ];
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];

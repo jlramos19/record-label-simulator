@@ -18,3 +18,4 @@ Keep audience alignment, themes, and moods evolving from base regional profiles 
 - Alignment bonus uses dynamic weights.
 - Theme/mood bonuses use evolved lists.
 - Regional trend genres add a small bonus on top of global trends.
+- Homeland boosts and cross-nation lore modifiers add small bonuses/penalties based on act/creator origins.

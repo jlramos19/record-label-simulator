@@ -4,6 +4,7 @@ Auto promo uses a fixed percentage of the label wallet cash to fund promo pushes
 
 ## Budget rule
 - Budget = wallet cash * auto promo percent (default 5%).
+- Auto promo percent can be adjusted in Promotions; the percent applies per promo type.
 - Auto promo only runs when the computed budget meets the minimum promo spend ($100).
 - When multiple promo types are selected, the auto promo budget applies per type and total spend scales with the number of types.
 - Promo weeks still scale from budget using the existing 1-4 week rule.
@@ -14,6 +15,7 @@ Auto promo uses a fixed percentage of the label wallet cash to fund promo pushes
 
 ## Player rules
 - Auto promo is toggled in the Promotions view.
+- Promotions shows the next auto-run window, budget math, and the steps auto promo will take.
 - Auto promo uses the track assigned to the Promo Push slot.
 - Auto promo derives the Act from the selected Track; Act-only promos are manual.
 - Auto promo skips tracks that are not released, not in an active era, or already in promo weeks.

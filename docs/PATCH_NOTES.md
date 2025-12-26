@@ -1,5 +1,38 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0955Z)
+- Tutorial now uses tabbed navigation (loops, concepts, economy, roles) and includes live economy formula readouts.
+- Added cheater mode toggle in Settings to unlock economy tuning edits; cheater mode disables achievements and quests while active.
+
+## 2025-12-26 (RLS-PATCH-20251226-0953Z)
+- Added Auto Create rules in Create view (budget percent, cash reserve, max tracks, solo/collab) with weekly run status disclosure.
+- Promotions now show auto promo schedule/budget/steps, plus an adjustable auto promo percent and clearer run logging.
+
+## 2025-12-26 (RLS-PATCH-20251226-0952Z)
+- Era Desk and Harmony Hub now use compact multi-column stacks for act targeting, act details, and act slots.
+
+## 2025-12-26 (RLS-PATCH-20251226-0955Z)
+- Tutorial now uses tabbed navigation (loops, concepts, economy, roles) and includes live economy formula readouts.
+- Added cheater mode toggle in Settings to unlock economy tuning edits; cheater mode disables achievements and quests while active.
+
+## 2025-12-26 (RLS-PATCH-20251226-0934Z)
+- Create view Tracks panel now focuses on the creation pipeline and includes in-progress demo/master work orders.
+
+## 2025-12-26 (RLS-PATCH-20251226-0927Z)
+- Added a Touring tab placeholder in the primary nav with a stub Touring Desk view.
+
+## 2025-12-26 (RLS-PATCH-20251226-0921Z)
+- Header time controls now use Auto 24h (12s interval) and Auto 7d (7s interval); Skip 7d was removed.
+
+## 2025-12-26 (RLS-PATCH-20251226-0919Z)
+- Creation studios now show act-member stage names with real names in brackets beneath.
+
+## 2025-12-26 (RLS-PATCH-20251226-0917Z)
+- Chart scoring now applies Act + Creator homeland bonuses and lore-based international audience modifiers, with market entries tracking origin countries.
+
+## 2025-12-26 (RLS-PATCH-20251226-0914Z)
+- Widened the Top Labels and Top Trends header columns to better fill the space beside menu actions.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0851Z)
 - CCC preferred Theme/Mood filters now include Top 3 trend toggles that cycle through the first three trend slots.
 

@@ -65,6 +65,13 @@
       </div>
       <div class="tiny">Auto save writes to the active game slot every 2-10 minutes.</div>
     </div>
+    <div class="field">
+      <label for="cheaterModeToggle">Cheater Mode</label>
+      <div class="toggle-row">
+        <input id="cheaterModeToggle" type="checkbox" aria-label="Cheater mode toggle">
+      </div>
+      <div class="tiny">Unlocks economy tuning in Tutorial. Disables achievements and quests while active.</div>
+    </div>
     <div class="actions">
       <button id="menuSaveBtn" type="button">Save Game Slot</button>
       <button id="resetLayoutSettingsBtn" type="button" class="ghost">Reset UI Layout</button>
@@ -109,63 +116,83 @@
       <div class="actions">
         <button id="quickRecipesBtn" type="button" class="ghost">Quick Recipes</button>
       </div>
-      <div class="subhead">Game Loops</div>
-      <div class="list">
-        <div class="list-item">
-          <div class="item-title">Sign Creator IDs (Community -> CCC)</div>
-          <div class="muted">Refresh the pool and sign at least one Songwriter, Recorder, and Producer.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Form an Act (Roster -> Harmony Hub)</div>
-          <div class="muted">Assign Creator IDs to Act slots to prep releases and eras.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Create content (Create view)</div>
-          <div class="muted">Assign Creator IDs, pick Theme/Mood, then run Sheet -> Demo -> Master stages.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Schedule release (Calendar)</div>
-          <div class="muted">Choose distribution; Digital is fast, Physical or Both pays more.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Promote (Promotions -> eyeriSocial)</div>
-          <div class="muted">Pick a scheduled or released Track ID, set budget, and fund promo pushes.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Weekly cadence (168 in-game hours)</div>
-          <div class="muted">Release processing Friday 00:00, trends Friday 12:00, charts Saturday 00:00. Use Pause/Play/Fast and Skip Time to move weeks.</div>
+      <div id="tutorialTabs" class="tabs tutorial-tabs">
+        <button type="button" class="tab active" data-tutorial-tab="loops">Loops</button>
+        <button type="button" class="tab" data-tutorial-tab="concepts">Concepts</button>
+        <button type="button" class="tab" data-tutorial-tab="economy">Economy</button>
+        <button type="button" class="tab" data-tutorial-tab="roles">Roles</button>
+      </div>
+      <div class="tutorial-section" data-tutorial-section="loops">
+        <div class="subhead">Game Loops</div>
+        <div class="list">
+          <div class="list-item">
+            <div class="item-title">Sign Creator IDs (Community -> CCC)</div>
+            <div class="muted">Refresh the pool and sign at least one Songwriter, Recorder, and Producer.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Form an Act (Roster -> Harmony Hub)</div>
+            <div class="muted">Assign Creator IDs to Act slots to prep releases and eras.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Create content (Create view)</div>
+            <div class="muted">Assign Creator IDs, pick Theme/Mood, then run Sheet -> Demo -> Master stages.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Schedule release (Calendar)</div>
+            <div class="muted">Choose distribution; Digital is fast, Physical or Both pays more.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Promote (Promotions -> eyeriSocial)</div>
+            <div class="muted">Pick a scheduled or released Track ID, set budget, and fund promo pushes.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Weekly cadence (168 in-game hours)</div>
+            <div class="muted">Release processing Friday 00:00, trends Friday 12:00, charts Saturday 00:00. Use Pause/Play/Fast and Skip Time to move weeks.</div>
+          </div>
         </div>
       </div>
-      <div class="subhead">Game Concepts</div>
-      <div class="list">
-        <div class="list-item">
-          <div class="item-title">Creator signing decisions</div>
-          <div class="muted">CCC acceptance depends on label focus Themes/Moods, creator skill, and market heat. Rejections log a reason and lock until the 12AM refresh.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Trends guide demand</div>
-          <div class="muted">Check Top Trends in Community/Create and follow recommendations.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Studios and stamina are bottlenecks</div>
-          <div class="muted">Active Studios cap parallel work; bigger teams are faster but drain stamina.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Eras focus your cadence</div>
-          <div class="muted">Use Era Desk to set a Focus Era for creation and promo priorities.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Cashflow matters</div>
-          <div class="muted">Watch Wallet for weekly revenue/upkeep and avoid negative cash.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Interface tips</div>
-          <div class="muted">Use ID slots or drag-and-drop, Auto Assign/Recommend All to fill quickly, customize panels, and save often.</div>
+      <div class="tutorial-section hidden" data-tutorial-section="concepts">
+        <div class="subhead">Game Concepts</div>
+        <div class="list">
+          <div class="list-item">
+            <div class="item-title">Creator signing decisions</div>
+            <div class="muted">CCC acceptance depends on label focus Themes/Moods, creator skill, and market heat. Rejections log a reason and lock until the 12AM refresh.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Trends guide demand</div>
+            <div class="muted">Check Top Trends in Community/Create and follow recommendations.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Studios and stamina are bottlenecks</div>
+            <div class="muted">Active Studios cap parallel work; bigger teams are faster but drain stamina.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Eras focus your cadence</div>
+            <div class="muted">Use Era Desk to set a Focus Era for creation and promo priorities.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Cashflow matters</div>
+            <div class="muted">Watch Wallet for weekly revenue/upkeep and avoid negative cash.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Interface tips</div>
+            <div class="muted">Use ID slots or drag-and-drop, Auto Assign/Recommend All to fill quickly, customize panels, and save often.</div>
+          </div>
         </div>
       </div>
-      <div class="subhead">Roles &amp; Actions</div>
-      <div class="tiny muted">Status: Live = playable, Simulated = system-driven, Placeholder = planned.</div>
-      <div id="roleActionsList" class="list" style="margin-top:10px"></div>
+      <div class="tutorial-section hidden" data-tutorial-section="economy">
+        <div class="subhead">Economy Formulas</div>
+        <div class="tiny muted">Values are pulled from live constants; cheater mode can override them.</div>
+        <div id="tutorialEconomyList" class="list" style="margin-top:10px"></div>
+        <div class="subhead">Economy Tuning (Cheater Mode)</div>
+        <div id="tutorialCheaterNotice" class="callout"></div>
+        <div id="tutorialEconomyTuning" class="list" style="margin-top:10px"></div>
+      </div>
+      <div class="tutorial-section hidden" data-tutorial-section="roles">
+        <div class="subhead">Roles &amp; Actions</div>
+        <div class="tiny muted">Status: Live = playable, Simulated = system-driven, Placeholder = planned.</div>
+        <div id="roleActionsList" class="list" style="margin-top:10px"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -389,8 +416,7 @@
         <button id="pauseBtn" type="button" class="ghost">Pause</button>
         <button id="playBtn" type="button" class="ghost">Play</button>
         <button id="fastBtn" type="button" class="ghost">Fast</button>
-        <button id="skipDayBtn" type="button" class="ghost">Skip 24h</button>
-        <button id="skipWeekBtn" type="button" class="ghost">Skip 7d</button>
+        <button id="autoSkipDayBtn" type="button" class="ghost" aria-pressed="false">Auto 24h</button>
         <button id="autoSkipWeekBtn" type="button" class="ghost" aria-pressed="false">Auto 7d</button>
         <button id="skipTimeBtn" type="button" class="ghost">Skip Time</button>
       </div>
@@ -450,6 +476,10 @@
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">edit_note</span>
           <span class="nav-label">Create</span>
         </a>
+        <a href="#/release" data-route="release" class="nav-item" aria-label="Release" title="Release">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">new_releases</span>
+          <span class="nav-label">Release</span>
+        </a>
         <a href="#/releases" data-route="releases" class="nav-item" aria-label="Calendar" title="Calendar">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">event</span>
           <span class="nav-label">Calendar</span>
@@ -469,6 +499,10 @@
         <a href="#/logs" data-route="logs" class="nav-item" aria-label="Promotions" title="Promotions">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">forum</span>
           <span class="nav-label">Promotions</span>
+        </a>
+        <a href="#/tour" data-route="tour" class="nav-item" aria-label="Tour" title="Tour">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">tour</span>
+          <span class="nav-label">Tour</span>
         </a>
       </nav>
     </div>
@@ -547,6 +581,10 @@
           </div>
         </div>
         <div class="card-body">
+          <div class="tabs" id="chartTypeTabs">
+            <button class="tab active" data-chart-content="tracks" type="button">Tracks</button>
+            <button class="tab" data-chart-content="projects" type="button">Projects</button>
+          </div>
           <div class="callout">
             Charts update weekly (Saturday 00:00 UTC). Trends refresh Friday 12:00.
           </div>
@@ -562,26 +600,6 @@
       </div>
     </section>
     <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="release-desk">
-        <h2>Release Desk</h2>
-        <div class="card-body">
-          <div class="callout">
-            Assign an Act, then release ready tracks to enter charts. Digital is fast and low-overhead (baseline $0.69 single). Physical (or Both) takes two weeks for manufacturing/distribution but sells at higher prices (baseline $4.99 single).
-          </div>
-          <div class="field">
-            <label for="releaseDistribution">Distribution</label>
-            <select id="releaseDistribution">
-              <option value="Digital">Digital</option>
-              <option value="Physical">Physical</option>
-              <option value="Both">Both</option>
-            </select>
-          </div>
-          <div class="subhead">Ready</div>
-          <div id="readyList" class="list"></div>
-          <div class="subhead">Scheduled</div>
-          <div id="releaseQueueList" class="list"></div>
-        </div>
-      </div>
       <div class="panel card panel--scroll" data-panel="label-rankings">
         <h2>Label Rankings</h2>
         <div class="card-body">
@@ -604,7 +622,7 @@
         </div>
         <div class="card-body">
           <div id="createHelp" class="callout hidden">
-            Quick start: tap an ID slot, assign Creator IDs, pick a Theme, then create sheet music. Acts are assigned later in Release Desk for release and promotion.
+            Quick start: tap an ID slot, assign Creator IDs, pick a Theme, then create sheet music. Acts are assigned later in Release for release and promotion.
           </div>
           <div class="create-stage-columns">
             <section class="create-stage-column" data-create-column="sheet">
@@ -636,6 +654,7 @@
                       <option value="EP">EP</option>
                       <option value="Album">Album</option>
                     </select>
+                    <div id="projectTypeMeta" class="tiny muted"></div>
                   </div>
                   <div class="field">
                     <label for="themeSelect">Theme</label>
@@ -751,6 +770,40 @@
       </div>
     </section>
     <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="auto-create">
+        <h2>Auto Create</h2>
+        <div class="card-body">
+          <div class="field">
+            <label class="toggle-pill">
+              <input id="autoCreateToggle" type="checkbox">
+              <span>Auto Create Content</span>
+            </label>
+            <div class="tiny">Auto-start sheet music when weekly cash rules are met.</div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="autoCreateMinCash">Min Cash Reserve</label>
+              <input id="autoCreateMinCash" type="number" min="0" step="500">
+            </div>
+            <div class="field">
+              <label for="autoCreateBudgetPct">Budget %</label>
+              <input id="autoCreateBudgetPct" type="number" min="0" max="100" step="1">
+            </div>
+            <div class="field">
+              <label for="autoCreateMaxTracks">Max Tracks / Week</label>
+              <input id="autoCreateMaxTracks" type="number" min="1" max="5" step="1">
+            </div>
+            <div class="field">
+              <label for="autoCreateMode">Mode</label>
+              <select id="autoCreateMode">
+                <option value="solo">Solo (Songwriter only)</option>
+                <option value="collab">Collab (fill all roles)</option>
+              </select>
+            </div>
+          </div>
+          <div id="autoCreateSummary" class="list"></div>
+        </div>
+      </div>
       <div class="panel card panel--scroll" data-panel="tracks">
         <h2>Tracks</h2>
         <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">
@@ -768,12 +821,59 @@
           </div>
         </div>
       </div>
+      <div class="panel card panel--scroll" data-panel="modifier-inventory">
+        <h2>Modifier Inventory</h2>
+        <div class="card-body">
+          <div class="tiny muted">Purchased tools from Community show here.</div>
+          <div id="modifierInventoryList" class="list"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</template>
+
+<template id="view-release">
+  <div class="view view--release">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="release-desk">
+        <div class="card-head">
+          <h2>Release</h2>
+        </div>
+        <div class="card-body">
+          <div class="callout">
+            Assign an Act, then schedule mastered tracks for release. Digital ships fastest; Physical/Both adds a two-week lead time but sells at higher prices.
+          </div>
+          <div class="field">
+            <label for="releaseDistribution">Distribution</label>
+            <select id="releaseDistribution">
+              <option value="Digital">Digital</option>
+              <option value="Physical">Physical</option>
+              <option value="Both">Both</option>
+            </select>
+          </div>
+          <div class="subhead">Ready</div>
+          <div id="readyList" class="list"></div>
+          <div class="subhead">Scheduled</div>
+          <div id="releaseQueueList" class="list"></div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="release-projects">
+        <h2>Project Planner</h2>
+        <div class="card-body">
+          <div class="callout">
+            Singles run 1-4 tracks, EPs 5-7, Albums 8-32. Plan counts before locking release timing.
+          </div>
+          <div id="releaseProjectList" class="list"></div>
+        </div>
+      </div>
     </aside>
   </div>
 </template>
 
 <template id="view-releases">
-  <div class="view view--releases">
+  <div class="view view--releases view--single">
     <section class="view-main">
       <div class="panel card panel--scroll" data-panel="calendar-view">
         <div class="card-head">
@@ -800,28 +900,6 @@
         </div>
       </div>
     </section>
-    <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="release-desk">
-        <h2>Release Desk</h2>
-        <div class="card-body">
-          <div class="callout">
-            Assign an Act, then release ready tracks to enter charts. Digital is fast and low-overhead (baseline $0.69 single). Physical (or Both) takes two weeks for manufacturing/distribution but sells at higher prices (baseline $4.99 single).
-          </div>
-          <div class="field">
-            <label for="releaseDistribution">Distribution</label>
-            <select id="releaseDistribution">
-              <option value="Digital">Digital</option>
-              <option value="Physical">Physical</option>
-              <option value="Both">Both</option>
-            </select>
-          </div>
-          <div class="subhead">Ready</div>
-          <div id="readyList" class="list"></div>
-          <div class="subhead">Scheduled</div>
-          <div id="releaseQueueList" class="list"></div>
-        </div>
-      </div>
-    </aside>
     <div id="calendarFooterPanel" class="panel card calendar-footer-panel">
       <div class="card-body">
         <div id="calendarList" class="calendar-footer"></div>
@@ -839,21 +917,23 @@
           <div class="callout">
             Eras run in four stages: Direction, Creation, Promotion, Legacy. Use the calendar to track internal schedules; use eyeriSocial to publish public updates.
           </div>
-          <div class="id-slot" data-slot-target="era-act" data-slot-type="act">
-            <div class="slot-label">Act ID</div>
-            <div id="eraActSlot" class="slot-value">?</div>
-            <button type="button" class="ghost mini" data-slot-clear="era-act">Clear</button>
-          </div>
-          <div class="field">
-            <label for="eraNameInput">Era Name</label>
-            <div class="input-row">
-              <input id="eraNameInput" type="text" placeholder="e.g. Neon Signal: Dawn Phase">
-              <button id="eraNameRandom" type="button" class="ghost mini">Rnd</button>
+          <div class="slot-grid slot-grid--multi">
+            <div class="id-slot" data-slot-target="era-act" data-slot-type="act">
+              <div class="slot-label">Act ID</div>
+              <div id="eraActSlot" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="era-act">Clear</button>
             </div>
-          </div>
-          <div class="field">
-            <label for="eraRolloutSelect">Rollout Strategy</label>
-            <select id="eraRolloutSelect"></select>
+            <div class="field">
+              <label for="eraNameInput">Era Name</label>
+              <div class="input-row">
+                <input id="eraNameInput" type="text" placeholder="e.g. Neon Signal: Dawn Phase">
+                <button id="eraNameRandom" type="button" class="ghost mini">Rnd</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="eraRolloutSelect">Rollout Strategy</label>
+              <select id="eraRolloutSelect"></select>
+            </div>
           </div>
           <div class="actions">
             <button id="startEraBtn" type="button">Start Era</button>
@@ -951,23 +1031,25 @@
             <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
           </div>
           <div class="subhead">Create Act</div>
-          <div class="field">
-            <label for="actName">Act Name</label>
-            <div class="input-row">
-              <input id="actName" type="text" placeholder="e.g. Velvet Signal">
-              <button id="actNameRandom" type="button" class="ghost mini">Rnd</button>
+          <div class="slot-grid slot-grid--multi">
+            <div class="field">
+              <label for="actName">Act Name</label>
+              <div class="input-row">
+                <input id="actName" type="text" placeholder="e.g. Velvet Signal">
+                <button id="actNameRandom" type="button" class="ghost mini">Rnd</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="actTypeSelect">Act Type</label>
+              <select id="actTypeSelect"></select>
+            </div>
+            <div class="field">
+              <label for="actAlignmentSelect">Act Alignment</label>
+              <select id="actAlignmentSelect"></select>
             </div>
           </div>
-          <div class="field">
-            <label for="actTypeSelect">Act Type</label>
-            <select id="actTypeSelect"></select>
-          </div>
-          <div class="field">
-            <label for="actAlignmentSelect">Act Alignment</label>
-            <select id="actAlignmentSelect"></select>
-          </div>
           <div class="subhead">Act Slots</div>
-          <div class="slot-grid">
+          <div class="slot-grid slot-grid--multi">
             <div class="id-slot" data-slot-target="act-lead" data-slot-type="creator">
               <div class="slot-label">Lead Creator ID</div>
               <div class="slot-id">
@@ -1097,6 +1179,18 @@
           </div>
           <div id="marketList" class="list ccc-market-grid"></div>
           <div class="tiny">Use the CCC to scout and sign new Creator IDs.</div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="community-tools">
+        <div class="card-head">
+          <h2>Community Tools</h2>
+          <div id="modifierInflationLabel" class="tiny muted">Inflation x1.00</div>
+        </div>
+        <div class="card-body">
+          <div class="callout">
+            Modifiers are tools that boost production outcomes. Purchase them here to unlock in Create.
+          </div>
+          <div id="communityToolsList" class="list"></div>
         </div>
       </div>
     </section>
@@ -1269,6 +1363,12 @@
             </label>
             <div class="tiny">Auto-run promo pushes for the promo slot using a percentage of wallet cash.</div>
           </div>
+          <div class="field">
+            <label for="autoRolloutBudgetPct">Auto Promo Budget %</label>
+            <input id="autoRolloutBudgetPct" type="number" min="0" max="100" step="1">
+            <div class="tiny">Percent of wallet cash per promo type (min $100).</div>
+          </div>
+          <div id="autoPromoSummary" class="list"></div>
           <div class="actions">
             <button id="promoBtn" type="button">Fund Promo Push</button>
           </div>
@@ -1302,6 +1402,49 @@
         </div>
       </div>
     </aside>
+  </div>
+</template>
+
+<template id="view-tour">
+  <div class="view view--tour view--single">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="touring-desk">
+        <div class="card-head">
+          <h2>Touring Desk</h2>
+        </div>
+        <div class="card-body">
+          <div class="callout">
+            Touring is planned. This desk will manage act tours, venue bookings, and routing once enabled.
+          </div>
+          <div class="subhead">Planned tools</div>
+          <div class="list">
+            <div class="list-item">
+              <div class="item-title">Tour Planner</div>
+              <div class="muted">Pick an act, era, and tour goal, then set the date window.</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Venue Finder</div>
+              <div class="muted">Filter venues by region, capacity tier, and availability.</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Route Timeline</div>
+              <div class="muted">Lay out stops, travel buffers, and conflicts.</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Budget + Staffing</div>
+              <div class="muted">Estimate fees, staffing, and projected profit.</div>
+            </div>
+          </div>
+          <div class="subhead">Observability</div>
+          <div class="list">
+            <div class="list-item">
+              <div class="item-title">Conflict warnings</div>
+              <div class="muted">Slot conflicts and capacity mismatches will surface here and on the Calendar.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 

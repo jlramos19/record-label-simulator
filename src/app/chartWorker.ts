@@ -7,6 +7,15 @@ const AUDIENCE_CHUNK = 1000;
 const ALIGNMENTS = ["Safe", "Neutral", "Risky"];
 const AUDIENCE_ALIGNMENT_SCORE_SCALE = 42;
 const AUDIENCE_TREND_BONUS = 4;
+const HOMELAND_ACT_BONUS = 4;
+const HOMELAND_CREATOR_BONUS = 1;
+const HOMELAND_CREATOR_BONUS_CAP = 6;
+const INTERNATIONAL_RELATION_CAP = 4;
+const COUNTRY_RELATION_BIAS = {
+  Annglora: { Bytenza: -2, Crowlya: 2 },
+  Bytenza: { Annglora: -2, Crowlya: 0 },
+  Crowlya: { Annglora: 2, Bytenza: 0 }
+};
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 function normalizeChartWeights(weights, fallback) {
@@ -63,7 +72,48 @@ function resolveAudienceProfile(scopeId, profiles, audience) {
   };
 }
 
-function scoreTrack(track, regionName, profiles, trends, audience, labelCompetition) {
+function resolveScopeNation(scopeId, regionDefs, nations) {
+  if (!scopeId || scopeId === "global") return null;
+  if (Array.isArray(nations) && nations.includes(scopeId)) return scopeId;
+  const region = Array.isArray(regionDefs) ? regionDefs.find((entry) => entry.id === scopeId) : null;
+  return region ? region.nation : null;
+}
+
+function resolveTrackOriginMeta(track) {
+  if (!track) return { actCountry: null, creatorCountries: [], originCountries: [] };
+  const creatorCountries = Array.isArray(track.creatorCountries)
+    ? track.creatorCountries.filter(Boolean)
+    : [];
+  const actCountry = track.actCountry || null;
+  const fallback = track.country || null;
+  const originCountries = Array.from(new Set([actCountry, ...creatorCountries, fallback].filter(Boolean)));
+  return { actCountry: actCountry || fallback, creatorCountries, originCountries };
+}
+
+function homelandBonusForScope(originMeta, scopeNation) {
+  if (!originMeta || !scopeNation) return 0;
+  let bonus = 0;
+  if (originMeta.actCountry === scopeNation) bonus += HOMELAND_ACT_BONUS;
+  const creatorMatches = originMeta.creatorCountries.filter((country) => country === scopeNation).length;
+  if (creatorMatches) {
+    bonus += Math.min(HOMELAND_CREATOR_BONUS_CAP, creatorMatches * HOMELAND_CREATOR_BONUS);
+  }
+  return bonus;
+}
+
+function internationalBiasForScope(originMeta, scopeNation) {
+  if (!originMeta || !scopeNation) return 0;
+  const foreignOrigins = originMeta.originCountries.filter((country) => country && country !== scopeNation);
+  if (!foreignOrigins.length) return 0;
+  const total = foreignOrigins.reduce((sum, country) => {
+    const bias = COUNTRY_RELATION_BIAS?.[scopeNation]?.[country];
+    return sum + (Number.isFinite(bias) ? bias : 0);
+  }, 0);
+  if (!Number.isFinite(total) || !total) return 0;
+  return Math.max(-INTERNATIONAL_RELATION_CAP, Math.min(INTERNATIONAL_RELATION_CAP, total));
+}
+
+function scoreTrack(track, regionName, profiles, trends, audience, labelCompetition, regionDefs, nations) {
   const nationProfiles = profiles?.nations || {};
   const regionProfiles = profiles?.regions || {};
   const fallback = nationProfiles.Annglora || { alignment: "", theme: "", moods: [] };
@@ -86,6 +136,12 @@ function scoreTrack(track, regionName, profiles, trends, audience, labelCompetit
   }
   score += Array.isArray(trends) && trends.includes(track.genre) ? 10 : 0;
   score += track.promoWeeks > 0 ? 10 : 0;
+  const scopeNation = resolveScopeNation(regionName, regionDefs, nations);
+  if (scopeNation) {
+    const originMeta = resolveTrackOriginMeta(track);
+    score += homelandBonusForScope(originMeta, scopeNation);
+    score += internationalBiasForScope(originMeta, scopeNation);
+  }
   score += rand(-4, 4);
   const competitionMultiplier = Number.isFinite(labelCompetition?.[track.label]) ? labelCompetition[track.label] : 1;
   if (competitionMultiplier !== 1) score = Math.round(score * competitionMultiplier);
@@ -97,6 +153,7 @@ function computeCharts(payload) {
   const tracks = Array.isArray(payload?.tracks) ? payload.tracks : [];
   const nations = Array.isArray(payload?.nations) ? payload.nations : [];
   const regionIds = Array.isArray(payload?.regionIds) ? payload.regionIds : [];
+  const regionDefs = Array.isArray(payload?.regionDefs) ? payload.regionDefs : [];
   const chartSizes = payload?.chartSizes || { global: 0, nation: 0, region: 0 };
   const weights = payload?.weights || {};
   const defaultWeights = payload?.defaultWeights || FALLBACK_WEIGHTS;
@@ -118,7 +175,7 @@ function computeCharts(payload) {
   tracks.forEach((track) => {
     let sum = 0;
     nations.forEach((nation) => {
-      const score = scoreTrack(track, nation, profiles, trends, audience, labelCompetition);
+      const score = scoreTrack(track, nation, profiles, trends, audience, labelCompetition, regionDefs, nations);
       const metrics = buildChartMetrics(score, weights?.nations?.[nation], defaultWeights);
       nationScores[nation].push({ key: track.key, score, metrics });
       sum += score;
@@ -130,7 +187,7 @@ function computeCharts(payload) {
       metrics: buildChartMetrics(avg, weights?.global, defaultWeights)
     });
     regionIds.forEach((regionId) => {
-      const score = scoreTrack(track, regionId, profiles, trends, audience, labelCompetition);
+      const score = scoreTrack(track, regionId, profiles, trends, audience, labelCompetition, regionDefs, nations);
       const metrics = buildChartMetrics(score, weights?.regions?.[regionId], defaultWeights);
       regionScores[regionId].push({ key: track.key, score, metrics });
     });

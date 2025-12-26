@@ -19,4 +19,5 @@
 - Coordination: Other AI agents may work in this repo; coordinate changes, avoid overlapping edits, and stop to ask when conflicts appear.
 - Coordination addendum: If other agents made local changes that do not conflict with the task, incorporate them into the current pass.
 - Git status handling: If `git status` shows local changes, proceed on top of them and incorporate them when there is no conflict; ask if there is a conflict or ambiguity.
+- Unexpected files: always adapt to unexpected files found and account for them in the current pass when there is no conflict.
 - Branching: use branches to isolate work when helpful; you may create branches directly, but ask for naming conventions or timing if unclear.

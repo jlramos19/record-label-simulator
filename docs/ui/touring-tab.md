@@ -2,6 +2,10 @@
 
 This doc defines the Touring view (planned) for the future touring feature.
 
+## Status
+- UI stub is live in the primary nav with a placeholder Touring Desk view.
+- Booking logic, calendar integration, and costs remain planned.
+
 ## Placement
 - The tab sits to the right of Promotions in the primary nav.
 - Touring is the final promotion step of an Era, following standard promos.

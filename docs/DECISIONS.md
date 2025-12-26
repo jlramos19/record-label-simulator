@@ -31,3 +31,7 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 
 ## Competitive balance
 - DEC-20251226-003: Chart scoring applies label competition pressure from recent chart share to prevent runaway dominance, and modern-era seeds reduce dominant label bias.
+- DEC-20251226-005: Chart scoring applies homeland bonuses from Act + Creator origins and uses Gaia nation relationship lore to bias international audience response.
+
+## Cheater mode
+- DEC-20251226-004: Cheater mode unlocks economy tuning in the tutorial and disables achievements + quests while active.

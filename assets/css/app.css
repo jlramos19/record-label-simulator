@@ -60,7 +60,7 @@ body::before {
   top: 0;
   z-index: 8;
   display: grid;
-  grid-template-columns: minmax(260px, 340px) minmax(260px, 1fr) minmax(220px, 320px) minmax(220px, 320px);
+  grid-template-columns: minmax(260px, 340px) minmax(260px, 1.2fr) minmax(260px, 1fr) max-content;
   grid-template-rows: auto auto;
   gap: 10px 12px;
   align-items: start;
@@ -281,9 +281,16 @@ body::before {
   overflow: auto;
 }
 .view--releases .panel[data-panel="calendar-view"],
-.view--releases .panel[data-panel="release-desk"] {
+.view--release .panel[data-panel="release-desk"],
+.view--release .panel[data-panel="release-projects"] {
   flex: 1 1 auto;
   min-height: 0;
+}
+.view--release #releaseProjectList {
+  min-height: 120px;
+}
+#chartTypeTabs {
+  margin-bottom: 8px;
 }
 .view-main > .panel.card {
   max-height: 100%;
@@ -1274,6 +1281,9 @@ select.theme-select {
   flex: 0 0 auto;
 }
 .tab.active { background: rgba(244, 177, 90, 0.2); border-color: rgba(244, 177, 90, 0.6); color: var(--accent); }
+.tutorial-tabs { margin-top: 8px; }
+.tutorial-section { margin-top: 12px; }
+.tutorial-input { width: 130px; max-width: 140px; }
 #calendarTabs,
 #calendarModalTabs {
   display: grid;

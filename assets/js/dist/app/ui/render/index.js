@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { getPromoTypeCosts, PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -13,6 +13,16 @@ function getPromoInflationMultiplier() {
     const yearsElapsed = Math.max(0, currentYear - baseYear);
     const annualInflation = 0.02;
     return Math.pow(1 + annualInflation, yearsElapsed);
+}
+function getOwnedModifierIds() {
+    if (!state.inventory || !Array.isArray(state.inventory.modifiers))
+        return [];
+    return state.inventory.modifiers.filter((entry) => typeof entry === "string" && entry);
+}
+function getModifierCosts(modifier, inflationMultiplier = 1) {
+    const baseCost = Number.isFinite(modifier?.basePrice) ? modifier.basePrice : 0;
+    const adjustedCost = Math.round(baseCost * Math.max(1, inflationMultiplier));
+    return { baseCost, adjustedCost };
 }
 function getRolloutBudgetForType(typeId, inflationMultiplier) {
     const { adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
@@ -182,15 +192,69 @@ function renderNationalityPill(country) {
     const demonym = countryDemonym(country);
     return `<span class="pill country-pill" style="color:${textColor}; border-color:${color}; background:${color};">${demonym}</span>`;
 }
+function getCreatorHangulName(creator) {
+    if (!creator)
+        return "";
+    return creator.nameHangul
+        || (creator.surnameHangul && creator.givenNameHangul ? `${creator.surnameHangul}${creator.givenNameHangul}` : "");
+}
 function renderCreatorName(creator, { stacked = true } = {}) {
     if (!creator)
         return "";
     const romanized = creator.name || "";
-    const hangul = creator.nameHangul
-        || (creator.surnameHangul && creator.givenNameHangul ? `${creator.surnameHangul}${creator.givenNameHangul}` : "");
+    const hangul = getCreatorHangulName(creator);
     if (!hangul || !stacked)
         return romanized;
     return `<span class="name-stack"><span class="name-ko" lang="ko">${hangul}</span><span class="name-romanized">${romanized}</span></span>`;
+}
+function isCreatorInAct(creatorId) {
+    if (!creatorId)
+        return false;
+    return state.acts.some((act) => Array.isArray(act.memberIds) && act.memberIds.includes(creatorId));
+}
+function getCreatorStageName(creator) {
+    if (!creator)
+        return "";
+    const stageName = typeof creator.stageName === "string" ? creator.stageName.trim() : "";
+    if (stageName)
+        return stageName;
+    const fallback = String(creator.givenName || creator.name || "").trim();
+    return fallback;
+}
+function formatCreatorRealNameLine(creator) {
+    if (!creator)
+        return "";
+    const romanized = String(creator.name || "").trim();
+    const hangul = getCreatorHangulName(creator);
+    if (hangul && romanized && hangul !== romanized)
+        return `${hangul} / ${romanized}`;
+    return romanized || hangul;
+}
+function renderCreatorStudioName(creator) {
+    if (!creator)
+        return "";
+    if (!isCreatorInAct(creator.id))
+        return renderCreatorName(creator);
+    const stageName = getCreatorStageName(creator);
+    if (!stageName)
+        return renderCreatorName(creator);
+    const realName = formatCreatorRealNameLine(creator);
+    const realLine = realName ? `<span class="muted">[${realName}]</span>` : "";
+    return `<span class="name-stack"><span class="creator-stage-name">${stageName}</span>${realLine}</span>`;
+}
+function buildWorkOrderCrewLabel(crew) {
+    const lead = crew[0] || null;
+    if (!lead)
+        return { primary: "Unassigned", secondary: "" };
+    if (!isCreatorInAct(lead.id))
+        return { primary: lead.name || "Unassigned", secondary: "" };
+    const stageName = getCreatorStageName(lead) || lead.name || "Unassigned";
+    const suffix = crew.length > 1 ? ` +${crew.length - 1}` : "";
+    const realName = formatCreatorRealNameLine(lead);
+    return {
+        primary: `${stageName}${suffix}`,
+        secondary: realName ? `[${realName}]` : ""
+    };
 }
 const SKILL_LEVEL_COUNT = 10;
 const SKILL_EXP_PER_LEVEL = Math.max(1, (SKILL_MAX - SKILL_MIN + 1) / SKILL_LEVEL_COUNT);
@@ -226,6 +290,31 @@ function renderMoodTag(mood) {
 function renderMoodLabel(mood) {
     const emoji = getMoodEmoji(mood) || "❓";
     return `<span class="tag mood">${mood} <span class="mood-emoji">${emoji}</span></span>`;
+}
+function formatModifierDelta(modifier) {
+    if (!modifier)
+        return "Quality 0 | Time 0h | Cost $0";
+    const quality = Number(modifier.qualityDelta || 0);
+    const hours = Number(modifier.hoursDelta || 0);
+    const cost = Number(modifier.costDelta || 0);
+    const qualityLabel = `Quality ${quality > 0 ? "+" : ""}${quality}`;
+    const hoursLabel = `Time ${hours > 0 ? "+" : ""}${hours}h`;
+    const costLabel = `Cost ${cost > 0 ? "+" : ""}${formatMoney(cost)}`;
+    return `${qualityLabel} | ${hoursLabel} | ${costLabel}`;
+}
+function renderModifierFocus(modifier) {
+    if (!modifier)
+        return "";
+    const tags = [];
+    if (modifier.theme)
+        tags.push(renderThemeTag(modifier.theme));
+    if (modifier.mood)
+        tags.push(renderMoodTag(modifier.mood));
+    if (modifier.alignment)
+        tags.push(renderAlignmentTag(modifier.alignment));
+    if (!tags.length)
+        return "";
+    return `<div class="muted">Focus: ${tags.join(" ")}</div>`;
 }
 function renderGenrePills(theme, mood, { fallback = "-" } = {}) {
     if (!theme || !mood)
@@ -389,6 +478,7 @@ function renderSlots() {
     document.querySelectorAll(".id-slot").forEach((slot) => {
         const target = slot.dataset.slotTarget;
         const type = slot.dataset.slotType;
+        const slotGroup = slot.dataset.slotGroup || "";
         const value = getSlotValue(target);
         const valueEl = slot.querySelector(".slot-value");
         const avatarEl = slot.querySelector(".slot-avatar");
@@ -396,7 +486,12 @@ function renderSlots() {
             return;
         if (type === "creator") {
             const creator = value ? getCreator(value) : null;
-            valueEl.innerHTML = creator ? renderCreatorName(creator) : unassignedCreatorLabel;
+            if (creator && slotGroup === "track") {
+                valueEl.innerHTML = renderCreatorStudioName(creator);
+            }
+            else {
+                valueEl.innerHTML = creator ? renderCreatorName(creator) : unassignedCreatorLabel;
+            }
             if (avatarEl) {
                 const portraitUrl = creator ? getCreatorPortraitUrl(creator) : null;
                 const hasImage = Boolean(portraitUrl);
@@ -489,8 +584,11 @@ function refreshSelectOptions() {
     if (moodSelect)
         moodSelect.innerHTML = buildMoodOptions();
     const modifierSelect = $("modifierSelect");
-    if (modifierSelect)
-        modifierSelect.innerHTML = MODIFIERS.map((mod) => `<option value="${mod.id}">${mod.label}</option>`).join("");
+    if (modifierSelect) {
+        const owned = new Set(getOwnedModifierIds());
+        const options = MODIFIERS.filter((mod) => mod.id === "None" || owned.has(mod.id));
+        modifierSelect.innerHTML = options.map((mod) => `<option value="${mod.id}">${mod.label}</option>`).join("");
+    }
     const actTypeSelect = $("actTypeSelect");
     if (actTypeSelect)
         actTypeSelect.innerHTML = ACT_TYPES.map((type) => `<option value="${type}">${type}</option>`).join("");
@@ -654,7 +752,7 @@ function renderTime() {
     $("timeDisplay").textContent = formatDate(state.time.epochMs);
     $("weekDisplay").textContent = `Week ${weekIndex() + 1}`;
     const chartHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
-    $("chartCountdown").textContent = `Charts update in ${formatHourCountdown(chartHours)}h`;
+    $("chartCountdown").textContent = `Charts update in ${formatHourCountdown(chartHours, { padHours: 3 })}h`;
     const mode = getGameMode(state.meta?.gameMode);
     const modeLabel = shortGameModeLabel(mode.label);
     const modeEl = $("gameModeDisplay");
@@ -1009,16 +1107,18 @@ function renderDashboard() {
                 const track = getTrack(order.trackId);
                 const crewIds = getWorkOrderCreatorIds(order);
                 const crew = crewIds.map((id) => getCreator(id)).filter(Boolean);
-                const lead = crew[0] || null;
-                const crewLabel = lead ? (crew.length > 1 ? `${lead.name} +${crew.length - 1}` : lead.name) : "Unassigned";
+                const crewLabel = buildWorkOrderCrewLabel(crew);
                 const stage = STAGES[order.stageIndex];
                 const hoursLeft = Math.max(0, Math.ceil((order.endAt - now) / HOUR_MS));
+                const crewLine = `${stage?.name || "Stage"} | ${crewLabel.primary}`;
+                const crewDetail = crewLabel.secondary ? `<div class="muted">${crewLabel.secondary}</div>` : "";
                 return `
             <div class="list-item">
               <div class="list-row">
                 <div>
                   <div class="item-title">${track ? track.title : "Unknown"}</div>
-                  <div class="muted">${stage?.name || "Stage"} | ${crewLabel}</div>
+                  <div class="muted">${crewLine}</div>
+                  ${crewDetail}
                 </div>
                 <div class="pill">${hoursLeft}h</div>
               </div>
@@ -1155,6 +1255,295 @@ function renderRoleActions() {
       `).join("")}
     </div>
   `).join("");
+}
+function renderTutorialEconomy() {
+    const listEl = $("tutorialEconomyList");
+    const tuningEl = $("tutorialEconomyTuning");
+    const noticeEl = $("tutorialCheaterNotice");
+    if (!listEl || !tuningEl)
+        return;
+    const safeNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
+    const cheaterActive = Boolean(state.meta?.cheaterMode);
+    if (noticeEl) {
+        noticeEl.textContent = cheaterActive
+            ? "Cheater mode active. Achievements and quests are disabled while active."
+            : "Enable Cheater Mode in Settings to edit economy tuning.";
+    }
+    const revenueRate = safeNumber(ECONOMY_TUNING?.revenuePerChartPoint, 22);
+    const upkeepPerCreator = safeNumber(ECONOMY_TUNING?.upkeepPerCreator, 150);
+    const upkeepPerStudio = safeNumber(ECONOMY_TUNING?.upkeepPerOwnedStudio, 600);
+    const promoStep = safeNumber(ECONOMY_TUNING?.promoWeekBudgetStep, 1200);
+    const promoBase = safeNumber(ECONOMY_TUNING?.promoWeekBase, 1);
+    const promoMin = safeNumber(ECONOMY_TUNING?.promoWeeksMin, 1);
+    const promoMax = safeNumber(ECONOMY_TUNING?.promoWeeksMax, 4);
+    const releaseFee = safeNumber(ECONOMY_BASELINES?.physicalReleaseFee, 0);
+    const baseSingle = safeNumber(ECONOMY_BASELINES?.physicalSingle, 4.99);
+    const unitRatio = safeNumber(ECONOMY_BASELINES?.physicalUnitCostRatio, 0.35);
+    const unitCostMin = safeNumber(ECONOMY_TUNING?.physicalUnitCostMin, 0.5);
+    const runMin = safeNumber(ECONOMY_BASELINES?.physicalRunMin, 200);
+    const runMax = safeNumber(ECONOMY_BASELINES?.physicalRunMax, 25000);
+    const runRound = safeNumber(ECONOMY_BASELINES?.physicalRunRound, 50);
+    const multSingle = safeNumber(ECONOMY_PRICE_MULTIPLIERS?.single, 1);
+    const multEp = safeNumber(ECONOMY_PRICE_MULTIPLIERS?.ep, 1.55);
+    const multAlbum = safeNumber(ECONOMY_PRICE_MULTIPLIERS?.album, 2.25);
+    const ratioLabel = `${Math.round(unitRatio * 100)}%`;
+    listEl.innerHTML = [
+        `
+      <div class="list-item">
+        <div class="item-title">Weekly revenue</div>
+        <div class="muted">Revenue = sum(max(0, score) * ${formatMoney(revenueRate)}) * difficulty revenue multiplier.</div>
+        <div class="tiny muted">Each track uses the same ${formatMoney(revenueRate)} per chart score point.</div>
+      </div>
+    `,
+        `
+      <div class="list-item">
+        <div class="item-title">Weekly upkeep</div>
+        <div class="muted">Upkeep = (creators * ${formatMoney(upkeepPerCreator)}) + (owned studios * ${formatMoney(upkeepPerStudio)}) + lease fees.</div>
+        <div class="tiny muted">Final upkeep multiplies by difficulty upkeep modifier.</div>
+      </div>
+    `,
+        `
+      <div class="list-item">
+        <div class="item-title">Distribution fee</div>
+        <div class="muted">Physical/Both releases charge ${formatMoney(releaseFee)} upfront; Digital releases are $0.</div>
+      </div>
+    `,
+        `
+      <div class="list-item">
+        <div class="item-title">Physical unit price</div>
+        <div class="muted">Unit price = ${formatMoney(baseSingle)} * multiplier (Single ${multSingle}x, EP ${multEp}x, Album ${multAlbum}x).</div>
+      </div>
+    `,
+        `
+      <div class="list-item">
+        <div class="item-title">Physical unit cost</div>
+        <div class="muted">Unit cost = max(${formatMoney(unitCostMin)}, unit price * ${ratioLabel}).</div>
+      </div>
+    `,
+        `
+      <div class="list-item">
+        <div class="item-title">Promo weeks from budget</div>
+        <div class="muted">Promo weeks = clamp(floor(budget / ${formatMoney(promoStep)}) + ${formatCount(promoBase)}, ${formatCount(promoMin)} to ${formatCount(promoMax)}).</div>
+      </div>
+    `,
+        `
+      <div class="list-item">
+        <div class="item-title">Physical run rounding</div>
+        <div class="muted">Recommended units round to ${formatCount(runRound)} and clamp between ${formatCount(runMin)} and ${formatCount(runMax)} (budget caps apply).</div>
+      </div>
+    `
+    ].join("");
+    const attr = (name, value) => (typeof value === "undefined" || value === null ? "" : ` ${name}="${value}"`);
+    const formatValue = (value, format) => {
+        if (!Number.isFinite(value))
+            return "-";
+        if (format === "money")
+            return formatMoney(value);
+        if (format === "percent")
+            return `${Math.round(value * 100)}%`;
+        if (format === "multiplier")
+            return `${value.toFixed(2)}x`;
+        return formatCount(value);
+    };
+    const fields = [
+        {
+            label: "Revenue per chart score",
+            detail: "Cash per chart score point.",
+            target: "tuning",
+            key: "revenuePerChartPoint",
+            value: revenueRate,
+            min: 0,
+            step: 1,
+            format: "money"
+        },
+        {
+            label: "Upkeep per creator",
+            detail: "Weekly upkeep per signed creator.",
+            target: "tuning",
+            key: "upkeepPerCreator",
+            value: upkeepPerCreator,
+            min: 0,
+            step: 1,
+            format: "money"
+        },
+        {
+            label: "Upkeep per owned studio",
+            detail: "Weekly upkeep per owned studio slot.",
+            target: "tuning",
+            key: "upkeepPerOwnedStudio",
+            value: upkeepPerStudio,
+            min: 0,
+            step: 1,
+            format: "money"
+        },
+        {
+            label: "Promo budget step",
+            detail: "Budget per promo week tier.",
+            target: "tuning",
+            key: "promoWeekBudgetStep",
+            value: promoStep,
+            min: 0,
+            step: 50,
+            format: "money"
+        },
+        {
+            label: "Promo week base",
+            detail: "Weeks added before clamp.",
+            target: "tuning",
+            key: "promoWeekBase",
+            value: promoBase,
+            min: 0,
+            step: 1,
+            format: "count"
+        },
+        {
+            label: "Promo weeks min",
+            detail: "Minimum promo weeks.",
+            target: "tuning",
+            key: "promoWeeksMin",
+            value: promoMin,
+            min: 0,
+            step: 1,
+            format: "count"
+        },
+        {
+            label: "Promo weeks max",
+            detail: "Maximum promo weeks.",
+            target: "tuning",
+            key: "promoWeeksMax",
+            value: promoMax,
+            min: 1,
+            step: 1,
+            format: "count"
+        },
+        {
+            label: "Physical release fee",
+            detail: "Upfront fee for Physical/Both releases.",
+            target: "baselines",
+            key: "physicalReleaseFee",
+            value: releaseFee,
+            min: 0,
+            step: 50,
+            format: "money"
+        },
+        {
+            label: "Physical single base price",
+            detail: "Base single price before multipliers.",
+            target: "baselines",
+            key: "physicalSingle",
+            value: baseSingle,
+            min: 0.01,
+            step: 0.01,
+            format: "money"
+        },
+        {
+            label: "Single price multiplier",
+            detail: "Single price multiplier.",
+            target: "priceMultipliers",
+            key: "single",
+            value: multSingle,
+            min: 0,
+            step: 0.05,
+            format: "multiplier"
+        },
+        {
+            label: "EP price multiplier",
+            detail: "EP price multiplier.",
+            target: "priceMultipliers",
+            key: "ep",
+            value: multEp,
+            min: 0,
+            step: 0.05,
+            format: "multiplier"
+        },
+        {
+            label: "Album price multiplier",
+            detail: "Album price multiplier.",
+            target: "priceMultipliers",
+            key: "album",
+            value: multAlbum,
+            min: 0,
+            step: 0.05,
+            format: "multiplier"
+        },
+        {
+            label: "Physical unit cost ratio",
+            detail: "Unit cost as % of unit price.",
+            target: "baselines",
+            key: "physicalUnitCostRatio",
+            value: unitRatio,
+            min: 0,
+            max: 1,
+            step: 0.01,
+            format: "percent"
+        },
+        {
+            label: "Physical unit cost floor",
+            detail: "Minimum unit cost.",
+            target: "tuning",
+            key: "physicalUnitCostMin",
+            value: unitCostMin,
+            min: 0,
+            step: 0.1,
+            format: "money"
+        },
+        {
+            label: "Physical run rounding",
+            detail: "Round units to this increment.",
+            target: "baselines",
+            key: "physicalRunRound",
+            value: runRound,
+            min: 0,
+            step: 10,
+            format: "count"
+        },
+        {
+            label: "Physical run min",
+            detail: "Minimum recommended units.",
+            target: "baselines",
+            key: "physicalRunMin",
+            value: runMin,
+            min: 0,
+            step: 10,
+            format: "count"
+        },
+        {
+            label: "Physical run max",
+            detail: "Maximum recommended units.",
+            target: "baselines",
+            key: "physicalRunMax",
+            value: runMax,
+            min: 0,
+            step: 100,
+            format: "count"
+        }
+    ];
+    tuningEl.innerHTML = fields.map((field) => {
+        const inputValue = Number.isFinite(field.value) ? field.value : "";
+        const display = formatValue(field.value, field.format);
+        return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${field.label}</div>
+            <div class="muted">${field.detail}</div>
+          </div>
+          <input
+            type="number"
+            class="tutorial-input"
+            data-cheat-econ-target="${field.target}"
+            data-cheat-econ-key="${field.key}"
+            value="${inputValue}"
+            ${cheaterActive ? "" : "disabled"}
+            ${attr("min", field.min)}
+            ${attr("max", field.max)}
+            ${attr("step", field.step)}
+          >
+        </div>
+        <div class="tiny muted">Current: ${display}</div>
+      </div>
+    `;
+    }).join("");
 }
 function renderEconomySummary() {
     if (!$("economySummary"))
@@ -1490,6 +1879,66 @@ function renderInventory() {
       </div>
     </div>
   `).join("");
+}
+function renderModifierInventory() {
+    const listEl = $("modifierInventoryList");
+    if (!listEl)
+        return;
+    const owned = new Set(getOwnedModifierIds());
+    const items = MODIFIERS.filter((mod) => mod.id !== "None" && owned.has(mod.id));
+    if (!items.length) {
+        listEl.innerHTML = `<div class="muted">No modifiers purchased yet.</div>`;
+        return;
+    }
+    listEl.innerHTML = items.map((modifier) => `
+    <div class="list-item">
+      <div class="item-title">${modifier.label}</div>
+      <div class="muted">${modifier.desc}</div>
+      ${renderModifierFocus(modifier)}
+      <div class="tiny muted">${formatModifierDelta(modifier)}</div>
+    </div>
+  `).join("");
+}
+function renderModifierTools() {
+    const listEl = $("communityToolsList");
+    if (!listEl)
+        return;
+    const inflationMultiplier = getPromoInflationMultiplier();
+    const inflationLabel = $("modifierInflationLabel");
+    if (inflationLabel)
+        inflationLabel.textContent = `Inflation x${inflationMultiplier.toFixed(2)}`;
+    const owned = new Set(getOwnedModifierIds());
+    const tools = MODIFIERS.filter((mod) => mod.id !== "None");
+    if (!tools.length) {
+        listEl.innerHTML = `<div class="muted">No modifiers available.</div>`;
+        return;
+    }
+    listEl.innerHTML = tools.map((modifier) => {
+        const { baseCost, adjustedCost } = getModifierCosts(modifier, inflationMultiplier);
+        const isOwned = owned.has(modifier.id);
+        const canAfford = state.label.cash >= adjustedCost;
+        const buttonLabel = isOwned
+            ? "Owned"
+            : `Buy ${formatMoney(adjustedCost)}${canAfford ? "" : " (short)"}`;
+        const buttonState = isOwned || !canAfford ? " disabled" : "";
+        const focusLine = renderModifierFocus(modifier);
+        const deltaLine = `<div class="tiny muted">${formatModifierDelta(modifier)}</div>`;
+        const priceLine = `<div class="tiny muted">Base ${formatMoney(baseCost)} | Inflation-adjusted ${formatMoney(adjustedCost)}</div>`;
+        return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${modifier.label}</div>
+            <div class="muted">${modifier.desc}</div>
+            ${focusLine}
+            ${deltaLine}
+            ${priceLine}
+          </div>
+          <button type="button" class="ghost mini" data-modifier-buy="${modifier.id}"${buttonState}>${buttonLabel}</button>
+        </div>
+      </div>
+    `;
+    }).join("");
 }
 function renderCalendarEraList(eras) {
     if (!eras.length) {
@@ -1959,16 +2408,18 @@ function renderWorkOrders() {
         const track = getTrack(order.trackId);
         const crewIds = getWorkOrderCreatorIds(order);
         const crew = crewIds.map((id) => getCreator(id)).filter(Boolean);
-        const lead = crew[0] || null;
-        const crewLabel = lead ? (crew.length > 1 ? `${lead.name} +${crew.length - 1}` : lead.name) : "Unassigned";
+        const crewLabel = buildWorkOrderCrewLabel(crew);
         const stage = STAGES[order.stageIndex];
         const hoursLeft = order.status === "In Progress" ? Math.max(0, Math.ceil((order.endAt - now) / HOUR_MS)) : "Queued";
+        const crewLine = `${stage?.name || "Stage"} | ${crewLabel.primary}`;
+        const crewDetail = crewLabel.secondary ? `<div class="muted">${crewLabel.secondary}</div>` : "";
         return `
       <div class="list-item">
         <div class="list-row">
           <div>
             <div class="item-title">${track ? track.title : "Unknown"}</div>
-            <div class="muted">${stage.name} | ${crewLabel}</div>
+            <div class="muted">${crewLine}</div>
+            ${crewDetail}
           </div>
           <div class="pill">${hoursLeft}h</div>
         </div>
@@ -2123,14 +2574,18 @@ function renderTracks() {
     const activeView = state.ui.activeView || "";
     const createStage = state.ui.createStage || "sheet";
     const allTracks = state.tracks;
+    const pipelineTracks = allTracks.filter((track) => (track.status === "In Production"
+        || track.status === "Awaiting Demo"
+        || track.status === "Awaiting Master"));
     const archivedTracks = allTracks.filter((track) => track.status === "Released");
     let tracks = allTracks.filter((track) => track.status !== "Released");
     if (activeView === "create") {
+        tracks = pipelineTracks;
         if (createStage === "demo") {
-            tracks = tracks.filter((track) => track.status === "Awaiting Demo");
+            tracks = tracks.filter((track) => track.stageIndex === 1);
         }
         else if (createStage === "master") {
-            tracks = tracks.filter((track) => track.status === "Awaiting Master");
+            tracks = tracks.filter((track) => track.stageIndex === 2);
         }
     }
     const trackList = $("trackList");
@@ -2140,7 +2595,9 @@ function renderTracks() {
                 ? "No sheet music awaiting demo recordings."
                 : activeView === "create" && createStage === "master"
                     ? "No demos awaiting mastering."
-                    : "No active tracks in catalog.";
+                    : activeView === "create"
+                        ? "No tracks in the creation pipeline."
+                        : "No active tracks in catalog.";
             if (archivedTracks.length && emptyMsg === "No active tracks in catalog.") {
                 emptyMsg = `${emptyMsg} Released tracks are in the Archive.`;
             }
@@ -2657,6 +3114,43 @@ function renderEraPerformance() {
   `;
     renderEraHistoryPanel(targetEra);
 }
+function projectKey(projectName, projectType) {
+    const nameKey = normalizeProjectName(projectName);
+    const typeKey = normalizeProjectType(projectType);
+    return `${nameKey}::${typeKey}`;
+}
+function collectProjectSummaries(tracks, queuedIds) {
+    const summaries = new Map();
+    tracks.forEach((track) => {
+        const projectName = track.projectName || `${track.title} - Single`;
+        const projectType = normalizeProjectType(track.projectType || "Single");
+        const key = projectKey(projectName, projectType);
+        const summary = summaries.get(key) || {
+            projectName,
+            projectType,
+            trackCount: 0,
+            readyCount: 0,
+            masteringCount: 0,
+            scheduledCount: 0,
+            releasedCount: 0,
+            actNames: new Set()
+        };
+        summary.trackCount += 1;
+        if (track.status === "Released")
+            summary.releasedCount += 1;
+        if (track.status === "Ready")
+            summary.readyCount += 1;
+        if (track.status !== "Ready" && isMasteringTrack(track))
+            summary.masteringCount += 1;
+        if (queuedIds.has(track.id))
+            summary.scheduledCount += 1;
+        const act = track.actId ? getAct(track.actId) : null;
+        if (act?.name)
+            summary.actNames.add(act.name);
+        summaries.set(key, summary);
+    });
+    return Array.from(summaries.values()).sort((a, b) => a.projectName.localeCompare(b.projectName));
+}
 function renderReleaseDesk() {
     const readyList = $("readyList");
     if (!readyList)
@@ -2677,6 +3171,41 @@ function renderReleaseDesk() {
         state.ui.releaseDeskLock = false;
     }
     const queuedIds = new Set(state.releaseQueue.map((entry) => entry.trackId));
+    const projectSummaries = collectProjectSummaries(state.tracks, queuedIds);
+    const projectSummaryByKey = new Map(projectSummaries.map((summary) => [projectKey(summary.projectName, summary.projectType), summary]));
+    const projectList = $("releaseProjectList");
+    if (projectList) {
+        if (!projectSummaries.length) {
+            projectList.innerHTML = `<div class="muted">No projects yet. Create content in Create, then return here to schedule releases.</div>`;
+        }
+        else {
+            projectList.innerHTML = projectSummaries.map((summary) => {
+                const limits = getProjectTrackLimits(summary.projectType);
+                const minRemaining = Math.max(0, limits.min - summary.trackCount);
+                const maxRemaining = Math.max(0, limits.max - summary.trackCount);
+                const statusLabel = minRemaining > 0
+                    ? `${minRemaining} to minimum`
+                    : maxRemaining === 0
+                        ? "At cap"
+                        : `+${maxRemaining} slots`;
+                const statusClass = minRemaining > 0 || maxRemaining === 0 ? "badge warn" : "badge";
+                const readyTotal = summary.readyCount + summary.masteringCount;
+                const actLabel = summary.actNames.size ? Array.from(summary.actNames).join(", ") : "Unassigned";
+                return `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">${summary.projectName}</div>
+                <div class="muted">${summary.projectType} | Tracks ${summary.trackCount}/${limits.max} | Ready ${formatCount(readyTotal)} | Scheduled ${formatCount(summary.scheduledCount)} | Released ${formatCount(summary.releasedCount)}</div>
+                <div class="muted">Acts: ${actLabel}</div>
+              </div>
+              <div class="${statusClass}">${statusLabel}</div>
+            </div>
+          </div>
+        `;
+            }).join("");
+        }
+    }
     const asapAt = getReleaseAsapAt();
     const asapLabel = formatDate(asapAt);
     const distributionSelect = $("releaseDistribution");
@@ -2710,7 +3239,18 @@ function renderReleaseDesk() {
         `
                 : `<div class="muted">No Acts available. Create one in Roster.</div>`;
             const project = track.projectName || `${track.title} - Single`;
-            const projectType = track.projectType || "Single";
+            const projectType = normalizeProjectType(track.projectType || "Single");
+            const limits = getProjectTrackLimits(projectType);
+            const summaryKey = projectKey(project, projectType);
+            const summary = projectSummaryByKey.get(summaryKey);
+            const projectCount = summary ? summary.trackCount : 1;
+            const minRemaining = Math.max(0, limits.min - projectCount);
+            const maxRemaining = Math.max(0, limits.max - projectCount);
+            const projectCountLine = minRemaining > 0
+                ? `Project size: ${projectCount}/${limits.max} (${minRemaining} to minimum)`
+                : maxRemaining === 0
+                    ? `Project size: ${projectCount}/${limits.max} (at cap)`
+                    : `Project size: ${projectCount}/${limits.max}`;
             const themeTag = renderThemeTag(track.theme);
             const alignTag = renderAlignmentTag(track.alignment);
             const modifierName = track.modifier ? track.modifier.label : "None";
@@ -2733,6 +3273,7 @@ function renderReleaseDesk() {
                 <div class="muted">${genreLabel} | <span class="grade-text" data-grade="${grade}">${grade}</span>${isReady ? "" : ` | ${statusLabel}`}</div>
                 <div class="muted">${themeTag} ${alignTag}</div>
                 <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
+                <div class="muted">${projectCountLine}</div>
                 <div class="muted">Modifier: ${modifierName}</div>
                 <div class="muted">Recommended: ${recLabel} - ${rec.reason}</div>
                 ${actSelect}
@@ -2762,7 +3303,7 @@ function renderReleaseDesk() {
         const date = formatDate(entry.releaseAt);
         const act = track ? getAct(track.actId) : null;
         const project = track ? (track.projectName || `${track.title} - Single`) : "Unknown";
-        const projectType = track?.projectType || "Single";
+        const projectType = track ? normalizeProjectType(track.projectType || "Single") : "Single";
         const distribution = entry.distribution || entry.note || "Digital";
         return `
       <div class="list-item">
@@ -2780,6 +3321,50 @@ function renderReleaseDesk() {
     `;
     });
     $("releaseQueueList").innerHTML = queue.join("");
+}
+function collectProjectChartEntries(entries) {
+    const projects = new Map();
+    (entries || []).forEach((entry) => {
+        const track = entry.track || entry;
+        if (!track)
+            return;
+        const projectName = track.projectName || `${track.title} - Single`;
+        const projectType = normalizeProjectType(track.projectType || "Single");
+        const label = track.label || "Unknown";
+        const actName = track.actName || "-";
+        const key = `${normalizeProjectName(projectName)}::${projectType}::${label}::${actName}`;
+        const metrics = entry.metrics || {};
+        const score = Number(entry.score || 0);
+        const existing = projects.get(key) || {
+            projectName,
+            projectType,
+            label,
+            actName,
+            alignment: track.alignment,
+            country: track.country || "Annglora",
+            primaryTrack: track,
+            primaryScore: Number.isFinite(score) ? score : 0,
+            trackCount: 0,
+            metrics: { sales: 0, streaming: 0, airplay: 0, social: 0 },
+            score: 0
+        };
+        existing.trackCount += 1;
+        if (Number.isFinite(score)) {
+            existing.score += score;
+            if (!existing.primaryTrack || score > existing.primaryScore) {
+                existing.primaryTrack = track;
+                existing.primaryScore = score;
+            }
+        }
+        existing.metrics.sales += Number(metrics.sales || 0);
+        existing.metrics.streaming += Number(metrics.streaming || 0);
+        existing.metrics.airplay += Number(metrics.airplay || 0);
+        existing.metrics.social += Number(metrics.social || 0);
+        projects.set(key, existing);
+    });
+    return Array.from(projects.values())
+        .sort((a, b) => b.score - a.score)
+        .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
 function buildTrendRankingList({ limit = null, showMore = false } = {}) {
     const { visible, aggregate } = collectTrendRanking();
@@ -3045,6 +3630,10 @@ function renderStudiosList() {
     }).join("");
 }
 function renderCharts() {
+    const contentType = state.ui.chartContentType || "tracks";
+    document.querySelectorAll("#chartTypeTabs .tab").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.chartContent === contentType);
+    });
     document.querySelectorAll("#chartTabs .tab").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.chart === state.ui.activeChart);
     });
@@ -3081,6 +3670,7 @@ function renderCharts() {
         }
     }
     entries = Array.isArray(entries) ? entries : [];
+    const displayEntries = contentType === "projects" ? collectProjectChartEntries(entries) : entries;
     const weekLabel = formatWeekRangeLabel(historyWeek || (weekIndex() + 1));
     if ($("chartWeekRange"))
         $("chartWeekRange").textContent = weekLabel;
@@ -3099,54 +3689,86 @@ function renderCharts() {
     if (meta) {
         const weights = chartWeightsForScope(state.ui.activeChart || "global");
         const pct = (value) => Math.round(value * 100);
-        meta.textContent = `Top ${size} | ${scopeLabel} | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
+        const contentLabel = contentType === "projects" ? "Project" : "Track";
+        meta.textContent = `Top ${size} | ${scopeLabel} | ${contentLabel} charts | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
     }
-    const globalLocked = activeChart === "global" && entries.length < size;
+    const globalLocked = contentType === "tracks" && activeChart === "global" && displayEntries.length < size;
     if (historyMissing) {
         $("chartList").innerHTML = `<div class="muted">No saved chart history for this week and scope.</div>`;
     }
     else if (globalLocked) {
-        const remaining = Math.max(0, size - entries.length);
+        const remaining = Math.max(0, size - displayEntries.length);
         $("chartList").innerHTML = `<div class="muted">Global chart unlocks when ${formatCount(size)} tracks are in circulation. ${formatCount(remaining)} more needed.</div>`;
     }
-    else if (!entries.length) {
+    else if (!displayEntries.length) {
         $("chartList").innerHTML = `<div class="muted">No chart data yet.</div>`;
     }
     else {
-        const rows = entries.map((entry) => {
-            const track = entry.track || entry;
-            const labelTag = renderLabelTag(track.label, track.country || "Annglora");
-            const alignTag = renderAlignmentTag(track.alignment);
-            const actName = track.actName || "-";
-            const projectName = track.projectName || "-";
-            const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
-            const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
-            const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
-            const metrics = entry.metrics || {};
-            return `
-        <tr>
-          <td class="chart-rank">#${entry.rank}</td>
-          <td class="chart-title">
-            <div class="item-title">${track.title}</div>
-            <div class="muted">${renderTrackGenrePills(track, { fallback: "Genre -" })}</div>
-          </td>
-          <td class="chart-label">${labelTag}</td>
-          <td class="chart-act">
-            <div>${actName}</div>
-            <div class="muted">${projectName}</div>
-          </td>
-          <td class="chart-align">${alignTag}</td>
-          <td class="chart-metrics">
-            <div class="muted">${lastRank} | ${peak} | ${woc}</div>
-            <div class="muted">Sales ${formatCount(metrics.sales || 0)} | Stream ${formatCount(metrics.streaming || 0)}</div>
-            <div class="muted">Air ${formatCount(metrics.airplay || 0)} | Social ${formatCount(metrics.social || 0)}</div>
-          </td>
-          <td class="chart-score">${entry.score}</td>
-        </tr>
-      `;
-        });
-        if (entries.length < size) {
-            for (let i = entries.length + 1; i <= size; i += 1) {
+        const rows = contentType === "projects"
+            ? displayEntries.map((entry) => {
+                const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
+                const alignTag = renderAlignmentTag(entry.alignment);
+                const metrics = entry.metrics || {};
+                const trackCount = entry.trackCount || 0;
+                const genreLine = entry.primaryTrack
+                    ? renderTrackGenrePills(entry.primaryTrack, { fallback: "Genre -" })
+                    : "Genre -";
+                return `
+          <tr>
+            <td class="chart-rank">#${entry.rank}</td>
+            <td class="chart-title">
+              <div class="item-title">${entry.projectName}</div>
+              <div class="muted">${entry.projectType} | ${formatCount(trackCount)} track${trackCount === 1 ? "" : "s"}</div>
+            </td>
+            <td class="chart-label">${labelTag}</td>
+            <td class="chart-act">
+              <div>${entry.actName || "-"}</div>
+              <div class="muted">${genreLine}</div>
+            </td>
+            <td class="chart-align">${alignTag}</td>
+            <td class="chart-metrics">
+              <div class="muted">Charting tracks ${formatCount(trackCount)}</div>
+              <div class="muted">Sales ${formatCount(metrics.sales || 0)} | Stream ${formatCount(metrics.streaming || 0)}</div>
+              <div class="muted">Air ${formatCount(metrics.airplay || 0)} | Social ${formatCount(metrics.social || 0)}</div>
+            </td>
+            <td class="chart-score">${formatCount(entry.score || 0)}</td>
+          </tr>
+        `;
+            })
+            : displayEntries.map((entry) => {
+                const track = entry.track || entry;
+                const labelTag = renderLabelTag(track.label, track.country || "Annglora");
+                const alignTag = renderAlignmentTag(track.alignment);
+                const actName = track.actName || "-";
+                const projectName = track.projectName || "-";
+                const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
+                const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
+                const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
+                const metrics = entry.metrics || {};
+                return `
+          <tr>
+            <td class="chart-rank">#${entry.rank}</td>
+            <td class="chart-title">
+              <div class="item-title">${track.title}</div>
+              <div class="muted">${renderTrackGenrePills(track, { fallback: "Genre -" })}</div>
+            </td>
+            <td class="chart-label">${labelTag}</td>
+            <td class="chart-act">
+              <div>${actName}</div>
+              <div class="muted">${projectName}</div>
+            </td>
+            <td class="chart-align">${alignTag}</td>
+            <td class="chart-metrics">
+              <div class="muted">${lastRank} | ${peak} | ${woc}</div>
+              <div class="muted">Sales ${formatCount(metrics.sales || 0)} | Stream ${formatCount(metrics.streaming || 0)}</div>
+              <div class="muted">Air ${formatCount(metrics.airplay || 0)} | Social ${formatCount(metrics.social || 0)}</div>
+            </td>
+            <td class="chart-score">${entry.score}</td>
+          </tr>
+        `;
+            });
+        if (displayEntries.length < size) {
+            for (let i = displayEntries.length + 1; i <= size; i += 1) {
                 rows.push(`
           <tr class="chart-empty">
             <td class="chart-rank">#${i}</td>
@@ -3171,15 +3793,17 @@ function renderCharts() {
             }
         }
         const rowMarkup = rows.join("");
+        const contentHeader = contentType === "projects" ? "Project" : "Track";
+        const actHeader = contentType === "projects" ? "Act / Genre" : "Act / Project";
         $("chartList").innerHTML = `
       <div class="chart-table-wrap">
         <table class="chart-table">
           <thead>
             <tr>
               <th>Rank</th>
-              <th>Track</th>
+              <th>${contentHeader}</th>
               <th>Label</th>
-              <th>Act / Project</th>
+              <th>${actHeader}</th>
               <th>Alignment</th>
               <th>Stats</th>
               <th>Score</th>
@@ -3255,8 +3879,13 @@ function renderAchievements() {
     }).join("");
     if (summaryEl) {
         const count = Math.max(unlocked.size, state.meta.achievements || 0);
-        const lock = state.meta.achievementsLocked ? "Achievements locked after bailout." : "";
-        summaryEl.textContent = `CEO Requests ${count} / ${ACHIEVEMENT_TARGET}${lock ? ` | ${lock}` : ""}`;
+        const notes = [];
+        if (state.meta.achievementsLocked)
+            notes.push("Achievements locked after bailout.");
+        if (state.meta.cheaterMode)
+            notes.push("Cheater mode active: achievements paused.");
+        const noteText = notes.join(" ");
+        summaryEl.textContent = `CEO Requests ${count} / ${ACHIEVEMENT_TARGET}${noteText ? ` | ${noteText}` : ""}`;
     }
 }
 function renderQuests() {
@@ -3264,6 +3893,10 @@ function renderQuests() {
     const questList = $("questList");
     if (!questList)
         return;
+    if (state.meta.cheaterMode) {
+        questList.innerHTML = `<div class="muted">Cheater mode active. Quests are disabled.</div>`;
+        return;
+    }
     if (!state.quests.length) {
         questList.innerHTML = `<div class="muted">No active quests.</div>`;
         return;
@@ -3450,6 +4083,11 @@ function renderMainMenu() {
         autoSaveMinutes.disabled = disabled;
         autoSaveToggle.disabled = disabled;
     }
+    const cheaterToggle = $("cheaterModeToggle");
+    if (cheaterToggle) {
+        cheaterToggle.checked = Boolean(state.meta.cheaterMode);
+        cheaterToggle.disabled = !session.activeSlot;
+    }
 }
 function openMainMenu() {
     document.body.classList.add("menu-open");
@@ -3514,11 +4152,14 @@ function renderActiveStudiosSelect(stageId, selectId, metaId) {
         const crew = crewIds.map((id) => getCreator(id)).filter(Boolean);
         const lead = crew[0] || null;
         const stageName = STAGES[order.stageIndex]?.name || stageLabel;
-        const crewLabel = lead ? (crew.length > 1 ? `${lead.name} +${crew.length - 1}` : lead.name) : null;
+        const crewLabel = buildWorkOrderCrewLabel(crew);
+        const crewText = lead
+            ? `${crewLabel.primary}${crewLabel.secondary ? ` ${crewLabel.secondary}` : ""}`
+            : null;
         return {
             slot: Number.isFinite(order.studioSlot) ? order.studioSlot : null,
             trackTitle: track ? track.title : "Unknown Track",
-            creatorName: crewLabel,
+            creatorName: crewText,
             stageName
         };
     })
@@ -3833,6 +4474,44 @@ function getCreateStageAvailability() {
         masterReason: masterCanStart ? "" : (masterReason || "Requirements not met.")
     };
 }
+function renderProjectTypeMeta() {
+    const meta = $("projectTypeMeta");
+    if (!meta)
+        return;
+    const projectNameInput = $("projectName");
+    const rawName = projectNameInput ? projectNameInput.value.trim() : "";
+    const projectType = $("projectTypeSelect") ? $("projectTypeSelect").value : "Single";
+    const limits = getProjectTrackLimits(projectType);
+    const typeLabel = limits.type || normalizeProjectType(projectType);
+    if (!rawName) {
+        meta.textContent = `${typeLabel} projects target ${limits.min}-${limits.max} tracks.`;
+        return;
+    }
+    const normalizedName = normalizeProjectName(rawName);
+    const projectTracks = state.tracks.filter((track) => {
+        const trackName = track.projectName || `${track.title} - Single`;
+        return normalizeProjectName(trackName) === normalizedName;
+    });
+    const existingTypes = Array.from(new Set(projectTracks.map((track) => normalizeProjectType(track.projectType))));
+    if (existingTypes.length && !existingTypes.includes(typeLabel)) {
+        meta.textContent = `${rawName} already uses ${existingTypes.join(" / ")}. Switch the Content Type or rename the project.`;
+        return;
+    }
+    const count = projectTracks.length;
+    const minRemaining = Math.max(0, limits.min - count);
+    const maxRemaining = Math.max(0, limits.max - count);
+    let detail = `${count}/${limits.max} tracks`;
+    if (minRemaining > 0) {
+        detail += ` | ${minRemaining} to minimum`;
+    }
+    else if (maxRemaining === 0) {
+        detail += " | Maxed";
+    }
+    else {
+        detail += ` | ${maxRemaining} slots left`;
+    }
+    meta.textContent = `${rawName} (${typeLabel}): ${detail}`;
+}
 function renderCreateStageControls() {
     const stageButtons = document.querySelectorAll("[data-create-stage]");
     if (!stageButtons.length)
@@ -3934,6 +4613,7 @@ function renderCreateStageControls() {
     renderActiveStudiosSelect("sheet", "activeStudiosSelectSheet", "activeStudiosMetaSheet");
     renderActiveStudiosSelect("demo", "activeStudiosSelectDemo", "activeStudiosMetaDemo");
     renderActiveStudiosSelect("master", "activeStudiosSelectMaster", "activeStudiosMetaMaster");
+    renderProjectTypeMeta();
 }
 function renderActiveView(view) {
     const raw = view || state.ui.activeView || "dashboard";
@@ -3943,21 +4623,24 @@ function renderActiveView(view) {
     }
     else if (active === "charts") {
         renderCharts();
-        renderReleaseDesk();
         renderSlots();
+    }
+    else if (active === "release") {
+        renderReleaseDesk();
     }
     else if (active === "create") {
         renderCreateStageControls();
         renderSlots();
         renderTracks();
+        renderModifierInventory();
         renderCreateTrends();
         updateGenrePreview();
+        if (typeof window !== "undefined" && typeof window.updateAutoCreateSummary === "function") {
+            window.updateAutoCreateSummary();
+        }
     }
     else if (active === "releases") {
         renderCalendarView();
-        renderReleaseDesk();
-        renderTracks();
-        renderSlots();
     }
     else if (active === "eras") {
         renderEraStatus();
@@ -3971,6 +4654,7 @@ function renderActiveView(view) {
     }
     else if (active === "world") {
         renderMarket();
+        renderModifierTools();
         renderPopulation();
         renderGenreIndex();
         renderEconomySummary();
@@ -3983,6 +4667,9 @@ function renderActiveView(view) {
         renderWallet();
         renderResourceTickSummary();
         renderLossArchives();
+        if (typeof window !== "undefined" && typeof window.updateAutoPromoSummary === "function") {
+            window.updateAutoPromoSummary();
+        }
     }
 }
 function renderAll({ save = true } = {}) {
@@ -4001,4 +4688,4 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderReleaseDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };
+export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderModifierInventory, renderReleaseDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderTutorialEconomy, renderModifierTools, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };

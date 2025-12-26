@@ -65,8 +65,30 @@ declare const ECONOMY_BASELINES: {
   subscription: number;
   governmentFunds: number;
 };
+declare const ECONOMY_TUNING: {
+  revenuePerChartPoint: number;
+  upkeepPerCreator: number;
+  upkeepPerOwnedStudio: number;
+  promoWeekBudgetStep: number;
+  promoWeekBase: number;
+  promoWeeksMin: number;
+  promoWeeksMax: number;
+  physicalUnitCostMin: number;
+};
+declare const ECONOMY_PRICE_MULTIPLIERS: { single: number; ep: number; album: number };
 declare const PRICE_PATTERN: number[];
-declare const MODIFIERS: { id: string; label: string; qualityDelta: number; hoursDelta: number; costDelta: number; desc: string }[];
+declare const MODIFIERS: {
+  id: string;
+  label: string;
+  qualityDelta: number;
+  hoursDelta: number;
+  costDelta: number;
+  basePrice: number;
+  desc: string;
+  mood?: string;
+  theme?: string;
+  alignment?: string;
+}[];
 declare const DAYS: string[];
 declare const MONTHS: string[];
 declare const SLOT_COUNT: number;

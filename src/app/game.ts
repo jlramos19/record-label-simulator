@@ -24,6 +24,9 @@ import {
   AUDIENCE_RELEASE_WEIGHT,
   AUDIENCE_TASTE_WINDOW_WEEKS,
   AUDIENCE_TREND_BONUS,
+  AUTO_CREATE_BUDGET_PCT,
+  AUTO_CREATE_MAX_TRACKS,
+  AUTO_CREATE_MIN_CASH,
   AUTO_PROMO_BUDGET_PCT,
   AUTO_PROMO_MIN_BUDGET,
   AUTO_PROMO_RIVAL_TYPE,
@@ -94,6 +97,10 @@ import {
   WEEKLY_UPDATE_WARN_MS
 } from "./game/config.js";
 
+const ECONOMY_BASELINES_DEFAULT = { ...ECONOMY_BASELINES };
+const ECONOMY_TUNING_DEFAULT = { ...ECONOMY_TUNING };
+const ECONOMY_PRICE_MULTIPLIERS_DEFAULT = { ...ECONOMY_PRICE_MULTIPLIERS };
+
 const session = {
   activeSlot: null,
   prevSpeed: null,
@@ -101,6 +108,78 @@ const session = {
   lastSlotPayload: null,
   lastLiveSyncAt: 0
 };
+
+const PROJECT_TRACK_LIMITS = {
+  Single: { min: 1, max: 4 },
+  EP: { min: 5, max: 7 },
+  Album: { min: 8, max: 32 }
+};
+const PROJECT_TYPE_ALIASES = {
+  single: "Single",
+  singles: "Single",
+  ep: "EP",
+  "e.p.": "EP",
+  album: "Album",
+  lp: "Album",
+  "long play": "Album"
+};
+
+function normalizeProjectType(projectType) {
+  const raw = String(projectType || "").trim();
+  if (!raw) return "Single";
+  const key = raw.toLowerCase();
+  return PROJECT_TYPE_ALIASES[key] || (PROJECT_TRACK_LIMITS[raw] ? raw : "Single");
+}
+
+function normalizeProjectName(projectName) {
+  return String(projectName || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function getProjectTrackLimits(projectType) {
+  const normalizedType = normalizeProjectType(projectType);
+  const limits = PROJECT_TRACK_LIMITS[normalizedType] || PROJECT_TRACK_LIMITS.Single;
+  return { ...limits, type: normalizedType };
+}
+
+function listProjectTracks(projectName) {
+  const normalizedName = normalizeProjectName(projectName);
+  if (!normalizedName) return [];
+  return state.tracks.filter((track) => normalizeProjectName(track.projectName) === normalizedName);
+}
+
+function evaluateProjectTrackConstraints(projectName, projectType) {
+  const normalizedType = normalizeProjectType(projectType);
+  const limits = getProjectTrackLimits(normalizedType);
+  const normalizedName = normalizeProjectName(projectName);
+  if (!normalizedName) {
+    return { ok: true, normalizedType, limits, count: 0, existingTypes: [] };
+  }
+  const tracks = listProjectTracks(projectName);
+  const count = tracks.length;
+  const existingTypes = Array.from(new Set(tracks.map((track) => normalizeProjectType(track.projectType))));
+  const conflict = existingTypes.find((type) => type !== normalizedType);
+  if (conflict) {
+    return {
+      ok: false,
+      normalizedType,
+      limits,
+      count,
+      existingTypes,
+      reason: `Project "${projectName}" already uses ${conflict} tracks. Use ${conflict} or rename the project.`
+    };
+  }
+  if (Number.isFinite(limits.max) && count >= limits.max) {
+    return {
+      ok: false,
+      normalizedType,
+      limits,
+      count,
+      existingTypes,
+      reason: `${normalizedType} projects cap at ${limits.max} tracks. "${projectName}" already has ${count}.`
+    };
+  }
+  return { ok: true, normalizedType, limits, count, existingTypes };
+}
 
 function trackRoleLimit(role) {
   const limit = TRACK_ROLE_LIMITS?.[role];
@@ -308,6 +387,7 @@ function makeDefaultState() {
       focusMoods: [],
       country: "Annglora"
     },
+    inventory: { modifiers: [] },
     studio: { slots: STARTING_STUDIO_SLOTS, inUse: 0 },
     creators: [],
     acts: [],
@@ -331,6 +411,7 @@ function makeDefaultState() {
     resourceTickLedger: { hours: [], pendingHour: null },
     ui: {
       activeChart: "global",
+      chartContentType: "tracks",
       trendScopeType: "global",
       trendScopeTarget: "Annglora",
       labelRankingLimit: COMMUNITY_LABEL_RANKING_DEFAULT,
@@ -422,7 +503,8 @@ function makeDefaultState() {
       },
       calendarWeekIndex: null,
       sidePanelRestore: {},
-      activeView: "dashboard"
+      activeView: "dashboard",
+      tutorialTab: "loops"
     },
     era: { active: [], history: [] },
     rolloutStrategies: [],
@@ -467,7 +549,18 @@ function makeDefaultState() {
       winState: null,
       winShown: false,
       endShown: false,
+      cheaterMode: false,
+      cheaterEconomyOverrides: { baselines: {}, tuning: {}, priceMultipliers: {} },
       autoSave: { enabled: false, minutes: 5, lastSavedAt: null },
+      autoCreate: {
+        enabled: false,
+        lastRunAt: null,
+        minCash: AUTO_CREATE_MIN_CASH,
+        budgetPct: AUTO_CREATE_BUDGET_PCT,
+        maxTracks: AUTO_CREATE_MAX_TRACKS,
+        mode: "solo",
+        lastOutcome: null
+      },
       autoRollout: { enabled: false, lastCheckedAt: null, budgetPct: AUTO_PROMO_BUDGET_PCT },
       keepEraRolloutHusks: true
     }
@@ -475,6 +568,67 @@ function makeDefaultState() {
 }
 
 const state = makeDefaultState();
+
+function ensureCheaterEconomyOverrides() {
+  if (!state.meta) state.meta = makeDefaultState().meta;
+  if (!state.meta.cheaterEconomyOverrides || typeof state.meta.cheaterEconomyOverrides !== "object") {
+    state.meta.cheaterEconomyOverrides = { baselines: {}, tuning: {}, priceMultipliers: {} };
+  }
+  const overrides = state.meta.cheaterEconomyOverrides;
+  if (!overrides.baselines || typeof overrides.baselines !== "object") overrides.baselines = {};
+  if (!overrides.tuning || typeof overrides.tuning !== "object") overrides.tuning = {};
+  if (!overrides.priceMultipliers || typeof overrides.priceMultipliers !== "object") overrides.priceMultipliers = {};
+  return overrides;
+}
+
+function resetCheaterEconomyOverrides() {
+  Object.assign(ECONOMY_BASELINES, ECONOMY_BASELINES_DEFAULT);
+  Object.assign(ECONOMY_TUNING, ECONOMY_TUNING_DEFAULT);
+  Object.assign(ECONOMY_PRICE_MULTIPLIERS, ECONOMY_PRICE_MULTIPLIERS_DEFAULT);
+}
+
+function applyCheaterEconomyOverrides() {
+  resetCheaterEconomyOverrides();
+  if (!state.meta?.cheaterMode) return;
+  const overrides = ensureCheaterEconomyOverrides();
+  const apply = (target, values) => {
+    if (!target || typeof target !== "object" || !values || typeof values !== "object") return;
+    Object.entries(values).forEach(([key, value]) => {
+      if (Number.isFinite(value)) target[key] = value;
+    });
+  };
+  apply(ECONOMY_BASELINES, overrides.baselines);
+  apply(ECONOMY_TUNING, overrides.tuning);
+  apply(ECONOMY_PRICE_MULTIPLIERS, overrides.priceMultipliers);
+}
+
+function setCheaterEconomyOverride(targetKey, valueKey, value) {
+  const overrides = ensureCheaterEconomyOverrides();
+  const target = overrides[targetKey];
+  if (!target || typeof target !== "object") return false;
+  if (!Number.isFinite(value)) {
+    delete target[valueKey];
+  } else {
+    target[valueKey] = value;
+  }
+  if (state.meta?.cheaterMode) applyCheaterEconomyOverrides();
+  return true;
+}
+
+function setCheaterMode(enabled) {
+  const next = Boolean(enabled);
+  const prev = Boolean(state.meta?.cheaterMode);
+  if (prev === next) return;
+  if (!state.meta) state.meta = makeDefaultState().meta;
+  state.meta.cheaterMode = next;
+  if (next) {
+    logEvent("Cheater mode enabled. Achievements and quests are disabled while active.", "warn");
+  } else {
+    logEvent("Cheater mode disabled. Achievements and quests restored.", "info");
+    if (!state.quests.length) refreshQuestPool();
+  }
+  applyCheaterEconomyOverrides();
+}
 
 function getStartEpochMsFromState() {
   if (state.time && typeof state.time.startEpochMs === "number") return state.time.startEpochMs;
@@ -884,8 +1038,12 @@ function awardExp(amount, note, silent = false) {
   }
 }
 
+function achievementsDisabled() {
+  return Boolean(state.meta?.cheaterMode || state.meta?.achievementsLocked);
+}
+
 function unlockAchievement(definition) {
-  if (state.meta.achievementsLocked) return;
+  if (achievementsDisabled()) return;
   if (state.meta.achievementsUnlocked.includes(definition.id)) return;
   state.meta.achievementsUnlocked.push(definition.id);
   state.meta.achievements = state.meta.achievementsUnlocked.length;
@@ -893,7 +1051,7 @@ function unlockAchievement(definition) {
 }
 
 function evaluateAchievements() {
-  if (state.meta.achievementsLocked) return;
+  if (achievementsDisabled()) return;
   ACHIEVEMENTS.forEach((definition) => {
     if (definition.check()) unlockAchievement(definition);
   });
@@ -1105,8 +1263,13 @@ function slugify(text) {
     .replace(/[^a-z0-9]+/g, "-");
 }
 
+function findModifier(id) {
+  if (!id) return null;
+  return MODIFIERS.find((mod) => mod.id === id) || null;
+}
+
 function getModifier(id) {
-  return MODIFIERS.find((mod) => mod.id === id) || MODIFIERS[0];
+  return findModifier(id) || MODIFIERS[0];
 }
 
 function resolveModifier(modifier) {
@@ -1114,12 +1277,75 @@ function resolveModifier(modifier) {
   if (typeof modifier === "string") return getModifier(modifier);
   if (modifier && typeof modifier === "object") {
     if (modifier.id) {
-      const resolved = MODIFIERS.find((mod) => mod.id === modifier.id);
+      const resolved = findModifier(modifier.id);
       return resolved || modifier;
     }
     if (typeof modifier.hoursDelta === "number") return modifier;
   }
   return null;
+}
+
+function getOwnedModifierIds() {
+  if (!state.inventory || !Array.isArray(state.inventory.modifiers)) return [];
+  return state.inventory.modifiers.filter((entry) => typeof entry === "string" && entry);
+}
+
+function hasModifierTool(modifierId) {
+  if (!modifierId || modifierId === "None") return true;
+  return getOwnedModifierIds().includes(modifierId);
+}
+
+function addModifierTool(modifierId) {
+  if (!modifierId || modifierId === "None") return false;
+  const owned = new Set(getOwnedModifierIds());
+  if (owned.has(modifierId)) return false;
+  owned.add(modifierId);
+  state.inventory.modifiers = Array.from(owned);
+  return true;
+}
+
+function modifierMatchesContent(modifier, { theme, mood, alignment } = {}) {
+  if (!modifier) return false;
+  if (modifier.theme && modifier.theme !== theme) return false;
+  if (modifier.mood && modifier.mood !== mood) return false;
+  if (modifier.alignment && modifier.alignment !== alignment) return false;
+  return true;
+}
+
+function getModifierQualityDelta(track, modifier) {
+  const resolved = resolveModifier(modifier || track?.modifier);
+  if (!resolved || !resolved.qualityDelta) return 0;
+  const theme = track?.theme || themeFromGenre(track?.genre);
+  const mood = track?.mood || moodFromGenre(track?.genre);
+  const alignment = track?.alignment || "";
+  if ((resolved.theme || resolved.mood || resolved.alignment)
+    && !modifierMatchesContent(resolved, { theme, mood, alignment })) {
+    return 0;
+  }
+  return resolved.qualityDelta;
+}
+
+function purchaseModifier(modifierId, { inflationMultiplier } = {}) {
+  const resolved = findModifier(modifierId);
+  if (!resolved || resolved.id === "None") {
+    logEvent("Modifier purchase failed: invalid tool.", "warn");
+    return { ok: false, kind: "INVALID", reason: "INVALID_ID" };
+  }
+  if (hasModifierTool(resolved.id)) {
+    logEvent(`${resolved.label} is already owned.`, "warn");
+    return { ok: false, kind: "OWNED", reason: "ALREADY_OWNED" };
+  }
+  const basePrice = Number.isFinite(resolved.basePrice) ? resolved.basePrice : 0;
+  const multiplier = Number.isFinite(inflationMultiplier) ? Math.max(1, inflationMultiplier) : 1;
+  const adjustedCost = Math.round(basePrice * multiplier);
+  if (state.label.cash < adjustedCost) {
+    logEvent(`Not enough cash to buy ${resolved.label}.`, "warn");
+    return { ok: false, kind: "PRECONDITION", reason: "INSUFFICIENT_FUNDS", cost: adjustedCost };
+  }
+  state.label.cash -= adjustedCost;
+  addModifierTool(resolved.id);
+  logEvent(`Purchased ${resolved.label} for ${formatMoney(adjustedCost)}.`, "receipt");
+  return { ok: true, modifierId: resolved.id, cost: adjustedCost, basePrice };
 }
 
 function getAdjustedStageHours(stageIndex, modifier, crewCount = 1) {
@@ -1376,11 +1602,16 @@ function formatCount(value) {
   return Math.round(value).toLocaleString("en-US");
 }
 
-function formatHourCountdown(value) {
+function formatHourCountdown(value, options) {
   if (!Number.isFinite(value)) return "-";
   const rounded = Math.max(0, Math.round(value * QUARTERS_PER_HOUR) / QUARTERS_PER_HOUR);
-  const text = rounded.toFixed(2).replace(/\.00$/, "").replace(/0$/, "");
-  return text;
+  const fixedText = rounded.toFixed(2);
+  const padHours = Number(options?.padHours || 0);
+  if (padHours > 0) {
+    const [hours, fraction] = fixedText.split(".");
+    return `${hours.padStart(padHours, "0")}.${fraction}`;
+  }
+  return fixedText.replace(/\.00$/, "").replace(/0$/, "");
 }
 
 function formatHour(hour) {
@@ -1784,6 +2015,40 @@ function promoFacilityNeeds(typeIds) {
   }, {});
 }
 
+function autoCreateBudgetPct() {
+  const raw = state.meta?.autoCreate?.budgetPct;
+  if (typeof raw !== "number" || Number.isNaN(raw)) return AUTO_CREATE_BUDGET_PCT;
+  return clamp(raw, 0, 1);
+}
+
+function autoCreateMinCash() {
+  const raw = state.meta?.autoCreate?.minCash;
+  if (!Number.isFinite(raw)) return AUTO_CREATE_MIN_CASH;
+  return Math.max(0, Math.round(raw));
+}
+
+function autoCreateMaxTracks() {
+  const raw = state.meta?.autoCreate?.maxTracks;
+  const safe = Number.isFinite(raw) ? Math.round(raw) : AUTO_CREATE_MAX_TRACKS;
+  return clamp(safe, 1, 5);
+}
+
+function autoCreateMode() {
+  const mode = state.meta?.autoCreate?.mode;
+  return mode === "collab" ? "collab" : "solo";
+}
+
+function computeAutoCreateBudget(cash, pct = AUTO_CREATE_BUDGET_PCT, minCash = AUTO_CREATE_MIN_CASH) {
+  const safeCash = Number.isFinite(cash) ? Math.max(0, cash) : 0;
+  const safePct = clamp(pct, 0, 1);
+  const reserve = Math.max(0, Math.round(minCash || 0));
+  if (!safeCash || safePct <= 0) return 0;
+  const target = Math.floor(safeCash * safePct);
+  const headroom = Math.max(0, safeCash - reserve);
+  const budget = Math.min(target, headroom);
+  return budget > 0 ? budget : 0;
+}
+
 function autoPromoBudgetPct() {
   const raw = state.meta?.autoRollout?.budgetPct;
   if (typeof raw !== "number" || Number.isNaN(raw)) return AUTO_PROMO_BUDGET_PCT;
@@ -1801,7 +2066,12 @@ function computeAutoPromoBudget(cash, pct = AUTO_PROMO_BUDGET_PCT) {
 }
 
 function promoWeeksFromBudget(budget) {
-  return clamp(Math.floor(budget / 1200) + 1, 1, 4);
+  const step = Number.isFinite(ECONOMY_TUNING?.promoWeekBudgetStep) ? ECONOMY_TUNING.promoWeekBudgetStep : 1200;
+  const base = Number.isFinite(ECONOMY_TUNING?.promoWeekBase) ? ECONOMY_TUNING.promoWeekBase : 1;
+  const minWeeks = Number.isFinite(ECONOMY_TUNING?.promoWeeksMin) ? ECONOMY_TUNING.promoWeeksMin : 1;
+  const maxWeeks = Number.isFinite(ECONOMY_TUNING?.promoWeeksMax) ? ECONOMY_TUNING.promoWeeksMax : 4;
+  if (!Number.isFinite(step) || step <= 0) return clamp(base, minWeeks, maxWeeks);
+  return clamp(Math.floor(budget / step) + base, minWeeks, maxWeeks);
 }
 
 function expirePromoFacilityBookings() {
@@ -2263,6 +2533,13 @@ function pickPreferredMoods(focusMoods) {
   return fillDistinct(preferred, MOODS, 2);
 }
 
+function deriveCreatorStageName(creator) {
+  if (!creator) return "";
+  const givenName = String(creator.givenName || "").trim();
+  if (givenName) return givenName;
+  return String(creator.name || "").trim();
+}
+
 function makeCreator(role, existingNames, country, options = {}) {
   const alignment = ALIGNMENTS.includes(options.alignment) ? options.alignment : "";
   const hasThemePrefs = alignment || (Array.isArray(options.focusThemes) && options.focusThemes.length);
@@ -2275,9 +2552,11 @@ function makeCreator(role, existingNames, country, options = {}) {
     || [...state.creators.map((creator) => creator.name), ...state.marketCreators.map((creator) => creator.name)];
   const origin = country || pickOne(NATIONS);
   const nameParts = buildCreatorNameParts(origin, existing);
+  const stageName = deriveCreatorStageName(nameParts);
   return {
     id: uid("CR"),
     ...nameParts,
+    stageName: stageName || null,
     role,
     skill: clampSkill(rand(55, 92)),
     stamina: STAMINA_MAX,
@@ -2301,6 +2580,10 @@ function normalizeCreator(creator) {
   }
   if (!creator.name) {
     creator.name = formatCreatorFullName(creator.country, creator.givenName, creator.surname);
+  }
+  if (typeof creator.stageName !== "string" || !creator.stageName.trim()) {
+    const stageName = deriveCreatorStageName(creator);
+    creator.stageName = stageName || null;
   }
   if (typeof creator.nameHangul !== "string" || !creator.nameHangul.trim()) creator.nameHangul = null;
   if (typeof creator.givenNameHangul !== "string" || !creator.givenNameHangul.trim()) creator.givenNameHangul = null;
@@ -3176,7 +3459,7 @@ function computeQualityPotential(track) {
     score += matchRate(performers, (creator) => creator.prefMoods.includes(track.mood)) * 3;
   }
   if (track.mood === "Boring") score -= 12;
-  if (track.modifier?.qualityDelta) score += track.modifier.qualityDelta;
+  score += getModifierQualityDelta(track);
   return clampQuality(score);
 }
 
@@ -4079,6 +4362,13 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
   const activeEra = resolvedActId ? (focusEra || getLatestActiveEraForAct(resolvedActId)) : null;
   const modifier = getModifier(modifierId);
   const resolvedAlignment = alignment || state.label.alignment || "Neutral";
+  const resolvedProjectName = String(projectName || "").trim() || `${title} - Single`;
+  const resolvedProjectType = normalizeProjectType(projectType);
+  const projectCheck = evaluateProjectTrackConstraints(resolvedProjectName, resolvedProjectType);
+  if (!projectCheck.ok) {
+    logEvent(projectCheck.reason, "warn");
+    return null;
+  }
   const normalizedSongwriters = normalizeRoleIds(songwriterIds, "Songwriter");
   const normalizedPerformers = normalizeRoleIds(performerIds, "Performer");
   const normalizedProducers = normalizeRoleIds(producerIds, "Producer");
@@ -4095,8 +4385,8 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
     alignment: resolvedAlignment,
     genre: "",
     actId: resolvedActId,
-    projectName,
-    projectType: projectType || "Single",
+    projectName: resolvedProjectName,
+    projectType: resolvedProjectType,
     eraId: activeEra ? activeEra.id : null,
     modifier: modifier && modifier.id !== "None" ? modifier : null,
     distribution: "Digital",
@@ -4448,15 +4738,16 @@ function applyReleaseDistributionFee(distribution) {
 function estimatePhysicalUnitPrice(projectType = "Single") {
   const base = Number.isFinite(ECONOMY_BASELINES?.physicalSingle) ? ECONOMY_BASELINES.physicalSingle : 4.99;
   const typeKey = String(projectType || "Single").toLowerCase();
-  const multipliers = { single: 1, ep: 1.55, album: 2.25 };
-  const multiplier = multipliers[typeKey] || 1;
+  const multipliers = ECONOMY_PRICE_MULTIPLIERS || {};
+  const multiplier = Number.isFinite(multipliers[typeKey]) ? multipliers[typeKey] : 1;
   return roundMoney(base * multiplier);
 }
 
 function estimatePhysicalUnitCost(projectType = "Single") {
   const ratio = Number.isFinite(ECONOMY_BASELINES?.physicalUnitCostRatio) ? ECONOMY_BASELINES.physicalUnitCostRatio : 0.35;
   const unitPrice = estimatePhysicalUnitPrice(projectType);
-  return roundMoney(Math.max(0.5, unitPrice * ratio));
+  const minCost = Number.isFinite(ECONOMY_TUNING?.physicalUnitCostMin) ? ECONOMY_TUNING.physicalUnitCostMin : 0.5;
+  return roundMoney(Math.max(minCost, unitPrice * ratio));
 }
 
 function recommendPhysicalRun(track, { act = null, label = state.label } = {}) {
@@ -4561,6 +4852,9 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
   const act = getAct(track.actId);
   const era = track.eraId ? getEraById(track.eraId) : null;
   const projectName = track.projectName || `${track.title} - Single`;
+  const creatorCountries = resolveCreatorCountriesFromTrack(track);
+  const actCountry = resolveActCountryFromMembers(track.actId);
+  const originCountry = actCountry || dominantValue(creatorCountries, null) || state.label.country || "Annglora";
   const marketEntry = {
     id: uid("MK"),
     trackId: track.id,
@@ -4575,7 +4869,9 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     theme: track.theme,
     mood: track.mood,
     alignment: track.alignment,
-    country: state.label.country || "Annglora",
+    country: originCountry,
+    actCountry,
+    creatorCountries,
     quality: track.quality,
     genre: track.genre,
     distribution: track.distribution,
@@ -5224,6 +5520,79 @@ function getAudienceProfile(scopeId) {
   };
 }
 
+const HOMELAND_ACT_BONUS = 4;
+const HOMELAND_CREATOR_BONUS = 1;
+const HOMELAND_CREATOR_BONUS_CAP = 6;
+const INTERNATIONAL_RELATION_CAP = 4;
+const COUNTRY_RELATION_BIAS = {
+  Annglora: { Bytenza: -2, Crowlya: 2 },
+  Bytenza: { Annglora: -2, Crowlya: 0 },
+  Crowlya: { Annglora: 2, Bytenza: 0 }
+};
+
+function resolveScopeNation(scopeId) {
+  if (!scopeId || scopeId === "global") return null;
+  if (NATIONS.includes(scopeId)) return scopeId;
+  const region = REGION_DEFS.find((entry) => entry.id === scopeId);
+  return region ? region.nation : null;
+}
+
+function resolveActCountryFromMembers(actId) {
+  const act = actId ? getAct(actId) : null;
+  if (!act) return null;
+  const memberCountries = act.memberIds
+    .map((id) => getCreator(id)?.country)
+    .filter(Boolean);
+  return dominantValue(memberCountries, null);
+}
+
+function resolveCreatorCountriesFromTrack(track) {
+  if (!track) return [];
+  if (Array.isArray(track.creatorCountries) && track.creatorCountries.length) {
+    return track.creatorCountries.slice();
+  }
+  const source = track.creators ? track : (track.trackId ? getTrack(track.trackId) : null);
+  if (!source?.creators) return [];
+  const ids = Array.from(new Set(
+    listFromIds(source.creators.songwriterIds)
+      .concat(listFromIds(source.creators.performerIds))
+      .concat(listFromIds(source.creators.producerIds))
+  ));
+  return ids.map((id) => getCreator(id)?.country).filter(Boolean);
+}
+
+function resolveTrackOriginMeta(track) {
+  if (!track) return { actCountry: null, creatorCountries: [], originCountries: [] };
+  const creatorCountries = resolveCreatorCountriesFromTrack(track);
+  const actCountry = track.actCountry || resolveActCountryFromMembers(track.actId) || null;
+  const fallback = track.country || null;
+  const originCountries = Array.from(new Set([actCountry, ...creatorCountries, fallback].filter(Boolean)));
+  return { actCountry: actCountry || fallback, creatorCountries, originCountries };
+}
+
+function homelandBonusForScope(originMeta, scopeNation) {
+  if (!originMeta || !scopeNation) return 0;
+  let bonus = 0;
+  if (originMeta.actCountry === scopeNation) bonus += HOMELAND_ACT_BONUS;
+  const creatorMatches = originMeta.creatorCountries.filter((country) => country === scopeNation).length;
+  if (creatorMatches) {
+    bonus += Math.min(HOMELAND_CREATOR_BONUS_CAP, creatorMatches * HOMELAND_CREATOR_BONUS);
+  }
+  return bonus;
+}
+
+function internationalBiasForScope(originMeta, scopeNation) {
+  if (!originMeta || !scopeNation) return 0;
+  const foreignOrigins = originMeta.originCountries.filter((country) => country && country !== scopeNation);
+  if (!foreignOrigins.length) return 0;
+  const total = foreignOrigins.reduce((sum, country) => {
+    const bias = COUNTRY_RELATION_BIAS?.[scopeNation]?.[country];
+    return sum + (Number.isFinite(bias) ? bias : 0);
+  }, 0);
+  if (!Number.isFinite(total) || !total) return 0;
+  return clamp(total, -INTERNATIONAL_RELATION_CAP, INTERNATIONAL_RELATION_CAP);
+}
+
 function labelShareToMultiplier(share) {
   if (!Number.isFinite(share)) return 1;
   const target = LABEL_DOMINANCE_TARGET_SHARE;
@@ -5305,6 +5674,12 @@ function scoreTrack(track, regionName) {
   score += track.promoWeeks > 0 ? 10 : 0;
   const actPromoWeeks = track.actId ? (getAct(track.actId)?.promoWeeks || 0) : 0;
   score += actPromoWeeks > 0 ? Math.min(6, actPromoWeeks * 2) : 0;
+  const scopeNation = resolveScopeNation(regionName);
+  if (scopeNation) {
+    const originMeta = resolveTrackOriginMeta(track);
+    score += homelandBonusForScope(originMeta, scopeNation);
+    score += internationalBiasForScope(originMeta, scopeNation);
+  }
   score += rand(-4, 4);
   const competitionMultiplier = getLabelCompetitionMultiplier(track.label);
   if (competitionMultiplier !== 1) score = Math.round(score * competitionMultiplier);
@@ -5526,6 +5901,7 @@ function buildChartWorkerPayload() {
   ensureAudienceBiasStore();
   state.marketTracks.forEach((track) => {
     const key = trackKey(track);
+    const originMeta = resolveTrackOriginMeta(track);
     trackMap.set(key, track);
     tracks.push({
       key,
@@ -5536,7 +5912,10 @@ function buildChartWorkerPayload() {
       genre: track.genre,
       promoWeeks: track.promoWeeks,
       weeksOnChart: track.weeksOnChart,
-      label: track.label
+      label: track.label,
+      country: track.country,
+      actCountry: originMeta.actCountry,
+      creatorCountries: originMeta.creatorCountries
     });
   });
   const nationWeights = {};
@@ -5570,7 +5949,8 @@ function buildChartWorkerPayload() {
       audience,
       trends: state.trends,
       defaultWeights: CHART_WEIGHTS,
-      labelCompetition
+      labelCompetition,
+      regionDefs: REGION_DEFS
     },
     trackMap
   };
@@ -5681,6 +6061,8 @@ function archiveMarketTracks(entries) {
       archivedAt: now,
       genre: entry.genre || "",
       country: entry.country || "",
+      actCountry: entry.actCountry || null,
+      creatorCountries: Array.isArray(entry.creatorCountries) ? entry.creatorCountries.slice() : [],
       chartHistory: entry.chartHistory || {},
     }));
   state.meta.marketTrackArchive = state.meta.marketTrackArchive.concat(archived).slice(-MARKET_TRACK_ARCHIVE_LIMIT);
@@ -6044,9 +6426,12 @@ function trendAlignmentLeader(genre, alignmentScores) {
 
 function updateEconomy(globalScores) {
   const playerScores = globalScores.filter((entry) => entry.track.isPlayer);
+  const revenueRate = Number.isFinite(ECONOMY_TUNING?.revenuePerChartPoint)
+    ? ECONOMY_TUNING.revenuePerChartPoint
+    : 22;
   let revenue = 0;
   playerScores.forEach((entry) => {
-    revenue += Math.max(0, entry.score) * 22;
+    revenue += Math.max(0, entry.score) * revenueRate;
   });
   revenue = Math.round(revenue);
   const difficulty = getGameDifficulty(state.meta?.difficulty);
@@ -6064,7 +6449,7 @@ function updateEconomy(globalScores) {
     economy.streaming = Math.round(economy.streaming + Math.max(0, metrics.streaming || 0));
     economy.airplay = Math.round(economy.airplay + Math.max(0, metrics.airplay || 0));
     economy.social = Math.round(economy.social + Math.max(0, metrics.social || 0));
-    const weeklyRevenue = Math.round(Math.max(0, entry.score) * 22 * difficulty.revenueMult);
+    const weeklyRevenue = Math.round(Math.max(0, entry.score) * revenueRate * difficulty.revenueMult);
     economy.revenue = Math.round(economy.revenue + weeklyRevenue);
     economy.lastRevenue = weeklyRevenue;
     economy.lastMetrics = metrics;
@@ -6083,7 +6468,13 @@ function updateEconomy(globalScores) {
   });
   const ownedSlots = getOwnedStudioSlots();
   const leaseFees = Math.max(0, Math.round(state.economy.leaseFeesWeek || 0));
-  const upkeepBase = state.creators.length * 150 + ownedSlots * 600 + leaseFees;
+  const upkeepPerCreator = Number.isFinite(ECONOMY_TUNING?.upkeepPerCreator)
+    ? ECONOMY_TUNING.upkeepPerCreator
+    : 150;
+  const upkeepPerStudio = Number.isFinite(ECONOMY_TUNING?.upkeepPerOwnedStudio)
+    ? ECONOMY_TUNING.upkeepPerOwnedStudio
+    : 600;
+  const upkeepBase = state.creators.length * upkeepPerCreator + ownedSlots * upkeepPerStudio + leaseFees;
   const upkeep = Math.round(upkeepBase * difficulty.upkeepMult);
   state.label.cash = Math.round(state.label.cash + revenue - upkeep);
   state.economy.lastRevenue = revenue;
@@ -6409,6 +6800,7 @@ function buildQuests() {
 }
 
 function updateQuests() {
+  if (state.meta?.cheaterMode) return;
   const released = state.tracks.filter((track) => track.status === "Released");
   state.quests.forEach((quest) => {
     if (quest.type === "releaseCount") {
@@ -6441,6 +6833,7 @@ function updateQuests() {
 }
 
 function refreshQuestPool() {
+  if (state.meta?.cheaterMode) return;
   const active = state.quests.filter((quest) => !quest.done);
   const pool = questTemplates();
   const newQuests = [];
@@ -7081,6 +7474,16 @@ function processRivalReleaseQueue() {
         processRivalPromoEntry(entry);
         return;
       }
+      const rival = getRivalByName(entry.label);
+      const creatorCountries = [];
+      if (rival && Array.isArray(entry.creatorIds)) {
+        entry.creatorIds.forEach((id) => {
+          const creator = rival.creators?.find((member) => member.id === id);
+          if (creator?.country) creatorCountries.push(creator.country);
+        });
+      }
+      if (!creatorCountries.length && entry.country) creatorCountries.push(entry.country);
+      const actCountry = entry.country || dominantValue(creatorCountries, null);
       state.marketTracks.push({
         id: uid("MK"),
         trackId: null,
@@ -7093,7 +7496,9 @@ function processRivalReleaseQueue() {
         theme: entry.theme,
         mood: entry.mood,
         alignment: entry.alignment,
-        country: entry.country,
+        country: entry.country || actCountry || "Annglora",
+        actCountry,
+        creatorCountries,
         quality: entry.quality,
         genre: entry.genre,
         distribution: entry.distribution || "Digital",
@@ -7145,6 +7550,123 @@ function advanceEraWeek() {
   state.era.active = stillActive;
 }
 
+function runAutoCreateContent() {
+  if (!state.meta?.autoCreate || !state.meta.autoCreate.enabled) return;
+  const now = state.time.epochMs;
+  const walletCash = state.label.wallet?.cash ?? state.label.cash ?? 0;
+  const minCash = autoCreateMinCash();
+  const budgetPct = autoCreateBudgetPct();
+  const budgetCap = computeAutoCreateBudget(walletCash, budgetPct, minCash);
+  const maxTracks = autoCreateMaxTracks();
+  const mode = autoCreateMode();
+  const updateOutcome = (status, message, created = 0, spent = 0) => {
+    state.meta.autoCreate.lastRunAt = now;
+    state.meta.autoCreate.lastOutcome = {
+      at: now,
+      status,
+      message,
+      created,
+      spent,
+      budgetCap
+    };
+  };
+  if (walletCash <= minCash) {
+    const message = `Auto create skipped: cash reserve ${formatMoney(minCash)} not met.`;
+    logEvent(message, "warn");
+    updateOutcome("skipped", message);
+    return;
+  }
+  if (!budgetCap) {
+    const message = "Auto create skipped: budget cap is 0.";
+    logEvent(message, "warn");
+    updateOutcome("skipped", message);
+    return;
+  }
+  if (getStageStudioAvailable(0) <= 0 || getStudioAvailableSlots() <= 0) {
+    const message = "Auto create skipped: no studio slots available.";
+    logEvent(message, "warn");
+    updateOutcome("skipped", message);
+    return;
+  }
+  const busyIds = getBusyCreatorIds("In Progress");
+  const pickCreatorId = (role, preferredId = null) => {
+    const req = staminaRequirement(role);
+    if (preferredId) {
+      const creator = getCreator(preferredId);
+      if (creator && creator.role === role
+        && creator.stamina >= req
+        && getCreatorStaminaSpentToday(creator) + req <= STAMINA_OVERUSE_LIMIT
+        && !busyIds.has(creator.id)) {
+        return creator.id;
+      }
+    }
+    const candidates = rankCandidates(role)
+      .filter((creator) => creator.ready && !creator.busy)
+      .filter((creator) => getCreatorStaminaSpentToday(creator) + req <= STAMINA_OVERUSE_LIMIT);
+    return candidates[0]?.id || null;
+  };
+  let created = 0;
+  let spent = 0;
+  let blockedReason = "";
+  for (let i = 0; i < maxTracks; i += 1) {
+    const plan = recommendTrackPlan();
+    const songwriterId = pickCreatorId("Songwriter", plan.songwriterId);
+    if (!songwriterId) {
+      blockedReason = "no Songwriter ready under daily limits.";
+      break;
+    }
+    const modifier = getModifier(plan.modifierId);
+    const stageCost = getStageCost(0, modifier, [songwriterId]);
+    if (!Number.isFinite(stageCost) || stageCost <= 0) {
+      blockedReason = "invalid stage cost.";
+      break;
+    }
+    const budgetLeft = budgetCap - spent;
+    if (stageCost > budgetLeft) {
+      blockedReason = `budget cap ${formatMoney(budgetLeft)} below stage cost ${formatMoney(stageCost)}.`;
+      break;
+    }
+    if (state.label.cash - stageCost < minCash) {
+      blockedReason = `cash reserve ${formatMoney(minCash)} blocks spend ${formatMoney(stageCost)}.`;
+      break;
+    }
+    const performerId = mode === "collab" ? pickCreatorId("Performer", plan.performerId) : null;
+    const producerId = mode === "collab" ? pickCreatorId("Producer", plan.producerId) : null;
+    const track = createTrack({
+      title: makeTrackTitle(plan.theme, plan.mood),
+      theme: plan.theme,
+      songwriterIds: [songwriterId],
+      performerIds: performerId ? [performerId] : [],
+      producerIds: producerId ? [producerId] : [],
+      actId: null,
+      projectName: makeProjectTitle(),
+      projectType: plan.projectType,
+      modifierId: plan.modifierId
+    });
+    if (!track) {
+      blockedReason = "creation blocked by studio or cash constraints.";
+      break;
+    }
+    created += 1;
+    spent += stageCost;
+    logEvent(`Auto create: started sheet music for "${track.title}" (Theme: ${track.theme}).`);
+    if (getStageStudioAvailable(0) <= 0 || getStudioAvailableSlots() <= 0) {
+      blockedReason = "no studio slots remaining.";
+      break;
+    }
+  }
+  if (created > 0) {
+    const message = `Auto create ran: ${created} track${created === 1 ? "" : "s"} started, ${formatMoney(spent)} spent (cap ${formatMoney(budgetCap)}).`;
+    logEvent(message);
+    updateOutcome("completed", message, created, spent);
+  } else {
+    const reason = blockedReason || "no eligible auto-create actions.";
+    const message = `Auto create skipped: ${reason}`;
+    logEvent(message, "warn");
+    updateOutcome("skipped", message);
+  }
+}
+
 function runAutoPromoForPlayer() {
   if (!state.meta.autoRollout || !state.meta.autoRollout.enabled) return;
   const trackId = state.ui?.promoSlots?.trackId;
@@ -7173,11 +7695,13 @@ function runAutoPromoForPlayer() {
     const availability = getPromoFacilityAvailability(facilityId);
     if (availability.available < count) return;
   }
+  const reservations = [];
   for (const promoType of usableTypes) {
     const facilityId = getPromoFacilityForType(promoType);
     if (!facilityId) continue;
     const reservation = reservePromoFacilitySlot(facilityId, promoType, track.id);
     if (!reservation.ok) return;
+    if (reservation.booking) reservations.push(reservation.booking);
   }
   state.label.cash -= totalCost;
   if (state.label.wallet) state.label.wallet.cash = state.label.cash;
@@ -7195,8 +7719,20 @@ function runAutoPromoForPlayer() {
     if (!track.promo || typeof track.promo !== "object") track.promo = {};
     track.promo.musicVideoUsed = true;
   }
-  const spendNote = usableTypes.length > 1 ? `${formatMoney(totalCost)} total` : formatMoney(totalCost);
-  logEvent(`Auto promo funded for "${track.title}" (+${boostWeeks} weeks, ${spendNote}).`);
+  const promoLabels = usableTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
+  const bookingNotes = reservations.map((booking) => {
+    const facilityLabel = promoFacilityLabel(booking.facility);
+    if (booking.facility !== "broadcast") return facilityLabel;
+    const studio = booking.studioId ? getBroadcastStudioById(booking.studioId) : null;
+    const program = booking.programId ? getBroadcastProgramById(booking.programId) : null;
+    const details = [studio?.label, program?.label].filter(Boolean).join(", ");
+    return details ? `${facilityLabel} (${details})` : facilityLabel;
+  });
+  const spendEach = formatMoney(budget);
+  const totalSpend = formatMoney(totalCost);
+  const scheduleLabel = formatDate(state.time.epochMs);
+  const bookingLine = bookingNotes.length ? ` Booked ${bookingNotes.join(" | ")}.` : "";
+  logEvent(`Auto promo scheduled: ${promoLabels} for "${track.title}" on ${scheduleLabel}. Budget ${spendEach} each (${totalSpend} total).${bookingLine} +${boostWeeks} weeks.`);
 }
 
 function pickRivalAutoPromoTrack(rival) {
@@ -7283,6 +7819,7 @@ function weeklyUpdate() {
   refreshQuestPool();
   advanceEraWeek();
   ageMarketTracks();
+  runAutoCreateContent();
   maybeRunAutoPromo();
   processCreatorDepartures();
   applyBailoutIfNeeded();
@@ -7623,33 +8160,62 @@ function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null
     if (dominant && rngFn() < SEED_DOMINANT_PICK_CHANCE) return dominant;
     return seededPick(state.rivals, rngFn);
   };
-  for (let i = 0; i < count; i += 1) {
+  const pickProjectType = (remaining) => {
+    const options = [
+      { type: "Single", weight: 0.6 },
+      { type: "EP", weight: 0.25 },
+      { type: "Album", weight: 0.15 }
+    ].filter((entry) => getProjectTrackLimits(entry.type).min <= remaining);
+    if (!options.length) return "Single";
+    const total = options.reduce((sum, entry) => sum + entry.weight, 0);
+    let roll = rngFn() * total;
+    for (const entry of options) {
+      roll -= entry.weight;
+      if (roll <= 0) return entry.type;
+    }
+    return options[options.length - 1].type;
+  };
+
+  let remaining = Math.max(1, count);
+  while (remaining > 0) {
     const rival = pickRival();
     const themePool = rival.focusThemes?.length ? rival.focusThemes : THEMES;
     const moodPool = rival.focusMoods?.length ? rival.focusMoods : MOODS;
     const theme = rngFn() < 0.8 ? seededPick(themePool, rngFn) : seededPick(THEMES, rngFn);
     const mood = rngFn() < 0.8 ? seededPick(moodPool, rngFn) : seededPick(MOODS, rngFn);
     const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.5;
-    let quality = clampQuality(seededRand(55, 95, rngFn) + Math.round(momentum * 6));
-    if (mood === "Boring") quality = clampQuality(quality - 12);
-    state.marketTracks.push({
-      id: uid("MK"),
-      trackId: null,
-      title: makeTrackTitleByCountry(theme, mood, rival.country),
-      label: rival.name,
-      actId: null,
-      actName: makeRivalActName(),
-      projectName: makeProjectTitle(),
-      isPlayer: false,
-      theme,
-      mood,
-      alignment: rival.alignment,
-      country: rival.country,
-      quality,
-      genre: makeGenre(theme, mood),
-      weeksOnChart: seededRand(0, 8, rngFn),
-      promoWeeks: seededRand(0, 4, rngFn)
-    });
+    const projectType = normalizeProjectType(pickProjectType(remaining));
+    const limits = getProjectTrackLimits(projectType);
+    const maxSize = Math.min(limits.max, remaining);
+    const projectSize = seededRand(limits.min, maxSize, rngFn);
+    const projectName = makeProjectTitleSeeded(rngFn);
+    const actName = makeRivalActNameSeeded(rngFn);
+    for (let i = 0; i < projectSize && remaining > 0; i += 1) {
+      let quality = clampQuality(seededRand(55, 95, rngFn) + Math.round(momentum * 6));
+      if (mood === "Boring") quality = clampQuality(quality - 12);
+      state.marketTracks.push({
+        id: uid("MK"),
+        trackId: null,
+        title: makeTrackTitleByCountrySeeded(theme, mood, rival.country, rngFn),
+        label: rival.name,
+        actId: null,
+        actName,
+        projectName,
+        projectType,
+        isPlayer: false,
+        theme,
+        mood,
+        alignment: rival.alignment,
+        country: rival.country,
+        actCountry: rival.country,
+        creatorCountries: [rival.country],
+        quality,
+        genre: makeGenre(theme, mood),
+        weeksOnChart: seededRand(0, 8, rngFn),
+        promoWeeks: seededRand(0, 4, rngFn)
+      });
+      remaining -= 1;
+    }
   }
 }
 
@@ -7780,6 +8346,7 @@ function normalizeState() {
   if (!state.ui) {
     state.ui = {
       activeChart: "global",
+      chartContentType: "tracks",
       trendScopeType: "global",
       trendScopeTarget: defaultTrendNation(),
       labelRankingLimit: COMMUNITY_LABEL_RANKING_DEFAULT,
@@ -7802,6 +8369,9 @@ function normalizeState() {
     };
   }
   if (!state.ui.activeChart) state.ui.activeChart = "global";
+  if (state.ui.chartContentType !== "tracks" && state.ui.chartContentType !== "projects") {
+    state.ui.chartContentType = "tracks";
+  }
   if (!state.ui.trendScopeType) state.ui.trendScopeType = "global";
   if (!state.ui.trendScopeTarget) state.ui.trendScopeTarget = defaultTrendNation();
   const legacyRanking = applyLegacyCommunityRankingLimit(state.ui.communityRankingLimit);
@@ -7905,6 +8475,9 @@ function normalizeState() {
     state.ui.activeView = "logs";
   } else if (state.ui.activeView === "era") {
     state.ui.activeView = "eras";
+  }
+  if (!state.ui.tutorialTab || !["loops", "concepts", "economy", "roles"].includes(state.ui.tutorialTab)) {
+    state.ui.tutorialTab = "loops";
   }
   if (typeof state.ui.socialShowInternal !== "boolean") state.ui.socialShowInternal = false;
     if (!state.ui.socialFilters) {
@@ -8118,6 +8691,40 @@ function normalizeState() {
   if (!state.meta.autoSave) state.meta.autoSave = { enabled: false, minutes: 5, lastSavedAt: null };
   if (typeof state.meta.autoSave.minutes !== "number") state.meta.autoSave.minutes = 5;
   if (typeof state.meta.autoSave.enabled !== "boolean") state.meta.autoSave.enabled = false;
+  if (!state.meta.autoCreate) {
+    state.meta.autoCreate = {
+      enabled: false,
+      lastRunAt: null,
+      minCash: AUTO_CREATE_MIN_CASH,
+      budgetPct: AUTO_CREATE_BUDGET_PCT,
+      maxTracks: AUTO_CREATE_MAX_TRACKS,
+      mode: "solo",
+      lastOutcome: null
+    };
+  }
+  if (typeof state.meta.autoCreate.enabled !== "boolean") state.meta.autoCreate.enabled = false;
+  if (typeof state.meta.autoCreate.lastRunAt !== "number") state.meta.autoCreate.lastRunAt = null;
+  if (typeof state.meta.autoCreate.minCash !== "number") state.meta.autoCreate.minCash = AUTO_CREATE_MIN_CASH;
+  if (typeof state.meta.autoCreate.budgetPct !== "number") state.meta.autoCreate.budgetPct = AUTO_CREATE_BUDGET_PCT;
+  if (typeof state.meta.autoCreate.maxTracks !== "number") state.meta.autoCreate.maxTracks = AUTO_CREATE_MAX_TRACKS;
+  if (state.meta.autoCreate.mode !== "solo" && state.meta.autoCreate.mode !== "collab") {
+    state.meta.autoCreate.mode = "solo";
+  }
+  state.meta.autoCreate.minCash = Math.max(0, Math.round(state.meta.autoCreate.minCash));
+  state.meta.autoCreate.budgetPct = clamp(state.meta.autoCreate.budgetPct, 0, 1);
+  state.meta.autoCreate.maxTracks = clamp(Math.round(state.meta.autoCreate.maxTracks), 1, 5);
+  if (state.meta.autoCreate.lastOutcome && typeof state.meta.autoCreate.lastOutcome !== "object") {
+    state.meta.autoCreate.lastOutcome = null;
+  }
+  if (state.meta.autoCreate.lastOutcome) {
+    const outcome = state.meta.autoCreate.lastOutcome;
+    if (typeof outcome.at !== "number") outcome.at = state.meta.autoCreate.lastRunAt || null;
+    if (typeof outcome.status !== "string") outcome.status = "skipped";
+    if (typeof outcome.message !== "string") outcome.message = "";
+    if (typeof outcome.created !== "number") outcome.created = 0;
+    if (typeof outcome.spent !== "number") outcome.spent = 0;
+    if (typeof outcome.budgetCap !== "number") outcome.budgetCap = 0;
+  }
   if (!state.meta.autoRollout) {
     state.meta.autoRollout = { enabled: false, lastCheckedAt: null, budgetPct: AUTO_PROMO_BUDGET_PCT };
   }
@@ -8127,6 +8734,9 @@ function normalizeState() {
   }
   state.meta.autoRollout.budgetPct = clamp(state.meta.autoRollout.budgetPct, 0, 1);
   if (typeof state.meta.keepEraRolloutHusks !== "boolean") state.meta.keepEraRolloutHusks = true;
+  if (typeof state.meta.cheaterMode !== "boolean") state.meta.cheaterMode = false;
+  ensureCheaterEconomyOverrides();
+  applyCheaterEconomyOverrides();
   if (!state.meta.seedInfo) state.meta.seedInfo = null;
   if (!state.meta.seedHistory) state.meta.seedHistory = null;
   if (!state.meta.seedCalibration) state.meta.seedCalibration = null;
@@ -8316,11 +8926,35 @@ function normalizeState() {
       ensureTrackEconomy(track);
     });
   }
+  if (!state.inventory || typeof state.inventory !== "object") state.inventory = { modifiers: [] };
+  if (!Array.isArray(state.inventory.modifiers)) state.inventory.modifiers = [];
+  const ownedModifiers = new Set(state.inventory.modifiers.filter(Boolean));
+  if (state.tracks?.length) {
+    state.tracks.forEach((track) => {
+      const modifierId = resolveModifier(track.modifier)?.id;
+      if (modifierId && modifierId !== "None") ownedModifiers.add(modifierId);
+    });
+  }
+  state.inventory.modifiers = Array.from(ownedModifiers);
   if (state.marketTracks?.length) {
     state.marketTracks.forEach((entry) => {
       if (!entry.distribution) entry.distribution = "Digital";
       if (typeof entry.releasedAt !== "number") entry.releasedAt = state.time?.epochMs || Date.now();
       if (typeof entry.isPlayer !== "boolean") entry.isPlayer = false;
+      const originMeta = resolveTrackOriginMeta(entry);
+      if (!Array.isArray(entry.creatorCountries) || !entry.creatorCountries.length) {
+        entry.creatorCountries = originMeta.creatorCountries;
+      }
+      if (!entry.actCountry) entry.actCountry = originMeta.actCountry;
+      if (entry.isPlayer) {
+        const originCountry = originMeta.actCountry
+          || dominantValue(originMeta.creatorCountries, entry.country || null)
+          || entry.country
+          || "Annglora";
+        entry.country = originCountry;
+      } else if (!entry.country && originMeta.actCountry) {
+        entry.country = originMeta.actCountry;
+      }
     });
   }
   if (!Array.isArray(state.releaseQueue)) state.releaseQueue = [];
@@ -8583,15 +9217,30 @@ function recommendActForTrack(track) {
 
 function recommendModifierId(theme, mood, crewIds = []) {
   const trendMatch = state.trends.includes(makeGenre(theme, mood));
-  const qualityMod = MODIFIERS.find((mod) => mod.qualityDelta > 0);
-  const speedMod = MODIFIERS.find((mod) => mod.hoursDelta < 0);
-  if (trendMatch && qualityMod && state.label.cash >= getStageCost(0, qualityMod, crewIds)) {
-    return { modifierId: qualityMod.id, reason: "Invest in quality while trend is hot." };
+  const owned = new Set(getOwnedModifierIds());
+  const availableMods = MODIFIERS.filter((mod) => mod.id !== "None" && owned.has(mod.id));
+  const alignment = state.label?.alignment || "Neutral";
+  const isAffordable = (mod) => state.label.cash >= getStageCost(0, mod, crewIds);
+  const matchesContent = (mod) => modifierMatchesContent(mod, { theme, mood, alignment });
+  if (trendMatch) {
+    const targetedQuality = availableMods.filter((mod) => mod.qualityDelta > 0 && matchesContent(mod) && isAffordable(mod));
+    if (targetedQuality.length) {
+      return { modifierId: targetedQuality[0].id, reason: "Boost quality for the current genre." };
+    }
+    const qualityMods = availableMods.filter((mod) => mod.qualityDelta > 0 && isAffordable(mod));
+    if (qualityMods.length) {
+      return { modifierId: qualityMods[0].id, reason: "Invest in quality while trend is hot." };
+    }
   }
-  if (!trendMatch && speedMod && state.label.cash >= getStageCost(0, speedMod, crewIds)) {
-    return { modifierId: speedMod.id, reason: "Favor speed on a colder week." };
+  const speedMods = availableMods.filter((mod) => mod.hoursDelta < 0 && isAffordable(mod));
+  if (!trendMatch && speedMods.length) {
+    return { modifierId: speedMods[0].id, reason: "Favor speed on a colder week." };
   }
-  return { modifierId: MODIFIERS[0]?.id || "None", reason: "Standard budget tier." };
+  if (availableMods.length) {
+    const affordable = availableMods.find((mod) => isAffordable(mod));
+    return { modifierId: (affordable || availableMods[0]).id, reason: "Standard budget tier." };
+  }
+  return { modifierId: "None", reason: "No modifier tools owned yet." };
 }
 
 function recommendProjectType(actId) {
@@ -9253,12 +9902,15 @@ export {
   clearSlot,
   collectTrendRanking,
   commitSlotChange,
+  computeAutoCreateBudget,
+  computeAutoPromoBudget,
   computeCharts,
   computePopulationSnapshot,
   countryColor,
   countryDemonym,
   createRolloutStrategyForEra,
   createTrack,
+  evaluateProjectTrackConstraints,
   creatorInitials,
   currentYear,
   declineBailout,
@@ -9298,6 +9950,7 @@ export {
   getOwnedStudioSlots,
   getPromoFacilityAvailability,
   getPromoFacilityForType,
+  getProjectTrackLimits,
   getReleaseAsapAt,
   getReleaseAsapHours,
   getReleaseDistributionFee,
@@ -9340,10 +9993,13 @@ export {
   markUiLogStart,
   moodFromGenre,
   normalizeCreator,
+  normalizeProjectName,
+  normalizeProjectType,
   normalizeRoleIds,
   parseTrackRoleTarget,
   pickDistinct,
   postCreatorSigned,
+  purchaseModifier,
   pruneCreatorSignLockouts,
   qualityGrade,
   rankCandidates,
@@ -9361,6 +10017,8 @@ export {
   scheduleRelease,
   scoreGrade,
   session,
+  setCheaterEconomyOverride,
+  setCheaterMode,
   setFocusEraById,
   setSelectedRolloutStrategyId,
   setSlotTarget,
