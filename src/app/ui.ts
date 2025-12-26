@@ -526,8 +526,7 @@ const VIEW_DEFAULTS = {
     "dashboard-eras": VIEW_PANEL_STATES.open
   },
   charts: {
-    "charts": VIEW_PANEL_STATES.open,
-    "label-rankings": VIEW_PANEL_STATES.open
+    "charts": VIEW_PANEL_STATES.open
   },
   create: {
     "create-track": VIEW_PANEL_STATES.open,
@@ -5037,7 +5036,41 @@ function setupOverlayDismissals() {
   });
 }
 
+function formatRealTimeSeconds(seconds) {
+  if (!Number.isFinite(seconds)) return "-";
+  const rounded = Math.round(seconds * 100) / 100;
+  return `${rounded}s`;
+}
+
+function updateTimeControlLabels() {
+  const pauseBtn = $("pauseBtn");
+  if (pauseBtn) pauseBtn.textContent = "Pause (stopped)";
+  const playBtn = $("playBtn");
+  if (playBtn) {
+    playBtn.textContent = `Play (1h = ${formatRealTimeSeconds(state.time?.secPerHourPlay)})`;
+  }
+  const fastBtn = $("fastBtn");
+  if (fastBtn) {
+    fastBtn.textContent = `Fast (1h = ${formatRealTimeSeconds(state.time?.secPerHourFast)})`;
+  }
+  const autoDayBtn = $("autoSkipDayBtn");
+  if (autoDayBtn) {
+    const daySeconds = AUTO_SKIP_DAY_INTERVAL_MS / 1000;
+    autoDayBtn.textContent = `Auto Day (24h = ${formatRealTimeSeconds(daySeconds)})`;
+  }
+  const autoWeekBtn = $("autoSkipWeekBtn");
+  if (autoWeekBtn) {
+    const weekDays = Math.round(WEEK_HOURS / 24);
+    const weekLabel = Number.isFinite(weekDays) ? `${weekDays}d` : "7d";
+    const weekSeconds = AUTO_SKIP_WEEK_INTERVAL_MS / 1000;
+    autoWeekBtn.textContent = `Auto Week (${weekLabel} = ${formatRealTimeSeconds(weekSeconds)})`;
+  }
+  const skipBtn = $("skipTimeBtn");
+  if (skipBtn) skipBtn.textContent = "Skip (custom)";
+}
+
 function updateTimeControlButtons() {
+  updateTimeControlLabels();
   const pauseBtn = $("pauseBtn");
   const playBtn = $("playBtn");
   const fastBtn = $("fastBtn");

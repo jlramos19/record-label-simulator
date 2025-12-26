@@ -131,6 +131,7 @@ import {
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
 const PROMO_BUDGET_MIN = 100;
 const CREATE_PENDING_EMOJIS = { sheet: "🎼", demo: "🎧" };
+const RELEASE_PENDING_EMOJI = "💿";
 
 function getPromoInflationMultiplier() {
   const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
@@ -1041,6 +1042,30 @@ function renderCreateNavBadge() {
   } else {
     navItem.setAttribute("aria-label", "Create");
     navItem.setAttribute("title", "Create");
+  }
+}
+
+function getReleaseReadyCount() {
+  if (!Array.isArray(state.tracks)) return 0;
+  return state.tracks.filter((track) => track?.status === "Ready").length;
+}
+
+function renderReleaseNavBadge() {
+  const navItem = document.querySelector(".app-nav [data-route=\"release\"]");
+  const badge = $("releaseNavBadge");
+  if (!navItem || !badge) return;
+  const totalEl = badge.querySelector("[data-release-ready-total]");
+  const labelEl = badge.querySelector("[data-release-ready-label]");
+  const total = getReleaseReadyCount();
+  if (totalEl) totalEl.textContent = formatCount(total);
+  if (labelEl) labelEl.textContent = `${RELEASE_PENDING_EMOJI} Ready`;
+  badge.classList.toggle("is-hidden", total <= 0);
+  if (total > 0) {
+    navItem.setAttribute("aria-label", `Release (${total} ready)`);
+    navItem.setAttribute("title", `${total} ready to release`);
+  } else {
+    navItem.setAttribute("aria-label", "Release");
+    navItem.setAttribute("title", "Release");
   }
 }
 
@@ -3926,23 +3951,6 @@ function renderCharts() {
     `;
   }
 
-  const ranking = getLabelRanking(3);
-  $("labelRankings").innerHTML = ranking.length
-    ? ranking.map((row, index) => {
-      const rival = getRivalByName(row[0]);
-      const country = rival ? rival.country : state.label.country || "Annglora";
-      return `
-        <div class="list-item">
-          <div class="list-row">
-            <div>
-              <div class="item-title">${index + 1}. ${renderLabelTag(row[0], country)}</div>
-            </div>
-            <div class="pill">${row[1]} pts</div>
-          </div>
-        </div>
-      `;
-    }).join("")
-    : "";
 }
 
 function renderAchievements() {
@@ -4752,6 +4760,7 @@ function renderAll({ save = true } = {}) {
   renderTime();
   renderStats();
   renderCreateNavBadge();
+  renderReleaseNavBadge();
   renderTopBar();
   renderActiveView(state.ui.activeView);
   renderWallet();

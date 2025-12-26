@@ -7,6 +7,11 @@ This doc defines the Touring view (planned) for the future touring feature.
 - Booking logic, calendar integration, and costs remain planned.
 - Touring chart rankings surface in the Charts view with attendance-based draw while bookings are still stubbed.
 
+## Development route
+- Start with real-world touring workflow steps even when mechanics are stubbed.
+- Use placeholder calculations plus reason-code logging for undefined concepts.
+- Keep gameplay impact behind a feature flag until tuning is approved.
+
 ## Placement
 - The tab sits to the right of Promotions in the primary nav.
 - Touring is the final promotion step of an Era, following standard promos.
@@ -34,5 +39,6 @@ This doc defines the Touring view (planned) for the future touring feature.
 
 ## Related
 - `docs/systems/touring/venues.md`
+- `docs/systems/touring/tuning-guide.md`
 - `docs/systems/structures/structures-and-slots.md`
 - `docs/ui/promotions-tab.md`

@@ -416,9 +416,9 @@
         <button id="pauseBtn" type="button" class="ghost">Pause</button>
         <button id="playBtn" type="button" class="ghost">Play</button>
         <button id="fastBtn" type="button" class="ghost">Fast</button>
-        <button id="autoSkipDayBtn" type="button" class="ghost" aria-pressed="false">Auto 24h</button>
-        <button id="autoSkipWeekBtn" type="button" class="ghost" aria-pressed="false">Auto 7d</button>
-        <button id="skipTimeBtn" type="button" class="ghost">Skip Time</button>
+        <button id="autoSkipDayBtn" type="button" class="ghost" aria-pressed="false">Auto Day</button>
+        <button id="autoSkipWeekBtn" type="button" class="ghost" aria-pressed="false">Auto Week</button>
+        <button id="skipTimeBtn" type="button" class="ghost">Skip</button>
       </div>
       <div class="time-meta">
         <span id="weekDisplay">Week 1</span> | <span id="chartCountdown">Charts update in 168h</span> | <span id="gameModeDisplay" class="pill mode-pill" aria-label="Game mode">-</span> <span id="gameDifficultyDisplay" class="pill difficulty-pill" aria-label="Game difficulty">-</span>
@@ -483,6 +483,10 @@
         <a href="#/release" data-route="release" class="nav-item" aria-label="Release" title="Release">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">new_releases</span>
           <span class="nav-label">Release</span>
+          <span id="releaseNavBadge" class="nav-badge is-hidden" aria-hidden="true">
+            <span class="nav-badge-total" data-release-ready-total>0</span>
+            <span class="nav-badge-breakdown" data-release-ready-label>💿 Ready</span>
+          </span>
         </a>
         <a href="#/releases" data-route="releases" class="nav-item" aria-label="Calendar" title="Calendar">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">event</span>
@@ -566,7 +570,7 @@
 </template>
 
 <template id="view-charts">
-  <div class="view view--charts">
+  <div class="view view--charts view--single">
     <section class="view-main">
       <div class="panel card panel--scroll" data-panel="charts">
         <div class="card-head">
@@ -603,14 +607,6 @@
         </div>
       </div>
     </section>
-    <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="label-rankings">
-        <h2>Label Rankings</h2>
-        <div class="card-body">
-          <div id="labelRankings" class="list"></div>
-        </div>
-      </div>
-    </aside>
   </div>
 </template>
 
@@ -841,7 +837,7 @@
       <div class="panel card panel--scroll" data-panel="modifier-inventory">
         <h2>Modifier Inventory</h2>
         <div class="card-body">
-          <div class="tiny muted">Purchased tools from Community show here.</div>
+          <div class="tiny muted">Consumable modifiers purchased in Community show here.</div>
           <div id="modifierInventoryList" class="list"></div>
         </div>
       </div>
@@ -1205,7 +1201,7 @@
         </div>
         <div class="card-body">
           <div class="callout">
-            Modifiers are tools that boost production outcomes. Purchase them here to unlock in Create.
+            Modifiers are consumable tools that boost production outcomes. Purchase them here to unlock in Create; each track consumes one on sheet creation.
           </div>
           <div id="communityToolsList" class="list"></div>
         </div>
