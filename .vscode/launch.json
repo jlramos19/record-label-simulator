@@ -7,26 +7,12 @@
       "request": "launch",
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}",
+      "runtimeArgs": [
+        "--new-window",
+        "--no-first-run"
+      ],
       "userDataDir": "${env:TEMP}\\vscode-edge-profile",
       "preLaunchTask": "RLS: Dev Server + Watch"
-    },
-    {
-      "name": "RLS: Edge DevTools",
-      "type": "vscode-edge-devtools.debug",
-      "request": "attach",
-      "url": "http://localhost:5173",
-      "presentation": {
-        "hidden": true
-      }
-    }
-  ],
-  "compounds": [
-    {
-      "name": "RLS: Edge + DevTools",
-      "configurations": [
-        "RLS: Edge (Dev)",
-        "RLS: Edge DevTools"
-      ]
     }
   ]
 }

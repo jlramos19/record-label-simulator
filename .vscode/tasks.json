@@ -10,13 +10,14 @@
         "owner": "rls-server",
         "pattern": [
           {
-            "regexp": "^(.*)$",
+            "regexp": "^(RLS_PROBLEM_MATCHER_UNUSED)$",
+            "file": 1,
             "message": 1
           }
         ],
         "background": {
           "activeOnStart": true,
-          "beginsPattern": ".*python -m http.server 5173.*",
+          "beginsPattern": ".*",
           "endsPattern": "Serving HTTP on .* port 5173"
         }
       },
@@ -30,7 +31,21 @@
       "type": "npm",
       "script": "watch",
       "isBackground": true,
-      "problemMatcher": "$tsc-watch",
+      "problemMatcher": {
+        "owner": "rls-tsc",
+        "pattern": [
+          {
+            "regexp": "^(RLS_TSC_PROBLEM_MATCHER_UNUSED)$",
+            "file": 1,
+            "message": 1
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Watching for file changes"
+        }
+      },
       "presentation": {
         "reveal": "always",
         "panel": "dedicated"

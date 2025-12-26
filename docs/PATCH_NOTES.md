@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1517Z)
+- Simplified Run/Debug to only the `RLS: Edge (Dev)` config after removing Edge Tools, while keeping prelaunch watch + server tasks.
+- Fixed the dev server task problem matcher so VS Code can treat the server as a background task.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1453Z)
 - VS Code Edge debug now launches through the Edge Tools config with prelaunch dev server + TypeScript watch tasks.
 - React UI islands dev server now uses port 5174 to avoid conflicts with the main game server.
