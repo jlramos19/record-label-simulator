@@ -1,0 +1,87 @@
+export const ACT_NAMES = [
+  "Neon Signal",
+  "Velvet Atlas",
+  "Opal Circuit",
+  "Midnight Pulse",
+  "Silver District",
+  "Amber Ritual",
+  "Cielo Roto",
+  "Luz de Mar",
+  "Fuego Azul",
+  "Sombra Clara",
+  "Rio Lunar",
+  "Viento Dorado",
+  "Glass Harbor",
+  "Cinder Path",
+  "Drift Temple",
+  "City Halo",
+  "Gold Crown",
+  "Nova Tide",
+];
+
+export const LABEL_NAMES = [
+  "Hann Record Label",
+  "Annglora Record Label",
+  "International Record Label",
+  "Bytenza Record Label",
+  "Strongbow Record Label",
+  "Blackmount Record Label",
+  "Crowlya Record Label",
+  "Community Record Label",
+];
+
+export const NAME_PARTS = {
+  labelPrefix: ["Aurora", "Crown", "Cinder", "Opal", "Signal", "Harbor", "Velvet", "Sunline", "Glass", "North", "Echo", "Nova", "Gold", "Silver", "Amber", "Drift"],
+  labelSuffix: ["Records", "Record Label", "Audio", "Sound", "Works", "Collective", "Press", "Division", "Wave", "Guild", "District"],
+  actPrefix: ["Neon", "Velvet", "Opal", "Midnight", "Silver", "Amber", "Cielo", "Luna", "Rio", "Sombra", "Nova", "Drift", "Glass", "Cinder", "Pulse", "Signal", "Haneul", "Saebyeok"],
+  actSuffix: ["Signal", "Atlas", "Circuit", "Pulse", "District", "Ritual", "Harbor", "Tide", "Union", "Temple", "Garden", "Crown", "Echo", "Halo", "Parade", "Line"],
+  projectPrefix: ["City", "Garden", "Atlas", "Map", "Lighthouse", "Chamber", "Signal", "Crown", "Glass", "Neon", "Shadow", "River", "Dawn", "Velvet", "Opal", "Cinder"],
+  projectSuffix: ["of Glass", "of Noise", "of Ember", "of Dawn", "of Dust", "of Echoes", "Phase", "Archive", "Season", "Drift", "Route", "Bloom", "Ritual", "Circuit", "Harbor", "Tide"],
+  trackVerb: ["Fading", "Hollow", "Paper", "Signal", "Orbit", "Chasing", "Breaking", "Calling", "Falling", "Rising", "Holding", "Running", "Tracing", "Counting", "Turning", "Shifting"],
+  trackNoun: ["Satellites", "Radiance", "Crown", "Drift", "Bloom", "Glass", "Tide", "Shadow", "Pulse", "Echo", "Harbor", "District", "Moonlight", "Ember", "Voltage", "Mirage", "Namu"],
+  eraDescriptor: ["Dawn", "Signal", "Crown", "Velvet", "Amber", "Nova", "Harbor", "Drift", "Echo", "Night", "Golden", "Midnight"],
+  eraPhase: ["Phase", "Cycle", "Season", "Run", "Arc", "Wave", "Chapter", "Era", "Frame", "Bloom"],
+};
+
+export const TRACK_TITLE_TEMPLATES = [
+  "{verb} {noun}",
+  "{noun} {verb}",
+  "{noun} Signal",
+  "The {noun} {verb}",
+];
+
+export const PROJECT_TITLE_TEMPLATES = [
+  "{prefix} {suffix}",
+  "{prefix} {suffix}",
+  "{prefix} {suffix}",
+];
+
+export const PROJECT_TITLES = [
+  "City of Glass",
+  "Atlas of Noise",
+  "Garden of Ember",
+  "Mapas del Viento",
+  "Fuego en Agua",
+  "Ruta Solar",
+  "Mar de Cristal",
+  "Lluvia Dorada",
+  "Monologue",
+  "Faint of Heart",
+  "Cringe Is Subjective",
+  "Into Me",
+  "Irretrievably Broken",
+  "Unwanted",
+  "Lame",
+  "Daggers",
+  "De Atra Pa'lante",
+];
+
+export const ERA_NAME_TEMPLATES = [
+  "{act}: Dawn Phase",
+  "{act}: Signal Run",
+  "{act}: Crown Cycle",
+  "{act}: Velvet Season",
+  "Project {act} - First Wave",
+  "{act}: Longform Bloom",
+];
+

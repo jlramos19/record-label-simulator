@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0627Z)
+- Split gameplay tuning constants into `src/app/game/config.ts` to reduce `game.ts` surface area.
+- Split creator name pools into `src/app/game/names/` modules with `names.ts` as the barrel export.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0556Z)
 - Promo track selection now auto-fills the Act slot when it is empty.
 - Fixed promo slot assignment crash caused by missing slot/field DOM helpers.

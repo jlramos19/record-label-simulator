@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-26 01:56:30 -04:00
+Last updated: 2025-12-26 02:27:26 -04:00
 
 ## Quick start
 
@@ -55,10 +55,12 @@ npm run dev:logs
 
 ## Code layout (high level)
 
-- `src/main.ts` — bootstraps UI and service worker registration.
-- `src/app/ui.ts` — UI composition, routing, panels, and event handlers.
-- `src/app/game.ts` — simulation state, economy, progression, and render orchestration.
-- `src/app/chartWorker.ts` — chart computation in a Web Worker.
+- `src/main.ts` - bootstraps UI and service worker registration.
+- `src/app/ui.ts` - UI composition, routing, panels, and event handlers.
+- `src/app/game.ts` - simulation state, economy, progression, and render orchestration.
+- `src/app/game/config.ts` - gameplay tuning constants and scheduling defaults.
+- `src/app/game/names.ts` - name pools barrel; region lists live in `src/app/game/names/`.
+- `src/app/chartWorker.ts` - chart computation in a Web Worker.
 - `src/app/db.ts` — IndexedDB helpers for chart history snapshots.
 - `src/app/csv.ts` — CSV loading utilities for `csv/` mirror data.
 - `src/app/globals.d.ts` — type declarations for globals from `assets/js/data/*.js`.
@@ -97,7 +99,7 @@ Used for save slots, UI state, and preferences:
 ## Known tech debt / next steps
 
 - `src/app/game.ts` and `src/app/ui.ts` use `// @ts-nocheck`; migrate core state/interfaces to typed boundaries.
-- `ui.ts` and `game.ts` are large, multi-responsibility modules; consider splitting into smaller feature modules.
+- `ui.ts` and `game.ts` are large, multi-responsibility modules; continue splitting into feature modules beyond the `game/config` + `game/names` extraction.
 - Save/version migrations are ad hoc; consider formalized schema migrations alongside `state.meta.version`.
 - Service worker cache version (`service-worker.js`) is manual; stale assets are possible without bumps.
 
