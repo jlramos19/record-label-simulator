@@ -2,7 +2,7 @@
 import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
-import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails } from "./promo_types.js";
+import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails, PROMO_TYPE_DETAILS } from "./promo_types.js";
 import { setUiHooks } from "./game/ui-hooks.js";
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTracks, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
@@ -359,8 +359,7 @@ const VIEW_DEFAULTS = {
     },
     releases: {
         "calendar-view": VIEW_PANEL_STATES.open,
-        "release-desk": VIEW_PANEL_STATES.open,
-        "tracks": VIEW_PANEL_STATES.open
+        "release-desk": VIEW_PANEL_STATES.open
     },
     eras: {
         "era-desk": VIEW_PANEL_STATES.open,
@@ -757,12 +756,7 @@ function chartScopeKey(chartKey) {
     return `region:${chartKey}`;
 }
 function chartScopeLabel(chartKey) {
-    if (chartKey === "global")
-        return "Global (Gaia)";
-    if (NATIONS.includes(chartKey))
-        return chartKey;
-    const region = REGION_DEFS.find((entry) => entry.id === chartKey);
-    return region ? region.label : chartKey;
+    return game.chartScopeLabel(chartKey);
 }
 function resetChartHistoryView({ render = true } = {}) {
     chartHistoryRequestId += 1;
@@ -1352,44 +1346,49 @@ function promoBudgetBaseCost(typeId) {
     const details = getPromoTypeDetails(typeId);
     return Math.max(PROMO_BUDGET_MIN, details.cost);
 }
-function promoBudgetBaseCostForTypes(typeIds) {
-    if (!typeIds)
-        return promoBudgetBaseCost(DEFAULT_PROMO_TYPE);
-    const list = Array.isArray(typeIds) ? typeIds : [typeIds];
-    const costs = list
-        .filter(Boolean)
-        .map((typeId) => promoBudgetBaseCost(typeId));
-    if (!costs.length)
-        return promoBudgetBaseCost(DEFAULT_PROMO_TYPE);
-    return Math.max(...costs);
+function promoWeeksFromBudget(budget) {
+    return clamp(Math.floor(budget / 1200) + 1, 1, 4);
 }
-function setPromoBudgetToBaseCost(root, typeIds) {
-    const scope = root || document;
-    const input = scope.querySelector("#promoBudget");
-    if (!input)
-        return;
-    const baseCost = promoBudgetBaseCostForTypes(typeIds);
-    const raw = Number(input.value);
-    const hasValue = Number.isFinite(raw);
-    const autoBudget = input.dataset.promoBudgetAuto !== "false";
-    input.min = String(PROMO_BUDGET_MIN);
-    if (!hasValue || autoBudget) {
-        input.value = String(baseCost);
-        input.dataset.promoBudgetAuto = "true";
-    }
-}
-function normalizePromoBudget(root, typeIds) {
-    const scope = root || document;
-    const input = scope.querySelector("#promoBudget");
-    const baseCost = promoBudgetBaseCostForTypes(typeIds);
-    if (!input)
+function normalizePromoBudgetValue(raw, typeId, inflationMultiplier) {
+    const baseCost = getPromoTypeCosts(typeId, inflationMultiplier).adjustedCost;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed))
         return baseCost;
-    input.min = String(PROMO_BUDGET_MIN);
-    const raw = Number(input.value);
-    const next = Number.isFinite(raw) ? Math.max(PROMO_BUDGET_MIN, raw) : baseCost;
-    if (String(next) !== input.value)
-        input.value = String(next);
-    return next;
+    return Math.max(PROMO_BUDGET_MIN, Math.round(parsed));
+}
+function ensurePromoBudgets(inflationMultiplier) {
+    if (!state.ui)
+        state.ui = {};
+    if (!state.ui.promoBudgets || typeof state.ui.promoBudgets !== "object") {
+        state.ui.promoBudgets = {};
+    }
+    Object.keys(PROMO_TYPE_DETAILS).forEach((typeId) => {
+        const current = state.ui.promoBudgets[typeId];
+        const normalized = normalizePromoBudgetValue(current, typeId, inflationMultiplier);
+        state.ui.promoBudgets[typeId] = normalized;
+    });
+    return state.ui.promoBudgets;
+}
+function getPromoBudgetForType(typeId, inflationMultiplier) {
+    const budgets = ensurePromoBudgets(inflationMultiplier);
+    return normalizePromoBudgetValue(budgets[typeId], typeId, inflationMultiplier);
+}
+function setPromoBudgetForType(typeId, value, inflationMultiplier) {
+    const budgets = ensurePromoBudgets(inflationMultiplier);
+    const normalized = normalizePromoBudgetValue(value, typeId, inflationMultiplier);
+    budgets[typeId] = normalized;
+    return normalized;
+}
+function getPromoBudgetsForTypes(typeIds, inflationMultiplier) {
+    const list = Array.isArray(typeIds) ? typeIds : [typeIds];
+    const budgets = {};
+    let total = 0;
+    list.filter(Boolean).forEach((typeId) => {
+        const budget = getPromoBudgetForType(typeId, inflationMultiplier);
+        budgets[typeId] = budget;
+        total += budget;
+    });
+    return { budgets, total };
 }
 function getPromoTrackContext(trackId) {
     const track = trackId ? getTrack(trackId) : null;
@@ -1407,6 +1406,53 @@ function getPromoTypeLockouts(context) {
     if (context.track.promo?.musicVideoUsed)
         lockouts.musicVideo = "Used";
     return lockouts;
+}
+function getPromoAudienceTier(track) {
+    if (!track)
+        return { label: "Audience variance", offset: 0, score: 0 };
+    const country = state.label?.country;
+    const profile = country && typeof NATION_PROFILES !== "undefined" ? NATION_PROFILES[country] : null;
+    const hasSignals = Boolean(track.alignment || track.theme || track.mood || track.genre);
+    if (!profile || !hasSignals)
+        return { label: "Audience variance", offset: 0, score: 0 };
+    let score = 0;
+    if (profile) {
+        if (track.alignment && track.alignment === profile.alignment)
+            score += 1;
+        if (track.theme && track.theme === profile.theme)
+            score += 1;
+        if (track.mood && Array.isArray(profile.moods) && profile.moods.includes(track.mood))
+            score += 1;
+    }
+    if (track.genre && Array.isArray(state.trends) && state.trends.includes(track.genre))
+        score += 1;
+    if (score >= 3)
+        return { label: "Tailwind audience", offset: 3, score };
+    if (score === 2)
+        return { label: "Aligned audience", offset: 1, score };
+    if (score === 1)
+        return { label: "Mixed audience", offset: 0, score };
+    return { label: "Headwind audience", offset: -2, score };
+}
+function buildPromoEfficiencyText(typeId, budget, inflationMultiplier) {
+    const baseCost = getPromoTypeCosts(typeId, inflationMultiplier).adjustedCost;
+    const ratio = baseCost > 0 ? budget / baseCost : 1;
+    const deltaPct = Math.round((ratio - 1) * 100);
+    let label = "Standard";
+    if (deltaPct >= 20)
+        label = "Boosted";
+    if (deltaPct <= -20)
+        label = "Lean";
+    const deltaText = deltaPct === 0 ? "0%" : `${deltaPct > 0 ? "+" : ""}${deltaPct}%`;
+    return `Efficiency: ${label} (${deltaText} vs typical)`;
+}
+function buildPromoExpectationText(budget, track) {
+    const weeks = promoWeeksFromBudget(budget);
+    const audience = getPromoAudienceTier(track);
+    const baseLift = 10;
+    const minLift = Math.max(0, baseLift + audience.offset - 4);
+    const maxLift = Math.max(minLift, baseLift + audience.offset + 4);
+    return `Expected lift: +${minLift}-${maxLift} chart pts/wk | Window: ${weeks}w (${audience.label})`;
 }
 function getPromoTypeFallback(root, lockouts, fallbackTypeId) {
     const scope = root || document;
@@ -1490,6 +1536,34 @@ function syncPromoTypeCards(root, typeIds, lockouts = {}) {
         }
     });
 }
+function syncPromoBudgetCards(root, { trackContext, lockouts = {}, inflationMultiplier }) {
+    const scope = root || document;
+    const cards = scope.querySelectorAll("[data-promo-type]");
+    if (!cards.length)
+        return;
+    const track = trackContext?.track || null;
+    cards.forEach((card) => {
+        const typeId = card.dataset.promoType;
+        if (!typeId)
+            return;
+        const isLocked = Boolean(lockouts?.[typeId]);
+        const budget = setPromoBudgetForType(typeId, state.ui?.promoBudgets?.[typeId], inflationMultiplier);
+        const input = card.querySelector("[data-promo-budget]");
+        if (input) {
+            input.min = String(PROMO_BUDGET_MIN);
+            input.step = "100";
+            input.value = String(budget);
+            input.disabled = isLocked;
+            input.dataset.promoType = typeId;
+        }
+        const efficiency = card.querySelector("[data-promo-efficiency]");
+        if (efficiency)
+            efficiency.textContent = buildPromoEfficiencyText(typeId, budget, inflationMultiplier);
+        const expectation = card.querySelector("[data-promo-expectation]");
+        if (expectation)
+            expectation.textContent = buildPromoExpectationText(budget, track);
+    });
+}
 function buildPromoFacilityHint(typeId) {
     const facility = getPromoFacilityForType(typeId);
     if (!facility)
@@ -1536,29 +1610,32 @@ function updatePromoTypeHint(root) {
     state.ui.promoType = primaryType || DEFAULT_PROMO_TYPE;
     const inflationMultiplier = getPromoInflationMultiplier();
     syncPromoTypeCards(scope, selectedTypes, lockouts);
-    setPromoBudgetToBaseCost(scope, selectedTypes);
-    const budget = normalizePromoBudget(scope, selectedTypes);
+    syncPromoBudgetCards(scope, { trackContext, lockouts, inflationMultiplier });
+    const { budgets, total } = getPromoBudgetsForTypes(selectedTypes, inflationMultiplier);
+    const totalSpend = formatMoney(total);
+    const perTypeSpend = selectedTypes.length === 1 ? formatMoney(budgets[selectedTypes[0]]) : null;
     if (hint) {
         if (selectedTypes.length === 1) {
             const typeId = selectedTypes[0];
-            hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)}${buildPromoFacilityHint(typeId)}`;
+            hint.textContent = `Selected: ${buildPromoHint(typeId, inflationMultiplier)} | Budget: ${perTypeSpend || totalSpend} | Total: ${totalSpend}${buildPromoFacilityHint(typeId)}`;
         }
         else {
             const labels = selectedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
             const facilityHint = buildPromoFacilityHints(selectedTypes);
             const facilitySuffix = facilityHint ? ` | ${facilityHint}` : "";
-            const totalSpend = formatMoney(budget * selectedTypes.length);
-            hint.textContent = `Selected (${selectedTypes.length}): ${labels}. Budget applies per type; total spend: ${totalSpend}${facilitySuffix}`;
+            hint.textContent = `Selected (${selectedTypes.length}): ${labels}. Budgets are per type; total spend: ${totalSpend}${facilitySuffix}`;
         }
     }
-    const budgetInput = scope.querySelector("#promoBudget");
-    if (budgetInput) {
-        const costs = selectedTypes.map((typeId) => getPromoTypeCosts(typeId, inflationMultiplier).adjustedCost);
-        const minCost = Math.min(...costs);
-        const maxCost = Math.max(...costs);
-        budgetInput.placeholder = minCost === maxCost
-            ? formatMoney(maxCost)
-            : `${formatMoney(minCost)}-${formatMoney(maxCost)}`;
+    const budgetTotal = scope.querySelector("#promoBudgetTotal");
+    if (budgetTotal) {
+        const typeCount = selectedTypes.length;
+        const perTypeLabel = typeCount > 1 ? ` (${typeCount} types)` : "";
+        budgetTotal.textContent = `Total spend: ${totalSpend}${perTypeLabel}`;
+    }
+    const promoBtn = scope.querySelector("#promoBtn");
+    if (promoBtn) {
+        const label = selectedTypes.length > 1 ? "Fund Promo Pushes" : "Fund Promo Push";
+        promoBtn.textContent = `${label} (${totalSpend})`;
     }
 }
 function bindGlobalHandlers() {
@@ -2131,13 +2208,23 @@ function bindViewHandlers(route, root) {
             syncPromoTypeCards(root, [typeId], lockouts);
             updatePromoTypeHint(root);
         });
-        on("promoBudget", "change", (e) => {
-            e.target.dataset.promoBudgetAuto = "false";
-            updatePromoTypeHint(root);
-        });
         const promoGrid = root.querySelector("#promoTypeGrid");
         if (promoGrid) {
+            promoGrid.addEventListener("input", (e) => {
+                const input = e.target.closest("[data-promo-budget]");
+                if (!input)
+                    return;
+                const typeId = input.dataset.promoType || input.closest("[data-promo-type]")?.dataset.promoType;
+                if (!typeId)
+                    return;
+                const inflationMultiplier = getPromoInflationMultiplier();
+                const next = setPromoBudgetForType(typeId, input.value, inflationMultiplier);
+                input.value = String(next);
+                updatePromoTypeHint(root);
+            });
             promoGrid.addEventListener("click", (e) => {
+                if (e.target.closest("[data-promo-budget]"))
+                    return;
                 const card = e.target.closest("[data-promo-type]");
                 if (!card)
                     return;
@@ -2282,6 +2369,9 @@ function bindViewHandlers(route, root) {
     on("trendScopeTarget", "change", (e) => {
         state.ui.trendScopeTarget = e.target.value;
         renderAll();
+    });
+    on("releaseDistribution", "change", () => {
+        renderReleaseDesk();
     });
     const readyList = root.querySelector("#readyList");
     if (readyList)
@@ -3721,10 +3811,10 @@ function runPromotion() {
         logEvent("No available promo types for this track.", "warn");
         return;
     }
-    const budget = normalizePromoBudget(document, selectedTypes);
-    const totalCost = budget * selectedTypes.length;
-    if (budget <= 0 || Number.isNaN(budget)) {
-        logEvent("Promo budget must be greater than 0.", "warn");
+    const inflationMultiplier = getPromoInflationMultiplier();
+    const { budgets, total: totalCost } = getPromoBudgetsForTypes(selectedTypes, inflationMultiplier);
+    if (!totalCost || Number.isNaN(totalCost)) {
+        logEvent("Promo budget total must be greater than 0.", "warn");
         return;
     }
     if (state.label.cash < totalCost) {
@@ -3769,7 +3859,14 @@ function runPromotion() {
         }
     }
     state.label.cash -= totalCost;
-    const boostWeeks = clamp(Math.floor(budget / 1200) + 1, 1, 4);
+    let boostWeeks = 0;
+    const weeksByType = {};
+    selectedTypes.forEach((promoType) => {
+        const budget = budgets[promoType];
+        const weeks = promoWeeksFromBudget(budget);
+        weeksByType[promoType] = weeks;
+        boostWeeks = Math.max(boostWeeks, weeks);
+    });
     if (!track.promo || typeof track.promo !== "object") {
         track.promo = { preReleaseWeeks: 0, musicVideoUsed: false };
     }
@@ -3790,7 +3887,9 @@ function runPromotion() {
     ].filter(Boolean);
     markCreatorPromo(promoIds);
     selectedTypes.forEach((promoType) => {
-        logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks: boostWeeks, promoType });
+        const budget = budgets[promoType];
+        const weeks = weeksByType[promoType] || boostWeeks;
+        logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks, promoType, totalCost });
         if (typeof postFromTemplate === "function") {
             postFromTemplate(promoType, {
                 trackTitle: track.title,
@@ -3889,7 +3988,7 @@ function handleReleaseAction(e) {
         scheduleHours = rec.scheduleHours;
         if (rec.scheduleKey === "now") {
             if (isReady) {
-                releaseTrack(track, distribution, distribution);
+                releaseTrack(track, distribution, distribution, { chargeFee: true });
             }
             else {
                 scheduleRelease(track, 0, distribution);

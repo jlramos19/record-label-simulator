@@ -129,7 +129,7 @@
         </div>
         <div class="list-item">
           <div class="item-title">Promote (Promotions -> eyeriSocial)</div>
-          <div class="muted">Pick a released Track ID, set budget, and fund promo pushes.</div>
+          <div class="muted">Pick a scheduled or released Track ID, set budget, and fund promo pushes.</div>
         </div>
         <div class="list-item">
           <div class="item-title">Weekly cadence (168 in-game hours)</div>
@@ -792,8 +792,6 @@
           </div>
           <div id="calendarGrid" class="calendar-grid-wrap"></div>
           <div id="calendarEraList" class="list hidden"></div>
-          <div class="subhead">Upcoming</div>
-          <div id="calendarList" class="list"></div>
         </div>
       </div>
     </section>
@@ -818,18 +816,12 @@
           <div id="releaseQueueList" class="list"></div>
         </div>
       </div>
-      <div class="panel card panel--scroll" data-panel="tracks">
-        <h2>Tracks</h2>
-        <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">
-          <button class="tab" data-track-tab="active" type="button">Active</button>
-          <button class="tab" data-track-tab="archive" type="button">Archive</button>
-        </div>
-        <div class="card-body">
-          <div id="trackList" class="list track-panel-list" data-track-panel="active"></div>
-          <div id="trackArchiveList" class="list track-panel-list hidden" data-track-panel="archive"></div>
-        </div>
-      </div>
     </aside>
+    <div id="calendarFooterPanel" class="panel card calendar-footer-panel">
+      <div class="card-body">
+        <div id="calendarList" class="calendar-footer"></div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1156,6 +1148,12 @@
                 <div class="slot-value" data-promo-label>Music Video</div>
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Final video + clearance</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $7,500</div>
+                <div class="promo-budget-row">
+                  <div class="promo-budget-label tiny">Budget</div>
+                  <input type="number" min="100" step="100" data-promo-budget aria-label="Music video promo budget">
+                </div>
+                <div class="promo-type-detail tiny" data-promo-efficiency></div>
+                <div class="promo-type-detail tiny" data-promo-expectation></div>
               </button>
               <button type="button" class="promo-type-card" data-promo-type="livePerformance" role="checkbox" aria-checked="false">
                 <div class="promo-type-row">
@@ -1165,6 +1163,12 @@
                 <div class="slot-value" data-promo-label>Live Performance</div>
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Venue slot + live-ready set</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $3,000</div>
+                <div class="promo-budget-row">
+                  <div class="promo-budget-label tiny">Budget</div>
+                  <input type="number" min="100" step="100" data-promo-budget aria-label="Live performance promo budget">
+                </div>
+                <div class="promo-type-detail tiny" data-promo-efficiency></div>
+                <div class="promo-type-detail tiny" data-promo-expectation></div>
               </button>
               <button type="button" class="promo-type-card" data-promo-type="eyeriSocialPost" role="checkbox" aria-checked="false">
                 <div class="promo-type-row">
@@ -1174,6 +1178,12 @@
                 <div class="slot-value" data-promo-label>eyeriSocial Post</div>
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Cover art + caption</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $600</div>
+                <div class="promo-budget-row">
+                  <div class="promo-budget-label tiny">Budget</div>
+                  <input type="number" min="100" step="100" data-promo-budget aria-label="eyeriSocial post promo budget">
+                </div>
+                <div class="promo-type-detail tiny" data-promo-efficiency></div>
+                <div class="promo-type-detail tiny" data-promo-expectation></div>
               </button>
               <button type="button" class="promo-type-card" data-promo-type="eyeriSocialAd" role="checkbox" aria-checked="false">
                 <div class="promo-type-row">
@@ -1183,6 +1193,12 @@
                 <div class="slot-value" data-promo-label>eyeriSocial Ad</div>
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Multimedia post + placement</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $1,800</div>
+                <div class="promo-budget-row">
+                  <div class="promo-budget-label tiny">Budget</div>
+                  <input type="number" min="100" step="100" data-promo-budget aria-label="eyeriSocial ad promo budget">
+                </div>
+                <div class="promo-type-detail tiny" data-promo-efficiency></div>
+                <div class="promo-type-detail tiny" data-promo-expectation></div>
               </button>
               <button type="button" class="promo-type-card" data-promo-type="interview" role="checkbox" aria-checked="false">
                 <div class="promo-type-row">
@@ -1192,13 +1208,20 @@
                 <div class="slot-value" data-promo-label>Interview</div>
                 <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Press kit + talking points</div>
                 <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $1,200</div>
+                <div class="promo-budget-row">
+                  <div class="promo-budget-label tiny">Budget</div>
+                  <input type="number" min="100" step="100" data-promo-budget aria-label="Interview promo budget">
+                </div>
+                <div class="promo-type-detail tiny" data-promo-efficiency></div>
+                <div class="promo-type-detail tiny" data-promo-expectation></div>
               </button>
             </div>
             <div id="promoTypeHint" class="tiny muted">Selected: Requirement: Final video + clearance | Typical cost: $7,500</div>
           </div>
           <div class="field">
-            <label for="promoBudget">Promo Budget</label>
-            <input id="promoBudget" type="number" min="100" step="100" value="7500">
+            <div class="slot-label">Promo Budget Total</div>
+            <div id="promoBudgetTotal" class="tiny muted"></div>
+            <div class="tiny muted">Set budgets on each promo type card.</div>
           </div>
           <div class="field">
             <label class="toggle-pill">
@@ -1210,7 +1233,7 @@
           <div class="actions">
             <button id="promoBtn" type="button">Fund Promo Push</button>
           </div>
-          <div class="tiny">Tap a slot, then tap a released Track ID. Promo pushes last 1-4 weeks based on budget.</div>
+          <div class="tiny">Tap a slot, then tap a scheduled or released Track ID. Promo pushes last 1-4 weeks based on budget.</div>
           <div class="subhead">Feed</div>
           <div id="socialFeed" class="log"></div>
         </div>

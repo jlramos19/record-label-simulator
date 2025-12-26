@@ -38,6 +38,7 @@ declare const MONOPOLY_SHARE: number;
 declare const ECONOMY_BASELINES: {
   digitalSingle: number;
   physicalSingle: number;
+  physicalReleaseFee: number;
   studioLease4y: number;
   studioBuildCost: number;
   tuitionPerMember: number;

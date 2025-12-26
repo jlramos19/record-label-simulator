@@ -27,3 +27,5 @@ Acronym: Always referred to as RLS in all documentation and in-game references.
 - Record Label Simulator is a player-facing product name, not an in-world term.
 - In lore and dialogue, refer to Gaia, nations/regions, charts, institutions, or labels instead of the game title.
 - Avoid referencing "Record Label Simulator" inside narrative text, NPC dialogue, or in-world artifacts.
+- Chart scope naming can use place or scope: Global = Gaia, National = nation (ex: Annglora), Regional = region/capital (ex: Bloomville Capital).
+- When clarity matters, pair both (ex: "Gaia (Global)", "Annglora (National)", "Bloomville Capital (Regional)").

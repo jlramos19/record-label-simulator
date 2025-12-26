@@ -9,8 +9,13 @@ If you add new shorthand, update this list.
 - CEO: Chief Executive Officer (player role).
 - GDD: Game Design Documents (folder name).
 - MVP: Minimum Viable Product.
+- ABC&D: Analyzing Business Context & Dynamics (in-universe documentary series).
+- A&R: Artists and Repertoire (legacy signing term).
 - AI: Artificial Intelligence (AI-controlled labels). (Confirm if another in-world expansion is intended.)
+- DLC: Downloadable Content (archived expansion planning).
+- EXP: Experience Points (player progression currency).
 - ID: Identifier; used in "Creator ID" as the signed creator identifier. (Confirm if "ID" should be expanded differently in-world.)
+- M&A: Mergers and Acquisitions (economy/label strategy term).
 - UI: User Interface.
 - UX: User Experience.
 - ECS: Entity-Component-System (see `docs/glossary/unity-to-web.md`).
@@ -33,6 +38,7 @@ If you add new shorthand, update this list.
 - JS: JavaScript.
 - TS: TypeScript.
 - DOM: Document Object Model.
+- VFX: Visual Effects.
 - URL: Uniform Resource Locator.
 - UTC: Coordinated Universal Time.
 - LTS: Long-Term Support.

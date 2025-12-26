@@ -11,6 +11,46 @@ const promoDefaults = (vars = {}) => ({
   releaseDate: vars.releaseDate || "TBD"
 });
 const promoCost = (value, fallback) => formatMoney(Number.isFinite(value) ? value : fallback);
+const chartScopeTypeLabel = (scopeType) => {
+  if (scopeType === "nation") return "National";
+  if (scopeType === "region") return "Regional";
+  return "Global";
+};
+const chartScopePlaceLabel = (scopeType, target) => {
+  if (scopeType === "nation") return target || "Nation";
+  if (scopeType === "region") {
+    const regions = typeof REGION_DEFS !== "undefined" && Array.isArray(REGION_DEFS) ? REGION_DEFS : [];
+    const region = regions.find((entry) => entry.id === target);
+    return region ? region.label : target || "Region";
+  }
+  return "Gaia";
+};
+const chartScopeLabel = (scopeType, target) => {
+  const place = chartScopePlaceLabel(scopeType, target);
+  const scope = chartScopeTypeLabel(scopeType);
+  return place ? `${place} (${scope})` : scope;
+};
+const normalizeChartScope = (vars = {}) => {
+  const scopeType = vars.scopeType;
+  if (scopeType === "global" || scopeType === "nation" || scopeType === "region") {
+    return { type: scopeType, target: vars.scopeTarget || "" };
+  }
+  const scopeKey = vars.scopeKey || vars.scope || "";
+  if (scopeKey === "global") return { type: "global", target: "" };
+  if (scopeKey && typeof NATIONS !== "undefined" && Array.isArray(NATIONS) && NATIONS.includes(scopeKey)) {
+    return { type: "nation", target: scopeKey };
+  }
+  if (scopeKey) return { type: "region", target: scopeKey };
+  return { type: "global", target: "" };
+};
+const chartScopeHandle = (scopeType, target) => {
+  const suffix = "Charts";
+  const base = chartScopePlaceLabel(scopeType, target) || chartScopeTypeLabel(scopeType) || "Gaia";
+  const cleaned = String(base).replace(/[^a-zA-Z0-9]+/g, "") || "Gaia";
+  const maxCore = Math.max(1, 31 - suffix.length);
+  const core = cleaned.slice(0, maxCore);
+  return `@${core}${suffix}`;
+};
 const SOCIAL_TEMPLATES = {
   releaseAnnouncement: {
     id: "releaseAnnouncement",
@@ -202,12 +242,17 @@ const SOCIAL_TEMPLATES = {
     id: "chartNews",
     title: "Chart News",
     type: "chart",
-    render: (vars) => ({
-      title: vars.title || "Charts Updated",
-      lines: vars.lines || [`#1: ${vars.top || "Unknown"}`],
-      type: "chart",
-      handle: "@GaiaCharts"
-    })
+    render: (vars) => {
+      const scope = normalizeChartScope(vars);
+      const scopeLabel = chartScopeLabel(scope.type, scope.target);
+      const hasScope = Boolean(vars.scopeType || vars.scopeKey || vars.scope);
+      return {
+        title: vars.title || (hasScope ? `${scopeLabel} Charts Updated` : "Charts Updated"),
+        lines: vars.lines || [`#1: ${vars.top || "Unknown"}`],
+        type: "chart",
+        handle: vars.handle || chartScopeHandle(scope.type, scope.target)
+      };
+    }
   },
   systemNotice: {
     id: "systemNotice",

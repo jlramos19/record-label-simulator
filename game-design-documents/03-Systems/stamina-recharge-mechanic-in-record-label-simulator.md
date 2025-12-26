@@ -1,47 +1,45 @@
 `### Stamina Recharge Mechanic in "Record Label Simulator"`
 
 `#### Overview`  
-`This document outlines the stamina recharge mechanic for IDs (Songwriters, Recorders, and Producers) in "Record Label Simulator."`
+`This document outlines the stamina recharge mechanic for Creators (Songwriters, Performers, and Producers) in the MVP.`
 
 `### Stamina Recharge Rate:`  
-`- **Recharge Rate**: For every in-game hour that an ID is not used, their stamina recharges at a rate of 50 units.`  
-`- **Condition**: The player must wait the entire in-game hour for the recharge to take effect.`
+`- **Recharge Rate**: 50 stamina per in-game hour.`  
+`- **Tick Granularity**: Recharge is split across four quarter-hour ticks and applies only if the Creator is idle (not in an active work order) at that tick.`  
+`- **Condition**: Partial hours do contribute; there is no full-hour wait requirement.`
 
 `### Detailed Explanation:`  
-`1. **Inactivity Period**:`  
-   `- When an ID (Songwriter, Recorder, or Producer) is not assigned to any task for an entire in-game hour, they begin to recharge their stamina.`
+`1. **Idle Detection**:`  
+   `- On each quarter-hour tick, creators not in any active work order receive a regen slice. Busy creators receive 0 on that tick.`
 
 `2. **Recharge Amount**:`  
-   `- Each in-game hour of inactivity restores 50 stamina units.`  
-   `- This applies to both physical and mental stamina, as required by the ID’s roles.`
+   `- Each in-game hour provides 50 total stamina, split deterministically into quarter slices (13, 13, 12, 12 per hour).`  
+   `- Regen clamps to the stamina cap (currently 400).`
 
-`3. **Waiting Mechanism**:`  
-   `- The recharge only occurs if the ID remains inactive for the full in-game hour.`  
-   `- Partial hours of inactivity do not contribute to stamina recharge.`
+`3. **Partial Hours**:`  
+   `- The total regen is the sum of the idle quarter slices; partial hours contribute accordingly.`
 
 `### Examples:`
 
 `1. **Songwriter**:`  
    `- **Current Stamina**: 100 units`  
-   `- **Inactivity**: 2 in-game hours`  
-   `- **Recharge**: \(2 \text{ hours} \times 50 \text{ units/hour} = 100 \text{ units}\)`  
+   `- **Inactivity**: 2 in-game hours (8 quarter-hour ticks)`  
+   `- **Recharge**: 100 units total (50 per hour)`  
    `- **Total Stamina after Recharge**: 200 units`
 
-`2. **Recorder**:`  
+`2. **Performer**:`  
    `- **Current Stamina**: 50 units`  
-   `- **Inactivity**: 3 in-game hours`  
-   `- **Recharge**: \(3 \text{ hours} \times 50 \text{ units/hour} = 150 \text{ units}\)`  
-   `- **Total Stamina after Recharge**: 200 units`
+   `- **Inactivity**: 1 in-game hour (4 quarter-hour ticks)`  
+   `- **Recharge**: 50 units total (13 + 13 + 12 + 12)`  
+   `- **Total Stamina after Recharge**: 100 units`
 
 `3. **Producer**:`  
    `- **Current Stamina**: 0 units`  
-   `- **Inactivity**: 4 in-game hours`  
-   `- **Recharge**: \(4 \text{ hours} \times 50 \text{ units/hour} = 200 \text{ units}\)`  
-   `- **Total Stamina after Recharge**: 200 units (each type, if starting from 0)`
+   `- **Inactivity**: 4 in-game hours (16 quarter-hour ticks)`  
+   `- **Recharge**: 200 units total`  
+   `- **Total Stamina after Recharge**: 200 units`
 
 `### Summary:`  
-`- IDs recharge stamina at a rate of 50 units per in-game hour of inactivity.`  
-`- The recharge mechanism requires the player to wait for the entire in-game hour for it to take effect.`  
-`- This mechanic ensures strategic planning for ID usage and rest periods to maintain optimal stamina levels.`
-
-`This explanation provides a clear understanding of how stamina recharges during periods of inactivity in "Record Label Simulator."`
+`- Stamina recharge is processed on quarter-hour ticks, alongside stamina depletion.`  
+`- Idle quarters grant regen slices; partial hours count.`  
+`- See docs/systems/stamina-and-hourly-ticks.md for the canonical tick contract.`

@@ -491,6 +491,10 @@ function makeDefaultState() {
       eraSlots: { actId: null },
       promoType: DEFAULT_PROMO_TYPE,
       promoTypes: [DEFAULT_PROMO_TYPE],
+      promoBudgets: Object.keys(PROMO_TYPE_DETAILS).reduce((acc, typeId) => {
+        acc[typeId] = PROMO_TYPE_DETAILS[typeId].cost;
+        return acc;
+      }, {}),
       promoSlots: { trackId: null },
       socialSlots: { trackId: null },
       viewContext: {
@@ -4173,7 +4177,21 @@ function completeStage(order) {
   logEvent(`Track ready${queuedRelease ? " and queued for release" : ""}: "${track.title}" (${qualityGrade(track.quality)}).`);
 }
 
-function releaseTrack(track, note, distribution) {
+function getReleaseDistributionFee(distribution) {
+  const fee = Number.isFinite(ECONOMY_BASELINES?.physicalReleaseFee) ? ECONOMY_BASELINES.physicalReleaseFee : 0;
+  if (distribution === "Physical" || distribution === "Both") return Math.max(0, fee);
+  return 0;
+}
+
+function applyReleaseDistributionFee(distribution) {
+  const fee = getReleaseDistributionFee(distribution);
+  if (!fee) return { ok: true, fee: 0 };
+  if (state.label.cash < fee) return { ok: false, fee };
+  state.label.cash -= fee;
+  return { ok: true, fee };
+}
+
+function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
   if (!track || !track.actId || !getAct(track.actId)) {
     if (track && track.status === "Scheduled") track.status = "Ready";
     logEvent("Cannot release track: assign an Act first.", "warn");
@@ -4183,11 +4201,21 @@ function releaseTrack(track, note, distribution) {
     logEvent("Cannot release track without a content genre.", "warn");
     return false;
   }
+  const dist = distribution || track.distribution || "Digital";
+  let feeNote = "";
+  if (chargeFee) {
+    const feeResult = applyReleaseDistributionFee(dist);
+    if (!feeResult.ok) {
+      logEvent(`Cannot release track: insufficient funds for ${dist} distribution fee (${formatMoney(feeResult.fee)}).`, "warn");
+      return false;
+    }
+    if (feeResult.fee) feeNote = ` Distribution fee: ${formatMoney(feeResult.fee)}.`;
+  }
   ensureEraForTrack(track, "Release");
   track.status = "Released";
   track.releasedAt = state.time.epochMs;
   track.trendAtRelease = state.trends.includes(track.genre);
-  track.distribution = distribution || track.distribution || "Digital";
+  track.distribution = dist;
   const preReleaseWeeks = Math.max(0, track.promo?.preReleaseWeeks || 0);
   const act = getAct(track.actId);
   const era = track.eraId ? getEraById(track.eraId) : null;
@@ -4218,7 +4246,7 @@ function releaseTrack(track, note, distribution) {
   state.marketTracks.push(marketEntry);
   if (track.promo) track.promo.preReleaseWeeks = 0;
   markCreatorRelease(getTrackCreatorIds(track), track.releasedAt);
-  logEvent(`Released "${track.title}" to market${note ? ` (${note})` : ""}.`);
+  logEvent(`Released "${track.title}" to market${note ? ` (${note})` : ""}.${feeNote}`);
   postTrackRelease(track);
   markRolloutDropsReleasedByTrack(track.id, track.releasedAt);
   return true;
@@ -4253,11 +4281,17 @@ function scheduleRelease(track, hoursFromNow, distribution, note) {
   }
   const releaseAt = state.time.epochMs + scheduleHours * HOUR_MS;
   const dist = distribution || "Digital";
+  const feeResult = applyReleaseDistributionFee(dist);
+  if (!feeResult.ok) {
+    logEvent(`Cannot schedule release: insufficient funds for ${dist} distribution fee (${formatMoney(feeResult.fee)}).`, "warn");
+    return false;
+  }
   const releaseNote = note || dist;
   state.releaseQueue.push({ id: uid("RL"), trackId: track.id, releaseAt, note: releaseNote, distribution: dist });
   if (isReady) track.status = "Scheduled";
   ensureEraForTrack(track, "Release scheduled");
-  logEvent(`Scheduled "${track.title}" for release in ${scheduleHours}h.`);
+  const feeNote = feeResult.fee ? ` Distribution fee: ${formatMoney(feeResult.fee)}.` : "";
+  logEvent(`Scheduled "${track.title}" for release in ${scheduleHours}h.${feeNote}`);
   return true;
 }
 
@@ -4285,6 +4319,10 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
     return { ok: false, reason: "Release window is in the past." };
   }
   const dist = distribution || track.distribution || "Digital";
+  const feeResult = applyReleaseDistributionFee(dist);
+  if (!feeResult.ok) {
+    return { ok: false, reason: `Insufficient funds for ${dist} distribution fee (${formatMoney(feeResult.fee)}).`, fee: feeResult.fee };
+  }
   const releaseNote = note || dist;
   const entry = {
     id: uid("RL"),
@@ -4298,7 +4336,8 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
   if (isReady) track.status = "Scheduled";
   ensureEraForTrack(track, "Release scheduled");
   if (!suppressLog) {
-    logEvent(`Scheduled "${track.title}" for release on ${formatDate(releaseAt)}.`);
+    const feeNote = feeResult.fee ? ` Distribution fee: ${formatMoney(feeResult.fee)}.` : "";
+    logEvent(`Scheduled "${track.title}" for release on ${formatDate(releaseAt)}.${feeNote}`);
   }
   return { ok: true, entry };
 }
@@ -5285,13 +5324,40 @@ function normalizeTrendScope() {
   }
 }
 
-function trendScopeLabel(scopeType, target) {
+function scopeTypeLabel(scopeType) {
+  if (scopeType === "nation") return "National";
+  if (scopeType === "region") return "Regional";
+  return "Global";
+}
+
+function scopePlaceLabel(scopeType, target) {
   if (scopeType === "nation") return target || "Nation";
   if (scopeType === "region") {
     const region = REGION_DEFS.find((entry) => entry.id === target);
     return region ? region.label : target || "Region";
   }
-  return "Global (Gaia)";
+  return "Gaia";
+}
+
+function formatScopeLabel(scopeType, target) {
+  const place = scopePlaceLabel(scopeType, target);
+  const scope = scopeTypeLabel(scopeType);
+  return place ? `${place} (${scope})` : scope;
+}
+
+function chartScopeLabel(chartKey) {
+  if (chartKey === "global") return formatScopeLabel("global");
+  if (NATIONS.includes(chartKey)) return formatScopeLabel("nation", chartKey);
+  return formatScopeLabel("region", chartKey);
+}
+
+function chartScopeHandle(scopeType, target) {
+  const place = scopePlaceLabel(scopeType, target) || scopeTypeLabel(scopeType) || "Gaia";
+  return handleFromName(`${place}Charts`, "GaiaCharts");
+}
+
+function trendScopeLabel(scopeType, target) {
+  return formatScopeLabel(scopeType, target);
 }
 
 function trendAlignmentLeader(genre, alignmentScores) {
@@ -6530,7 +6596,7 @@ async function onYearTick(year) {
   state.meta.annualWinners = state.meta.annualWinners || [];
   state.meta.annualWinners.push({ year, label: winner, points: topPoints, resolvedBy });
   logEvent(`Annual Winner ${year}: ${winner} (${formatCount(topPoints)} points) [${resolvedBy}].`);
-  postSocial({ handle: "@GaiaCharts", title: `Annual Winner ${year}`, lines: [`${winner} secured the year with ${formatCount(topPoints)} points.`, `Tie-break: ${resolvedBy}`], type: "system", order: 1 });
+  postSocial({ handle: chartScopeHandle("global"), title: `Annual Winner ${year}`, lines: [`${winner} secured the year with ${formatCount(topPoints)} points.`, `Tie-break: ${resolvedBy}`], type: "system", order: 1 });
   // Run end-of-year economy/housekeeping: award EXP, refresh quests
   awardExp(1200, `Year ${year} Season End` , true);
   // Reconcile win/loss state
@@ -7009,6 +7075,15 @@ function normalizeState() {
       state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
     }
   }
+  if (!state.ui.promoBudgets || typeof state.ui.promoBudgets !== "object") {
+    state.ui.promoBudgets = {};
+  }
+  Object.keys(PROMO_TYPE_DETAILS).forEach((typeId) => {
+    const budget = state.ui.promoBudgets[typeId];
+    if (!Number.isFinite(budget) || budget <= 0) {
+      state.ui.promoBudgets[typeId] = PROMO_TYPE_DETAILS[typeId].cost;
+    }
+  });
   if (!state.ui.genreTheme) state.ui.genreTheme = "All";
   if (!state.ui.genreMood) state.ui.genreMood = "All";
   if (!state.ui.actSlots) state.ui.actSlots = { lead: null, member2: null, member3: null };
@@ -8219,25 +8294,27 @@ function weekNumberFromEpochMs(epochMs) {
 function shortRegionLabel(region) {
   if (!region) return "";
   const nation = region.nation || "";
-  const raw = region.id || "";
-  let area = raw;
-  if (nation && raw.startsWith(nation)) {
-    area = raw.slice(nation.length).trim();
+  const raw = region.label || region.id || "";
+  if (!raw) return "";
+  const lower = raw.toLowerCase();
+  if (lower.includes("elsewhere")) {
+    return nation ? `${nation} Else` : "Else";
   }
-  if (!area) area = raw;
-  const shortArea = area === "Capital" ? "Cap" : area === "Elsewhere" ? "Else" : area;
-  const label = nation ? `${nation} ${shortArea}`.trim() : shortArea;
-  return label || raw;
+  if (lower.includes("capital")) {
+    const base = raw.replace(/capital/gi, "").trim() || raw;
+    return `${base} Cap`.trim();
+  }
+  return raw;
 }
 
 function buildTrackHistoryScopes() {
-  const scopes = [{ scope: "global", label: "Global", title: "Global (Gaia)" }];
+  const scopes = [{ scope: "global", label: "Global", title: formatScopeLabel("global") }];
   NATIONS.forEach((nation) => {
-    scopes.push({ scope: `nation:${nation}`, label: nation, title: `Nation: ${nation}` });
+    scopes.push({ scope: `nation:${nation}`, label: nation, title: formatScopeLabel("nation", nation) });
   });
   REGION_DEFS.forEach((region) => {
     const label = shortRegionLabel(region) || region.id;
-    scopes.push({ scope: `region:${region.id}`, label, title: region.label || region.id });
+    scopes.push({ scope: `region:${region.id}`, label, title: formatScopeLabel("region", region.id) });
   });
   return scopes;
 }
@@ -8375,6 +8452,7 @@ export {
   buildMarketCreators,
   buildStudioEntries,
   buildTrackHistoryScopes,
+  chartScopeLabel,
   chartWeightsForScope,
   clamp,
   clearSlot,
@@ -8427,6 +8505,7 @@ export {
   getPromoFacilityForType,
   getReleaseAsapAt,
   getReleaseAsapHours,
+  getReleaseDistributionFee,
   getRivalByName,
   getRolloutPlanningEra,
   getRolloutStrategiesForEra,

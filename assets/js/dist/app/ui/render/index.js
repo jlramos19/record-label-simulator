@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getOwnedStudioSlots, getReleaseAsapAt, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { CalendarView } from "../../calendar.js";
 import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
 import { buildMoodOptions, buildThemeOptions, bindThemeSelectAccent, getMoodEmoji, setThemeSelectAccent } from "../themeMoodOptions.js";
@@ -1297,6 +1297,7 @@ function renderCalendarView() {
     const grid = $("calendarGrid");
     const list = $("calendarList");
     const eraList = $("calendarEraList");
+    const footerPanel = $("calendarFooterPanel");
     const rangeLabel = $("calendarRangeLabel");
     const projection = buildCalendarProjection({ pastWeeks: 0, futureWeeks: 3 });
     if (rangeLabel)
@@ -1308,6 +1309,8 @@ function renderCalendarView() {
         }
         if (list)
             list.classList.add("hidden");
+        if (footerPanel)
+            footerPanel.classList.add("hidden");
         if (eraList)
             eraList.classList.remove("hidden");
         renderCalendarList("calendarEraList", projection.weeks.length, projection);
@@ -1323,6 +1326,8 @@ function renderCalendarView() {
     }
     if (list)
         list.classList.remove("hidden");
+    if (footerPanel)
+        footerPanel.classList.remove("hidden");
     const upcomingWeeks = projection.weeks.length || 1;
     const upcomingProjection = buildCalendarProjection({
         pastWeeks: 0,
@@ -1330,6 +1335,71 @@ function renderCalendarView() {
         anchorWeekIndex: weekIndex() + 1
     });
     renderCalendarList("calendarList", upcomingWeeks, upcomingProjection);
+}
+function renderCalendarUpcomingFooter(projection, tab) {
+    const daysWithEvents = [];
+    (projection.weeks || []).forEach((week) => {
+        const days = Array.isArray(week.days) ? week.days : [];
+        days.forEach((day) => {
+            if (Array.isArray(day.events) && day.events.length)
+                daysWithEvents.push(day);
+        });
+    });
+    const countLabel = `${daysWithEvents.length} day${daysWithEvents.length === 1 ? "" : "s"}`;
+    const header = `
+    <div class="calendar-footer-head">
+      <div class="subhead">Upcoming</div>
+      <div class="tiny muted">${countLabel}</div>
+    </div>
+  `;
+    if (!daysWithEvents.length) {
+        return `${header}<div class="calendar-upcoming calendar-upcoming--empty"><div class="muted">No upcoming events.</div></div>`;
+    }
+    const cards = daysWithEvents.map((day) => {
+        const events = Array.isArray(day.events) ? day.events.slice().sort((a, b) => a.ts - b.ts) : [];
+        const visible = events.slice(0, 3);
+        const overflow = events.length - visible.length;
+        const dayClass = day.isPreview ? "calendar-upcoming-day is-preview" : "calendar-upcoming-day";
+        const items = visible.map((entry) => {
+            const title = entry.title || "Untitled";
+            const typeLabel = entry.typeLabel || "Event";
+            const distribution = entry.distribution || "Digital";
+            const actName = entry.actName || "Unknown";
+            const labelName = entry.label || "Label";
+            const showLabel = entry.showLabel || tab === "public";
+            const labelCountry = getRivalByName(labelName)?.country || state.label.country || "Annglora";
+            const labelTag = showLabel ? renderLabelTag(labelName, labelCountry) : "";
+            const labelLine = showLabel
+                ? `${labelTag}<span class="calendar-upcoming-event-act">${actName}</span>`
+                : `<span class="calendar-upcoming-event-act">${actName}</span>`;
+            return `
+        <div class="calendar-upcoming-event">
+          <div class="calendar-upcoming-event-title">${title}</div>
+          <div class="calendar-upcoming-event-meta">${typeLabel} | ${distribution}</div>
+          <div class="calendar-upcoming-event-label">${labelLine}</div>
+        </div>
+      `;
+        }).join("");
+        const overflowHtml = overflow > 0
+            ? `<div class="calendar-upcoming-event calendar-upcoming-event--more">+${overflow} more</div>`
+            : "";
+        return `
+      <div class="${dayClass}" data-day-ts="${day.start}">
+        <div class="calendar-upcoming-meta">
+          <div class="calendar-upcoming-date">
+            <span class="calendar-upcoming-dayname">${day.dayLabel}</span>
+            <span class="calendar-upcoming-datelabel">${day.dateLabel}</span>
+          </div>
+          <div class="calendar-upcoming-count">${events.length} event${events.length === 1 ? "" : "s"}</div>
+        </div>
+        <div class="calendar-upcoming-events">
+          ${items}
+          ${overflowHtml}
+        </div>
+      </div>
+    `;
+    }).join("");
+    return `${header}<div class="calendar-upcoming">${cards}</div>`;
 }
 function renderCalendarList(targetId, weeks, projectionOverride) {
     const target = $(targetId);
@@ -1352,6 +1422,10 @@ function renderCalendarList(targetId, weeks, projectionOverride) {
     });
     if (tab === "eras") {
         target.innerHTML = renderCalendarEraList(projection.eras || []);
+        return;
+    }
+    if (targetId === "calendarList") {
+        target.innerHTML = renderCalendarUpcomingFooter(projection, tab);
         return;
     }
     if (!projection.weeks.length) {
@@ -2121,6 +2195,9 @@ function renderReleaseDesk() {
     const queuedIds = new Set(state.releaseQueue.map((entry) => entry.trackId));
     const asapAt = getReleaseAsapAt();
     const asapLabel = formatDate(asapAt);
+    const distributionSelect = $("releaseDistribution");
+    const selectedDistribution = distributionSelect ? distributionSelect.value : "Digital";
+    const selectedFeeLabel = formatMoney(getReleaseDistributionFee(selectedDistribution));
     const readyTracks = state.tracks.filter((track) => {
         if (queuedIds.has(track.id))
             return false;
@@ -2157,6 +2234,7 @@ function renderReleaseDesk() {
             const grade = qualityGrade(track.quality);
             const rec = derivedGenre ? recommendReleasePlan({ ...track, genre: derivedGenre }) : recommendReleasePlan(track);
             const recLabel = `${rec.distribution} ${rec.scheduleKey === "now" ? "now" : rec.scheduleKey === "fortnight" ? "+14d" : "+7d"}`;
+            const recFeeLabel = formatMoney(getReleaseDistributionFee(rec.distribution));
             const statusLabel = isReady ? "" : track.status === "In Production" ? "Mastering" : "Awaiting Master";
             const genreLabel = renderGenrePillsFromGenre(derivedGenre, { fallback: "-" });
             const hasAct = Boolean(track.actId);
@@ -2178,12 +2256,12 @@ function renderReleaseDesk() {
             </div>
             <div class="time-row">
               <div>
-                <button type="button" data-release="asap" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Release ASAP</button>
+                <button type="button" data-release="asap" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Release ASAP (${selectedFeeLabel})</button>
                 <div class="time-meta">${asapLabel} (earliest Friday at midnight)</div>
               </div>
-              <button type="button" class="ghost" data-release="week" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+7d</button>
-              <button type="button" class="ghost" data-release="fortnight" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+14d</button>
-              <button type="button" class="ghost" data-release="recommend" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Use Recommended</button>
+              <button type="button" class="ghost" data-release="week" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+7d (${selectedFeeLabel})</button>
+              <button type="button" class="ghost" data-release="fortnight" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+14d (${selectedFeeLabel})</button>
+              <button type="button" class="ghost" data-release="recommend" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Use Recommended (${recFeeLabel})</button>
             </div>
           </div>
         </div>
@@ -2486,29 +2564,26 @@ function renderCharts() {
     document.querySelectorAll("#chartTabs .tab").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.chart === state.ui.activeChart);
     });
+    const activeChart = state.ui.activeChart || "global";
     let entries = [];
     let size = CHART_SIZES.global;
-    let scopeLabel = "Global (Gaia)";
     let scopeKey = "global";
-    if (state.ui.activeChart === "global") {
+    if (activeChart === "global") {
         entries = state.charts.global;
         size = CHART_SIZES.global;
-        scopeLabel = "Global (Gaia)";
         scopeKey = "global";
     }
-    else if (NATIONS.includes(state.ui.activeChart)) {
-        entries = state.charts.nations[state.ui.activeChart] || [];
+    else if (NATIONS.includes(activeChart)) {
+        entries = state.charts.nations[activeChart] || [];
         size = CHART_SIZES.nation;
-        scopeLabel = state.ui.activeChart;
-        scopeKey = `nation:${state.ui.activeChart}`;
+        scopeKey = `nation:${activeChart}`;
     }
     else {
-        entries = state.charts.regions[state.ui.activeChart] || [];
+        entries = state.charts.regions[activeChart] || [];
         size = CHART_SIZES.region;
-        const region = REGION_DEFS.find((r) => r.id === state.ui.activeChart);
-        scopeLabel = region ? region.label : state.ui.activeChart;
-        scopeKey = `region:${state.ui.activeChart}`;
+        scopeKey = `region:${activeChart}`;
     }
+    const scopeLabel = chartScopeLabel(activeChart);
     const historyWeek = state.ui.chartHistoryWeek;
     const historySnapshot = state.ui.chartHistorySnapshot;
     let historyMissing = false;
@@ -2542,7 +2617,7 @@ function renderCharts() {
         const pct = (value) => Math.round(value * 100);
         meta.textContent = `Top ${size} | ${scopeLabel} | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
     }
-    const globalLocked = state.ui.activeChart === "global" && entries.length < size;
+    const globalLocked = activeChart === "global" && entries.length < size;
     if (historyMissing) {
         $("chartList").innerHTML = `<div class="muted">No saved chart history for this week and scope.</div>`;
     }

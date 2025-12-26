@@ -1,8 +1,25 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0409Z)
+- Chart scope labels now pair place + scope (Gaia/Global, nation/National, capital/Regional) across charts and history views.
+- Chart news templates now default to scope-aware handles/titles when a chart scope is provided.
+- Regional chart labels now use capital city naming (Bloomville, Belltown, Campana City) with Elsewhere regional counterparts.
+
+## 2025-12-26 (RLS-PATCH-20251226-0402Z)
+- Promo type cards now include per-type budgets with efficiency + audience-range lift guidance; total spend sums across selected promos.
+
+## 2025-12-26 (RLS-PATCH-20251226-0401Z)
+- Release Desk buttons now display the distribution fee, including $0 for digital releases.
+- Physical/Both releases now charge a distribution fee when scheduled or released.
+
+## 2025-12-26 (RLS-PATCH-20251226-0359Z)
+- Calendar view now splits 50/50 with Release Desk and drops the duplicate Tracks panel.
+- Upcoming calendar footer now shows only days with scheduled events in a horizontal scroll row.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0322Z)
 - Create-stage buttons now show costs and use Create wording for sheet, demo, and master actions.
 - Creation guidance copy now uses Create verbs instead of Start for new label and content prompts.
+- Promotions now show total multi-select spend on the budget helper and promo button.
 
 ## 2025-12-26 (RLS-PATCH-20251226-0318Z)
 - Creator name pools now align to language-specific lists (Annglora = English, Bytenza = Korean, Crowlya = Spanish).

@@ -41,11 +41,11 @@ const CHART_SIZES = { global: 100, nation: 40, region: 10 };
 const CHART_WEIGHTS = { sales: 0.3, streaming: 0.3, airplay: 0.3, social: 0.1 };
 const NATIONS = ["Annglora", "Bytenza", "Crowlya"];
 const REGION_DEFS = [
-  { id: "Annglora Capital", nation: "Annglora", label: "Capital of Annglora" },
+  { id: "Annglora Capital", nation: "Annglora", label: "Bloomville Capital" },
   { id: "Annglora Elsewhere", nation: "Annglora", label: "Elsewhere in Annglora" },
-  { id: "Bytenza Capital", nation: "Bytenza", label: "Capital of Bytenza" },
+  { id: "Bytenza Capital", nation: "Bytenza", label: "Belltown Capital" },
   { id: "Bytenza Elsewhere", nation: "Bytenza", label: "Elsewhere in Bytenza" },
-  { id: "Crowlya Capital", nation: "Crowlya", label: "Capital of Crowlya" },
+  { id: "Crowlya Capital", nation: "Crowlya", label: "Campana City Capital" },
   { id: "Crowlya Elsewhere", nation: "Crowlya", label: "Elsewhere in Crowlya" }
 ];
 const REGION_CONSUMPTION_WEIGHTS = {
@@ -89,6 +89,7 @@ const MONOPOLY_SHARE = 0.6;
 const ECONOMY_BASELINES = {
   digitalSingle: 0.69,
   physicalSingle: 4.99,
+  physicalReleaseFee: 500,
   studioLease4y: 44000000,
   studioBuildCost: 528000000,
   tuitionPerMember: 1815,

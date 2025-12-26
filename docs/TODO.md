@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] RLS-DOC-CHART-NAMING-001: Document chart scope naming (Gaia/Global, Nation/National, Region/Regional) and update chart/handle labels.
 - [ ] RLS-CCC-DECLINE-001: Add decline reason logic + player-facing feedback for CCC signing, and update tutorial to split loops vs concepts.
 - [ ] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
 - [ ] RLS-AI-COMPETE-001: Guarantee at least one rival in competitive rollout mode per planning cycle, with deterministic selection and budget gates.

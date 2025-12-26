@@ -4,24 +4,32 @@
 
 # **`In-Game Charts in Gaia`**
 
+## **`Naming shorthand`**
+
+`Chart naming can use place or scope depending on context:`
+
+* `Global charts = Gaia charts or Global charts.`
+* `National charts = nation name (ex: Annglora) or National charts.`
+* `Regional charts = region/capital name (ex: Bloomville Capital) or Regional charts.`
+
 ## **`1. Local/Regional Charts`**
 
-`Each country has two local/regional charts: one for its capital city and one for everywhere outside the capital (labeled “Elsewhere”).`
+`Each country has two local/regional charts: one for its capital city and one for everywhere outside the capital (labeled "Elsewhere").`
 
 ### **`Annglora`**
 
-* **`Bloomville Chart`** `(capital city)`  
-* **`Elsewhere in Annglora`** `(all regions outside Bloomville)`
+* **`Bloomville Capital Chart`** `(capital city)`  
+* **`Elsewhere in Annglora Chart`** `(all regions outside Bloomville)`
 
 ### **`Bytenza`**
 
-* **`Belltown Chart`** `(capital city)`  
-* **`Elsewhere in Bytenza`** `(all regions outside Belltown)`
+* **`Belltown Capital Chart`** `(capital city)`  
+* **`Elsewhere in Bytenza Chart`** `(all regions outside Belltown)`
 
 ### **`Crowlya`**
 
-* **`Campana City Chart`** `(capital city)`  
-* **`Elsewhere in Crowlya`** `(all regions outside Campana City)`
+* **`Campana City Capital Chart`** `(capital city)`  
+* **`Elsewhere in Crowlya Chart`** `(all regions outside Campana City)`
 
 ## **`2. National Charts`**
 
@@ -31,32 +39,32 @@
 * **`Bytenza National Chart`**  
 * **`Crowlya National Chart`**
 
-## **`3. Gaia International Chart`**
+## **`3. Gaia Global Chart`**
 
 `Finally, there is a single, worldwide chart that encompasses all of Gaia’s countries:`
 
-* **`Gaia International Chart`**
+* **`Gaia Global Chart`**
 
 `This serves as the ultimate metric for global success, combining data from every national chart and providing a definitive ranking of the most popular and critically acclaimed content across Annglora, Bytenza, and Crowlya.`
 
 `Chart display rules:`
 
-* `Global chart gating: The Gaia International Chart does not display until 100 ranked entries exist; until then, show a locked message (no partial list).`
+* `Global chart gating: The Gaia Global Chart does not display until 100 ranked entries exist; until then, show a locked message (no partial list).`
 * `Regional/National gaps: If a chart has fewer entries than its size, unfilled slots display as N/A placeholders.`
 
 ---
 
 ## **`Summary of All 10 Charts`**
 
-1. **`Bloomville Chart`** `(Annglora Capital)`  
-2. **`Elsewhere in Annglora`**  
+1. **`Bloomville Capital Chart`** `(Annglora Capital)`  
+2. **`Elsewhere in Annglora Chart`**  
 3. **`Annglora National Chart`**  
-4. **`Belltown Chart`** `(Bytenza Capital)`  
-5. **`Elsewhere in Bytenza`**  
+4. **`Belltown Capital Chart`** `(Bytenza Capital)`  
+5. **`Elsewhere in Bytenza Chart`**  
 6. **`Bytenza National Chart`**  
-7. **`Campana City Chart`** `(Crowlya Capital)`  
-8. **`Elsewhere in Crowlya`**  
+7. **`Campana City Capital Chart`** `(Crowlya Capital)`  
+8. **`Elsewhere in Crowlya Chart`**  
 9. **`Crowlya National Chart`**  
-10. **`Gaia International Chart`**
+10. **`Gaia Global Chart`**
 
 `These 10 distinct charts allow record companies to track, compare, and strategize content rollout from a local to global perspective in Record Label Simulator.`
