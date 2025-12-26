@@ -1,11 +1,18 @@
 # Patch Notes
 
-<<<<<<< HEAD
+## 2025-12-26 (RLS-PATCH-20251226-1113Z)
+- Era Desk rollout strategy controls now use a wrapped grid layout for horizontal planning.
+
+## 2025-12-26 (RLS-PATCH-20251226-1112Z)
+- Charts now include Promotions and Touring tabs alongside Tracks and Projects.
+- Promotions charts rank promo pushes by audience engagement (eyeriSocial likes, music video views, interview comments).
+- Touring charts rank act draw by attendance derived from charting tracks.
+
+## 2025-12-26 (RLS-PATCH-20251226-1111Z)
+- Chart Pulse now streams six-hour projection windows for Top 5 tracks, projects, or promos per chart scope.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1047Z)
 - Charts view now relies on the header for Top Labels by removing the label rankings sidebar.
-
-=======
->>>>>>> a6701e101b0d396f50ccc34b43153e47a3d378af
 ## 2025-12-26 (RLS-PATCH-20251226-1037Z)
 - Release tab now shows a Ready-only badge for masters awaiting release.
 

@@ -328,9 +328,8 @@ function renderCountryTag(country) {
 
 function renderNationalityPill(country) {
   const color = countryColor(country);
-  const textColor = pickAccessibleTextColor(color);
   const demonym = countryDemonym(country);
-  return `<span class="pill country-pill" style="color:${textColor}; border-color:${color}; background:${color};">${demonym}</span>`;
+  return `<span class="pill country-pill" style="color:${color}; border-color:${color}; background:var(--pill-bg);">${demonym}</span>`;
 }
 
 function getCreatorHangulName(creator) {
@@ -419,8 +418,7 @@ function renderCreatorSkillProgress(creator) {
 
 function renderLabelTag(label, country) {
   const color = countryColor(country);
-  const textColor = country === "Bytenza" ? "#f4f1ea" : "#0b0f14";
-  return `<span class="tag" style="color:${textColor}; border-color:${color}; background:${color};"><span class="tag-dot" style="background:${textColor};"></span>${label}</span>`;
+  return `<span class="tag" style="color:${color}; border-color:${color}; background:var(--pill-bg);"><span class="tag-dot"></span>${label}</span>`;
 }
 
 function renderMoodTag(mood) {
@@ -4092,8 +4090,9 @@ function renderCharts() {
         const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
         const alignTag = renderAlignmentTag(entry.alignment);
         const actName = entry.actName || "-";
-        const targetLine = entry.trackTitle ? `Track: ${entry.trackTitle}` : "Act push";
-        const projectLine = entry.projectName || (entry.trackTitle ? "Single" : "Act visibility");
+        const trackTitle = entry.trackTitle || entry.title || "";
+        const targetLine = trackTitle ? `Track: ${trackTitle}` : "Act push";
+        const projectLine = entry.projectName || (trackTitle ? "Single" : "Act visibility");
         const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
         const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
         const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";

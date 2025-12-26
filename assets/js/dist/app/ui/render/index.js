@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { getPromoTypeCosts, PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -203,9 +203,8 @@ function renderCountryTag(country) {
 }
 function renderNationalityPill(country) {
     const color = countryColor(country);
-    const textColor = pickAccessibleTextColor(color);
     const demonym = countryDemonym(country);
-    return `<span class="pill country-pill" style="color:${textColor}; border-color:${color}; background:${color};">${demonym}</span>`;
+    return `<span class="pill country-pill" style="color:${color}; border-color:${color}; background:var(--pill-bg);">${demonym}</span>`;
 }
 function getCreatorHangulName(creator) {
     if (!creator)
@@ -295,8 +294,7 @@ function renderCreatorSkillProgress(creator) {
 }
 function renderLabelTag(label, country) {
     const color = countryColor(country);
-    const textColor = country === "Bytenza" ? "#f4f1ea" : "#0b0f14";
-    return `<span class="tag" style="color:${textColor}; border-color:${color}; background:${color};"><span class="tag-dot" style="background:${textColor};"></span>${label}</span>`;
+    return `<span class="tag" style="color:${color}; border-color:${color}; background:var(--pill-bg);"><span class="tag-dot"></span>${label}</span>`;
 }
 function renderMoodTag(mood) {
     const emoji = getMoodEmoji(mood) || "❓";
@@ -1312,22 +1310,165 @@ function renderDashboard() {
     }
     const chartsEl = $("dashboardChartsList");
     if (chartsEl) {
-        const entries = (state.charts.global || []).slice(0, 5);
-        if (!entries.length) {
-            chartsEl.innerHTML = `<div class="muted">No chart entries yet.</div>`;
+        const scopeTabs = $("chartPulseScopeTabs");
+        const contentTabs = $("chartPulseContentTabs");
+        const targetSelect = $("chartPulseTarget");
+        const targetLabel = $("chartPulseTargetLabel");
+        const metaEl = $("chartPulseMeta");
+        const contentType = state.ui.chartPulseContentType || "tracks";
+        const scopeType = state.ui.chartPulseScopeType || "global";
+        let scopeTarget = state.ui.chartPulseScopeTarget || "global";
+        if (contentTabs) {
+            contentTabs.querySelectorAll(".tab").forEach((btn) => {
+                btn.classList.toggle("active", btn.dataset.chartPulseContent === contentType);
+            });
+        }
+        if (scopeTabs) {
+            scopeTabs.querySelectorAll(".tab").forEach((btn) => {
+                btn.classList.toggle("active", btn.dataset.chartPulseScope === scopeType);
+            });
+        }
+        if (scopeType === "global") {
+            scopeTarget = "global";
+            state.ui.chartPulseScopeTarget = scopeTarget;
+            if (targetLabel)
+                targetLabel.textContent = "Global";
+            if (targetSelect) {
+                targetSelect.disabled = true;
+                targetSelect.innerHTML = `<option value="global">Global</option>`;
+                targetSelect.value = "global";
+            }
+        }
+        else if (scopeType === "nation") {
+            const nations = Array.isArray(NATIONS) ? NATIONS : [];
+            const labelNation = nations.includes(state.label?.country) ? state.label.country : nations[0];
+            if (!nations.includes(scopeTarget))
+                scopeTarget = labelNation || "";
+            state.ui.chartPulseScopeTarget = scopeTarget;
+            if (targetLabel)
+                targetLabel.textContent = "Nation";
+            if (targetSelect) {
+                targetSelect.disabled = false;
+                targetSelect.innerHTML = nations.map((nation) => `<option value="${nation}">${nation}</option>`).join("");
+                targetSelect.value = scopeTarget;
+            }
         }
         else {
-            chartsEl.innerHTML = entries.map((entry) => `
-        <div class="list-item">
-          <div class="list-row">
-            <div>
-              <div class="item-title">#${entry.rank} ${entry.track.title}</div>
-              <div class="muted">${entry.track.label} | ${renderTrackGenrePills(entry.track, { fallback: "Genre -" })}</div>
+            const regions = Array.isArray(REGION_DEFS) ? REGION_DEFS : [];
+            const regionIds = regions.map((region) => region.id);
+            const labelRegion = regions.find((region) => region.nation === state.label?.country)?.id;
+            if (!regionIds.includes(scopeTarget))
+                scopeTarget = labelRegion || regionIds[0] || "";
+            state.ui.chartPulseScopeTarget = scopeTarget;
+            if (targetLabel)
+                targetLabel.textContent = "Region";
+            if (targetSelect) {
+                targetSelect.disabled = false;
+                targetSelect.innerHTML = regions.map((region) => `<option value="${region.id}">${region.label}</option>`).join("");
+                targetSelect.value = scopeTarget;
+            }
+        }
+        const scopeKey = scopeType === "global" ? "global" : scopeTarget;
+        const scopeLabel = chartScopeLabel(scopeKey);
+        const slotMs = DAY_MS / 4;
+        const slotCount = 6;
+        const slots = Array.from({ length: slotCount }).map((_, index) => {
+            const offsetHours = index * 6;
+            const slotStart = state.time.epochMs + index * slotMs;
+            const slotEnd = slotStart + slotMs;
+            let entries = [];
+            if (contentType === "promos") {
+                entries = buildChartPulsePromoEntries({
+                    startAt: slotStart,
+                    endAt: slotEnd,
+                    scopeType,
+                    scopeTarget
+                });
+            }
+            else {
+                const projected = computeChartProjectionForScope({
+                    targetEpochMs: slotStart,
+                    scopeType,
+                    scopeTarget,
+                    limit: contentType === "tracks" ? 5 : null
+                });
+                entries = contentType === "projects"
+                    ? collectProjectChartEntries(projected).slice(0, 5)
+                    : projected.slice(0, 5);
+            }
+            return { offsetHours, slotStart, entries };
+        });
+        chartsEl.innerHTML = slots.map((slot) => {
+            const label = slot.offsetHours === 0 ? "Now" : `+${slot.offsetHours}h`;
+            const timeLabel = formatDate(slot.slotStart);
+            const emptyLabel = contentType === "promos"
+                ? "No promo events in this window."
+                : "No projected entries yet.";
+            let entryMarkup = "";
+            if (!slot.entries.length) {
+                entryMarkup = `<div class="muted">${emptyLabel}</div>`;
+            }
+            else if (contentType === "promos") {
+                entryMarkup = slot.entries.map((entry) => `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">#${entry.rank} ${entry.title}</div>
+                <div class="muted">${entry.typeLabel} | ${entry.actName} | ${entry.label}</div>
+              </div>
+              <div class="pill">${formatMoney(entry.impact)}</div>
             </div>
-            <div class="pill">${formatCount(entry.score)}</div>
+          </div>
+        `).join("");
+            }
+            else if (contentType === "projects") {
+                entryMarkup = slot.entries.map((entry) => `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">#${entry.rank} ${entry.projectName}</div>
+                <div class="muted">${entry.projectType} | ${entry.actName || "-"} | ${entry.label || "-"}</div>
+              </div>
+              <div class="pill">${formatCount(entry.score)}</div>
+            </div>
+          </div>
+        `).join("");
+            }
+            else {
+                entryMarkup = slot.entries.map((entry) => {
+                    const track = entry.track || entry;
+                    return `
+            <div class="list-item">
+              <div class="list-row">
+                <div>
+                  <div class="item-title">#${entry.rank} ${track?.title || "Unknown Track"}</div>
+                  <div class="muted">${track?.label || "Unknown"} | ${renderTrackGenrePills(track, { fallback: "Genre -" })}</div>
+                </div>
+                <div class="pill">${formatCount(entry.score)}</div>
+              </div>
+            </div>
+          `;
+                }).join("");
+            }
+            return `
+        <div class="chart-pulse-slot">
+          <div class="slot-head">
+            <div>
+              <div class="slot-label">${label}</div>
+              <div class="tiny muted">${timeLabel}</div>
+            </div>
+          </div>
+          <div class="list">
+            ${entryMarkup}
           </div>
         </div>
-      `).join("");
+      `;
+        }).join("");
+        if (metaEl) {
+            const contentLabel = contentType === "projects" ? "Projects" : contentType === "promos" ? "Promos" : "Tracks";
+            metaEl.textContent = contentType === "promos"
+                ? `Promo feed in 6h windows • ${scopeLabel}.`
+                : `Projected Top 5 every 6h • ${scopeLabel} • ${contentLabel}.`;
         }
     }
     const eraList = $("dashboardEraList");
@@ -3917,8 +4058,9 @@ function renderCharts() {
                 const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
                 const alignTag = renderAlignmentTag(entry.alignment);
                 const actName = entry.actName || "-";
-                const targetLine = entry.trackTitle ? `Track: ${entry.trackTitle}` : "Act push";
-                const projectLine = entry.projectName || (entry.trackTitle ? "Single" : "Act visibility");
+                const trackTitle = entry.trackTitle || entry.title || "";
+                const targetLine = trackTitle ? `Track: ${trackTitle}` : "Act push";
+                const projectLine = entry.projectName || (trackTitle ? "Single" : "Act visibility");
                 const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
                 const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
                 const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
