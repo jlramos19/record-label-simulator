@@ -8,6 +8,7 @@ import { buildMoodOptions, buildThemeOptions, bindThemeSelectAccent, getMoodEmoj
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
 const PROMO_BUDGET_MIN = 100;
 const CREATE_PENDING_EMOJIS = { sheet: "🎼", demo: "🎧" };
+const RELEASE_PENDING_EMOJI = "💿";
 function getPromoInflationMultiplier() {
     const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
     const baseYear = state.meta?.startYear || new Date(state.time?.startEpochMs || state.time?.epochMs || Date.now()).getUTCFullYear();
@@ -958,6 +959,33 @@ function renderCreateNavBadge() {
     else {
         navItem.setAttribute("aria-label", "Create");
         navItem.setAttribute("title", "Create");
+    }
+}
+function getReleaseReadyCount() {
+    if (!Array.isArray(state.tracks))
+        return 0;
+    return state.tracks.filter((track) => track?.status === "Ready").length;
+}
+function renderReleaseNavBadge() {
+    const navItem = document.querySelector(".app-nav [data-route=\"release\"]");
+    const badge = $("releaseNavBadge");
+    if (!navItem || !badge)
+        return;
+    const totalEl = badge.querySelector("[data-release-ready-total]");
+    const labelEl = badge.querySelector("[data-release-ready-label]");
+    const total = getReleaseReadyCount();
+    if (totalEl)
+        totalEl.textContent = formatCount(total);
+    if (labelEl)
+        labelEl.textContent = `${RELEASE_PENDING_EMOJI} Ready`;
+    badge.classList.toggle("is-hidden", total <= 0);
+    if (total > 0) {
+        navItem.setAttribute("aria-label", `Release (${total} ready)`);
+        navItem.setAttribute("title", `${total} ready to release`);
+    }
+    else {
+        navItem.setAttribute("aria-label", "Release");
+        navItem.setAttribute("title", "Release");
     }
 }
 function buildLabelRankingMeta() {
@@ -4744,6 +4772,7 @@ function renderAll({ save = true } = {}) {
     renderTime();
     renderStats();
     renderCreateNavBadge();
+    renderReleaseNavBadge();
     renderTopBar();
     renderActiveView(state.ui.activeView);
     renderWallet();

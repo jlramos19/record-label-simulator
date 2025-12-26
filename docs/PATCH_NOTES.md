@@ -1,5 +1,14 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1037Z)
+- Release tab now shows a Ready-only badge for masters awaiting release.
+
+## 2025-12-26 (RLS-PATCH-20251226-1036Z)
+- Time controls now show real-time simulation ratios in their labels and rename auto controls to Auto Day/Auto Week.
+
+## 2025-12-26 (RLS-PATCH-20251226-1034Z)
+- Community + Create modifier panels now call out that modifiers are consumable per track.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1026Z)
 - Modifiers now consume per track; inventory tracks counts and Create shows remaining charges.
 - Community Tools list now supports repeat purchases with owned counts and inflation-adjusted pricing.
