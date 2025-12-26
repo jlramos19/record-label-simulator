@@ -10,8 +10,9 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 - Total spend equals budget times the number of selected promo types.
 - Budgets live per promo type card and roll into a summed total when multiple promos are selected.
 - Budget helpers show efficiency vs typical spend plus an audience-variance lift range (trend/alignment-dependent).
-- Promo pushes target an Act (required) and optionally an associated Track.
-- Act-only promos boost Act visibility; Act+Track promos boost both.
+- Promo pushes target an Act (required) with optional Project + Track targeting (Project sits between Act and Track).
+- Act-only promos boost Act visibility; Act+Project promos boost project momentum; Act+Project+Track promos boost both.
+- Project promos can target projects in active eras; boosts apply across released + scheduled tracks in the project.
 - Track promos can target released or scheduled tracks; scheduled promos bank momentum for release.
 - Music video promos unlock after release and are single-use per track.
 - Live Performance promos include a Prime Time toggle to convert to a Prime Time Showcase with higher cost and prestige gates.

@@ -1,5 +1,15 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1733Z)
+- Track title generation no longer appends content genre labels in parentheses.
+
+## 2025-12-26 (RLS-PATCH-20251226-1726Z)
+- Promotions now support Project targets between Act + Track, letting project-level promo boosts lift active-era tracks.
+- Auto promo and rival rollout promos now apply project-level boosts when multiple releases share a project.
+
+## 2025-12-26 (RLS-PATCH-20251226-1718Z)
+- Gradients now only appear on image placeholders; UI panels, buttons, and progress fills are solid.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1706Z)
 - Calendar view now focuses on Label/Public scheduling; Eras lives only in its dedicated tab.
 - Calendar view adds a Structures & Slots sidebar with rival recording studio capacity plus broadcast/filming availability.

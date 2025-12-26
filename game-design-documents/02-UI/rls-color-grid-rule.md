@@ -13,6 +13,12 @@
 | `Light` | `#CCFFFF` | `Default app background (no gradients).` |
 | `Dark` | `#663300` | `Default app background (no gradients).` |
 
+## **`Gradient Usage`**
+
+* `Gradients are reserved for image placeholders (avatars, thumbnails).`
+
+* `UI surfaces (panels, buttons, progress bars) use solid grid colors.`
+
 ## **`Alignment Colors`**
 
 | `Name` | `Hex` | `Color` |

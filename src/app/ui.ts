@@ -5104,30 +5104,54 @@ function pickPromoTargetsFromFocus() {
 
 function runPromotion() {
   const trackId = state.ui.promoSlots.trackId;
+  const projectId = state.ui.promoSlots.projectId;
   const slotActId = state.ui.promoSlots.actId;
   const track = trackId ? getTrack(trackId) : null;
   const actId = slotActId || (track ? track.actId : null);
-  if (!actId && !track) {
-    logEvent("Select an Act or Track for the promo push.", "warn");
+  if (!actId && !track && !projectId) {
+    logEvent("Select an Act, Project, or Track for the promo push.", "warn");
     return;
   }
   if (!state.ui.promoSlots.actId && actId) state.ui.promoSlots.actId = actId;
-  const trackContext = getPromoTargetContext(trackId, actId);
+  const trackContext = getPromoTargetContext(trackId, projectId, actId);
   const act = trackContext.act;
+  const project = trackContext.project;
   if (!act) {
     logEvent("Promo push requires an Act selection.", "warn");
+    return;
+  }
+  if (projectId && !project) {
+    logEvent("Project not found for promo push.", "warn");
     return;
   }
   if (trackId && !trackContext.track) {
     logEvent("Track not found for promo push.", "warn");
     return;
   }
+  if (project && project.actId && project.actId !== act.id) {
+    logEvent("Selected project does not belong to the selected act.", "warn");
+    return;
+  }
   if (trackContext.track && act && trackContext.track.actId && trackContext.track.actId !== act.id) {
     logEvent("Selected track does not belong to the selected act.", "warn");
     return;
   }
+  if (trackContext.track && projectId) {
+    const trackProjectId = buildPromoProjectKeyFromTrack(trackContext.track);
+    if (trackProjectId && trackProjectId !== projectId) {
+      logEvent("Selected track does not belong to the selected project.", "warn");
+      return;
+    }
+  }
   if (trackContext.track && !trackContext.isReleased && !trackContext.isScheduled) {
     logEvent("Promo push requires a scheduled or released track.", "warn");
+    return;
+  }
+  const projectTargets = project && !trackContext.track
+    ? listPromoEligibleTracks(trackContext.projectTracks)
+    : [];
+  if (!trackContext.track && project && !projectTargets.length) {
+    logEvent("Promo push requires scheduled or released tracks for the selected project.", "warn");
     return;
   }
   const select = $("promoTypeSelect");
@@ -5162,16 +5186,25 @@ function runPromotion() {
     logEvent(`Not enough cash for ${label}.`, "warn");
     return;
   }
-  const era = trackContext.track?.eraId ? getEraById(trackContext.track.eraId) : getActiveEras().find(
+  const era = trackContext.era || getActiveEras().find(
     (entry) => entry.actId === act.id && entry.status === "Active"
   );
   if (!era || era.status !== "Active") {
     logEvent("Promo push requires an active era for the selected act.", "warn");
     return;
   }
+  const projectReleaseAt = projectTargets.length
+    ? projectTargets.map((entry) => {
+      if (entry.status === "Released") return entry.releasedAt;
+      const scheduled = state.releaseQueue.find((release) => release.trackId === entry.id);
+      return scheduled?.releaseAt || null;
+    }).filter(Number.isFinite).sort((a, b) => b - a)[0]
+    : null;
   const releaseDate = trackContext.track
     ? (trackContext.scheduled ? formatDate(trackContext.scheduled.releaseAt) : trackContext.track.releasedAt ? formatDate(trackContext.track.releasedAt) : "TBD")
-    : formatDate(state.time.epochMs);
+    : projectReleaseAt
+      ? formatDate(projectReleaseAt)
+      : formatDate(state.time.epochMs);
   const market = trackContext.isReleased && trackContext.track
     ? state.marketTracks.find((entry) => entry.id === trackContext.track.marketId)
     : null;
@@ -5199,7 +5232,12 @@ function runPromotion() {
     }
   }
   state.label.cash -= totalCost;
-  if (trackContext.track) recordTrackPromoCost(trackContext.track, totalCost);
+  if (trackContext.track) {
+    recordTrackPromoCost(trackContext.track, totalCost);
+  } else if (projectTargets.length) {
+    const perTrack = totalCost / projectTargets.length;
+    projectTargets.forEach((entry) => recordTrackPromoCost(entry, perTrack));
+  }
   let boostWeeks = 0;
   const weeksByType = {};
   effectiveTypes.forEach((promoType) => {
@@ -5208,6 +5246,13 @@ function runPromotion() {
     weeksByType[promoType] = weeks;
     boostWeeks = Math.max(boostWeeks, weeks);
   });
+  const findMarketEntry = (entry) => {
+    if (!entry) return null;
+    if (entry.marketId) {
+      return state.marketTracks.find((marketEntry) => marketEntry.id === entry.marketId) || null;
+    }
+    return state.marketTracks.find((marketEntry) => marketEntry.trackId === entry.id) || null;
+  };
   if (trackContext.track) {
     const promo = trackContext.track.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
     if (trackContext.isReleased && market) {
@@ -5217,39 +5262,78 @@ function runPromotion() {
     }
     if (selectedTypes.includes("musicVideo")) promo.musicVideoUsed = true;
     trackContext.track.promo = promo;
+  } else if (projectTargets.length) {
+    projectTargets.forEach((entry) => {
+      if (entry.status === "Released") {
+        const marketEntry = findMarketEntry(entry);
+        if (marketEntry) marketEntry.promoWeeks = Math.max(marketEntry.promoWeeks || 0, boostWeeks);
+        return;
+      }
+      const promo = entry.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
+      promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+      entry.promo = promo;
+    });
   }
   act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
   state.meta.promoRuns = (state.meta.promoRuns || 0) + effectiveTypes.length;
-  const promoIds = Array.from(new Set([
-    ...(trackContext.track?.creators?.songwriterIds || []),
-    ...(trackContext.track?.creators?.performerIds || []),
-    ...(trackContext.track?.creators?.producerIds || []),
+  const promoIds = new Set([
     ...(act.memberIds || [])
-  ])).filter(Boolean);
-  if (promoIds.length) markCreatorPromo(promoIds);
+  ]);
+  if (trackContext.track) {
+    (trackContext.track?.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
+    (trackContext.track?.creators?.performerIds || []).forEach((id) => promoIds.add(id));
+    (trackContext.track?.creators?.producerIds || []).forEach((id) => promoIds.add(id));
+  } else if (projectTargets.length) {
+    projectTargets.forEach((entry) => {
+      (entry.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
+      (entry.creators?.performerIds || []).forEach((id) => promoIds.add(id));
+      (entry.creators?.producerIds || []).forEach((id) => promoIds.add(id));
+    });
+  }
+  const promoIdList = Array.from(promoIds).filter(Boolean);
+  if (promoIdList.length) markCreatorPromo(promoIdList);
   const promoStamp = state.time.epochMs;
   const hasPerformanceTape = effectiveTypes.some((promoType) => promoType === "livePerformance" || promoType === "primeShowcase");
+  const promoTargetType = trackContext.track ? "track" : project ? "project" : "act";
+  const promoProjectName = trackContext.track?.projectName || project?.projectName || null;
+  const postTitle = trackContext.track ? trackContext.track.title : project ? project.projectName : act.name;
   effectiveTypes.forEach((promoType) => {
     const budget = budgets[promoType];
     const weeks = weeksByType[promoType] || boostWeeks;
-    game.recordPromoUsage({ track: trackContext.track, market, act, promoType, atMs: promoStamp });
-    logUiEvent("action_submit", { action: "promotion", actId: act.id, trackId: trackContext.track?.id || null, budget, weeks, promoType, totalCost });
+    if (trackContext.track) {
+      game.recordPromoUsage({ track: trackContext.track, market, act, promoType, atMs: promoStamp });
+    } else {
+      game.recordPromoUsage({ act, promoType, atMs: promoStamp });
+    }
+    logUiEvent("action_submit", {
+      action: "promotion",
+      actId: act.id,
+      projectId: projectId || null,
+      projectName: promoProjectName || null,
+      trackId: trackContext.track?.id || null,
+      targetType: promoTargetType,
+      budget,
+      weeks,
+      promoType,
+      totalCost
+    });
     game.recordPromoContent({
       promoType,
       actId: act.id,
       actName: act.name,
       trackId: trackContext.track?.id || null,
       marketId: market?.id || null,
-      trackTitle: trackContext.track?.title || null,
-      projectName: trackContext.track?.projectName || null,
+      trackTitle: trackContext.track ? trackContext.track.title : project ? project.projectName : null,
+      projectName: promoProjectName,
       label: state.label?.name || "",
       budget,
       weeks,
-      isPlayer: true
+      isPlayer: true,
+      targetType: promoTargetType
     });
     if (typeof postFromTemplate === "function") {
       postFromTemplate(promoType, {
-        trackTitle: trackContext.track ? trackContext.track.title : act.name,
+        trackTitle: postTitle,
         actName: act.name,
         releaseDate,
         channel: trackContext.track?.distribution || "Broadcast",
@@ -5262,7 +5346,7 @@ function runPromotion() {
   if (typeof postFromTemplate === "function") {
     if (hasPerformanceTape) {
       postFromTemplate("performanceTape", {
-        trackTitle: trackContext.track ? trackContext.track.title : act.name,
+        trackTitle: postTitle,
         actName: act.name,
         releaseDate,
         channel: trackContext.track?.distribution || "Broadcast",
@@ -5277,7 +5361,11 @@ function runPromotion() {
   const verb = effectiveTypes.length > 1 ? "Promo pushes funded" : "Promo push funded";
   const spendNote = effectiveTypes.length > 1 ? ` Total spend: ${formatMoney(totalCost)}.` : "";
   const releaseNote = trackContext.isScheduled ? ` Release on ${releaseDate}.` : "";
-  const targetLabel = trackContext.track ? `"${trackContext.track.title}"` : `Act "${act.name}"`;
+  const targetLabel = trackContext.track
+    ? `"${trackContext.track.title}"`
+    : project
+      ? `Project "${project.projectName}"`
+      : `Act "${act.name}"`;
   logEvent(`${verb} for ${targetLabel} (${promoLabels}) (+${boostWeeks} weeks).${spendNote}${releaseNote}`);
   renderAll();
 }

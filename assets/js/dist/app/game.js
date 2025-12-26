@@ -3358,9 +3358,6 @@ function makeTrackTitleByCountry(theme, mood, country) {
     const lang = pickTrackLanguage(country);
     const pool = trackPoolByLang(lang);
     const base = pickUniqueName(pool, existing, "II");
-    if (theme && mood && Math.random() < 0.35) {
-        return `${base} (${formatGenreLabel(theme, mood)})`;
-    }
     return base;
 }
 function makeTrackTitleByCountrySeeded(theme, mood, country, rng) {
@@ -3371,9 +3368,6 @@ function makeTrackTitleByCountrySeeded(theme, mood, country, rng) {
     const lang = pickTrackLanguageSeeded(country, rng);
     const pool = trackPoolByLang(lang);
     const base = seededPickUniqueName(pool, existing, "II", rng);
-    if (theme && mood && rng && rng() < 0.35) {
-        return `${base} (${formatGenreLabel(theme, mood)})`;
-    }
     return base;
 }
 function makeRivalActName() {
@@ -4298,8 +4292,16 @@ function addRolloutStrategyEvent(strategyId, weekNumber, actionType, contentId) 
     if (contentId) {
         const track = getTrack(contentId);
         if (!track) {
-            logEvent("Event content ID not found.", "warn");
-            return false;
+            const project = parsePromoProjectKey(contentId);
+            const era = project?.eraId ? getEraById(project.eraId) : null;
+            if (!project) {
+                logEvent("Event content ID not found.", "warn");
+                return false;
+            }
+            if (!era || era.status !== "Active") {
+                logEvent("Event project requires an active era.", "warn");
+                return false;
+            }
         }
     }
     strategy.weeks[weekIndex].events.push(makeRolloutEvent(actionType, contentId));
@@ -5514,13 +5516,26 @@ function scheduleRolloutEvent(strategy, era, weekIndex, eventItem, eventIndex, m
         return { ok: false, blocked: true };
     }
     let track = null;
+    let project = null;
     if (eventItem.contentId) {
         track = getTrack(eventItem.contentId);
         if (!track) {
-            recordRolloutBlock(eventItem, "Event content not found.", mode, "Rollout event");
-            return { ok: false, blocked: true };
+            project = parsePromoProjectKey(eventItem.contentId);
+            if (!project) {
+                recordRolloutBlock(eventItem, "Event content not found.", mode, "Rollout event");
+                return { ok: false, blocked: true };
+            }
+            if (project.eraId && era?.id && project.eraId !== era.id) {
+                recordRolloutBlock(eventItem, "Project does not belong to this era.", mode, "Rollout event");
+                return { ok: false, blocked: true };
+            }
+            const projectEra = project.eraId ? getEraById(project.eraId) : era;
+            if (!projectEra || projectEra.status !== "Active") {
+                recordRolloutBlock(eventItem, "Event requires a project from an active era.", mode, "Rollout event");
+                return { ok: false, blocked: true };
+            }
         }
-        if (track.status !== "Released" || !track.marketId) {
+        else if (track.status !== "Released" || !track.marketId) {
             recordRolloutBlock(eventItem, "Event requires a released track.", mode, "Rollout event");
             return { ok: false, blocked: true };
         }
@@ -6071,6 +6086,29 @@ function recordPromoUsage({ track = null, market = null, act = null, promoType, 
     if (track || act)
         recordEraProjectPromoActivity(track, act, stamp);
 }
+function listPromoEligibleTracksForProject(project) {
+    if (!project?.projectName)
+        return [];
+    const targetName = normalizeProjectName(project.projectName);
+    const targetType = normalizeProjectType(project.projectType || "Single");
+    const scheduledIds = new Set(state.releaseQueue.map((entry) => entry.trackId).filter(Boolean));
+    return state.tracks.filter((track) => {
+        if (project.eraId && track.eraId !== project.eraId)
+            return false;
+        if (project.actId && track.actId !== project.actId)
+            return false;
+        const trackProject = track.projectName || `${track.title} - Single`;
+        if (normalizeProjectName(trackProject) !== targetName)
+            return false;
+        if (normalizeProjectType(track.projectType || "Single") !== targetType)
+            return false;
+        if (track.status === "Released")
+            return true;
+        if (track.status === "Scheduled")
+            return true;
+        return scheduledIds.has(track.id);
+    });
+}
 function getTrackMissingPromoTypes(track, { includeScheduled = false } = {}) {
     if (!track)
         return [];
@@ -6442,6 +6480,41 @@ function resolvePromoBaseTrack(entry) {
     }
     const actId = entry.actId || null;
     const actName = entry.actName || null;
+    if (entry.projectName) {
+        const projectKey = normalizeProjectName(entry.projectName);
+        const matchesAct = (track) => {
+            if (actId && track.actId !== actId)
+                return false;
+            if (actName && track.actName !== actName)
+                return false;
+            return true;
+        };
+        const candidates = state.marketTracks.filter((track) => {
+            if (!matchesAct(track))
+                return false;
+            return normalizeProjectName(track.projectName || "") === projectKey;
+        });
+        if (candidates.length) {
+            return candidates.reduce((latest, track) => {
+                const latestStamp = latest?.releasedAt || latest?.completedAt || 0;
+                const nextStamp = track?.releasedAt || track?.completedAt || 0;
+                return nextStamp >= latestStamp ? track : latest;
+            }, candidates[0]);
+        }
+        const internal = state.tracks.filter((track) => {
+            if (actId && track.actId !== actId)
+                return false;
+            const trackProject = track.projectName || `${track.title} - Single`;
+            return normalizeProjectName(trackProject) === projectKey;
+        });
+        if (internal.length) {
+            return internal.reduce((latest, track) => {
+                const latestStamp = latest?.releasedAt || latest?.completedAt || 0;
+                const nextStamp = track?.releasedAt || track?.completedAt || 0;
+                return nextStamp >= latestStamp ? track : latest;
+            }, internal[0]);
+        }
+    }
     if (actId || actName) {
         const candidates = state.marketTracks.filter((track) => (actId && track.actId === actId) || (actName && track.actName === actName));
         if (candidates.length) {
@@ -6516,7 +6589,7 @@ function buildPromoAnchorTrack(entry, currentWeek) {
     anchor.weeksOnChart = Math.max(0, promoEntryAgeWeeks(entry, currentWeek));
     return anchor;
 }
-function recordPromoContent({ promoType, actId = null, actName = null, trackId = null, marketId = null, trackTitle = null, projectName = null, label = null, budget = 0, weeks = 1, isPlayer = null } = {}) {
+function recordPromoContent({ promoType, actId = null, actName = null, trackId = null, marketId = null, trackTitle = null, projectName = null, label = null, budget = 0, weeks = 1, isPlayer = null, targetType = null } = {}) {
     const list = ensurePromoContentStore();
     const resolvedType = promoType || DEFAULT_PROMO_TYPE;
     const details = getPromoTypeDetails(resolvedType);
@@ -6532,6 +6605,8 @@ function recordPromoContent({ promoType, actId = null, actName = null, trackId =
         : !!base?.isPlayer || (resolvedLabel && resolvedLabel === state.label?.name);
     const resolvedTrackTitle = trackTitle || base?.title || "";
     const resolvedProjectName = projectName || base?.projectName || "";
+    const resolvedTargetType = targetType
+        || (trackId || marketId || base?.trackId ? "track" : resolvedProjectName ? "project" : "act");
     const resolvedCountry = base?.country
         || (resolvedActId ? resolveActCountryFromMembers(resolvedActId) : null)
         || state.label?.country
@@ -6550,6 +6625,7 @@ function recordPromoContent({ promoType, actId = null, actName = null, trackId =
         marketId: market?.id || marketId || base?.marketId || null,
         trackTitle: resolvedTrackTitle,
         projectName: resolvedProjectName,
+        targetType: resolvedTargetType,
         label: resolvedLabel,
         country: resolvedCountry,
         alignment: resolvedAlignment,
@@ -8727,6 +8803,20 @@ function generateRivalReleases() {
         });
     });
 }
+function collectRivalProjectMarkets(rival, anchorMarket) {
+    if (!rival || !anchorMarket)
+        return [];
+    const projectName = anchorMarket.projectName || "";
+    if (!projectName)
+        return [anchorMarket];
+    const key = normalizeProjectName(projectName);
+    const matches = state.marketTracks.filter((entry) => {
+        if (!entry || entry.label !== rival.name)
+            return false;
+        return normalizeProjectName(entry.projectName || "") === key;
+    });
+    return matches.length ? matches : [anchorMarket];
+}
 function processRivalPromoEntry(entry) {
     const rival = getRivalByName(entry.label);
     if (!rival)
@@ -8735,6 +8825,8 @@ function processRivalPromoEntry(entry) {
     const market = pickRivalAutoPromoTrack(rival);
     if (!market || (market.promoWeeks || 0) > 0)
         return false;
+    const projectMarkets = collectRivalProjectMarkets(rival, market);
+    const isProjectPromo = projectMarkets.length > 1 && market.projectName;
     const walletCash = rival.wallet?.cash ?? rival.cash;
     const budget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
     if (!budget || walletCash < budget || rival.cash < budget)
@@ -8750,20 +8842,23 @@ function processRivalPromoEntry(entry) {
         rival.wallet = { cash: rival.cash };
     rival.wallet.cash = rival.cash;
     const boostWeeks = promoWeeksFromBudget(budget);
-    market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
-    recordPromoUsage({ market, promoType, atMs: state.time.epochMs });
+    projectMarkets.forEach((entryMarket) => {
+        entryMarket.promoWeeks = Math.max(entryMarket.promoWeeks || 0, boostWeeks);
+        recordPromoUsage({ market: entryMarket, promoType, atMs: state.time.epochMs });
+    });
     recordPromoContent({
         promoType,
         actId: market.actId || null,
         actName: market.actName || null,
         trackId: market.trackId || null,
         marketId: market.id,
-        trackTitle: market.title,
+        trackTitle: isProjectPromo ? market.projectName : market.title,
         projectName: market.projectName || null,
         label: market.label || rival.name,
         budget,
         weeks: boostWeeks,
-        isPlayer: false
+        isPlayer: false,
+        targetType: isProjectPromo ? "project" : "track"
     });
     markRivalPromoActivity(rival.name, state.time.epochMs);
     return true;
@@ -9076,31 +9171,79 @@ function runAutoPromoForPlayer() {
     if (!state.meta.autoRollout || !state.meta.autoRollout.enabled)
         return;
     const trackId = state.ui?.promoSlots?.trackId;
-    if (!trackId)
+    const projectId = state.ui?.promoSlots?.projectId || null;
+    if (!trackId && !projectId)
         return;
-    const track = getTrack(trackId);
-    if (!track || track.status !== "Released" || !track.marketId)
+    const track = trackId ? getTrack(trackId) : null;
+    const projectSpec = projectId ? parsePromoProjectKey(projectId) : null;
+    let act = null;
+    let era = null;
+    let market = null;
+    let projectTargets = [];
+    const findMarketEntry = (entry) => {
+        if (!entry)
+            return null;
+        if (entry.marketId) {
+            return state.marketTracks.find((candidate) => candidate.id === entry.marketId) || null;
+        }
+        return state.marketTracks.find((candidate) => candidate.trackId === entry.id) || null;
+    };
+    if (track) {
+        if (track.status !== "Released" || !track.marketId)
+            return;
+        era = track.eraId ? getEraById(track.eraId) : null;
+        if (!era || era.status !== "Active")
+            return;
+        market = state.marketTracks.find((entry) => entry.id === track.marketId);
+        if (!market || (market.promoWeeks || 0) > 0)
+            return;
+        act = track.actId ? getAct(track.actId) : null;
+    }
+    else if (projectSpec) {
+        era = projectSpec.eraId ? getEraById(projectSpec.eraId) : null;
+        act = projectSpec.actId ? getAct(projectSpec.actId) : null;
+        if (!act && era?.actId)
+            act = getAct(era.actId);
+        if (!act)
+            return;
+        if (!era)
+            era = getLatestActiveEraForAct(act.id);
+        if (!era || era.status !== "Active")
+            return;
+        projectTargets = listPromoEligibleTracksForProject(projectSpec);
+        if (!projectTargets.length)
+            return;
+        const boostable = projectTargets.some((entry) => {
+            if (entry.status === "Released") {
+                const entryMarket = findMarketEntry(entry);
+                return entryMarket && (entryMarket.promoWeeks || 0) <= 0;
+            }
+            return Math.max(0, entry.promo?.preReleaseWeeks || 0) <= 0;
+        });
+        if (!boostable)
+            return;
+    }
+    else {
         return;
-    const era = track.eraId ? getEraById(track.eraId) : null;
-    if (!era || era.status !== "Active")
-        return;
-    const market = state.marketTracks.find((entry) => entry.id === track.marketId);
-    if (!market || (market.promoWeeks || 0) > 0)
-        return;
+    }
     const rawTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
         ? state.ui.promoTypes
         : [state.ui?.promoType || DEFAULT_PROMO_TYPE];
     const selectedTypes = Array.from(new Set(rawTypes)).filter(Boolean);
     if (!selectedTypes.length)
         return;
-    let usableTypes = track.promo?.musicVideoUsed
-        ? selectedTypes.filter((typeId) => typeId !== "musicVideo")
-        : selectedTypes;
+    let usableTypes = selectedTypes.slice();
+    if (track && track.promo?.musicVideoUsed) {
+        usableTypes = usableTypes.filter((typeId) => typeId !== "musicVideo");
+    }
+    if (!track) {
+        usableTypes = usableTypes.filter((typeId) => !PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
+    }
     if (!usableTypes.length)
         return;
     let resolvedTypes = usableTypes.slice();
     if (state.ui?.promoPrimeTime && resolvedTypes.includes("livePerformance")) {
-        const eligibility = checkPrimeShowcaseEligibility(track.actId || null, track.id);
+        const eligibility = checkPrimeShowcaseEligibility(act?.id || track?.actId || null, track?.id || null);
         if (!eligibility.ok) {
             resolvedTypes = resolvedTypes.filter((typeId) => typeId !== "livePerformance");
             if (!resolvedTypes.length) {
@@ -9140,35 +9283,73 @@ function runAutoPromoForPlayer() {
     state.label.cash -= totalCost;
     if (state.label.wallet)
         state.label.wallet.cash = state.label.cash;
-    recordTrackPromoCost(track, totalCost);
+    if (track) {
+        recordTrackPromoCost(track, totalCost);
+    }
+    else if (projectTargets.length) {
+        const perTrack = totalCost / projectTargets.length;
+        projectTargets.forEach((entry) => recordTrackPromoCost(entry, perTrack));
+    }
     const boostWeeks = promoWeeksFromBudget(budget);
-    market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
-    const act = track.actId ? getAct(track.actId) : null;
+    if (track && market) {
+        market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
+    }
+    else if (projectTargets.length) {
+        projectTargets.forEach((entry) => {
+            if (entry.status === "Released") {
+                const entryMarket = findMarketEntry(entry);
+                if (entryMarket)
+                    entryMarket.promoWeeks = Math.max(entryMarket.promoWeeks || 0, boostWeeks);
+                return;
+            }
+            const promo = entry.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
+            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+            entry.promo = promo;
+        });
+    }
     if (act)
         act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
     state.meta.promoRuns = (state.meta.promoRuns || 0) + resolvedTypes.length;
-    const promoIds = [
-        ...(track.creators?.songwriterIds || []),
-        ...(track.creators?.performerIds || []),
-        ...(track.creators?.producerIds || [])
-    ].filter(Boolean);
-    markCreatorPromo(promoIds);
+    const promoIds = new Set();
+    if (track) {
+        (track.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
+        (track.creators?.performerIds || []).forEach((id) => promoIds.add(id));
+        (track.creators?.producerIds || []).forEach((id) => promoIds.add(id));
+    }
+    else if (projectTargets.length) {
+        projectTargets.forEach((entry) => {
+            (entry.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
+            (entry.creators?.performerIds || []).forEach((id) => promoIds.add(id));
+            (entry.creators?.producerIds || []).forEach((id) => promoIds.add(id));
+        });
+    }
+    const promoIdList = Array.from(promoIds).filter(Boolean);
+    if (promoIdList.length)
+        markCreatorPromo(promoIdList);
     const promoStamp = state.time.epochMs;
     const promoLabel = market?.label || state.label?.name || "";
+    const promoTargetType = track ? "track" : projectSpec ? "project" : "act";
+    const promoProjectName = track?.projectName || projectSpec?.projectName || null;
     resolvedTypes.forEach((promoType) => {
-        recordPromoUsage({ track, market, act, promoType, atMs: promoStamp });
+        if (track) {
+            recordPromoUsage({ track, market, act, promoType, atMs: promoStamp });
+        }
+        else {
+            recordPromoUsage({ act, promoType, atMs: promoStamp });
+        }
         recordPromoContent({
             promoType,
-            actId: track.actId || null,
+            actId: act?.id || track?.actId || null,
             actName: act?.name || null,
-            trackId: track.id,
-            marketId: market.id,
-            trackTitle: track.title,
-            projectName: track.projectName || null,
+            trackId: track?.id || null,
+            marketId: market?.id || null,
+            trackTitle: track ? track.title : projectSpec ? projectSpec.projectName : null,
+            projectName: promoProjectName,
             label: promoLabel,
             budget,
             weeks: boostWeeks,
-            isPlayer: true
+            isPlayer: true,
+            targetType: promoTargetType
         });
     });
     const promoLabels = resolvedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
@@ -9185,7 +9366,12 @@ function runAutoPromoForPlayer() {
     const totalSpend = formatMoney(totalCost);
     const scheduleLabel = formatDate(state.time.epochMs);
     const bookingLine = bookingNotes.length ? ` Booked ${bookingNotes.join(" | ")}.` : "";
-    logEvent(`Auto promo scheduled: ${promoLabels} for "${track.title}" on ${scheduleLabel}. Budget ${spendEach} each (${totalSpend} total).${bookingLine} +${boostWeeks} weeks.`);
+    const targetLabel = track
+        ? `"${track.title}"`
+        : projectSpec
+            ? `Project "${projectSpec.projectName}"`
+            : `Act "${act?.name || "Unknown"}"`;
+    logEvent(`Auto promo scheduled: ${promoLabels} for ${targetLabel} on ${scheduleLabel}. Budget ${spendEach} each (${totalSpend} total).${bookingLine} +${boostWeeks} weeks.`);
 }
 function pickRivalAutoPromoTrack(rival) {
     if (!rival)
@@ -9228,6 +9414,8 @@ function runAutoPromoForRivals() {
         const market = pickRivalAutoPromoTrack(rival);
         if (!market)
             return;
+        const projectMarkets = collectRivalProjectMarkets(rival, market);
+        const isProjectPromo = projectMarkets.length > 1 && market.projectName;
         const walletCash = rival.wallet?.cash ?? rival.cash;
         const budget = computeAutoPromoBudget(walletCash, pct);
         if (!budget || walletCash < budget || rival.cash < budget)
@@ -9244,20 +9432,23 @@ function runAutoPromoForRivals() {
             rival.wallet = { cash: rival.cash };
         rival.wallet.cash = rival.cash;
         const boostWeeks = promoWeeksFromBudget(budget);
-        market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
-        recordPromoUsage({ market, promoType, atMs: state.time.epochMs });
+        projectMarkets.forEach((entry) => {
+            entry.promoWeeks = Math.max(entry.promoWeeks || 0, boostWeeks);
+            recordPromoUsage({ market: entry, promoType, atMs: state.time.epochMs });
+        });
         recordPromoContent({
             promoType,
             actId: market.actId || null,
             actName: market.actName || null,
             trackId: market.trackId || null,
             marketId: market.id,
-            trackTitle: market.title,
+            trackTitle: isProjectPromo ? market.projectName : market.title,
             projectName: market.projectName || null,
             label: market.label || rival.name,
             budget,
             weeks: boostWeeks,
-            isPlayer: false
+            isPlayer: false,
+            targetType: isProjectPromo ? "project" : "track"
         });
         markRivalPromoActivity(rival.name, state.time.epochMs);
     });

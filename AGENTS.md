@@ -6,7 +6,7 @@
 - Conflicts are resolved case-by-case with GitHub as the tie-breaker.
 - Unity-era content is retconned into web equivalents; keep concepts, rewrite Unity tooling language.
 - Workflow: TODO -> Docs -> Code -> Patch Notes.
-- README upkeep: verify `README.md` is current; update content as needed and refresh a `Last updated: YYYY-MM-DD HH:mm:ss +/-HH:MM` timestamp.
+- README upkeep: verify `README.md` is current; update content as needed and refresh a `Last updated: YYYY-MM-DD HH:mm:ss +/-HH:MM` timestamp. If your timestamp is more recent, override the existing one.
 - When you stage changes in git, draft a commit message for me to push to main on GitHub.
 - When making code changes, run `npm run build` and confirm the build succeeds; always request a test run when code is touched.
 - Dev loop: run `npm run start` plus `npm run watch` for live TypeScript changes; static file edits (HTML/CSS/data JS) show on refresh, but `src/` changes require a build/watch.

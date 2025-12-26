@@ -56,6 +56,7 @@ The anchor rival is forced into participation even if it is below the budget gat
 - Promo events snap to whole-hour timestamps and never schedule in the past (roll forward by weeks if needed).
 - Duplicate schedules for the same label + week + event kind are skipped.
 - All scheduled timestamps are whole-hour values (no minutes).
+- Rival promos can lift full projects when multiple releases share a project name (project-level boosts apply across those tracks).
 
 ## Notes
 - AI promo budgets use a fixed AI percent, independent of player settings.

@@ -17,7 +17,7 @@ Required fields:
 
 Week husk structure:
 - `weeks[n].drops[]`: release actions referencing content IDs.
-- `weeks[n].events[]`: action types (promo/appearance/etc) with optional content IDs.
+- `weeks[n].events[]`: action types (promo/appearance/etc) with optional content IDs (Track ID or Project ID for project promos).
 
 Per-item metadata (additive for scheduling + audits):
 - `status` (`Planned` | `Scheduled` | `Completed` | `Blocked`)
@@ -26,7 +26,7 @@ Per-item metadata (additive for scheduling + audits):
 
 ## Planning (Eras Surface)
 - Create a strategy for an active Era; length is derived from the Era rollout weeks.
-- Add drops/events into weekly slots; content must exist before it can be scheduled.
+- Add drops/events into weekly slots; content must exist before it can be scheduled (projects must be in an active era).
 - Optional: seed a strategy from a rollout template (shared with rival husks) to prefill weekly drop/event slots.
 - Select a strategy and expand it to populate Calendar scheduling stores.
 - Optional: enable auto-run per strategy.

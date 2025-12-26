@@ -4443,8 +4443,16 @@ function renderCharts() {
         const alignTag = renderAlignmentTag(entry.alignment);
         const actLabel = renderActName(entry.actName || "-");
         const trackTitle = entry.trackTitle || entry.title || "";
-        const targetLine = trackTitle ? `Track: ${trackTitle}` : "Act push";
-        const projectLine = entry.projectName || (trackTitle ? "Single" : "Act visibility");
+        const targetType = entry.targetType
+          || (trackTitle ? "track" : entry.projectName ? "project" : "act");
+        const targetLine = targetType === "track"
+          ? `Track: ${trackTitle}`
+          : targetType === "project"
+            ? `Project: ${renderProjectName(entry.projectName || "")}`
+            : "Act push";
+        const projectLine = entry.projectName
+          ? renderProjectName(entry.projectName)
+          : (targetType === "track" ? "Single" : "Act visibility");
         const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
         const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
         const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
