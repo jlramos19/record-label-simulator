@@ -47,16 +47,11 @@ const CALENDAR_WHEEL_THRESHOLD = 120;
 const CALENDAR_WHEEL_RESET_MS = 320;
 const CALENDAR_DRAG_THRESHOLD = 80;
 const CALENDAR_VELOCITY_THRESHOLD = 0.55;
-const AUTO_SKIP_DAY_INTERVAL_MS = 12000;
-const AUTO_SKIP_WEEK_INTERVAL_MS = 7000;
+const QUICK_SKIP_SELECTOR = "[data-skip-quick]";
 let calendarWheelAcc = 0;
 let calendarWheelAt = 0;
 let calendarDragState = null;
-let autoSkipDayTimer = null;
-let autoSkipDayInFlight = false;
-let autoSkipWeekTimer = null;
-let autoSkipWeekInFlight = false;
-let autoSkipPrevSpeed = null;
+let timeJumpInFlight = false;
 const TRACK_ROLE_KEYS = {
     Songwriter: "songwriterIds",
     Performer: "performerIds",
@@ -2031,8 +2026,6 @@ function bindGlobalHandlers() {
     on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
     on("playBtn", "click", () => { setTimeSpeed("play"); });
     on("fastBtn", "click", () => { setTimeSpeed("fast"); });
-    on("autoSkipDayBtn", "click", () => { toggleAutoSkipDay(); });
-    on("autoSkipWeekBtn", "click", () => { toggleAutoSkipWeek(); });
     on("skipTimeBtn", "click", () => {
         const now = new Date(state.time.epochMs);
         if ($("skipDateInput"))
@@ -2041,6 +2034,7 @@ function bindGlobalHandlers() {
             $("skipTimeInput").value = `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
         openOverlay("skipTimeModal");
     });
+    bindQuickSkipButtons();
     on("menuBtn", "click", () => {
         openMainMenu();
         syncGameModeSelect();
@@ -2102,10 +2096,6 @@ function bindGlobalHandlers() {
         });
     }
     on("skipTimeClose", "click", () => closeOverlay("skipTimeModal"));
-    on("skip24hBtn", "click", () => { runTimeJump(24, "Skipping 24 hours"); closeOverlay("skipTimeModal"); });
-    on("skip7dBtn", "click", () => { runTimeJump(7 * 24, "Skipping 7 days"); closeOverlay("skipTimeModal"); });
-    on("skip14dBtn", "click", () => { runTimeJump(14 * 24, "Skipping 14 days"); closeOverlay("skipTimeModal"); });
-    on("skip28dBtn", "click", () => { runTimeJump(28 * 24, "Skipping 28 days"); closeOverlay("skipTimeModal"); });
     on("skipCustomBtn", "click", () => {
         const days = Number($("skipDaysInput").value || 0);
         const hours = Number($("skipHoursInput").value || 0);

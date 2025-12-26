@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1139Z)
+- Added touring draft state scaffolding to save slots for future tour planning.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1132Z)
 - Added an optional `ui-react/` Vite + React build that outputs UI island bundles into `assets/js/ui-react/`.
 - Calendar modal + track slots now render via React islands with a shared state-change event bridge.

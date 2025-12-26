@@ -214,10 +214,12 @@
     </div>
     <div class="card-body">
       <div class="actions">
-        <button id="skip24hBtn" type="button" class="ghost">+24 Hours</button>
-        <button id="skip7dBtn" type="button" class="ghost">+7 Days</button>
-        <button id="skip14dBtn" type="button" class="ghost">+14 Days</button>
-        <button id="skip28dBtn" type="button" class="ghost">+28 Days</button>
+        <button id="skip24hBtn" type="button" class="ghost" data-skip-quick="1" data-skip-hours="24" data-skip-label="Skipping 24 hours">+24 Hours</button>
+        <button id="skip7dBtn" type="button" class="ghost" data-skip-quick="1" data-skip-days="7" data-skip-label="Skipping 7 days">+7 Days</button>
+        <button id="skip14dBtn" type="button" class="ghost" data-skip-quick="1" data-skip-days="14" data-skip-label="Skipping 14 days">+14 Days</button>
+        <button id="skip28dBtn" type="button" class="ghost" data-skip-quick="1" data-skip-days="28" data-skip-label="Skipping 28 days">+28 Days</button>
+        <button id="skip3mBtn" type="button" class="ghost" data-skip-quick="1" data-skip-months="3" data-skip-label="Skipping 3 months">+3 Months</button>
+        <button id="skip6mBtn" type="button" class="ghost" data-skip-quick="1" data-skip-months="6" data-skip-label="Skipping 6 months">+6 Months</button>
       </div>
       <div class="form-grid" style="margin-top:10px">
         <div class="field">
@@ -427,8 +429,8 @@
         <button id="pauseBtn" type="button" class="ghost">Pause</button>
         <button id="playBtn" type="button" class="ghost">Play</button>
         <button id="fastBtn" type="button" class="ghost">Fast</button>
-        <button id="autoSkipDayBtn" type="button" class="ghost" aria-pressed="false">Auto Day</button>
-        <button id="autoSkipWeekBtn" type="button" class="ghost" aria-pressed="false">Auto Week</button>
+        <button id="autoSkipDayBtn" type="button" class="ghost" aria-pressed="false" data-skip-quick="1" data-skip-hours="24" data-skip-label="Skipping 24 hours">Auto Day</button>
+        <button id="autoSkipWeekBtn" type="button" class="ghost" aria-pressed="false" data-skip-quick="1" data-skip-days="7" data-skip-label="Skipping 7 days">Auto Week</button>
         <button id="skipTimeBtn" type="button" class="ghost">Skip</button>
       </div>
       <div class="time-meta">

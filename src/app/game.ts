@@ -108,6 +108,18 @@ import {
   roleLabel,
   trackRoleLimit
 } from "./game/track-roles.js";
+import {
+  alignmentClass,
+  countryColor,
+  countryDemonym,
+  formatGenreKeyLabel,
+  formatGenreLabel,
+  makeGenre,
+  moodFromGenre,
+  slugify,
+  themeColor,
+  themeFromGenre
+} from "./game/label-utils.js";
 
 const ECONOMY_BASELINES_DEFAULT = { ...ECONOMY_BASELINES };
 const ECONOMY_TUNING_DEFAULT = { ...ECONOMY_TUNING };
