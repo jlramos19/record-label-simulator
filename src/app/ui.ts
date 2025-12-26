@@ -181,9 +181,12 @@ const CALENDAR_WHEEL_THRESHOLD = 120;
 const CALENDAR_WHEEL_RESET_MS = 320;
 const CALENDAR_DRAG_THRESHOLD = 80;
 const CALENDAR_VELOCITY_THRESHOLD = 0.55;
+const AUTO_SKIP_WEEK_INTERVAL_MS = 7000;
 let calendarWheelAcc = 0;
 let calendarWheelAt = 0;
 let calendarDragState = null;
+let autoSkipWeekTimer = null;
+let autoSkipWeekInFlight = false;
 
 const TRACK_ROLE_KEYS = {
   Songwriter: "songwriterIds",
@@ -1814,6 +1817,7 @@ function bindGlobalHandlers() {
   on("fastBtn", "click", () => { setTimeSpeed("fast"); });
   on("skipDayBtn", "click", () => { void advanceHours(24, { renderQuarterly: false }); });
   on("skipWeekBtn", "click", () => { void advanceHours(WEEK_HOURS, { renderQuarterly: false }); });
+  on("autoSkipWeekBtn", "click", () => { toggleAutoSkipWeek(); });
   on("skipTimeBtn", "click", () => {
     const now = new Date(state.time.epochMs);
     if ($("skipDateInput")) $("skipDateInput").value = now.toISOString().slice(0, 10);
@@ -4468,6 +4472,7 @@ function updateTimeControlButtons() {
   if (state.time.speed === "pause" && pauseBtn) pauseBtn.classList.add("active");
   if (state.time.speed === "play" && playBtn) playBtn.classList.add("active");
   if (state.time.speed === "fast" && fastBtn) fastBtn.classList.add("active");
+  updateAutoSkipWeekButton();
 }
 
 // Accessibility: set aria-pressed on time controls
@@ -4478,6 +4483,73 @@ function syncTimeControlAria() {
     if (!el) return;
     el.setAttribute('aria-pressed', state.time.speed === k ? 'true' : 'false');
   });
+}
+
+function updateAutoSkipWeekButton() {
+  const btn = $("autoSkipWeekBtn");
+  if (!btn) return;
+  const active = Boolean(autoSkipWeekTimer);
+  btn.classList.toggle("active", active);
+  btn.setAttribute("aria-pressed", active ? "true" : "false");
+}
+
+function stopAutoSkipWeek({ silent = false } = {}) {
+  if (autoSkipWeekTimer) {
+    clearInterval(autoSkipWeekTimer);
+    autoSkipWeekTimer = null;
+  }
+  autoSkipWeekInFlight = false;
+  updateAutoSkipWeekButton();
+  if (!silent) logEvent("Auto skip week disabled.");
+}
+
+async function runAutoSkipWeekTick() {
+  if (autoSkipWeekInFlight) return;
+  if (!session.activeSlot) {
+    stopAutoSkipWeek({ silent: true });
+    logEvent("Auto skip stopped: no active slot.", "warn");
+    return;
+  }
+  if (state.meta?.gameOver) {
+    stopAutoSkipWeek({ silent: true });
+    logEvent("Auto skip stopped: game over.", "warn");
+    return;
+  }
+  autoSkipWeekInFlight = true;
+  try {
+    await advanceHours(WEEK_HOURS, { renderQuarterly: false });
+  } catch (error) {
+    console.error("autoSkipWeek error:", error);
+    logEvent("Auto skip week failed; stopping.", "warn");
+    stopAutoSkipWeek({ silent: true });
+  } finally {
+    autoSkipWeekInFlight = false;
+  }
+}
+
+function startAutoSkipWeek() {
+  if (autoSkipWeekTimer) return;
+  if (!session.activeSlot) {
+    logEvent("Select a game slot before auto-skipping.", "warn");
+    return;
+  }
+  if (state.meta?.gameOver) {
+    logEvent("Cannot auto-skip after game over.", "warn");
+    return;
+  }
+  autoSkipWeekTimer = setInterval(() => {
+    void runAutoSkipWeekTick();
+  }, AUTO_SKIP_WEEK_INTERVAL_MS);
+  updateAutoSkipWeekButton();
+  logEvent("Auto skip week enabled (7s interval).");
+}
+
+function toggleAutoSkipWeek() {
+  if (autoSkipWeekTimer) {
+    stopAutoSkipWeek();
+  } else {
+    startAutoSkipWeek();
+  }
 }
 
 function setSkipProgress(total, current, label) {

@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0747Z)
+- Added an Auto 7d time control to advance one week every 7 seconds for hands-off sims.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0723Z)
 - Chart scoring now applies label-competition pressure from recent chart share, and rival momentum scales with the same pressure to prevent runaway dominance.
 - Modern-era seed bias reduced (dominant label bonus + seed pick chance) to keep early rankings closer.
