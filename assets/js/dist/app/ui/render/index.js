@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getModifierInventoryCount, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getModifierInventoryCount, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -99,22 +99,26 @@ function pickAccessibleTextColor(bgColor) {
     const lightContrast = contrastRatio(bgLum, relativeLuminance(light));
     return lightContrast >= darkContrast ? ACCESSIBLE_TEXT.light : ACCESSIBLE_TEXT.dark;
 }
+/** @deprecated Replaced by React Pill/Tag components. */
 function renderAlignmentTag(alignment) {
     const cls = alignmentClass(alignment);
     return `<span class="tag ${cls}"><span class="tag-dot"></span>${alignment}</span>`;
 }
+/** @deprecated Replaced by React Pill/Tag components. */
 function renderThemeTag(theme) {
     const cls = `theme-${slugify(theme)}`;
     return `<span class="tag ${cls}"><span class="tag-dot"></span>${theme}</span>`;
 }
+/** @deprecated Replaced by React Pill/Tag components. */
 function renderCountryTag(country) {
     const cls = `country-${slugify(country)}`;
     return `<span class="tag ${cls}"><span class="tag-dot"></span>${country}</span>`;
 }
+/** @deprecated Replaced by React Pill/Tag components. */
 function renderNationalityPill(country) {
     const color = countryColor(country);
     const demonym = countryDemonym(country);
-    return `<span class="pill country-pill" style="color:${color}; border-color:${color}; background:var(--pill-bg);">${demonym}</span>`;
+    return `<span class="pill country-pill" style="color:${color};">${demonym}</span>`;
 }
 function getCreatorHangulName(creator) {
     if (!creator)
@@ -202,17 +206,22 @@ function renderCreatorSkillProgress(creator) {
     const exp = getCreatorSkillExp(creator);
     return `Skill Level ${level} | EXP ${exp.toFixed(2)} / ${SKILL_EXP_PER_LEVEL_LABEL}`;
 }
+/** @deprecated Replaced by React Pill/Tag components. */
 function renderLabelTag(label, country) {
     const color = countryColor(country);
-    return `<span class="tag" style="color:${color}; border-color:${color}; background:var(--pill-bg);"><span class="tag-dot"></span>${label}</span>`;
+    return `<span class="tag" style="color:${color};"><span class="tag-dot"></span>${label}</span>`;
 }
-function renderMoodTag(mood) {
-    const emoji = getMoodEmoji(mood) || "❓";
-    return `<span class="tag mood"><span class="mood-emoji">${emoji}</span>${mood}</span>`;
+/** @deprecated Replaced by React Pill/Tag components. */
+function renderMoodTag(mood, alignment) {
+    const emoji = getMoodEmoji(mood) || "\u2753";
+    const cls = alignment ? alignmentClass(alignment) : "neutral";
+    return `<span class="tag mood ${cls}"><span class="mood-emoji">${emoji}</span>${mood}</span>`;
 }
-function renderMoodLabel(mood) {
-    const emoji = getMoodEmoji(mood) || "❓";
-    return `<span class="tag mood">${mood} <span class="mood-emoji">${emoji}</span></span>`;
+/** @deprecated Replaced by React Pill/Tag components. */
+function renderMoodLabel(mood, alignment) {
+    const emoji = getMoodEmoji(mood) || "\u2753";
+    const cls = alignment ? alignmentClass(alignment) : "neutral";
+    return `<span class="tag mood ${cls}">${mood} <span class="mood-emoji">${emoji}</span></span>`;
 }
 function formatModifierDelta(modifier) {
     if (!modifier)
@@ -232,18 +241,20 @@ function renderModifierFocus(modifier) {
     if (modifier.theme)
         tags.push(renderThemeTag(modifier.theme));
     if (modifier.mood)
-        tags.push(renderMoodTag(modifier.mood));
+        tags.push(renderMoodTag(modifier.mood, modifier.alignment));
     if (modifier.alignment)
         tags.push(renderAlignmentTag(modifier.alignment));
     if (!tags.length)
         return "";
     return `<div class="muted">Focus: ${tags.join(" ")}</div>`;
 }
-function renderGenrePills(theme, mood, { fallback = "-" } = {}) {
+/** @deprecated Replaced by React Pill/Tag components. */
+function renderGenrePills(theme, mood, { fallback = "-", alignment } = {}) {
     if (!theme || !mood)
         return fallback;
-    return `<span class="genre-pills">${renderThemeTag(theme)} <span class="genre-connector">but it's</span> ${renderMoodTag(mood)}</span>`;
+    return `<span class="genre-pills">${renderThemeTag(theme)} <span class="genre-connector">but it's</span> ${renderMoodTag(mood, alignment)}</span>`;
 }
+/** @deprecated Replaced by React Pill/Tag components. */
 function renderGenrePillsFromGenre(genre, options = {}) {
     if (!genre)
         return options.fallback || "-";
@@ -251,14 +262,18 @@ function renderGenrePillsFromGenre(genre, options = {}) {
     const mood = moodFromGenre(genre);
     return renderGenrePills(theme, mood, options);
 }
+/** @deprecated Replaced by React Pill/Tag components. */
 function renderTrackGenrePills(track, options = {}) {
     if (!track)
         return options.fallback || "-";
     const theme = track.theme || themeFromGenre(track.genre);
     const mood = track.mood || moodFromGenre(track.genre);
-    return renderGenrePills(theme, mood, options);
+    const alignment = options.alignment || track.alignment || state.label?.alignment || "";
+    return renderGenrePills(theme, mood, { ...options, alignment });
 }
 function ensureTrackSlotGrid() {
+    if (UI_REACT_ISLANDS_ENABLED)
+        return;
     const grid = $("trackSlotGrid");
     if (!grid || grid.dataset.built === "true")
         return;
@@ -333,6 +348,8 @@ function ensureTrackSlotGrid() {
     });
 }
 function applyTrackSlotVisibility() {
+    if (UI_REACT_ISLANDS_ENABLED)
+        return;
     const grid = $("trackSlotGrid");
     if (!grid)
         return;
@@ -1824,12 +1841,15 @@ function renderActiveCampaigns() {
         ...activeTracks.map((entry) => {
             const track = entry.trackId ? getTrack(entry.trackId) : null;
             const title = track ? track.title : entry.title;
+            const genreLabel = track
+                ? renderTrackGenrePills(track)
+                : renderGenrePillsFromGenre(entry.genre, { alignment: entry.alignment });
             return `
       <div class="list-item">
         <div class="list-row">
           <div>
             <div class="item-title">${title}</div>
-            <div class="muted">${renderGenrePillsFromGenre(entry.genre)}</div>
+            <div class="muted">${genreLabel}</div>
           </div>
           <div class="pill">${entry.promoWeeks}w</div>
         </div>
@@ -1849,6 +1869,103 @@ function renderActiveCampaigns() {
     `)
     ];
     listEl.innerHTML = items.join("");
+}
+function renderPromoAlerts() {
+    const listEl = $("promoAlertsList");
+    if (!listEl)
+        return;
+    const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
+    const focusEra = getFocusedEra();
+    const fallbackEra = !focusEra && activeEras.length === 1 ? activeEras[0] : null;
+    const displayEra = focusEra || fallbackEra;
+    if (!displayEra) {
+        listEl.innerHTML = `<div class="muted">No active era promo alerts.</div>`;
+        return;
+    }
+    const act = getAct(displayEra.actId);
+    const stageName = ERA_STAGES[displayEra.stageIndex] || "Active";
+    const eraLabel = `${displayEra.name}${act ? ` (${act.name})` : ""} | ${stageName}`;
+    const now = state.time.epochMs;
+    const tracks = state.tracks.filter((track) => track.eraId === displayEra.id)
+        .filter((track) => track.status === "Released" || track.status === "Scheduled");
+    const trackAlerts = tracks.map((track) => {
+        const used = track.promo?.typesUsed || {};
+        const missing = PROMO_TRACK_REQUIRED_TYPES.filter((typeId) => {
+            if (typeId === "musicVideo" && track.status !== "Released")
+                return false;
+            const count = Number.isFinite(used[typeId]) ? used[typeId] : 0;
+            if (count > 0)
+                return false;
+            if (typeId === "musicVideo" && track.promo?.musicVideoUsed)
+                return false;
+            return true;
+        });
+        if (!missing.length)
+            return null;
+        return { track, missing };
+    }).filter(Boolean);
+    const actAlerts = [];
+    if (act) {
+        const referenceAt = Number.isFinite(act.lastPromoAt) ? act.lastPromoAt : displayEra.startedAt;
+        if (Number.isFinite(referenceAt)) {
+            const weeksSince = Math.floor(Math.max(0, now - referenceAt) / (DAY_MS * 7));
+            if (weeksSince >= ACT_PROMO_WARNING_WEEKS) {
+                actAlerts.push({ act, referenceAt, weeksSince });
+            }
+        }
+    }
+    const blocks = [
+        `
+      <div class="list-item">
+        <div class="item-title">Focus Era</div>
+        <div class="muted">${eraLabel}</div>
+      </div>
+    `
+    ];
+    if (!actAlerts.length && !trackAlerts.length) {
+        blocks.push(`
+      <div class="list-item">
+        <div class="item-title">No promo alerts</div>
+        <div class="muted">Active-era content has current promo coverage.</div>
+      </div>
+    `);
+        listEl.innerHTML = blocks.join("");
+        return;
+    }
+    actAlerts.forEach((entry) => {
+        const alignmentLine = entry.act.alignment ? ` | ${renderAlignmentTag(entry.act.alignment)}` : "";
+        const lastPromoLabel = formatShortDate(entry.referenceAt);
+        blocks.push(`
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${entry.act.name}</div>
+            <div class="muted">Last promo ${lastPromoLabel} (${entry.weeksSince}w ago)${alignmentLine}</div>
+            <div class="muted">Warning: no promo activity in ${ACT_PROMO_WARNING_WEEKS} weeks.</div>
+          </div>
+          <span class="badge warn">Stale act</span>
+        </div>
+      </div>
+    `);
+    });
+    trackAlerts.forEach(({ track, missing }) => {
+        const missingLabels = missing.map((typeId) => PROMO_TYPE_DETAILS[typeId]?.label || typeId).join(", ");
+        const actName = track.actId ? getAct(track.actId)?.name : null;
+        const releaseLabel = track.releasedAt ? ` | Released ${formatShortDate(track.releasedAt)}` : "";
+        blocks.push(`
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${track.title}</div>
+            <div class="muted">Missing promo: ${missingLabels}</div>
+            <div class="muted">Act: ${actName || "Unassigned"} | Status: ${track.status}${releaseLabel}</div>
+          </div>
+          <span class="badge warn">Promo gap</span>
+        </div>
+      </div>
+    `);
+    });
+    listEl.innerHTML = blocks.join("");
 }
 function renderWallet() {
     const items = [
@@ -2085,7 +2202,7 @@ function renderInventory() {
           <div>
             <div class="item-title">${track.title}</div>
             <div class="muted">Item: Track  ID ${track.id}</div>
-            <div class="muted">${track.status}  ${renderGenrePillsFromGenre(track.genre)}</div>
+            <div class="muted">${track.status}  ${renderTrackGenrePills(track)}</div>
           </div>
         </div>
         <div class="pill grade" data-grade="${qualityGrade(track.quality)}">${qualityGrade(track.quality)}</div>
@@ -2280,16 +2397,21 @@ function renderCalendarList(targetId, weeks, projectionOverride) {
     const target = $(targetId);
     if (!target)
         return;
+    if (UI_REACT_ISLANDS_ENABLED && targetId === "calendarFullList") {
+        target.innerHTML = "";
+        return;
+    }
     const futureWeeks = Math.max(0, (weeks || 1) - 1);
     const projection = projectionOverride || buildCalendarProjection({ pastWeeks: 0, futureWeeks });
     const tab = projection.tab || "label";
     const filters = projection.filters || {};
-    document.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
+    const scope = target.closest("#calendarModal") || target.closest(".view") || document;
+    scope.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
         if (!btn.dataset.calendarTab)
             return;
         btn.classList.toggle("active", btn.dataset.calendarTab === tab);
     });
-    document.querySelectorAll("[data-calendar-filter]").forEach((input) => {
+    scope.querySelectorAll("[data-calendar-filter]").forEach((input) => {
         const key = input.dataset.calendarFilter;
         if (!key || typeof filters[key] !== "boolean")
             return;
@@ -3476,7 +3598,7 @@ function renderReleaseDesk() {
             const recLabel = `${rec.distribution} ${rec.scheduleKey === "now" ? "now" : rec.scheduleKey === "fortnight" ? "+14d" : "+7d"}`;
             const recFeeLabel = formatMoney(getReleaseDistributionFee(rec.distribution));
             const statusLabel = isReady ? "" : track.status === "In Production" ? "Mastering" : "Awaiting Master";
-            const genreLabel = renderGenrePillsFromGenre(derivedGenre, { fallback: "-" });
+            const genreLabel = renderGenrePillsFromGenre(derivedGenre, { fallback: "-", alignment: track.alignment });
             const hasAct = Boolean(track.actId);
             const canSchedule = hasAct && (isReady || isMastering);
             return `
@@ -4447,13 +4569,15 @@ function updateGenrePreview() {
     const theme = themeSelect.value;
     const mood = moodSelect.value;
     const preview = $("genrePreview");
+    const alignmentSelect = $("trackAlignment");
+    const alignment = alignmentSelect ? alignmentSelect.value : (state.label?.alignment || "");
     if (!preview)
         return;
     if (!theme || !mood) {
         preview.textContent = "Planned Genre: -";
         return;
     }
-    preview.innerHTML = `Planned Genre: ${renderGenrePills(theme, mood)}`;
+    preview.innerHTML = `Planned Genre: ${renderGenrePills(theme, mood, { alignment })}`;
 }
 function stageLabelFromId(stageId) {
     if (stageId === "demo")
@@ -5002,6 +5126,7 @@ function renderActiveView(view) {
     else if (active === "logs") {
         renderSlots();
         renderEventLog();
+        renderPromoAlerts();
         renderWallet();
         renderResourceTickSummary();
         renderLossArchives();

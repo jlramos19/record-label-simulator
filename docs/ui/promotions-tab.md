@@ -14,6 +14,9 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 - Act-only promos boost Act visibility; Act+Track promos boost both.
 - Track promos can target released or scheduled tracks; scheduled promos bank momentum for release.
 - Music video promos unlock after release and are single-use per track.
+- Live Performance promos include a Prime Time toggle to convert to a Prime Time Showcase with higher cost and prestige gates.
+- Prime Time Showcases measure concurrent live audience; standard live performances measure views.
+- Live performances generate a performance tape uploaded to the EyeriS Video division after airing.
 - Promo Alerts list active-era content with missing promo types (ex: released tracks lacking Music Video) and warn when an Act has no promo activity in the last 6 months; alerts inform popularity + drop-risk tuning.
 - Promo pushes feed the Charts view promotional rankings via engagement metrics (eyeriSocial likes, music video views, interview comments).
 - Facility gating applies per promo type; if required slots are unavailable, the push is blocked.

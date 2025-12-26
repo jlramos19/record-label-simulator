@@ -11,7 +11,11 @@ function mountIsland(id: string, element: JSX.Element) {
   root.render(element);
 }
 
-if (typeof document !== "undefined") {
+const reactIslandsEnabled =
+  typeof window !== "undefined"
+  && (window.UI_REACT_ISLANDS_ENABLED === undefined || window.UI_REACT_ISLANDS_ENABLED);
+
+if (typeof document !== "undefined" && reactIslandsEnabled) {
   mountIsland("rls-react-pills-root", <PillsDemoIsland />);
   mountIsland("rls-react-calendar-root", <CalendarModalIsland />);
   mountIsland("rls-react-trackslots-root", <TrackSlotsIsland />);

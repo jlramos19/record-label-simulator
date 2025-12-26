@@ -88,6 +88,7 @@ import {
   TRACK_ROLE_TARGETS,
   TREND_DETAIL_COUNT,
   TREND_WINDOW_WEEKS,
+  UI_REACT_ISLANDS_ENABLED,
   UI_EVENT_LOG_KEY,
   UNASSIGNED_CREATOR_EMOJI,
   UNASSIGNED_CREATOR_LABEL,
@@ -117,7 +118,6 @@ import {
   makeGenre,
   moodFromGenre,
   slugify,
-  themeColor,
   themeFromGenre
 } from "./game/label-utils.js";
 
@@ -10859,6 +10859,7 @@ function startGameLoop() {
 
 
 export {
+  ACT_PROMO_WARNING_WEEKS,
   ACHIEVEMENTS,
   ACHIEVEMENT_TARGET,
   CREATOR_FALLBACK_EMOJI,
@@ -10878,6 +10879,7 @@ export {
   TRACK_ROLE_KEYS,
   TRACK_ROLE_TARGETS,
   TREND_DETAIL_COUNT,
+  UI_REACT_ISLANDS_ENABLED,
   UNASSIGNED_CREATOR_EMOJI,
   UNASSIGNED_CREATOR_LABEL,
   UNASSIGNED_SLOT_LABEL,
@@ -10989,6 +10991,7 @@ export {
   makeProjectTitle,
   makeTrackTitle,
   markCreatorPromo,
+  recordPromoUsage,
   recordTrackPromoCost,
   recordPromoContent,
   markUiLogStart,

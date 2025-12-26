@@ -1297,6 +1297,8 @@
                 <button id="promoFocusPickBtn" type="button" class="ghost mini">Pick Focus Targets</button>
               </div>
             </div>
+            <div class="subhead">Promo Alerts</div>
+            <div id="promoAlertsList" class="list"></div>
             <div class="field">
               <label id="promoTypeLabel">Promo Types</label>
               <select id="promoTypeSelect" class="hidden" aria-hidden="true" tabindex="-1">
@@ -1305,7 +1307,6 @@
                 <option value="eyeriSocialPost">eyeriSocial Post</option>
                 <option value="eyeriSocialAd">eyeriSocial Ad</option>
                 <option value="interview">Interview</option>
-                <option value="primeShowcase">Prime Time Showcase</option>
               </select>
             <div id="promoTypeGrid" class="promo-type-grid slot-grid slot-grid--multi" role="group" aria-labelledby="promoTypeLabel">
               <button type="button" class="promo-type-card is-active" data-promo-type="musicVideo" role="checkbox" aria-checked="true">
@@ -1335,6 +1336,13 @@
                   <div class="promo-budget-label tiny">Budget</div>
                   <input type="number" min="100" step="100" data-promo-budget aria-label="Live performance promo budget">
                 </div>
+                <div class="promo-type-detail tiny">
+                  <label class="toggle-pill tiny">
+                    <input id="promoPrimeTimeToggle" type="checkbox" data-promo-primetime>
+                    <span>Prime Time upgrade</span>
+                  </label>
+                </div>
+                <div class="promo-type-detail tiny" data-promo-primetime-note></div>
                 <div class="promo-type-detail tiny" data-promo-efficiency></div>
                 <div class="promo-type-detail tiny" data-promo-expectation></div>
               </button>
@@ -1379,21 +1387,6 @@
                 <div class="promo-budget-row">
                   <div class="promo-budget-label tiny">Budget</div>
                   <input type="number" min="100" step="100" data-promo-budget aria-label="Interview promo budget">
-                </div>
-                <div class="promo-type-detail tiny" data-promo-efficiency></div>
-                <div class="promo-type-detail tiny" data-promo-expectation></div>
-              </button>
-              <button type="button" class="promo-type-card" data-promo-type="primeShowcase" role="checkbox" aria-checked="false">
-                <div class="promo-type-row">
-                  <div class="slot-label">Promo Type</div>
-                  <div class="promo-type-status" data-promo-status>Select</div>
-                </div>
-                <div class="slot-value" data-promo-label>Prime Time Showcase</div>
-                <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Charting track + quality 70+ + act press kit</div>
-                <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $15,000</div>
-                <div class="promo-budget-row">
-                  <div class="promo-budget-label tiny">Budget</div>
-                  <input type="number" min="100" step="100" data-promo-budget aria-label="Prime Time Showcase promo budget">
                 </div>
                 <div class="promo-type-detail tiny" data-promo-efficiency></div>
                 <div class="promo-type-detail tiny" data-promo-expectation></div>

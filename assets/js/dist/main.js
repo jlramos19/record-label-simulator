@@ -1,9 +1,14 @@
 import initUI from "./app/ui.js";
 import { installLiveEditGuardrails } from "./app/guardrails.js";
+import { UI_REACT_ISLANDS_ENABLED } from "./app/game/config.js";
 const releaseStamp = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE : null;
 const guardrails = installLiveEditGuardrails(releaseStamp);
 if (typeof document !== "undefined" && releaseStamp?.patchId) {
     document.documentElement.dataset.release = releaseStamp.patchId;
+}
+if (typeof window !== "undefined") {
+    const root = window;
+    root.UI_REACT_ISLANDS_ENABLED = UI_REACT_ISLANDS_ENABLED;
 }
 initUI().catch((error) => {
     console.error("initUI error:", error);

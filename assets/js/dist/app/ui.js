@@ -9,7 +9,7 @@ import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistor
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, normalizeCreator, normalizeProjectName, normalizeProjectType, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, normalizeCreator, normalizeProjectName, normalizeProjectType, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -83,7 +83,9 @@ function setCalendarAnchorWeek(next) {
         return false;
     state.ui.calendarWeekIndex = clamped;
     renderCalendarView();
-    renderCalendarList("calendarFullList", 12);
+    if (!UI_REACT_ISLANDS_ENABLED) {
+        renderCalendarList("calendarFullList", 12);
+    }
     saveToActiveSlot();
     emitStateChanged();
     return true;
@@ -93,7 +95,9 @@ function setCalendarTab(tab) {
         return;
     state.ui.calendarTab = tab;
     renderCalendarView();
-    renderCalendarList("calendarFullList", 12);
+    if (!UI_REACT_ISLANDS_ENABLED) {
+        renderCalendarList("calendarFullList", 12);
+    }
     saveToActiveSlot();
     emitStateChanged();
 }
@@ -104,7 +108,9 @@ function setCalendarFilter(key, checked) {
         state.ui.calendarFilters = {};
     state.ui.calendarFilters[key] = checked;
     renderCalendarView();
-    renderCalendarList("calendarFullList", 12);
+    if (!UI_REACT_ISLANDS_ENABLED) {
+        renderCalendarList("calendarFullList", 12);
+    }
     saveToActiveSlot();
     emitStateChanged();
 }
@@ -2178,22 +2184,27 @@ function bindGlobalHandlers() {
         });
     }
     on("calendarClose", "click", () => closeOverlay("calendarModal"));
-    document.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            const tab = btn.dataset.calendarTab;
-            if (!tab)
-                return;
-            setCalendarTab(tab);
-        });
-    });
-    document.querySelectorAll("[data-calendar-filter]").forEach((input) => {
-        input.addEventListener("change", (e) => {
-            const key = e.target.dataset.calendarFilter;
-            if (!key)
-                return;
-            setCalendarFilter(key, e.target.checked);
-        });
-    });
+    if (!UI_REACT_ISLANDS_ENABLED) {
+        const calendarModal = $("calendarModal");
+        if (calendarModal) {
+            calendarModal.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const tab = btn.dataset.calendarTab;
+                    if (!tab)
+                        return;
+                    setCalendarTab(tab);
+                });
+            });
+            calendarModal.querySelectorAll("[data-calendar-filter]").forEach((input) => {
+                input.addEventListener("change", (e) => {
+                    const key = e.target.dataset.calendarFilter;
+                    if (!key)
+                        return;
+                    setCalendarFilter(key, e.target.checked);
+                });
+            });
+        }
+    }
     on("chartHistoryClose", "click", () => closeOverlay("chartHistoryModal"));
     on("rankingModalClose", "click", () => closeOverlay("rankingModal"));
     on("chartHistoryLatest", "click", () => {
@@ -2994,7 +3005,9 @@ function bindViewHandlers(route, root) {
         });
     }
     on("calendarBtn", "click", () => {
-        renderCalendarList("calendarFullList", 12);
+        if (!UI_REACT_ISLANDS_ENABLED) {
+            renderCalendarList("calendarFullList", 12);
+        }
         openOverlay("calendarModal");
     });
     on("promoBtn", "click", runPromotion);
@@ -5251,6 +5264,11 @@ function closeSkipProgress() {
 function runTimeJump(totalHours, label) {
     if (!totalHours || totalHours <= 0)
         return;
+    if (timeJumpInFlight) {
+        logEvent("Time skip already running.", "warn");
+        return;
+    }
+    timeJumpInFlight = true;
     const chunkSize = totalHours >= 24 * 365 ? 48 : totalHours >= 24 * 90 ? 24 : 12;
     let completed = 0;
     let cancelled = false;
@@ -5262,21 +5280,32 @@ function runTimeJump(totalHours, label) {
         cancelBtn.disabled = false;
         cancelBtn.addEventListener("click", cancelHandler, { once: true });
     }
+    const finish = () => {
+        timeJumpInFlight = false;
+        closeSkipProgress();
+        renderAll();
+    };
     const step = async () => {
         if (cancelled) {
             logEvent("Time skip canceled.", "warn");
-            closeSkipProgress();
-            renderAll();
+            finish();
             return;
         }
         const remaining = totalHours - completed;
         const stepHours = Math.min(chunkSize, remaining);
-        await advanceHours(stepHours, { renderQuarterly: false, renderAfter: false });
+        try {
+            await advanceHours(stepHours, { renderQuarterly: false, renderAfter: false });
+        }
+        catch (error) {
+            console.error("timeJump error:", error);
+            logEvent("Time skip failed; stopping.", "warn");
+            finish();
+            return;
+        }
         completed += stepHours;
         setSkipProgress(totalHours, completed, label);
         if (completed >= totalHours) {
-            closeSkipProgress();
-            renderAll();
+            finish();
             return;
         }
         setTimeout(step, 0);

@@ -1,5 +1,19 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1158Z)
+- Added `UI_REACT_ISLANDS_ENABLED` to gate React islands vs legacy UI paths for pills/tags, calendar modal, and track slots.
+- Legacy calendar modal and track-slot grid rendering are now skipped when React islands are enabled.
+- Marked string-based pill/tag helpers as deprecated and added a React migration parity checklist.
+
+## 2025-12-26 (RLS-PATCH-20251226-1150Z)
+- Promotions now show Promo Alerts for active-era promo gaps (per type) plus stale-act warnings after 6 months without promo activity.
+- Promo usage history now records per-type promos (including auto promo), and chart scoring applies promo-gap + stale-act penalties.
+- Stale acts no longer shield creator inactivity checks, increasing drop risk when promo activity lapses.
+
+## 2025-12-26 (RLS-PATCH-20251226-1144Z)
+- Auto Day/Auto Week now run quick time jumps with the skip progress bar instead of interval auto-skips.
+- Skip Time now includes 3-month and 6-month quick skip buttons, with shared quick-skip handling across header + modal.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1139Z)
 - Added touring draft state scaffolding to save slots for future tour planning.
 

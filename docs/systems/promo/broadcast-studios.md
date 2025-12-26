@@ -50,6 +50,10 @@ Slots are day-based, reset at midnight UTC, and consume a studio's daily capacit
   - Minimum quality threshold (example: 70+).
   - Current charting content (Act must have a charting Track, or the selected Track must be charting).
   - Act-only submissions are allowed if the Act already has charting content that meets quality.
+- Live Performance promos can be upgraded to Prime Time Showcases via a toggle.
+  - Requires Act prestige (Top 10 chart peak) and Track prestige (Top 20 chart peak) plus quality 80+.
+  - Prime Time metrics focus on concurrent live audience.
+  - A performance tape is archived in the EyeriS Video division after airing.
 
 ## Slot usage rules
 - Interview: requires a broadcast slot.

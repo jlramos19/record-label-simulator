@@ -13154,7 +13154,7 @@ Check the render method of \`` + e + "`." : "";
         };
       }
     }
-    function Mk(e) {
+    function Uk(e) {
       return e;
     }
     function lw(e) {
@@ -15384,9 +15384,9 @@ Incoming: %s`, I, "[" + t.join(", ") + "]", "[" + e.join(", ") + "]");
       }
       return [p, s];
     }
-    function Uk(e, t, a) {
-    }
     function zk(e, t, a) {
+    }
+    function Ak(e, t, a) {
     }
     function Mg(e, t, a) {
       var i = Jt, u = $l(), s, f = Ar();
@@ -21596,4 +21596,5 @@ function hE(D, F) {
   if (!k) return;
   gE(k).render(F);
 }
-typeof document < "u" && (hE("rls-react-pills-root", /* @__PURE__ */ we.jsx(bk, {})), hE("rls-react-calendar-root", /* @__PURE__ */ we.jsx(wk, {})), hE("rls-react-trackslots-root", /* @__PURE__ */ we.jsx(Lk, {})));
+const Mk = typeof window < "u" && (window.UI_REACT_ISLANDS_ENABLED === void 0 || window.UI_REACT_ISLANDS_ENABLED);
+typeof document < "u" && Mk && (hE("rls-react-pills-root", /* @__PURE__ */ we.jsx(bk, {})), hE("rls-react-calendar-root", /* @__PURE__ */ we.jsx(wk, {})), hE("rls-react-trackslots-root", /* @__PURE__ */ we.jsx(Lk, {})));

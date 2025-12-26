@@ -4,6 +4,7 @@ export const QUARTER_HOUR_MS = typeof globalThis.QUARTER_HOUR_MS === "number"
     ? globalThis.QUARTER_HOUR_MS
     : (typeof globalThis.HOUR_MS === "number" ? globalThis.HOUR_MS : 3600000) / QUARTERS_PER_HOUR;
 export const LIVE_SYNC_INTERVAL_MS = 500;
+export const UI_REACT_ISLANDS_ENABLED = true;
 export const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
 export const LOSS_ARCHIVE_KEY = "rls_loss_archive_v1";
 export const LOSS_ARCHIVE_LIMIT = 3;
