@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0556Z)
+- Promo track selection now auto-fills the Act slot when it is empty.
+- Fixed promo slot assignment crash caused by missing slot/field DOM helpers.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0518Z)
 - Promotions now target Acts directly (act-only or act+track) with a dedicated Act slot and focus-era picker; active promos list includes act pushes.
 - Broadcast facilities now use EyeriS studio profiles + program tiers, including Prime Time Showcase eligibility checks (quality + charting).

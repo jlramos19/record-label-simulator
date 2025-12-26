@@ -1322,6 +1322,40 @@ function setSlotValue(targetId, value) {
         list[trackRole.index] = value || null;
     }
 }
+function getSlotElement(targetId) {
+    if (typeof document === "undefined")
+        return null;
+    return document.querySelector(`[data-slot-target="${targetId}"]`);
+}
+function shakeElement(el) {
+    if (!el)
+        return;
+    el.classList.remove("shake");
+    void el.offsetWidth;
+    el.classList.add("shake");
+    const clear = () => {
+        el.classList.remove("shake");
+    };
+    if (typeof window !== "undefined" && typeof window.setTimeout === "function") {
+        window.setTimeout(clear, 320);
+        return;
+    }
+    if (typeof setTimeout === "function") {
+        setTimeout(clear, 320);
+    }
+}
+function shakeSlot(targetId) {
+    shakeElement(getSlotElement(targetId));
+}
+function shakeField(fieldId) {
+    if (typeof document === "undefined")
+        return;
+    const el = document.getElementById(fieldId);
+    if (!el)
+        return;
+    const field = el.closest(".field") || el;
+    shakeElement(field);
+}
 function assignToSlot(targetId, entityType, entityId) {
     const slot = getSlotElement(targetId);
     if (!slot)
@@ -1360,6 +1394,7 @@ function assignToSlot(targetId, entityType, entityId) {
             }
         }
     }
+    let promoActId = null;
     if (entityType === "track" && targetId === "promo-track") {
         const track = getTrack(entityId);
         const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
@@ -1374,6 +1409,16 @@ function assignToSlot(targetId, entityType, entityId) {
             shakeSlot(targetId);
             logEvent("Promo slot requires a track from an active era.", "warn");
             return;
+        }
+        if (!state.ui.promoSlots.actId) {
+            const candidateActId = track.actId || era?.actId || null;
+            if (candidateActId) {
+                const act = getAct(candidateActId);
+                const activeEra = act ? getLatestActiveEraForAct(act.id) : null;
+                if (act && activeEra && activeEra.status === "Active") {
+                    promoActId = act.id;
+                }
+            }
         }
     }
     if (entityType === "act" && targetId === "promo-act") {
@@ -1390,6 +1435,8 @@ function assignToSlot(targetId, entityType, entityId) {
             return;
         }
     }
+    if (promoActId)
+        setSlotValue("promo-act", promoActId);
     setSlotValue(targetId, entityId);
     commitSlotChange();
 }
