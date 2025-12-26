@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { queueUsageSessionWrite } from "./file-storage.js";
 const SESSION_INDEX_KEY = "rls_usage_session_index_v1";
 const SESSION_KEY_PREFIX = "rls_usage_session_v1:";
 const SESSION_MAX = 6;
@@ -99,14 +100,17 @@ function baseContext() {
     };
 }
 function persistSession() {
-    if (!storage || !currentSession)
+    if (!currentSession)
         return;
-    try {
-        storage.setItem(`${SESSION_KEY_PREFIX}${currentSession.id}`, JSON.stringify(currentSession));
+    if (storage) {
+        try {
+            storage.setItem(`${SESSION_KEY_PREFIX}${currentSession.id}`, JSON.stringify(currentSession));
+        }
+        catch {
+            // ignore storage errors
+        }
     }
-    catch {
-        // ignore storage errors
-    }
+    queueUsageSessionWrite(currentSession);
 }
 function schedulePersist() {
     if (!storage || !currentSession)

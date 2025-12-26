@@ -1278,6 +1278,15 @@
         <h2>Internal Log</h2>
         <div class="card-body">
           <div id="eventLogList" class="list"></div>
+          <div class="subhead">External Storage</div>
+          <div id="externalStorageStatus" class="tiny muted">External storage not set.</div>
+          <div id="externalStorageDetail" class="tiny muted"></div>
+          <div class="actions">
+            <button id="externalStoragePickBtn" type="button" class="ghost mini">Choose Folder</button>
+            <button id="externalStorageSyncBtn" type="button" class="ghost mini" disabled>Sync Now</button>
+            <button id="externalStorageImportBtn" type="button" class="ghost mini" disabled>Import</button>
+            <button id="externalStorageClearBtn" type="button" class="ghost mini" disabled>Disconnect</button>
+          </div>
         </div>
       </div>
     </aside>

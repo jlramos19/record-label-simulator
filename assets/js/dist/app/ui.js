@@ -5,6 +5,7 @@ import { fetchChartSnapshot, listChartWeeks } from "./db.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails, PROMO_TYPE_DETAILS } from "./promo_types.js";
 import { setUiHooks } from "./game/ui-hooks.js";
 import { getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
+import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistoryFromExternal, importSavesFromExternal, isExternalStorageSupported, requestExternalStorageHandle, syncExternalStorageNow } from "./file-storage.js";
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTracks, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
@@ -779,6 +780,106 @@ function recordSessionReady(source) {
         gameTs: state.time?.epochMs,
         reportToConsole: true
     });
+}
+async function refreshExternalStorageStatus(root) {
+    const scope = root || document;
+    const statusEl = scope.querySelector("#externalStorageStatus");
+    const detailEl = scope.querySelector("#externalStorageDetail");
+    const pickBtn = scope.querySelector("#externalStoragePickBtn");
+    const syncBtn = scope.querySelector("#externalStorageSyncBtn");
+    const importBtn = scope.querySelector("#externalStorageImportBtn");
+    const clearBtn = scope.querySelector("#externalStorageClearBtn");
+    if (!isExternalStorageSupported()) {
+        if (statusEl)
+            statusEl.textContent = "External storage is not supported in this browser.";
+        if (detailEl)
+            detailEl.textContent = "Use Edge or Chrome on localhost or HTTPS.";
+        if (pickBtn)
+            pickBtn.disabled = true;
+        if (syncBtn)
+            syncBtn.disabled = true;
+        if (importBtn)
+            importBtn.disabled = true;
+        if (clearBtn)
+            clearBtn.disabled = true;
+        return;
+    }
+    const status = await getExternalStorageStatus();
+    if (!status || status.status === "not-set") {
+        if (statusEl)
+            statusEl.textContent = "External storage not set.";
+        if (detailEl)
+            detailEl.textContent = "Choose a folder to capture logs, saves, and database exports.";
+        if (pickBtn)
+            pickBtn.disabled = false;
+        if (syncBtn)
+            syncBtn.disabled = true;
+        if (importBtn)
+            importBtn.disabled = true;
+        if (clearBtn)
+            clearBtn.disabled = true;
+        return;
+    }
+    if (statusEl)
+        statusEl.textContent = `Folder: ${status.name || "External folder"}`;
+    if (detailEl) {
+        const hint = status.status === "ready"
+            ? "Write access granted."
+            : "Permission needed; click Sync or Import to re-authorize.";
+        detailEl.textContent = hint;
+    }
+    if (pickBtn)
+        pickBtn.disabled = false;
+    if (syncBtn)
+        syncBtn.disabled = false;
+    if (importBtn)
+        importBtn.disabled = false;
+    if (clearBtn)
+        clearBtn.disabled = false;
+}
+async function handleExternalStoragePick(root) {
+    const result = await requestExternalStorageHandle();
+    if (!result.ok && result.reason !== "cancelled") {
+        logEvent(`External storage folder could not be set (${result.reason}).`, "warn");
+    }
+    const usageSession = getUsageSessionSnapshot();
+    if (result.ok) {
+        const summary = await syncExternalStorageNow({ usageSession });
+        if (summary.ok) {
+            logEvent(`External storage synced (${summary.saves} saves, ${summary.charts} charts).`);
+        }
+    }
+    await refreshExternalStorageStatus(root);
+}
+async function handleExternalStorageSync(root) {
+    const usageSession = getUsageSessionSnapshot();
+    const summary = await syncExternalStorageNow({ usageSession });
+    if (!summary.ok) {
+        logEvent(`External storage sync failed (${summary.reason || "unknown"}).`, "warn");
+    }
+    else {
+        logEvent(`External storage synced (${summary.saves} saves, ${summary.charts} charts).`);
+    }
+    await refreshExternalStorageStatus(root);
+}
+async function handleExternalStorageImport(root) {
+    const saveResult = await importSavesFromExternal();
+    const chartResult = await importChartHistoryFromExternal();
+    if (!saveResult.ok && !chartResult.ok) {
+        logEvent(`External storage import failed (${saveResult.reason || chartResult.reason || "unknown"}).`, "warn");
+    }
+    else {
+        const saves = saveResult.ok ? saveResult.imported : 0;
+        const charts = chartResult.ok ? chartResult.imported : 0;
+        logEvent(`External storage imported (${saves} saves, ${charts} chart snapshots).`);
+        renderMainMenu();
+    }
+    await refreshExternalStorageStatus(root);
+}
+async function handleExternalStorageClear(root) {
+    await clearExternalStorageHandle();
+    logEvent("External storage disconnected.");
+    await refreshExternalStorageStatus(root);
 }
 function chartScopeKey(chartKey) {
     if (chartKey === "global")
@@ -2245,6 +2346,19 @@ function bindViewHandlers(route, root) {
         });
     }
     if (route === "logs") {
+        on("externalStoragePickBtn", "click", () => {
+            void handleExternalStoragePick(root);
+        });
+        on("externalStorageSyncBtn", "click", () => {
+            void handleExternalStorageSync(root);
+        });
+        on("externalStorageImportBtn", "click", () => {
+            void handleExternalStorageImport(root);
+        });
+        on("externalStorageClearBtn", "click", () => {
+            void handleExternalStorageClear(root);
+        });
+        void refreshExternalStorageStatus(root);
         on("promoTypeSelect", "change", (e) => {
             const typeId = e.target.value || DEFAULT_PROMO_TYPE;
             const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);

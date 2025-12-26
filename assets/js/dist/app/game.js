@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { storeChartSnapshot } from "./db.js";
+import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, readSaveSlotFromExternal } from "./file-storage.js";
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
@@ -5376,6 +5377,7 @@ function requestChartWorker(type, payload) {
 function queueChartSnapshotPersistence(snapshots) {
     if (!Array.isArray(snapshots) || !snapshots.length)
         return false;
+    queueChartSnapshotsWrite(snapshots);
     const worker = getChartWorker();
     if (worker) {
         requestChartWorker("persistSnapshots", { snapshots }).catch(() => {
@@ -7603,6 +7605,21 @@ function getSlotData(index) {
         return null;
     }
 }
+async function getSlotDataWithExternal(index) {
+    const data = getSlotData(index);
+    if (data)
+        return data;
+    const external = await readSaveSlotFromExternal(index);
+    if (!external)
+        return null;
+    try {
+        localStorage.setItem(slotKey(index), JSON.stringify(external));
+    }
+    catch {
+        // ignore storage errors
+    }
+    return external;
+}
 function saveToSlot(index) {
     if (!index)
         return;
@@ -7614,6 +7631,7 @@ function saveToSlot(index) {
     if (session.activeSlot === index) {
         session.lastSlotPayload = payload;
     }
+    queueSaveSlotWrite(index, payload);
 }
 function saveToActiveSlot() {
     if (!session.activeSlot)
@@ -7668,7 +7686,7 @@ function seedNewGame(options = {}) {
 }
 async function loadSlot(index, forceNew = false, options = {}) {
     try {
-        const data = forceNew ? null : getSlotData(index);
+        const data = forceNew ? null : await getSlotDataWithExternal(index);
         resetState(data);
         if (!data)
             seedNewGame({
@@ -7696,6 +7714,7 @@ async function loadSlot(index, forceNew = false, options = {}) {
 }
 function deleteSlot(index) {
     localStorage.removeItem(slotKey(index));
+    queueSaveSlotDelete(index);
 }
 function normalizeState() {
     if (!state.ui) {

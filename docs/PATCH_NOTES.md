@@ -1,5 +1,10 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0758Z)
+- Added external storage support via the File System Access API for logs, saves, and chart history.
+- Logs view now includes external storage controls to sync/export and import save data + chart history.
+- Save slots and chart snapshots now mirror into the selected folder automatically.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0747Z)
 - Added an Auto 7d time control to advance one week every 7 seconds for hands-off sims.
 

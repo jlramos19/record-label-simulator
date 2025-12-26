@@ -25,3 +25,8 @@ These rules keep the hosted web build runnable while the team iterates quickly.
 - Critical runtime errors surface a console error plus an in-app toast (non-blocking, auto-dismiss) for visibility.
 - If initialization fails, the app surfaces a safe-mode message to avoid silent blank screens.
 - Usage sessions now track session IDs, action trails, and captured errors; debug exports include the active session log.
+
+## External storage (File System Access API)
+- Optional: logs, saves, and chart history can mirror to a user-selected folder via the Logs view.
+- Data is written under `usage-logs/`, `saves/`, and `database/` subfolders in the selected directory.
+- Imports pull saves and chart history back into local storage/IndexedDB for recovery.

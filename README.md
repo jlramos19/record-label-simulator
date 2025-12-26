@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-26 03:47:37 -04:00
+Last updated: 2025-12-26 04:01:30 -04:00
 
 ## Quick start
 
@@ -71,7 +71,7 @@ npm run dev:logs
 ### IndexedDB
 
 - Database: `rls_mvp_db`
-- Store: `chart_history`
+- Stores: `chart_history`, `file_handles`
 - Indexes: `by_scope`, `by_week`, `by_ts`
 
 Used for chart history snapshots.
@@ -84,6 +84,7 @@ Used for save slots, UI state, and preferences:
 - panel + sidebar layout, per-view panel visibility
 - UI event log and loss archive
 - usage session index + per-session logs (session IDs, action trail, error capture)
+- external storage mirror (File System Access API) for logs, saves, and chart history
 - selected game mode, difficulty, and start preferences
 
 ### sessionStorage
