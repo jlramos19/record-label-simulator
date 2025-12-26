@@ -35,7 +35,7 @@ Status key:
 
 ### Producer (Occupation)
 - produce (Create Masters by combining Theme + Mood into Genre and preliminary Quality). Status: Live.
-- Parameters: 3 in-game hours, cost 1200, stamina 150.
+- Parameters: 3 in-game hours, cost 1200, stamina 100.
 
 Quality notes: Creator skill and preference matches raise quality potential. Final quality resolves at the Master stage.
 

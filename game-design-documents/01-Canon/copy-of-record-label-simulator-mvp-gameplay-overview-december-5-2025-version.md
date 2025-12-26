@@ -18,7 +18,7 @@
 
 * `Producers - Master the track, confirming Alignment and finalizing the Theme+Mood genre. Their skill has the largest impact on quality potential.`
 
-`Stamina (Catharsis) & Scheduling: Creators have stamina (max 400). Each stage consumes stamina (Sheet 25, Demo 50, Master 150). Idle Creators regenerate 50 stamina per in-game hour. If a Creator exceeds 200 stamina used in a day, they accrue an overuse strike and may enter a departure state. Studio slots gate how many work orders can run at once, so scheduling and rest management are core pacing tools.`
+`Stamina (Catharsis) & Scheduling: Creators have stamina (max 400). Each stage consumes stamina (Sheet 25, Demo 50, Master 100). Idle Creators regenerate 50 stamina per in-game hour. If a Creator exceeds 200 stamina used in a day, they accrue an overuse strike and may enter a departure state. Studio slots gate how many work orders can run at once, so scheduling and rest management are core pacing tools.`
 
 ## **`Content Creation Pipeline`**
 
@@ -28,7 +28,7 @@
 
 2. `Demo Recording (Draft) - Recorded by a recorder, layering on a Mood (e.g. Calming, Energizing, Daring) to shape the track's emotional feel. Takes 2 in-game hours and consumes 50 stamina.`
 
-3. `Master Recording (Final Track) - Finalized by a producer who combines the Theme and Mood into the final content Genre classification and applies studio polish. Takes 3 in-game hours and consumes 150 stamina.`
+3. `Master Recording (Final Track) - Finalized by a producer who combines the Theme and Mood into the final content Genre classification and applies studio polish. Takes 3 in-game hours and consumes 100 stamina.`
 
 `Stage costs are set at $500 / $800 / $1200 and are used to calculate lease fees for unowned studio slots.`
 

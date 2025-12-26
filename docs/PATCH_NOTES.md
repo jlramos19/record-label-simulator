@@ -1,5 +1,24 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0446Z)
+- Eras view now uses an Era Performance panel with per-track chart points, sales, costs, earnings, and recommended vinyl runs.
+- Era Performance includes a full chart history table for the focused Era (DNC for non-charting weeks).
+- Physical run estimates now factor fan base, quality, trend alignment, project type, promo lead, and pricing baselines.
+
+## 2025-12-26 (RLS-PATCH-20251226-0442Z)
+- Master stage stamina cost reduced to 100 (from 150) to increase producer throughput without raising daily overuse limits.
+- Stamina timing docs now reflect quarter-hour tick slicing and the updated master stamina cost in guidance tables.
+
+## 2025-12-26 (RLS-PATCH-20251226-0429Z)
+- Regional chart labels now drop Capital and use Regional suffixes (Bloomville/Belltown/Campana City, plus Elsewhere regions).
+- Release queue IDs now use the RQ prefix to reserve RL for Record Label.
+- Acronym glossary updated to confirm AI/ID and reserve RL for Record Label.
+
+## 2025-12-26 (RLS-PATCH-20251226-0415Z)
+- Calendar view now uses a 2/3 + 1/3 split with Release Desk.
+- Upcoming calendar footer now spans the full view width with a horizontal event-day row.
+- Calendar tabs now expand without the mini scrollbar.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0409Z)
 - Chart scope labels now pair place + scope (Gaia/Global, nation/National, capital/Regional) across charts and history views.
 - Chart news templates now default to scope-aware handles/titles when a chart scope is provided.

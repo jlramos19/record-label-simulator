@@ -533,12 +533,12 @@
             <button class="tab" data-chart="Annglora" type="button">Annglora</button>
             <button class="tab" data-chart="Bytenza" type="button">Bytenza</button>
             <button class="tab" data-chart="Crowlya" type="button">Crowlya</button>
-            <button class="tab" data-chart="Annglora Capital" type="button">Annglora Cap</button>
-            <button class="tab" data-chart="Annglora Elsewhere" type="button">Annglora Else</button>
-            <button class="tab" data-chart="Bytenza Capital" type="button">Bytenza Cap</button>
-            <button class="tab" data-chart="Bytenza Elsewhere" type="button">Bytenza Else</button>
-            <button class="tab" data-chart="Crowlya Capital" type="button">Crowlya Cap</button>
-            <button class="tab" data-chart="Crowlya Elsewhere" type="button">Crowlya Else</button>
+            <button class="tab" data-chart="Annglora Capital" type="button">Bloomville Regional</button>
+            <button class="tab" data-chart="Annglora Elsewhere" type="button">Annglora Elsewhere Regional</button>
+            <button class="tab" data-chart="Bytenza Capital" type="button">Belltown Regional</button>
+            <button class="tab" data-chart="Bytenza Elsewhere" type="button">Bytenza Elsewhere Regional</button>
+            <button class="tab" data-chart="Crowlya Capital" type="button">Campana City Regional</button>
+            <button class="tab" data-chart="Crowlya Elsewhere" type="button">Crowlya Elsewhere Regional</button>
           </div>
         </div>
         <div class="card-body">
@@ -911,15 +911,20 @@
       </div>
     </section>
     <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="tracks">
-        <h2>Tracks</h2>
-        <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">
-          <button class="tab" data-track-tab="active" type="button">Active</button>
-          <button class="tab" data-track-tab="archive" type="button">Archive</button>
-        </div>
+      <div class="panel card panel--scroll" data-panel="era-performance">
+        <h2>Era Performance</h2>
         <div class="card-body">
-          <div id="trackList" class="list track-panel-list" data-track-panel="active"></div>
-          <div id="trackArchiveList" class="list track-panel-list hidden" data-track-panel="archive"></div>
+          <div class="callout">
+            Focus an active Era to review results: chart points, sales momentum, costs, and recommended vinyl runs.
+          </div>
+          <div id="eraPerformanceMeta" class="tiny muted"></div>
+          <div id="eraPerformanceTableWrap" class="chart-table-wrap era-performance-table-wrap"></div>
+          <div class="subhead">Chart History</div>
+          <div id="eraHistoryPanel" class="track-history-panel">
+            <div id="eraHistoryMeta" class="tiny muted"></div>
+            <div class="tiny muted">DNC = did not chart. - = not released.</div>
+            <div id="eraHistoryList" class="list"></div>
+          </div>
         </div>
       </div>
     </aside>
@@ -1115,30 +1120,36 @@
             <label class="check-pill"><input type="checkbox" data-social-filter="ccc">CCC</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="system">System</label>
           </div>
-          <div class="subhead">Promotional Content</div>
-          <div class="id-slot" data-slot-target="promo-track" data-slot-type="track">
-            <div class="slot-label">Track ID</div>
-            <div id="promoTrackSlot" class="slot-value">?</div>
-            <button type="button" class="ghost mini" data-slot-clear="promo-track">Clear</button>
-          </div>
+            <div class="subhead">Promotion Targets</div>
+            <div class="id-slot" data-slot-target="promo-act" data-slot-type="act">
+              <div class="slot-label">Act ID</div>
+              <div id="promoActSlot" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="promo-act">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="promo-track" data-slot-type="track">
+              <div class="slot-label">Track ID (optional)</div>
+              <div id="promoTrackSlot" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="promo-track">Clear</button>
+            </div>
           <div class="list-item">
             <div class="list-row">
               <div>
                 <div class="item-title">Focus Era</div>
                 <div id="promoFocusLabel" class="muted">No active eras</div>
               </div>
-              <button id="promoFocusPickBtn" type="button" class="ghost mini">Pick Track</button>
+                <button id="promoFocusPickBtn" type="button" class="ghost mini">Pick Focus Targets</button>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label id="promoTypeLabel">Promo Types</label>
-            <select id="promoTypeSelect" class="hidden" aria-hidden="true" tabindex="-1">
-              <option value="musicVideo">Music Video</option>
-              <option value="livePerformance">Live Performance</option>
-              <option value="eyeriSocialPost">eyeriSocial Post</option>
-              <option value="eyeriSocialAd">eyeriSocial Ad</option>
-              <option value="interview">Interview</option>
-            </select>
+            <div class="field">
+              <label id="promoTypeLabel">Promo Types</label>
+              <select id="promoTypeSelect" class="hidden" aria-hidden="true" tabindex="-1">
+                <option value="musicVideo">Music Video</option>
+                <option value="livePerformance">Live Performance</option>
+                <option value="eyeriSocialPost">eyeriSocial Post</option>
+                <option value="eyeriSocialAd">eyeriSocial Ad</option>
+                <option value="interview">Interview</option>
+                <option value="primeShowcase">Prime Time Showcase</option>
+              </select>
             <div id="promoTypeGrid" class="promo-type-grid slot-grid slot-grid--multi" role="group" aria-labelledby="promoTypeLabel">
               <button type="button" class="promo-type-card is-active" data-promo-type="musicVideo" role="checkbox" aria-checked="true">
                 <div class="promo-type-row">
@@ -1211,6 +1222,21 @@
                 <div class="promo-budget-row">
                   <div class="promo-budget-label tiny">Budget</div>
                   <input type="number" min="100" step="100" data-promo-budget aria-label="Interview promo budget">
+                </div>
+                <div class="promo-type-detail tiny" data-promo-efficiency></div>
+                <div class="promo-type-detail tiny" data-promo-expectation></div>
+              </button>
+              <button type="button" class="promo-type-card" data-promo-type="primeShowcase" role="checkbox" aria-checked="false">
+                <div class="promo-type-row">
+                  <div class="slot-label">Promo Type</div>
+                  <div class="promo-type-status" data-promo-status>Select</div>
+                </div>
+                <div class="slot-value" data-promo-label>Prime Time Showcase</div>
+                <div class="promo-type-detail tiny" data-promo-requirement>Requirement: Charting track + quality 70+ + act press kit</div>
+                <div class="promo-type-detail tiny" data-promo-cost>Typical cost: $15,000</div>
+                <div class="promo-budget-row">
+                  <div class="promo-budget-label tiny">Budget</div>
+                  <input type="number" min="100" step="100" data-promo-budget aria-label="Prime Time Showcase promo budget">
                 </div>
                 <div class="promo-type-detail tiny" data-promo-efficiency></div>
                 <div class="promo-type-detail tiny" data-promo-expectation></div>

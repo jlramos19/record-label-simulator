@@ -5,7 +5,7 @@ Define how sheet/demo/master costs scale with quality inputs, and how creator sk
 
 ## Stage Cost Tiers
 - Sheet (Songwriter): free to very cheap. Base cost 50.
-- Demo (Performer): cheap to regular. Base cost 500.
+- Demo (Recorder): cheap to regular. Base cost 500.
 - Master (Producer): costly to very expensive. Base cost 2500.
 
 Costs are charged per stage when that stage begins (not all up front).

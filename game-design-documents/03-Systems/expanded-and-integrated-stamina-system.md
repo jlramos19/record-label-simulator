@@ -6,7 +6,7 @@
 
 ### **`Core Concept: Stamina as Productivity and Readiness`**
 
-`Stamina governs how Creators (Songwriters, Recorders, Producers) perform tasks, including writing Sheet Music, creating Demo Recordings, and finalizing Tracks. It also represents a Recorder’s readiness for promotional activities like live Shows or Broadcasts.`
+`Stamina governs how Creators (Songwriters, Performers, Producers) perform tasks, including writing Sheet Music, creating Demo Recordings, and finalizing Tracks. It also represents a Performer's readiness for promotional activities like live Shows or Broadcasts.`
 
 ---
 
@@ -15,26 +15,26 @@
 #### **`Songwriters`**
 
 * **`Task`**`: Write Sheet Music.`  
-* **`Cost`**`: 25 mental stamina units per sheet.`  
-* **`Production Time`**`: 1 hour in-game (25,000,000 ticks).`  
+* **`Cost`**`: 25 stamina units per sheet.`  
+* **`Production Time`**`: 1 hour in-game (4 quarter-hour ticks).`  
 * **`Example`**`:`  
   * `A Songwriter with 400 stamina can create 16 sheets before requiring recovery.`
 
-#### **`Recorders`**
+#### **`Performers`**
 
 * **`Task`**`: Create Demo Recordings.`  
-* **`Cost`**`: 50 physical stamina units per demo.`  
-* **`Production Time`**`: 2 hours in-game (50,000,000 ticks).`  
+* **`Cost`**`: 50 stamina units per demo.`  
+* **`Production Time`**`: 2 hours in-game (8 quarter-hour ticks).`  
 * **`Example`**`:`  
-  * `A Recorder with 400 stamina can produce 8 demos before resting.`
+  * `A Performer with 400 stamina can produce 8 demos before resting.`
 
 #### **`Producers`**
 
 * **`Task`**`: Finalize Tracks.`  
-* **`Cost`**`: 150 units (75 physical + 75 mental) per track.`  
-* **`Production Time`**`: 3 hours in-game (75,000,000 ticks).`  
+* **`Cost`**`: 100 stamina units per track.`  
+* **`Production Time`**`: 3 hours in-game (12 quarter-hour ticks).`  
 * **`Example`**`:`  
-  * `A Producer with 400 stamina (200 physical + 200 mental) can finalize 2 tracks.`
+  * `A Producer with 400 stamina can finalize 4 tracks before recharging (daily overuse limits still cap safe output at 2 per day).`
 
 ---
 
@@ -43,7 +43,7 @@
 #### **`Recharge Mechanic`**
 
 * **`Rate`**`: 50 stamina units per in-game hour of inactivity.`  
-* **`Condition`**`: Full hourly inactivity is required for stamina regeneration.`  
+* **`Condition`**`: Regen is applied each quarter-hour tick when idle, so partial hours contribute.`  
 * **`Example`**`:`  
   * `A Creator inactive for 3 in-game hours regains 150 stamina units.`
 
@@ -67,17 +67,17 @@
 * **`Why It Matters`**`:`  
   * `Staying at or below 200 units of daily stamina usage ensures sustainable productivity and consistent Quality.`  
 * **`Overuse Consequences`**`:`  
-  * `Exceeding 200 stamina daily triggers:`  
-    1. **`Quality Reduction`**`: Immediate penalties to Critics feedback and engagement.`  
-    2. **`Exponential Creation Time`**`: Each year of overuse doubles the time required for tasks.`
+* `Exceeding 200 stamina daily triggers:`  
+    1. **`Overuse Strike`**`: One strike per creator per day (guarded by lastOveruseDay).`  
+    2. **`Departure Risk`**`: At the configured strike limit (currently 1), the creator is flagged for departure; removal happens once they are not busy.`
 
 ---
 
-### **`Rehearsals and Readiness for Recorders`**
+### **`Rehearsals and Readiness for Performers`**
 
 #### **`Mechanic:`**
 
-* `Rehearsals at Rehearsal Studios restore stamina and maintain a Recorder’s readiness for live Shows or Broadcasts.`  
+* `Rehearsals at Rehearsal Studios restore stamina and maintain a Performer's readiness for live Shows or Broadcasts.`  
 * **`Decay Mechanism`**`:`  
   * `Readiness (tracked via StaminaComponent) decays without regular rehearsals, leading to:`  
     * `Reduced Audience engagement during performances.`  
@@ -127,11 +127,10 @@
 
 #### **`3. Monitoring Readiness`**
 
-* `Regularly rehearse Recorders to keep readiness levels high, ensuring effective prime-time Broadcasts.`
+* `Regularly rehearse Performers to keep readiness levels high, ensuring effective prime-time Broadcasts.`
 
 ---
 
 ### **`Conclusion`**
 
 `The stamina system ties task execution, readiness, and quality into a single mechanic, forcing Players to manage workload and recovery carefully. By balancing stamina usage with downtime and rehearsals, Players can maximize productivity and ensure their Creators deliver high-quality content consistently. Pushing Creators beyond their limits introduces direct penalties, reinforcing long-term strategic planning as essential for success in "Record Label Simulator."`
-

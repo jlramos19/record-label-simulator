@@ -15,6 +15,7 @@ Auto promo uses a fixed percentage of the label wallet cash to fund promo pushes
 ## Player rules
 - Auto promo is toggled in the Promotions view.
 - Auto promo uses the track assigned to the Promo Push slot.
+- Auto promo derives the Act from the selected Track; Act-only promos are manual.
 - Auto promo skips tracks that are not released, not in an active era, or already in promo weeks.
 - Auto promo uses the current promo type selection and respects facility slot limits.
 

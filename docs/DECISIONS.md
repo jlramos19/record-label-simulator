@@ -24,3 +24,7 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 ## Naming data
 - DEC-20251225-007: Creator name pools live in `src/app/game/names.ts`, sourced from `game-design-documents/03-Systems/record-label-simulator-alphabet-and-vocabulary.md`, ASCII-normalized, and mapped to Annglora/Bytenza/Crowlya regional lore.
 - DEC-20251225-008: Creator name pools are language-specific (Annglora = English, Bytenza = Korean, Crowlya = Spanish), with Bytenza surnames constrained to single Hangul syllable blocks and given names weighted toward 2/3/4 syllable blocks (85%/12.5%/2.5%); this supersedes the earlier vocabulary-source constraint for creator pools.
+
+## Economy + analytics
+- DEC-20251226-001: Eras view replaces the Tracks panel with an Era Performance panel, showing per-track type, chart points, sales/stream metrics, costs, earnings, and an embedded chart history table for the focused era.
+- DEC-20251226-002: Vinyl run recommendations use a demand curve (fan base, quality, trend alignment, project type, act size, promo lead time, and price sensitivity) plus baseline physical pricing to estimate unit cost, recommended units, and gross/cost projections for player planning.

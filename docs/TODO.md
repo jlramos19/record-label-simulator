@@ -1,10 +1,15 @@
 # TODO
 
+- [ ] RLS-ERA-PERF-001: Replace the Eras side panel with a performance table + chart history, including per-track costs, earnings, and recommended physical runs.
+- [ ] RLS-ECONOMY-PHYSICAL-RUN-001: Define and implement the vinyl run estimator (fan/quality/trend/project-type factors, unit cost conversion) plus surfaced recommendations.
 - [ ] RLS-DOC-CHART-NAMING-001: Document chart scope naming (Gaia/Global, Nation/National, Region/Regional) and update chart/handle labels.
 - [ ] RLS-CCC-DECLINE-001: Add decline reason logic + player-facing feedback for CCC signing, and update tutorial to split loops vs concepts.
 - [ ] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
 - [ ] RLS-AI-COMPETE-001: Guarantee at least one rival in competitive rollout mode per planning cycle, with deterministic selection and budget gates.
 - [ ] RLS-PROMO-AUTO-001: Define auto promo wallet-percentage budgeting for player + rivals and document the rule.
+- [ ] RLS-ROLE-RECORDER-001: Replace Performer naming with Recorder across UI copy + docs, keeping role labels consistent in gameplay surfaces.
+- [ ] RLS-PROMO-ACT-001: Add Act promo targeting (act-only or act+content) with visible active act promo tracking.
+- [ ] RLS-PROMO-BROADCAST-001: Define EyeriS broadcast studio profiles + program tiers (scope, age, theme, mood, alignment) with high-stakes eligibility criteria.
 - [ ] RLS-OPS-LIVEEDIT-001: Define live-edit guardrails, release patch stamping, and cache/version rules for hosted builds.
 - [ ] RLS-PROMO-LOGS-001: Remove Loss Archives and Debug Bundle panels from Promotions view; keep internal logging for balance review.
 - [ ] RLS-CALENDAR-PROJ-001: Add the Calendar projection view (Releases -> Calendar), merge the Eras calendar panel, and keep scheduling data backward compatible.

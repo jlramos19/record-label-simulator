@@ -10,6 +10,22 @@ declare const WEEK_HOURS: number;
 declare const BASE_EPOCH: number;
 declare const BROADCAST_SLOT_SCHEDULE: number[];
 declare const FILMING_STUDIO_SLOTS: number;
+declare const BROADCAST_PROGRAMS: {
+  id: string;
+  label: string;
+  tier: string;
+  minQuality: number;
+  requiresCharting: boolean;
+  allowsActOnly: boolean;
+}[];
+declare const BROADCAST_STUDIOS: {
+  id: string;
+  label: string;
+  owner: string;
+  scope: { type: string; id: string; regions?: string[] };
+  slotSchedule: number[];
+  audience: { ages: string[]; alignment: string[]; themes: string[]; moods: string[] };
+}[];
 declare const STAGES: { name: string; role: string; hours: number; cost: number; stamina: number; progress: number }[];
 declare const TRACK_ROLE_LIMITS: Record<string, number>;
 declare const STAMINA_MAX: number;
@@ -39,6 +55,10 @@ declare const ECONOMY_BASELINES: {
   digitalSingle: number;
   physicalSingle: number;
   physicalReleaseFee: number;
+  physicalUnitCostRatio: number;
+  physicalRunMin: number;
+  physicalRunMax: number;
+  physicalRunRound: number;
   studioLease4y: number;
   studioBuildCost: number;
   tuitionPerMember: number;

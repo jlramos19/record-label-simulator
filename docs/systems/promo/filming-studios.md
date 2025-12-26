@@ -10,6 +10,7 @@ Filming studios are production facilities required for multimedia promo types.
 - Music video: requires a filming slot.
 - eyeriSocial Ad (multimedia post): requires a filming slot.
 - eyeriSocial post (standard): no filming slot required.
+- Filming promos always require content; Act-only promos are not eligible.
 
 ## Ad definition
 - "eyeriSocial Ad" is a multimedia post with higher cost than a standard eyeriSocial post.

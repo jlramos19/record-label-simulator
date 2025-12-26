@@ -91,6 +91,7 @@ import {
   pruneCreatorSignLockouts,
   qualityGrade,
   rankCandidates,
+  recommendPhysicalRun,
   recommendReleasePlan,
   releasedTracks,
   roleLabel,
@@ -112,7 +113,9 @@ import {
   weekIndex,
   weekNumberFromEpochMs,
 } from "../../game.js";
+import { getPromoTypeCosts, PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
+import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
 import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
 import {
   buildMoodOptions,
@@ -123,8 +126,104 @@ import {
 } from "../themeMoodOptions.js";
 
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
+const PROMO_BUDGET_MIN = 100;
+
+function getPromoInflationMultiplier() {
+  const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
+  const baseYear = state.meta?.startYear || new Date(state.time?.startEpochMs || state.time?.epochMs || Date.now()).getUTCFullYear();
+  const yearsElapsed = Math.max(0, currentYear - baseYear);
+  const annualInflation = 0.02;
+  return Math.pow(1 + annualInflation, yearsElapsed);
+}
+
+function getRolloutBudgetForType(typeId, inflationMultiplier) {
+  const { adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
+  const raw = state.ui?.promoBudgets?.[typeId];
+  const parsed = Number(raw);
+  const fallback = Math.max(PROMO_BUDGET_MIN, adjustedCost);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(PROMO_BUDGET_MIN, Math.round(parsed));
+}
+
+function buildRolloutBudgetSummary(strategy) {
+  if (!strategy || !Array.isArray(strategy.weeks)) return null;
+  const inflationMultiplier = getPromoInflationMultiplier();
+  const counts = {};
+  strategy.weeks.forEach((week) => {
+    (week?.events || []).forEach((eventItem) => {
+      const typeId = eventItem?.actionType || "";
+      if (!typeId) return;
+      counts[typeId] = (counts[typeId] || 0) + 1;
+    });
+  });
+  const entries = Object.entries(counts);
+  if (!entries.length) {
+    return {
+      eventCount: 0,
+      totalBase: 0,
+      totalAdjusted: 0,
+      totalPlanned: 0,
+      byType: []
+    };
+  }
+  const summary = {
+    eventCount: 0,
+    totalBase: 0,
+    totalAdjusted: 0,
+    totalPlanned: 0,
+    byType: []
+  };
+  entries.forEach(([typeId, count]) => {
+    const { baseCost, adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
+    const plannedCost = getRolloutBudgetForType(typeId, inflationMultiplier);
+    const label = PROMO_TYPE_DETAILS[typeId]?.label || typeId;
+    const entry = {
+      typeId,
+      label,
+      count,
+      baseCost,
+      adjustedCost,
+      plannedCost,
+      totalBase: baseCost * count,
+      totalAdjusted: adjustedCost * count,
+      totalPlanned: plannedCost * count
+    };
+    summary.eventCount += count;
+    summary.totalBase += entry.totalBase;
+    summary.totalAdjusted += entry.totalAdjusted;
+    summary.totalPlanned += entry.totalPlanned;
+    summary.byType.push(entry);
+  });
+  return summary;
+}
+
+function renderRolloutBudgetSummary(strategy) {
+  const summary = buildRolloutBudgetSummary(strategy);
+  if (!summary) return "";
+  if (!summary.eventCount) {
+    return `
+      <div class="list-item">
+        <div class="item-title">Budget estimate</div>
+        <div class="muted">No promo events scheduled yet.</div>
+      </div>
+    `;
+  }
+  const breakdown = summary.byType
+    .map((entry) => `${entry.label} x${entry.count}: ${formatMoney(entry.totalPlanned)}`)
+    .join(" | ");
+  const breakdownLine = breakdown ? `<div class="muted">${breakdown}</div>` : "";
+  return `
+    <div class="list-item">
+      <div class="item-title">Budget estimate</div>
+      <div class="muted">Base ${formatMoney(summary.totalBase)} | Inflation-adjusted ${formatMoney(summary.totalAdjusted)} | Planned ${formatMoney(summary.totalPlanned)}</div>
+      ${breakdownLine}
+      <div class="muted">Uses current promo budgets; adjust them to adapt.</div>
+    </div>
+  `;
+}
 
 let trackHistoryRequestId = 0;
+let eraHistoryRequestId = 0;
 
 function resolveCssColor(value) {
   const raw = String(value || "").trim();
@@ -1298,7 +1397,7 @@ function renderQuickRecipes() {
   if (!$("quickRecipesList")) return;
   const recipes = [
     { title: "Songwriting", detail: "Assign Songwriter ID + Theme to draft the sheet music." },
-    { title: "Performance", detail: "Assign Performer ID + Mood to craft the demo tone." },
+    { title: "Recording", detail: "Assign Recorder ID + Mood to craft the demo tone." },
     { title: "Production", detail: "Assign Producer ID to master the track quality." },
     { title: "Release", detail: "Move Ready tracks into Release Desk for scheduling." },
     { title: "Promo Pushes", detail: "Assign a Scheduled or Released Track ID to the Promo Push Slot." }
@@ -2216,6 +2315,7 @@ function renderRolloutStrategyPlanner() {
       <div class="muted">Status: ${activeStrategy.status} | Source: ${activeStrategy.source} | Weeks: ${activeStrategy.weeks.length}</div>
     </div>
   `;
+  const budgetSummary = renderRolloutBudgetSummary(activeStrategy);
   const rows = activeStrategy.weeks.map((week, index) => {
     const dropCount = Array.isArray(week.drops) ? week.drops.length : 0;
     const eventCount = Array.isArray(week.events) ? week.events.length : 0;
@@ -2226,7 +2326,9 @@ function renderRolloutStrategyPlanner() {
       </div>
     `;
   });
-  summary.innerHTML = rows.length ? header + rows.join("") : `${header}<div class="muted">No rollout items yet.</div>`;
+  summary.innerHTML = rows.length
+    ? header + budgetSummary + rows.join("")
+    : `${header}${budgetSummary}<div class="muted">No rollout items yet.</div>`;
 }
 
 function renderEraStatus() {
@@ -2267,6 +2369,253 @@ function renderEraStatus() {
     `;
   }).join("");
   renderRolloutStrategyPlanner();
+}
+
+function renderEraHistoryPanel(targetEra) {
+  const panel = $("eraHistoryPanel");
+  const listEl = $("eraHistoryList");
+  if (!panel || !listEl) return;
+  const metaEl = $("eraHistoryMeta");
+
+  if (!targetEra) {
+    panel.dataset.historyKey = "";
+    panel.dataset.historyStatus = "";
+    if (metaEl) metaEl.textContent = "Focus an active era to view chart history.";
+    listEl.innerHTML = `<div class="muted">No active era selected.</div>`;
+    return;
+  }
+
+  const tracks = state.tracks.filter((track) => track.status === "Released" && track.eraId === targetEra.id);
+  if (metaEl) metaEl.textContent = `${targetEra.name} | ${formatCount(tracks.length)} released tracks`;
+  if (!tracks.length) {
+    panel.dataset.historyKey = "";
+    panel.dataset.historyStatus = "";
+    listEl.innerHTML = `<div class="muted">No released tracks for ${targetEra.name} yet.</div>`;
+    return;
+  }
+
+  const chartWeek = Number.isFinite(state.meta?.chartHistoryLastWeek) ? state.meta.chartHistoryLastWeek : weekIndex() + 1;
+  const trackKey = tracks.map((track) => track.id).sort().join(",");
+  const cacheKey = `${targetEra.id}:${chartWeek}:${trackKey}`;
+  if (panel.dataset.historyKey === cacheKey && panel.dataset.historyStatus === "ready") {
+    return;
+  }
+
+  panel.dataset.historyKey = cacheKey;
+  panel.dataset.historyStatus = "loading";
+  listEl.innerHTML = `<div class="muted">Loading chart history...</div>`;
+
+  const requestId = ++eraHistoryRequestId;
+  (async () => {
+    const weeks = await listChartWeeks();
+    if (requestId !== eraHistoryRequestId) return;
+    const currentWeek = weekIndex() + 1;
+    let weekNumbers = weeks.map((entry) => entry.week).filter((week) => week <= currentWeek);
+    if (!weekNumbers.length) {
+      listEl.innerHTML = `<div class="muted">No chart history yet.</div>`;
+      panel.dataset.historyStatus = "ready";
+      return;
+    }
+    const releaseWeeks = tracks
+      .map((track) => weekNumberFromEpochMs(track.releasedAt))
+      .filter((week) => Number.isFinite(week));
+    const minWeek = releaseWeeks.length ? Math.min(...releaseWeeks) : null;
+    if (minWeek) {
+      weekNumbers = weekNumbers.filter((week) => week >= minWeek);
+    }
+    if (!weekNumbers.length) {
+      listEl.innerHTML = `<div class="muted">No chart history yet.</div>`;
+      panel.dataset.historyStatus = "ready";
+      return;
+    }
+    weekNumbers.sort((a, b) => b - a);
+    const scopes = buildTrackHistoryScopes();
+    const snapshotsByWeek = new Map();
+    for (const week of weekNumbers) {
+      const snapshots = await Promise.all(scopes.map((scope) => fetchChartSnapshot(scope.scope, week)));
+      if (requestId !== eraHistoryRequestId) return;
+      const scopeMap = new Map();
+      snapshots.forEach((snapshot, index) => {
+        if (snapshot) scopeMap.set(scopes[index].scope, snapshot);
+      });
+      snapshotsByWeek.set(week, scopeMap);
+    }
+    if (requestId !== eraHistoryRequestId) return;
+
+    const headerCells = scopes.map((scope) => `<th title="${scope.title}">${scope.label}</th>`).join("");
+    const historyMarkup = tracks.map((track) => {
+      const act = getAct(track.actId);
+      const project = track.projectName || `${track.title} - Single`;
+      const projectType = track.projectType || "Single";
+      const releaseDate = track.releasedAt ? formatShortDate(track.releasedAt) : "TBD";
+      const releaseWeek = weekNumberFromEpochMs(track.releasedAt);
+      const rows = weekNumbers.map((week) => {
+        const weekTitle = formatWeekRangeLabel(week);
+        const weekLabel = `Week ${week}`;
+        const scopeMap = snapshotsByWeek.get(week);
+        const cells = scopes.map((scope) => {
+          const snapshot = scopeMap?.get(scope.scope);
+          const entry = snapshot?.entries?.find((item) => item.trackId === track.id);
+          let value = "-";
+          let cellClass = "chart-rank is-unreleased";
+          if (Number.isFinite(releaseWeek) && week >= releaseWeek) {
+            if (entry && Number.isFinite(entry.rank)) {
+              value = `#${entry.rank}`;
+              cellClass = "chart-rank";
+            } else {
+              value = "DNC";
+              cellClass = "chart-rank is-dnc";
+            }
+          }
+          return `<td class="${cellClass}">${value}</td>`;
+        }).join("");
+        return `<tr><td title="${weekTitle}">${weekLabel}</td>${cells}</tr>`;
+      }).join("");
+
+      return `
+        <div class="list-item track-history-item">
+          <div class="list-row">
+            <div>
+              <div class="item-title">${track.title}</div>
+              <div class="muted">Act: ${act ? act.name : "Unassigned"} | Project: ${project} (${projectType})</div>
+              <div class="muted">Released ${releaseDate} | ${track.distribution || "Digital"}</div>
+            </div>
+          </div>
+          <div class="track-history-table-wrap">
+            <table class="chart-table track-history-table">
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  ${headerCells}
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    listEl.innerHTML = historyMarkup;
+    panel.dataset.historyStatus = "ready";
+  })().catch(() => {
+    if (requestId !== eraHistoryRequestId) return;
+    listEl.innerHTML = `<div class="muted">Chart history unavailable.</div>`;
+    panel.dataset.historyStatus = "ready";
+  });
+}
+
+function renderEraPerformance() {
+  const tableWrap = $("eraPerformanceTableWrap");
+  if (!tableWrap) return;
+  const metaEl = $("eraPerformanceMeta");
+  const focusEra = getFocusedEra();
+  const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
+  const fallbackEra = !focusEra && activeEras.length === 1 ? activeEras[0] : null;
+  const targetEra = focusEra || fallbackEra;
+
+  if (!targetEra) {
+    if (metaEl) metaEl.textContent = "Focus an active era to see performance details.";
+    tableWrap.innerHTML = `<div class="muted">No active era selected.</div>`;
+    renderEraHistoryPanel(null);
+    return;
+  }
+
+  const eraTracks = state.tracks.filter((track) => track.eraId === targetEra.id);
+  const released = eraTracks.filter((track) => track.status === "Released");
+  if (metaEl) metaEl.textContent = `${targetEra.name} | ${formatCount(eraTracks.length)} tracks | Released ${formatCount(released.length)}`;
+  if (!eraTracks.length) {
+    tableWrap.innerHTML = `<div class="muted">No tracks linked to ${targetEra.name} yet.</div>`;
+    renderEraHistoryPanel(targetEra);
+    return;
+  }
+
+  const rows = eraTracks.map((track) => {
+    const act = getAct(track.actId);
+    const economy = track.economy || {};
+    const isReleased = track.status === "Released";
+    const marketEntry = state.marketTracks.find((entry) => entry.trackId === track.id)
+      || state.meta?.marketTrackArchive?.find((entry) => entry.trackId === track.id);
+    const history = marketEntry?.chartHistory?.global || null;
+    const peakLabel = history?.peak ? `#${history.peak}` : "-";
+    const wocLabel = history?.weeks ? formatCount(history.weeks) : "-";
+    const chartPoints = isReleased ? formatCount(economy.chartPoints || 0) : "-";
+    const salesLabel = isReleased ? formatCount(economy.sales || 0) : "-";
+    const streamLabel = isReleased ? formatCount(economy.streaming || 0) : "-";
+    const revenueLabel = isReleased ? formatMoney(economy.revenue || 0) : "-";
+    const productionCost = economy.productionCost || 0;
+    const distributionFees = economy.distributionFees || 0;
+    const actualCosts = productionCost + distributionFees;
+    const net = isReleased ? formatMoney((economy.revenue || 0) - actualCosts) : "-";
+    const costsLabel = formatMoney(actualCosts || 0);
+    const physical = recommendPhysicalRun(track, { act, label: state.label });
+    const vinylUnits = physical.units ? formatCount(physical.units) : "0";
+    const vinylGross = formatMoney(physical.estimatedGross || 0);
+    const vinylCost = formatMoney(physical.estimatedCost || 0);
+    const unitPrice = formatMoney(physical.unitPrice || 0);
+    const unitCost = formatMoney(physical.unitCost || 0);
+    const budgetNote = physical.isBudgetCapped && Number.isFinite(physical.budgetCap)
+      ? `Budget cap ${formatCount(physical.budgetCap)}`
+      : "";
+    const releaseDate = track.releasedAt ? formatShortDate(track.releasedAt) : "TBD";
+    const projectType = track.projectType || "Single";
+    const distribution = track.distribution || "Digital";
+
+    return `
+      <tr>
+        <td>
+          <div class="item-title">${track.title}</div>
+          <div class="muted">Act: ${act ? act.name : "Unassigned"} | Status: ${track.status}</div>
+        </td>
+        <td>
+          <div>${projectType}</div>
+          <div class="muted">${distribution}</div>
+          <div class="muted">Release ${releaseDate}</div>
+        </td>
+        <td>
+          <div class="chart-score">${chartPoints}</div>
+          <div class="muted">Peak ${peakLabel} | WOC ${wocLabel}</div>
+        </td>
+        <td>
+          <div>Sales ${salesLabel}</div>
+          <div class="muted">Stream ${streamLabel}</div>
+        </td>
+        <td>
+          <div>Revenue ${revenueLabel}</div>
+          <div class="muted">Costs ${costsLabel}</div>
+          <div class="muted">Net ${net}</div>
+        </td>
+        <td>
+          <div>${vinylUnits} units</div>
+          <div class="muted">${unitPrice} ea | ${unitCost} cost</div>
+          <div class="muted">Gross ${vinylGross} | Cost ${vinylCost}</div>
+          ${budgetNote ? `<div class="muted">${budgetNote}</div>` : ""}
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  tableWrap.innerHTML = `
+    <table class="chart-table era-performance-table">
+      <thead>
+        <tr>
+          <th>Content</th>
+          <th>Type</th>
+          <th>Charts</th>
+          <th>Sales</th>
+          <th>Economics</th>
+          <th>Vinyl Run</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
+
+  renderEraHistoryPanel(targetEra);
 }
 
 function renderReleaseDesk() {
@@ -3328,7 +3677,7 @@ function getCreateStageAvailability() {
     if (!demoReady) return "Track is not ready for demo recording.";
     if (!mood) return "Select a Mood to create the demo recording.";
     if (!moodValid) return "Select a valid Mood to create the demo recording.";
-    if (!demoAssigned.length) return "Assign a Performer ID to create the demo recording.";
+    if (!demoAssigned.length) return "Assign a Recorder ID to create the demo recording.";
     if (studioSlotsAvailable <= 0) return "No studio slots available. Finish a production or expand capacity first.";
     if (demoStageSlots <= 0) return "No studio slots available for demo recording. Wait for a studio to free up.";
     if (state.label.cash < demoCost) return "Not enough cash to create the demo recording.";
@@ -3511,7 +3860,7 @@ function renderActiveView(view) {
   } else if (active === "eras") {
     renderEraStatus();
     renderSlots();
-    renderTracks();
+    renderEraPerformance();
   } else if (active === "roster") {
     renderCreators();
     renderActs();

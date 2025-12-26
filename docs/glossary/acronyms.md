@@ -5,16 +5,17 @@ If you add new shorthand, update this list.
 
 ## Product, roles, and systems
 - RLS: Record Label Simulator.
+- RL: Record Label (reserved for label references).
 - CCC: Creators Community Chamber.
 - CEO: Chief Executive Officer (player role).
 - GDD: Game Design Documents (folder name).
 - MVP: Minimum Viable Product.
 - ABC&D: Analyzing Business Context & Dynamics (in-universe documentary series).
 - A&R: Artists and Repertoire (legacy signing term).
-- AI: Artificial Intelligence (AI-controlled labels). (Confirm if another in-world expansion is intended.)
+- AI: Artificial Intelligence (AI-controlled labels).
 - DLC: Downloadable Content (archived expansion planning).
 - EXP: Experience Points (player progression currency).
-- ID: Identifier; used in "Creator ID" as the signed creator identifier. (Confirm if "ID" should be expanded differently in-world.)
+- ID: Identifier; used in "Creator ID" as the signed creator identifier.
 - M&A: Mergers and Acquisitions (economy/label strategy term).
 - UI: User Interface.
 - UX: User Experience.
@@ -60,7 +61,7 @@ If you add new shorthand, update this list.
 - WO: Work Order.
 - MK: Market track entry.
 - MKA: Market track archive entry.
-- RL: Release queue entry. (Confirm overlap with "Record Label" abbreviation.)
+- RQ: Release queue entry.
 - ER: Era.
 - RS: Rollout Strategy.
 - RD: Rollout Drop.

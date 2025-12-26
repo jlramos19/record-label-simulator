@@ -4,52 +4,46 @@
 
 `#### Sheet Music Creation`
 
-`| Interval | Total Ticks | Total In-Game Minutes | Total Real-Life Seconds | Completion Percentage | Total Stamina Consumption |`  
-`|----------|-------------|-----------------------|-------------------------|-----------------------|---------------------------|`  
-`| 1        | 5,000,000   | 12                    | 0.5                     | 20%                   | 5                         |`  
-`| 2        | 10,000,000  | 24                    | 1.0                     | 40%                   | 10                        |`  
-`| 3        | 15,000,000  | 36                    | 1.5                     | 60%                   | 15                        |`  
-`| 4        | 20,000,000  | 48                    | 2.0                     | 80%                   | 20                        |`  
-`| 5        | 25,000,000  | 60                    | 2.5                     | 100%                  | 25                        |`
+`| Interval | Total Quarter-Hour Ticks | Total In-Game Minutes | Total Real-Life Seconds (Play) | Completion Percentage | Total Stamina Consumption |`  
+`|----------|--------------------------|-----------------------|---------------------------------|-----------------------|---------------------------|`  
+`| 1        | 1                        | 15                    | 0.63                            | 25.00%                | 7                         |`  
+`| 2        | 2                        | 30                    | 1.25                            | 50.00%                | 13                        |`  
+`| 3        | 3                        | 45                    | 1.88                            | 75.00%                | 19                        |`  
+`| 4        | 4                        | 60                    | 2.50                            | 100.00%               | 25                        |`
 
 `### Complete Demo Recording Creation Process`
 
 `#### Demo Recording Creation`
 
-`| Interval | Total Ticks | Total In-Game Minutes | Total Real-Life Seconds | Completion Percentage | Total Stamina Consumption |`  
-`|----------|-------------|-----------------------|-------------------------|-----------------------|---------------------------|`  
-`| 1        | 5,000,000   | 12                    | 0.5                     | 10%                   | 5                         |`  
-`| 2        | 10,000,000  | 24                    | 1.0                     | 20%                   | 10                        |`  
-`| 3        | 15,000,000  | 36                    | 1.5                     | 30%                   | 15                        |`  
-`| 4        | 20,000,000  | 48                    | 2.0                     | 40%                   | 20                        |`  
-`| 5        | 25,000,000  | 60                    | 2.5                     | 50%                   | 25                        |`  
-`| 6        | 30,000,000  | 72                    | 3.0                     | 60%                   | 30                        |`  
-`| 7        | 35,000,000  | 84                    | 3.5                     | 70%                   | 35                        |`  
-`| 8        | 40,000,000  | 96                    | 4.0                     | 80%                   | 40                        |`  
-`| 9        | 45,000,000  | 108                   | 4.5                     | 90%                   | 45                        |`  
-`| 10       | 50,000,000  | 120                   | 5.0                     | 100%                  | 50                        |`
+`| Interval | Total Quarter-Hour Ticks | Total In-Game Minutes | Total Real-Life Seconds (Play) | Completion Percentage | Total Stamina Consumption |`  
+`|----------|--------------------------|-----------------------|---------------------------------|-----------------------|---------------------------|`  
+`| 1        | 1                        | 15                    | 0.63                            | 12.50%                | 7                         |`  
+`| 2        | 2                        | 30                    | 1.25                            | 25.00%                | 14                        |`  
+`| 3        | 3                        | 45                    | 1.88                            | 37.50%                | 20                        |`  
+`| 4        | 4                        | 60                    | 2.50                            | 50.00%                | 26                        |`  
+`| 5        | 5                        | 75                    | 3.13                            | 62.50%                | 32                        |`  
+`| 6        | 6                        | 90                    | 3.75                            | 75.00%                | 38                        |`  
+`| 7        | 7                        | 105                   | 4.38                            | 87.50%                | 44                        |`  
+`| 8        | 8                        | 120                   | 5.00                            | 100.00%               | 50                        |`
 
 `### Complete Masters Recording Process`
 
 `#### Masters Recording Creation`
 
-`| Interval | Total Ticks | Total In-Game Minutes | Total Real-Life Seconds | Completion Percentage | Total Stamina Consumption |`  
-`|----------|-------------|-----------------------|-------------------------|-----------------------|---------------------------|`  
-`| 1        | 5,000,000   | 12                    | 0.5                     | 6.67%                 | 10                        |`  
-`| 2        | 10,000,000  | 24                    | 1.0                     | 13.33%                | 20                        |`  
-`| 3        | 15,000,000  | 36                    | 1.5                     | 20.00%                | 30                        |`  
-`| 4        | 20,000,000  | 48                    | 2.0                     | 26.67%                | 40                        |`  
-`| 5        | 25,000,000  | 60                    | 2.5                     | 33.33%                | 50                        |`  
-`| 6        | 30,000,000  | 72                    | 3.0                     | 40.00%                | 60                        |`  
-`| 7        | 35,000,000  | 84                    | 3.5                     | 46.67%                | 70                        |`  
-`| 8        | 40,000,000  | 96                    | 4.0                     | 53.33%                | 80                        |`  
-`| 9        | 45,000,000  | 108                   | 4.5                     | 60.00%                | 90                        |`  
-`| 10       | 50,000,000  | 120                   | 5.0                     | 66.67%                | 100                       |`  
-`| 11       | 55,000,000  | 132                   | 5.5                     | 73.33%                | 110                       |`  
-`| 12       | 60,000,000  | 144                   | 6.0                     | 80.00%                | 120                       |`  
-`| 13       | 65,000,000  | 156                   | 6.5                     | 86.67%                | 130                       |`  
-`| 14       | 70,000,000  | 168                   | 7.0                     | 93.33%                | 140                       |`  
-`| 15       | 75,000,000  | 180                   | 7.5                     | 100%                  | 150                       |`
+`| Interval | Total Quarter-Hour Ticks | Total In-Game Minutes | Total Real-Life Seconds (Play) | Completion Percentage | Total Stamina Consumption |`  
+`|----------|--------------------------|-----------------------|---------------------------------|-----------------------|---------------------------|`  
+`| 1        | 1                        | 15                    | 0.63                            | 8.33%                 | 9                         |`  
+`| 2        | 2                        | 30                    | 1.25                            | 16.67%                | 18                        |`  
+`| 3        | 3                        | 45                    | 1.88                            | 25.00%                | 27                        |`  
+`| 4        | 4                        | 60                    | 2.50                            | 33.33%                | 36                        |`  
+`| 5        | 5                        | 75                    | 3.13                            | 41.67%                | 44                        |`  
+`| 6        | 6                        | 90                    | 3.75                            | 50.00%                | 52                        |`  
+`| 7        | 7                        | 105                   | 4.38                            | 58.33%                | 60                        |`  
+`| 8        | 8                        | 120                   | 5.00                            | 66.67%                | 68                        |`  
+`| 9        | 9                        | 135                   | 5.63                            | 75.00%                | 76                        |`  
+`| 10       | 10                       | 150                   | 6.25                            | 83.33%                | 84                        |`  
+`| 11       | 11                       | 165                   | 6.88                            | 91.67%                | 92                        |`  
+`| 12       | 12                       | 180                   | 7.50                            | 100.00%               | 100                       |`
 
 `These tables provide a detailed overview of the cumulative progress for creating sheet music, demo recordings, and finalizing tracks in "Record Label Simulator." They include total ticks, in-game minutes, real-life seconds, completion percentages, and total stamina consumption for each interval.`  
 `In your Record Label Simulator, the creation process for Sheet Music, Demo Recordings, and Masters involves detailed, time-based increments where a Creator’s stamina is used to progress each piece of content towards completion. Here’s how each process works:`
@@ -60,23 +54,23 @@
 `- **Creator ID**: Songwriter`  
 `- **Content**: Sheet Music`  
 `- **Time Frame**:`  
-  `- **Total Ticks**: 25,000,000`  
-  `- **Completion Time**: 1 in-game hour (2.5 real-life seconds)`  
+  `- **Total Ticks**: 4 quarter-hour ticks`  
+  `- **Completion Time**: 1 in-game hour (2.5 real-life seconds at Play speed, 1 second at Fast)`  
 `- **Stamina Consumption**: 25 units`  
 `- **Intervals**:`  
-  `- 5 intervals, each consuming 5 units of stamina, progressing the completion by 20% per interval.`
+  `- 4 intervals (quarter-hour ticks). Stamina slices: 7, 6, 6, 6. Completion: 25% per interval.`
 
 `### Complete Demo Recording Creation Process`
 
 `#### Demo Recording Creation`  
-`- **Creator ID**: Recorder`  
+`- **Creator ID**: Performer`  
 `- **Content**: Demo Recordings`  
 `- **Time Frame**:`  
-  `- **Total Ticks**: 50,000,000`  
-  `- **Completion Time**: 2 in-game hours (5 real-life seconds)`  
+  `- **Total Ticks**: 8 quarter-hour ticks`  
+  `- **Completion Time**: 2 in-game hours (5 real-life seconds at Play speed, 2 seconds at Fast)`  
 `- **Stamina Consumption**: 50 units`  
 `- **Intervals**:`  
-  `- 10 intervals, each consuming 5 units of stamina, progressing the completion by 10% per interval.`
+  `- 8 intervals (quarter-hour ticks). Stamina slices: 7, 7, 6, 6, 6, 6, 6, 6. Completion: 12.5% per interval.`
 
 `### Complete Masters Recording Process`
 
@@ -84,11 +78,11 @@
 `- **Creator ID**: Producer`  
 `- **Content**: Masters (Finalized Tracks)`  
 `- **Time Frame**:`  
-  `- **Total Ticks**: 75,000,000`  
-  `- **Completion Time**: 3 in-game hours (7.5 real-life seconds)`  
-`- **Stamina Consumption**: 150 units`  
+  `- **Total Ticks**: 12 quarter-hour ticks`  
+  `- **Completion Time**: 3 in-game hours (7.5 real-life seconds at Play speed, 3 seconds at Fast)`  
+`- **Stamina Consumption**: 100 units`  
 `- **Intervals**:`  
-  `- 15 intervals, each consuming 10 units of stamina, progressing the completion by approximately 6.67% per interval.`
+  `- 12 intervals (quarter-hour ticks). Stamina slices: 9, 9, 9, 9, 8, 8, 8, 8, 8, 8, 8, 8. Completion: ~8.33% per interval.`
 
 `These structured processes ensure that each piece of content progresses through defined stages, with stamina consumption and time intervals clearly outlined. This methodical approach mirrors real-life production environments where projects move through various stages of development, requiring careful management of resources and time.`
 

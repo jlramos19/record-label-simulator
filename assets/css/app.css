@@ -246,6 +246,9 @@ body::before {
   gap: 10px;
   min-height: 0;
 }
+.view.view--releases {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
 .view.view--single {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -283,6 +286,12 @@ body::before {
 }
 .view-main > .panel.card {
   max-height: 100%;
+}
+.view.view--releases .calendar-footer-panel {
+  grid-column: 1 / -1;
+}
+.view.view--releases .calendar-footer-panel .card-body {
+  padding: 6px 4px 2px;
 }
 .panel {
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
@@ -1216,6 +1225,23 @@ select.theme-select {
   flex: 0 0 auto;
 }
 .tab.active { background: rgba(244, 177, 90, 0.2); border-color: rgba(244, 177, 90, 0.6); color: var(--accent); }
+#calendarTabs,
+#calendarModalTabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 6px;
+  overflow: visible;
+  padding-bottom: 0;
+}
+#calendarTabs::-webkit-scrollbar,
+#calendarModalTabs::-webkit-scrollbar {
+  display: none;
+}
+#calendarTabs .tab,
+#calendarModalTabs .tab {
+  width: 100%;
+  text-align: center;
+}
 .track-tabs { margin-bottom: 6px; }
 .track-panel-list { min-height: 120px; }
 .track-history-panel { display: grid; gap: 8px; }
@@ -1225,6 +1251,13 @@ select.theme-select {
   border: 1px solid var(--line);
   border-radius: 10px;
 }
+.era-performance-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.era-performance-table { min-width: 820px; }
 .track-history-table { min-width: 640px; }
 .track-history-panel .chart-table th,
 .track-history-panel .chart-table td {
@@ -1752,7 +1785,7 @@ select.theme-select {
     grid-template-columns: minmax(0, 1fr) var(--side-width);
   }
   .view.view--releases {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   }
 }
 
@@ -1995,9 +2028,6 @@ select.theme-select {
 .calendar-footer {
   display: grid;
   gap: 8px;
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
 }
 .calendar-footer-head {
   display: flex;

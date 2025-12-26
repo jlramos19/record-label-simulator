@@ -33,4 +33,4 @@
 * `Nation = country-level unit.`
 
 * `Global (Gaia) = across all nations/regions.`
-* `Naming shorthand: Global = Gaia, National = nation name, Regional = region/capital name.`
+* `Naming shorthand: Global = Gaia, National = nation name, Regional = region name with a Regional suffix.`

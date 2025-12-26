@@ -7,6 +7,88 @@ const BASE_EPOCH = Date.UTC(2400, 0, 1, 0, 0, 0);
 const BROADCAST_SLOT_SCHEDULE = [6, 2, 2, 2, 2, 3, 3];
 const FILMING_STUDIO_SLOTS = 2;
 
+const BROADCAST_PROGRAMS = [
+  {
+    id: "eyeris-live-set",
+    label: "Live Set",
+    tier: "standard",
+    minQuality: 0,
+    requiresCharting: false,
+    allowsActOnly: true
+  },
+  {
+    id: "eyeris-interview",
+    label: "Standard Interview",
+    tier: "standard",
+    minQuality: 0,
+    requiresCharting: false,
+    allowsActOnly: true
+  },
+  {
+    id: "eyeris-prime-showcase",
+    label: "Prime Time Showcase",
+    tier: "high",
+    minQuality: 70,
+    requiresCharting: true,
+    allowsActOnly: true
+  }
+];
+
+const BROADCAST_STUDIOS = [
+  {
+    id: "eyeris-prime",
+    label: "EyeriS Prime",
+    owner: "eyeriS Corp",
+    scope: { type: "global", id: "global" },
+    slotSchedule: [3, 1, 1, 1, 1, 1, 1],
+    audience: {
+      ages: ["25-34", "35-44"],
+      alignment: ["Safe", "Neutral"],
+      themes: ["Freedom", "Ambition"],
+      moods: ["Uplifting", "Energizing", "Thrilling"]
+    }
+  },
+  {
+    id: "eyeris-annglora",
+    label: "EyeriS Nationline Annglora",
+    owner: "eyeriS Corp",
+    scope: { type: "nation", id: "Annglora", regions: ["Annglora Capital", "Annglora Elsewhere"] },
+    slotSchedule: [2, 1, 0, 0, 0, 1, 1],
+    audience: {
+      ages: ["25-34", "35-49"],
+      alignment: ["Safe"],
+      themes: ["Freedom"],
+      moods: ["Calming", "Cheering", "Uplifting"]
+    }
+  },
+  {
+    id: "eyeris-bytenza",
+    label: "EyeriS Nationline Bytenza",
+    owner: "eyeriS Corp",
+    scope: { type: "nation", id: "Bytenza", regions: ["Bytenza Capital", "Bytenza Elsewhere"] },
+    slotSchedule: [1, 0, 1, 0, 0, 1, 0],
+    audience: {
+      ages: ["16-24", "25-29"],
+      alignment: ["Neutral"],
+      themes: ["Ambition"],
+      moods: ["Energizing", "Uplifting", "Calming"]
+    }
+  },
+  {
+    id: "eyeris-crowlya",
+    label: "EyeriS Nationline Crowlya",
+    owner: "eyeriS Corp",
+    scope: { type: "nation", id: "Crowlya", regions: ["Crowlya Capital", "Crowlya Elsewhere"] },
+    slotSchedule: [1, 0, 0, 1, 1, 0, 1],
+    audience: {
+      ages: ["18-29", "30-39"],
+      alignment: ["Risky"],
+      themes: ["Power"],
+      moods: ["Daring", "Thrilling", "Angering"]
+    }
+  }
+];
+
 const THEMES = ["Freedom", "Loyalty", "Ambition", "Morality", "Power"];
 const MOODS = ["Cheering", "Saddening", "Thrilling", "Angering", "Calming", "Energizing", "Uplifting", "Boring", "Daring"];
 const ALIGNMENTS = ["Safe", "Neutral", "Risky"];
@@ -15,7 +97,7 @@ const ACT_TYPES = ["Solo Act", "Group Act"];
 const STAGES = [
   { name: "Sheet", role: "Songwriter", hours: 1, cost: 50, stamina: 25, progress: 0.35 },
   { name: "Demo", role: "Performer", hours: 2, cost: 500, stamina: 50, progress: 0.7 },
-  { name: "Master", role: "Producer", hours: 3, cost: 2500, stamina: 150, progress: 1.0 }
+  { name: "Master", role: "Producer", hours: 3, cost: 2500, stamina: 100, progress: 1.0 }
 ];
 
 const TRACK_ROLE_LIMITS = {
@@ -41,12 +123,12 @@ const CHART_SIZES = { global: 100, nation: 40, region: 10 };
 const CHART_WEIGHTS = { sales: 0.3, streaming: 0.3, airplay: 0.3, social: 0.1 };
 const NATIONS = ["Annglora", "Bytenza", "Crowlya"];
 const REGION_DEFS = [
-  { id: "Annglora Capital", nation: "Annglora", label: "Bloomville Capital" },
-  { id: "Annglora Elsewhere", nation: "Annglora", label: "Elsewhere in Annglora" },
-  { id: "Bytenza Capital", nation: "Bytenza", label: "Belltown Capital" },
-  { id: "Bytenza Elsewhere", nation: "Bytenza", label: "Elsewhere in Bytenza" },
-  { id: "Crowlya Capital", nation: "Crowlya", label: "Campana City Capital" },
-  { id: "Crowlya Elsewhere", nation: "Crowlya", label: "Elsewhere in Crowlya" }
+  { id: "Annglora Capital", nation: "Annglora", label: "Bloomville" },
+  { id: "Annglora Elsewhere", nation: "Annglora", label: "Annglora Elsewhere" },
+  { id: "Bytenza Capital", nation: "Bytenza", label: "Belltown" },
+  { id: "Bytenza Elsewhere", nation: "Bytenza", label: "Bytenza Elsewhere" },
+  { id: "Crowlya Capital", nation: "Crowlya", label: "Campana City" },
+  { id: "Crowlya Elsewhere", nation: "Crowlya", label: "Crowlya Elsewhere" }
 ];
 const REGION_CONSUMPTION_WEIGHTS = {
   "Annglora Capital": { sales: 0.28, streaming: 0.32, airplay: 0.25, social: 0.15 },
@@ -90,6 +172,10 @@ const ECONOMY_BASELINES = {
   digitalSingle: 0.69,
   physicalSingle: 4.99,
   physicalReleaseFee: 500,
+  physicalUnitCostRatio: 0.35,
+  physicalRunMin: 200,
+  physicalRunMax: 25000,
+  physicalRunRound: 50,
   studioLease4y: 44000000,
   studioBuildCost: 528000000,
   tuitionPerMember: 1815,

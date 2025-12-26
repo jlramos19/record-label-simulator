@@ -1,21 +1,56 @@
 # Broadcast Studios
 
-Broadcast studios represent live media capacity for interviews and live performances.
+Broadcast studios are eyeriS Corp facilities that host interviews, live performances, and broadcast programs.
+They exist to promote an Act (and optionally its content) by putting it in front of targeted audience segments.
 
-## Slot schedule (UTC, per day-of-week)
-Slots are day-based and reset at midnight.
+## Promo targeting
+- Promo pushes can target an Act only, or an Act plus an associated Track.
+- Broadcast studio selection is automatic and scores for best fit.
+- Fit signals include scope (global/nation/region), audience age bands, alignment, themes, and moods.
+- Broadcast impact is strongest in the studio's coverage area and its audience profile.
 
-- Sunday: 6 slots
-- Monday: 2 slots
-- Tuesday: 2 slots
-- Wednesday: 2 slots
-- Thursday: 2 slots
-- Friday: 3 slots
-- Saturday: 3 slots
+## EyeriS studio catalog (MVP)
+Slots are day-based, reset at midnight UTC, and consume a studio's daily capacity.
+
+- EyeriS Prime (global)
+  - Slots (Sun..Sat): 3/1/1/1/1/1/1
+  - Audience: 25-44
+  - Alignment: Safe, Neutral
+  - Theme focus: Freedom, Ambition
+  - Mood focus: Uplifting, Energizing, Thrilling
+- EyeriS Nationline: Annglora
+  - Slots (Sun..Sat): 2/1/0/0/0/1/1
+  - Coverage: Annglora (Bloomville Capital, Elsewhere)
+  - Audience: 25-49
+  - Alignment: Safe
+  - Theme focus: Freedom
+  - Mood focus: Calming, Cheering, Uplifting
+- EyeriS Nationline: Bytenza
+  - Slots (Sun..Sat): 1/0/1/0/0/1/0
+  - Coverage: Bytenza (Belltown Capital, Elsewhere)
+  - Audience: 16-29
+  - Alignment: Neutral
+  - Theme focus: Ambition
+  - Mood focus: Energizing, Uplifting, Calming
+- EyeriS Nationline: Crowlya
+  - Slots (Sun..Sat): 1/0/0/1/1/0/1
+  - Coverage: Crowlya (Campana City Capital, Elsewhere)
+  - Audience: 18-39
+  - Alignment: Risky
+  - Theme focus: Power
+  - Mood focus: Daring, Thrilling, Angering
+
+## Program tiers
+- Standard programs (interviews, live sets) require only an Act presence and a broadcast slot.
+- High-stakes programs (prime-time TV showcases) are costly and require eligibility.
+  - Minimum quality threshold (example: 70+).
+  - Current charting content (Act must have a charting Track, or the selected Track must be charting).
+  - Act-only submissions are allowed if the Act already has charting content that meets quality.
 
 ## Slot usage rules
 - Interview: requires a broadcast slot.
 - Live performance: requires a broadcast slot.
+- Prime-time showcase: requires a broadcast slot and eligibility checks.
 - Slots are booked for the remainder of the current day and free at the next midnight.
 
 ## Rationale

@@ -10,7 +10,7 @@
 
 * `Global charts = Gaia charts or Global charts.`
 * `National charts = nation name (ex: Annglora) or National charts.`
-* `Regional charts = region/capital name (ex: Bloomville Capital) or Regional charts.`
+* `Regional charts = region name (ex: Bloomville) with a Regional suffix, or Regional charts.`
 
 ## **`1. Local/Regional Charts`**
 
@@ -18,18 +18,18 @@
 
 ### **`Annglora`**
 
-* **`Bloomville Capital Chart`** `(capital city)`  
-* **`Elsewhere in Annglora Chart`** `(all regions outside Bloomville)`
+* **`Bloomville Regional Chart`** `(capital region)`  
+* **`Annglora Elsewhere Regional Chart`** `(all regions outside Bloomville)`
 
 ### **`Bytenza`**
 
-* **`Belltown Capital Chart`** `(capital city)`  
-* **`Elsewhere in Bytenza Chart`** `(all regions outside Belltown)`
+* **`Belltown Regional Chart`** `(capital region)`  
+* **`Bytenza Elsewhere Regional Chart`** `(all regions outside Belltown)`
 
 ### **`Crowlya`**
 
-* **`Campana City Capital Chart`** `(capital city)`  
-* **`Elsewhere in Crowlya Chart`** `(all regions outside Campana City)`
+* **`Campana City Regional Chart`** `(capital region)`  
+* **`Crowlya Elsewhere Regional Chart`** `(all regions outside Campana City)`
 
 ## **`2. National Charts`**
 
@@ -56,14 +56,14 @@
 
 ## **`Summary of All 10 Charts`**
 
-1. **`Bloomville Capital Chart`** `(Annglora Capital)`  
-2. **`Elsewhere in Annglora Chart`**  
+1. **`Bloomville Regional Chart`** `(Annglora Capital region)`  
+2. **`Annglora Elsewhere Regional Chart`**  
 3. **`Annglora National Chart`**  
-4. **`Belltown Capital Chart`** `(Bytenza Capital)`  
-5. **`Elsewhere in Bytenza Chart`**  
+4. **`Belltown Regional Chart`** `(Bytenza Capital region)`  
+5. **`Bytenza Elsewhere Regional Chart`**  
 6. **`Bytenza National Chart`**  
-7. **`Campana City Capital Chart`** `(Crowlya Capital)`  
-8. **`Elsewhere in Crowlya Chart`**  
+7. **`Campana City Regional Chart`** `(Crowlya Capital region)`  
+8. **`Crowlya Elsewhere Regional Chart`**  
 9. **`Crowlya National Chart`**  
 10. **`Gaia Global Chart`**
 

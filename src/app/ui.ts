@@ -128,6 +128,7 @@ const {
   recommendActForTrack,
   recommendReleasePlan,
   markCreatorPromo,
+  recordTrackPromoCost,
   getPromoFacilityForType,
   getPromoFacilityAvailability,
   reservePromoFacilitySlot,
@@ -195,7 +196,8 @@ const TRACK_ROLE_TARGETS = {
 };
 const ROLE_LABELS = {
   Songwriter: "Songwriter",
-  Performer: "Performer",
+  Performer: "Recorder",
+  Recorder: "Recorder",
   Producer: "Producer"
 };
 
@@ -504,7 +506,7 @@ const VIEW_DEFAULTS = {
   },
   eras: {
     "era-desk": VIEW_PANEL_STATES.open,
-    "tracks": VIEW_PANEL_STATES.open
+    "era-performance": VIEW_PANEL_STATES.open
   },
   roster: {
     "harmony-hub": VIEW_PANEL_STATES.open,
@@ -1529,35 +1531,45 @@ function getPromoBudgetsForTypes(typeIds, inflationMultiplier) {
   return { budgets, total };
 }
 
-function getPromoTrackContext(trackId) {
+function getPromoTargetContext(trackId, actId) {
   const track = trackId ? getTrack(trackId) : null;
+  const act = actId ? getAct(actId) : track ? getAct(track.actId) : null;
   const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
   const isReleased = Boolean(track && track.status === "Released" && track.marketId);
   const isScheduled = Boolean(scheduled && !isReleased);
-  return { track, scheduled, isReleased, isScheduled };
+  return { track, act, scheduled, isReleased, isScheduled };
 }
 
 function getPromoTypeLockouts(context) {
   const lockouts = {};
-  if (!context?.track) return lockouts;
+  const track = context?.track || null;
+  Object.keys(PROMO_TYPE_DETAILS).forEach((typeId) => {
+    const details = PROMO_TYPE_DETAILS[typeId];
+    if (details?.requiresTrack && !track) {
+      lockouts[typeId] = "Track required";
+    }
+  });
+  if (!track) return lockouts;
   if (context.isScheduled) lockouts.musicVideo = "After release";
-  if (context.track.promo?.musicVideoUsed) lockouts.musicVideo = "Used";
+  if (track.promo?.musicVideoUsed) lockouts.musicVideo = "Used";
   return lockouts;
 }
 
-function getPromoAudienceTier(track) {
-  if (!track) return { label: "Audience variance", offset: 0, score: 0 };
+function getPromoAudienceTier(track, act) {
+  if (!track && !act) return { label: "Audience variance", offset: 0, score: 0 };
   const country = state.label?.country;
   const profile = country && typeof NATION_PROFILES !== "undefined" ? NATION_PROFILES[country] : null;
-  const hasSignals = Boolean(track.alignment || track.theme || track.mood || track.genre);
+  const alignment = track?.alignment || act?.alignment || null;
+  const theme = track?.theme || null;
+  const mood = track?.mood || null;
+  const genre = track?.genre || null;
+  const hasSignals = Boolean(alignment || theme || mood || genre);
   if (!profile || !hasSignals) return { label: "Audience variance", offset: 0, score: 0 };
   let score = 0;
-  if (profile) {
-    if (track.alignment && track.alignment === profile.alignment) score += 1;
-    if (track.theme && track.theme === profile.theme) score += 1;
-    if (track.mood && Array.isArray(profile.moods) && profile.moods.includes(track.mood)) score += 1;
-  }
-  if (track.genre && Array.isArray(state.trends) && state.trends.includes(track.genre)) score += 1;
+  if (alignment && alignment === profile.alignment) score += 1;
+  if (theme && theme === profile.theme) score += 1;
+  if (mood && Array.isArray(profile.moods) && profile.moods.includes(mood)) score += 1;
+  if (genre && Array.isArray(state.trends) && state.trends.includes(genre)) score += 1;
   if (score >= 3) return { label: "Tailwind audience", offset: 3, score };
   if (score === 2) return { label: "Aligned audience", offset: 1, score };
   if (score === 1) return { label: "Mixed audience", offset: 0, score };
@@ -1575,9 +1587,9 @@ function buildPromoEfficiencyText(typeId, budget, inflationMultiplier) {
   return `Efficiency: ${label} (${deltaText} vs typical)`;
 }
 
-function buildPromoExpectationText(budget, track) {
+function buildPromoExpectationText(budget, track, act) {
   const weeks = promoWeeksFromBudget(budget);
-  const audience = getPromoAudienceTier(track);
+  const audience = getPromoAudienceTier(track, act);
   const baseLift = 10;
   const minLift = Math.max(0, baseLift + audience.offset - 4);
   const maxLift = Math.max(minLift, baseLift + audience.offset + 4);
@@ -1669,6 +1681,7 @@ function syncPromoBudgetCards(root, { trackContext, lockouts = {}, inflationMult
   const cards = scope.querySelectorAll("[data-promo-type]");
   if (!cards.length) return;
   const track = trackContext?.track || null;
+  const act = trackContext?.act || null;
   cards.forEach((card) => {
     const typeId = card.dataset.promoType;
     if (!typeId) return;
@@ -1685,7 +1698,7 @@ function syncPromoBudgetCards(root, { trackContext, lockouts = {}, inflationMult
     const efficiency = card.querySelector("[data-promo-efficiency]");
     if (efficiency) efficiency.textContent = buildPromoEfficiencyText(typeId, budget, inflationMultiplier);
     const expectation = card.querySelector("[data-promo-expectation]");
-    if (expectation) expectation.textContent = buildPromoExpectationText(budget, track);
+    if (expectation) expectation.textContent = buildPromoExpectationText(budget, track, act);
   });
 }
 
@@ -1724,7 +1737,7 @@ function updatePromoTypeHint(root) {
   const scope = root || document;
   const select = scope.querySelector("#promoTypeSelect");
   const hint = scope.querySelector("#promoTypeHint");
-  const trackContext = getPromoTrackContext(state.ui?.promoSlots?.trackId);
+  const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
   const lockouts = getPromoTypeLockouts(trackContext);
   const selectedTypes = ensurePromoTypeSelection(scope, select ? select.value : DEFAULT_PROMO_TYPE, lockouts);
   const primaryType = select && selectedTypes.includes(select.value) ? select.value : selectedTypes[0];
@@ -2295,7 +2308,7 @@ function bindViewHandlers(route, root) {
   if (route === "logs") {
     on("promoTypeSelect", "change", (e) => {
       const typeId = e.target.value || DEFAULT_PROMO_TYPE;
-      const trackContext = getPromoTrackContext(state.ui?.promoSlots?.trackId);
+      const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
       const lockouts = getPromoTypeLockouts(trackContext);
       syncPromoTypeCards(root, [typeId], lockouts);
       updatePromoTypeHint(root);
@@ -2319,7 +2332,7 @@ function bindViewHandlers(route, root) {
         const typeId = card.dataset.promoType;
         if (!typeId) return;
         const select = root.querySelector("#promoTypeSelect");
-        const trackContext = getPromoTrackContext(state.ui?.promoSlots?.trackId);
+        const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
         const lockouts = getPromoTypeLockouts(trackContext);
         if (lockouts[typeId]) {
           const message = typeId === "musicVideo" && lockouts[typeId] === "Used"
@@ -2340,7 +2353,7 @@ function bindViewHandlers(route, root) {
       });
     }
     hydratePromoTypeCards(root);
-    const initTrackContext = getPromoTrackContext(state.ui?.promoSlots?.trackId);
+    const initTrackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
     const initLockouts = getPromoTypeLockouts(initTrackContext);
     if (Array.isArray(state.ui.promoTypes) && state.ui.promoTypes.length) {
       syncPromoTypeCards(root, state.ui.promoTypes, initLockouts);
@@ -3008,7 +3021,7 @@ function updateTrackRecommendation() {
     ${totalLine}
     ${crewSummaryLine}
     <div class="muted">Recommended: ${rec.theme} / ${rec.mood} | Modifier ${recModifier?.label || "None"} | Project ${rec.projectType}</div>
-    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} | Performer ${performer ? performer.name : "Unassigned"} | Producer ${producer ? producer.name : "Unassigned"}</div>
+    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} | Recorder ${performer ? performer.name : "Unassigned"} | Producer ${producer ? producer.name : "Unassigned"}</div>
     <div class="muted">Act assignment happens at release.</div>
     ${warningHtml}
     <div class="tiny">${rec.reasons}</div>
@@ -3857,17 +3870,29 @@ function pickPromoTrackFromFocus() {
 
 function runPromotion() {
   const trackId = state.ui.promoSlots.trackId;
-  if (!trackId) {
-    logEvent("No scheduled or released track selected for promo push.", "warn");
+  const slotActId = state.ui.promoSlots.actId;
+  const track = trackId ? getTrack(trackId) : null;
+  const actId = slotActId || (track ? track.actId : null);
+  if (!actId && !track) {
+    logEvent("Select an Act or Track for the promo push.", "warn");
     return;
   }
-  const trackContext = getPromoTrackContext(trackId);
-  const track = trackContext.track;
-  if (!track) {
+  if (!state.ui.promoSlots.actId && actId) state.ui.promoSlots.actId = actId;
+  const trackContext = getPromoTargetContext(trackId, actId);
+  const act = trackContext.act;
+  if (!act) {
+    logEvent("Promo push requires an Act selection.", "warn");
+    return;
+  }
+  if (trackId && !trackContext.track) {
     logEvent("Track not found for promo push.", "warn");
     return;
   }
-  if (!trackContext.isReleased && !trackContext.isScheduled) {
+  if (trackContext.track && act && trackContext.track.actId && trackContext.track.actId !== act.id) {
+    logEvent("Selected track does not belong to the selected act.", "warn");
+    return;
+  }
+  if (trackContext.track && !trackContext.isReleased && !trackContext.isScheduled) {
     logEvent("Promo push requires a scheduled or released track.", "warn");
     return;
   }
@@ -3875,7 +3900,7 @@ function runPromotion() {
   const lockouts = getPromoTypeLockouts(trackContext);
   const selectedTypes = ensurePromoTypeSelection(document, select ? select.value : DEFAULT_PROMO_TYPE, lockouts);
   if (!selectedTypes.length) {
-    logEvent("No available promo types for this track.", "warn");
+    logEvent("No available promo types for this promo target.", "warn");
     return;
   }
   const inflationMultiplier = getPromoInflationMultiplier();
@@ -3889,19 +3914,20 @@ function runPromotion() {
     logEvent(`Not enough cash for ${label}.`, "warn");
     return;
   }
-  const era = track.eraId ? getEraById(track.eraId) : null;
+  const era = trackContext.track?.eraId ? getEraById(trackContext.track.eraId) : getActiveEras().find(
+    (entry) => entry.actId === act.id && entry.status === "Active"
+  );
   if (!era || era.status !== "Active") {
-    logEvent("Promo push requires a track from an active era.", "warn");
+    logEvent("Promo push requires an active era for the selected act.", "warn");
     return;
   }
-  const act = getAct(track.actId);
-  const releaseDate = trackContext.scheduled
-    ? formatDate(trackContext.scheduled.releaseAt)
-    : track.releasedAt ? formatDate(track.releasedAt) : "TBD";
-  const market = trackContext.isReleased
-    ? state.marketTracks.find((entry) => entry.id === track.marketId)
+  const releaseDate = trackContext.track
+    ? (trackContext.scheduled ? formatDate(trackContext.scheduled.releaseAt) : trackContext.track.releasedAt ? formatDate(trackContext.track.releasedAt) : "TBD")
+    : formatDate(state.time.epochMs);
+  const market = trackContext.isReleased && trackContext.track
+    ? state.marketTracks.find((entry) => entry.id === trackContext.track.marketId)
     : null;
-  if (trackContext.isReleased && !market) {
+  if (trackContext.isReleased && trackContext.track && !market) {
     logEvent("Track is not active on the market.", "warn");
     return;
   }
@@ -3918,13 +3944,14 @@ function runPromotion() {
   for (const promoType of selectedTypes) {
     const facilityId = getPromoFacilityForType(promoType);
     if (!facilityId) continue;
-    const reservation = reservePromoFacilitySlot(facilityId, promoType, track.id);
+    const reservation = reservePromoFacilitySlot(facilityId, promoType, trackContext.track?.id || null, { actId: act.id });
     if (!reservation.ok) {
       logEvent(reservation.reason || "No facility slots available today.", "warn");
       return;
     }
   }
   state.label.cash -= totalCost;
+  if (trackContext.track) recordTrackPromoCost(trackContext.track, totalCost);
   let boostWeeks = 0;
   const weeksByType = {};
   selectedTypes.forEach((promoType) => {
@@ -3933,34 +3960,36 @@ function runPromotion() {
     weeksByType[promoType] = weeks;
     boostWeeks = Math.max(boostWeeks, weeks);
   });
-  if (!track.promo || typeof track.promo !== "object") {
-    track.promo = { preReleaseWeeks: 0, musicVideoUsed: false };
+  if (trackContext.track) {
+    const promo = trackContext.track.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
+    if (trackContext.isReleased && market) {
+      market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);
+    } else {
+      promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+    }
+    if (selectedTypes.includes("musicVideo")) promo.musicVideoUsed = true;
+    trackContext.track.promo = promo;
   }
-  if (trackContext.isReleased && market) {
-    market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);
-  } else {
-    track.promo.preReleaseWeeks = Math.max(track.promo.preReleaseWeeks || 0, boostWeeks);
-  }
-  if (selectedTypes.includes("musicVideo")) {
-    track.promo.musicVideoUsed = true;
-  }
+  act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
+  act.lastPromoAt = state.time.epochMs;
   state.meta.promoRuns = (state.meta.promoRuns || 0) + selectedTypes.length;
-    const promoIds = [
-      ...(track.creators?.songwriterIds || []),
-      ...(track.creators?.performerIds || []),
-      ...(track.creators?.producerIds || [])
-    ].filter(Boolean);
-    markCreatorPromo(promoIds);
+  const promoIds = Array.from(new Set([
+    ...(trackContext.track?.creators?.songwriterIds || []),
+    ...(trackContext.track?.creators?.performerIds || []),
+    ...(trackContext.track?.creators?.producerIds || []),
+    ...(act.memberIds || [])
+  ])).filter(Boolean);
+  if (promoIds.length) markCreatorPromo(promoIds);
   selectedTypes.forEach((promoType) => {
     const budget = budgets[promoType];
     const weeks = weeksByType[promoType] || boostWeeks;
-    logUiEvent("action_submit", { action: "promotion", trackId, budget, weeks, promoType, totalCost });
+    logUiEvent("action_submit", { action: "promotion", actId: act.id, trackId: trackContext.track?.id || null, budget, weeks, promoType, totalCost });
     if (typeof postFromTemplate === "function") {
       postFromTemplate(promoType, {
-        trackTitle: track.title,
-        actName: act ? act.name : "Unknown Act",
+        trackTitle: trackContext.track ? trackContext.track.title : act.name,
+        actName: act.name,
         releaseDate,
-        channel: track.distribution || "Digital",
+        channel: trackContext.track?.distribution || "Broadcast",
         handle: handleFromName(state.label.name, "Label"),
         cost: budget
       });
@@ -3975,7 +4004,8 @@ function runPromotion() {
   const verb = selectedTypes.length > 1 ? "Promo pushes funded" : "Promo push funded";
   const spendNote = selectedTypes.length > 1 ? ` Total spend: ${formatMoney(totalCost)}.` : "";
   const releaseNote = trackContext.isScheduled ? ` Release on ${releaseDate}.` : "";
-  logEvent(`${verb} for "${track.title}" (${promoLabels}) (+${boostWeeks} weeks).${spendNote}${releaseNote}`);
+  const targetLabel = trackContext.track ? `"${trackContext.track.title}"` : `Act "${act.name}"`;
+  logEvent(`${verb} for ${targetLabel} (${promoLabels}) (+${boostWeeks} weeks).${spendNote}${releaseNote}`);
   renderAll();
 }
 
