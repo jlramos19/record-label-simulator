@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-26 02:27:26 -04:00
+Last updated: 2025-12-26 03:24:56 -04:00
 
 ## Quick start
 
@@ -41,7 +41,7 @@ npm run dev:logs
 - `npm run build` — compile TypeScript (`tsc -p tsconfig.json`)
 - `npm run watch` — compile in watch mode (`tsc -p tsconfig.json --watch`)
 - `npm run start` — serve via PowerShell + Python (`python -m http.server 5173`)
-- `npm run dev:logs` — run watch + server + Edge (Puppeteer) with NDJSON logs in `usage-logs/`
+- `npm run dev:logs` - run watch + server + Edge (Puppeteer) with NDJSON logs in `usage-logs/`, including `[usage]` session events and errors
 
 ## Runtime entrypoints
 
@@ -83,6 +83,7 @@ Used for save slots, UI state, and preferences:
 - save slots keyed by `SLOT_PREFIX` (see `assets/js/data/constants.js`)
 - panel + sidebar layout, per-view panel visibility
 - UI event log and loss archive
+- usage session index + per-session logs (session IDs, action trail, error capture)
 - selected game mode, difficulty, and start preferences
 
 ### sessionStorage

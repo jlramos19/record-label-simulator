@@ -4,6 +4,7 @@ import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails, PROMO_TYPE_DETAILS } from "./promo_types.js";
 import { setUiHooks } from "./game/ui-hooks.js";
+import { getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
 import {
   $,
   closeOverlay,
@@ -876,15 +877,23 @@ function getPanelStateEntry(route, key, root) {
 
 function logUiEvent(type, payload = {}) {
   const log = loadUiEventLog();
-  log.push({
+  const entry = {
     ts: Date.now(),
     gameTs: state.time?.epochMs,
     route: state.ui?.activeView || activeRoute,
     event_type: type,
     payload
-  });
+  };
+  log.push(entry);
   if (log.length > 800) log.shift();
   localStorage.setItem(UI_EVENT_LOG_KEY, JSON.stringify(log));
+  const isAction = type === "action_submit" || type === "route_change";
+  recordUsageEvent(`ui.${type}`, payload, {
+    route: entry.route,
+    gameTs: entry.gameTs,
+    isAction,
+    reportToConsole: type === "action_submit"
+  });
 }
 
 function loadUiEventLog() {
@@ -895,6 +904,26 @@ function loadUiEventLog() {
   } catch {
     return [];
   }
+}
+
+function recordSessionReady(source) {
+  updateUsageSessionContext({
+    activeSlot: session.activeSlot,
+    label: state.label?.name || null,
+    gameMode: state.meta?.gameMode || DEFAULT_GAME_MODE,
+    difficulty: state.meta?.difficulty || DEFAULT_GAME_DIFFICULTY
+  });
+  recordUsageEvent("session.ready", {
+    source,
+    activeSlot: session.activeSlot,
+    label: state.label?.name || null,
+    gameMode: state.meta?.gameMode || DEFAULT_GAME_MODE,
+    difficulty: state.meta?.difficulty || DEFAULT_GAME_DIFFICULTY
+  }, {
+    route: state.ui?.activeView || activeRoute,
+    gameTs: state.time?.epochMs,
+    reportToConsole: true
+  });
 }
 
 function chartScopeKey(chartKey) {
@@ -2736,12 +2765,14 @@ function bindViewHandlers(route, root) {
 function exportDebugBundle() {
   const log = loadUiEventLog();
   const eventLog = Array.isArray(state.events) ? state.events : [];
+  const usageSession = getUsageSessionSnapshot();
   const snapshot = {
     route: state.ui.activeView || activeRoute,
     week: weekIndex() + 1,
     cash: state.label.cash,
     activeSlot: session.activeSlot,
     activeIdSlot: state.ui.slotTarget,
+    usageSessionId: usageSession?.id || null,
     time: {
       epochMs: state.time.epochMs,
       totalHours: state.time.totalHours,
@@ -2756,6 +2787,8 @@ function exportDebugBundle() {
     `Cash: ${formatMoney(snapshot.cash)}`,
     `Active Slot: ${snapshot.activeSlot || "-"}`,
     `Difficulty: ${state.meta?.difficulty || DEFAULT_GAME_DIFFICULTY}`,
+    `Usage Session: ${usageSession?.id || "-"}`,
+    `Usage Errors: ${usageSession?.errors?.length || 0}`,
     "",
     "## Event Counts"
   ];
@@ -2772,6 +2805,9 @@ function exportDebugBundle() {
   downloadFile("simulation_event_log.json", JSON.stringify(eventLog, null, 2), "application/json");
   downloadFile("usage_session_summary.md", summary, "text/markdown");
   downloadFile("state_snapshot.json", JSON.stringify(snapshot, null, 2), "application/json");
+  if (usageSession?.id) {
+    downloadFile(`usage_session_${usageSession.id}.json`, JSON.stringify(usageSession, null, 2), "application/json");
+  }
   if (state.meta?.seedHistory) {
     downloadFile("seed_history.json", JSON.stringify(state.meta.seedHistory, null, 2), "application/json");
   }
@@ -4189,6 +4225,7 @@ export async function initUI() {
       renderAll();
       closeMainMenu();
       startGameLoop();
+      recordSessionReady("slot-load");
       return;
     }
   }
@@ -4196,6 +4233,7 @@ export async function initUI() {
   syncGameModeSelect();
   syncDifficultySelect();
   syncStartPreferenceSelects();
+  recordSessionReady("main-menu");
 }
 
 function setupPanelControls() {

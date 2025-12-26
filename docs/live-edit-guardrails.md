@@ -24,3 +24,4 @@ These rules keep the hosted web build runnable while the team iterates quickly.
 - `src/app/guardrails.ts` installs global error handlers and auto-save on pagehide/visibilitychange.
 - Critical runtime errors surface a console error plus an in-app toast (non-blocking, auto-dismiss) for visibility.
 - If initialization fails, the app surfaces a safe-mode message to avoid silent blank screens.
+- Usage sessions now track session IDs, action trails, and captured errors; debug exports include the active session log.

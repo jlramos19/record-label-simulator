@@ -6,6 +6,8 @@ The header Top Labels list is the canonical entry point for global label ranking
 - Ranking source: global chart points.
 - Header shows the Top 3 labels as a preview.
 - "More" opens a draggable, scrollable floating window with the Top 8 list.
+- All known labels remain listed even at 0 points, surfacing as Inactive or Bankrupted.
+- Each label row includes a "Since" date (first in-game release, fallback to game start).
 
 ## Notes
 - The world view no longer includes a Top Labels panel.

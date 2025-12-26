@@ -4,7 +4,7 @@ import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./p
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
 import { ACT_NAMES, CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLES } from "./game/names.js";
-import { AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLE_LABELS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
+import { AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLE_LABELS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
 const session = {
     activeSlot: null,
     prevSpeed: null,
@@ -352,6 +352,9 @@ function makeDefaultState() {
             exp: 0,
             promoRuns: 0,
             cumulativeLabelPoints: {},
+            labelShare: {},
+            labelCompetition: {},
+            labelShareWeek: null,
             difficulty: difficulty.id,
             gameMode: DEFAULT_GAME_MODE,
             startYear: getGameMode(DEFAULT_GAME_MODE).startYear,
@@ -2822,7 +2825,7 @@ function simulateSeedHistory(startYear, endYear, rng, labelNames, dominantLabelI
         const scores = labelNames.map((name) => {
             const base = seededRand(220, 520, rng);
             const variance = seededRand(-40, 40, rng);
-            const dominance = dominantName && name === dominantName ? Math.round(base * 0.18) : 0;
+            const dominance = dominantName && name === dominantName ? Math.round(base * SEED_DOMINANT_SCORE_BONUS_PCT) : 0;
             const points = Math.max(40, base + variance + dominance);
             return { name, points };
         });
@@ -2884,10 +2887,11 @@ function seedWorldHistory() {
         scaledCumulative[label] = Math.round(200 + ratio * 800);
     });
     state.meta.cumulativeLabelPoints = scaledCumulative;
+    refreshLabelCompetition(scaledCumulative, { smoothing: 1 });
     state.rivals.forEach((rival) => {
         const ratio = maxPoints ? (variant.cumulative[rival.name] || 0) / maxPoints : 0;
         rival.momentum = clamp(0.35 + ratio * 0.45, 0.35, 0.95);
-        rival.seedBonus = rival.id === preset?.dominantLabelId ? 0.12 : 0;
+        rival.seedBonus = rival.id === preset?.dominantLabelId ? SEED_DOMINANT_MOMENTUM_BONUS : 0;
     });
     state.marketTracks = [];
     seedMarketTracks({
@@ -5097,6 +5101,71 @@ function getAudienceProfile(scopeId) {
         baseAlignment: baseProfile.alignment
     };
 }
+function labelShareToMultiplier(share) {
+    if (!Number.isFinite(share))
+        return 1;
+    const target = LABEL_DOMINANCE_TARGET_SHARE;
+    if (share > target) {
+        const overRatio = (share - target) / Math.max(0.001, 1 - target);
+        const penalty = clamp(overRatio * LABEL_DOMINANCE_MAX_PENALTY, 0, LABEL_DOMINANCE_MAX_PENALTY);
+        return clamp(1 - penalty, 1 - LABEL_DOMINANCE_MAX_PENALTY, 1);
+    }
+    if (target <= 0)
+        return 1;
+    const underRatio = (target - share) / target;
+    const boost = clamp(underRatio * LABEL_DOMINANCE_MAX_BOOST, 0, LABEL_DOMINANCE_MAX_BOOST);
+    return clamp(1 + boost, 1, 1 + LABEL_DOMINANCE_MAX_BOOST);
+}
+function computeLabelShares(scores, { smoothing = LABEL_DOMINANCE_SMOOTHING } = {}) {
+    const safeScores = scores && typeof scores === "object" ? scores : {};
+    const labels = collectKnownLabelNames();
+    const total = Array.from(labels).reduce((sum, label) => sum + (safeScores[label] || 0), 0);
+    const priorShares = state.meta?.labelShare || {};
+    const shares = {};
+    labels.forEach((label) => {
+        const rawShare = total ? (safeScores[label] || 0) / total : 0;
+        const prior = Number.isFinite(priorShares[label]) ? priorShares[label] : rawShare;
+        shares[label] = clamp(prior + (rawShare - prior) * smoothing, 0, 1);
+    });
+    return { shares, total };
+}
+function buildLabelCompetitionMap(shares) {
+    const competition = {};
+    Object.entries(shares || {}).forEach(([label, share]) => {
+        competition[label] = labelShareToMultiplier(share);
+    });
+    return competition;
+}
+function refreshLabelCompetition(scores, { smoothing = LABEL_DOMINANCE_SMOOTHING } = {}) {
+    const { shares, total } = computeLabelShares(scores, { smoothing });
+    const competition = total > 0 ? buildLabelCompetitionMap(shares) : {};
+    if (!state.meta)
+        state.meta = {};
+    state.meta.labelShare = shares;
+    state.meta.labelCompetition = competition;
+    state.meta.labelShareWeek = weekIndex() + 1;
+    return competition;
+}
+function ensureLabelCompetitionMap() {
+    if (!state.meta)
+        state.meta = {};
+    if (state.meta.labelCompetition && Object.keys(state.meta.labelCompetition).length) {
+        return state.meta.labelCompetition;
+    }
+    const seedScores = state.meta.cumulativeLabelPoints || {};
+    const { shares, total } = computeLabelShares(seedScores, { smoothing: 1 });
+    const competition = total > 0 ? buildLabelCompetitionMap(shares) : {};
+    state.meta.labelShare = shares;
+    state.meta.labelCompetition = competition;
+    return competition;
+}
+function getLabelCompetitionMultiplier(label) {
+    if (!label)
+        return 1;
+    const competition = ensureLabelCompetitionMap();
+    const multiplier = competition?.[label];
+    return Number.isFinite(multiplier) ? multiplier : 1;
+}
 function scoreTrack(track, regionName) {
     const audience = getAudienceProfile(regionName);
     let score = track.quality;
@@ -5116,6 +5185,9 @@ function scoreTrack(track, regionName) {
     const actPromoWeeks = track.actId ? (getAct(track.actId)?.promoWeeks || 0) : 0;
     score += actPromoWeeks > 0 ? Math.min(6, actPromoWeeks * 2) : 0;
     score += rand(-4, 4);
+    const competitionMultiplier = getLabelCompetitionMultiplier(track.label);
+    if (competitionMultiplier !== 1)
+        score = Math.round(score * competitionMultiplier);
     const decay = Math.max(0.4, 1 - track.weeksOnChart * 0.05);
     return Math.round(score * decay);
 }
@@ -5333,7 +5405,8 @@ function buildChartWorkerPayload() {
             mood: track.mood,
             genre: track.genre,
             promoWeeks: track.promoWeeks,
-            weeksOnChart: track.weeksOnChart
+            weeksOnChart: track.weeksOnChart,
+            label: track.label
         });
     });
     const nationWeights = {};
@@ -5351,6 +5424,7 @@ function buildChartWorkerPayload() {
     REGION_DEFS.forEach((region) => {
         audience.regions[region.id] = getAudienceProfile(region.id);
     });
+    const labelCompetition = ensureLabelCompetitionMap();
     return {
         payload: {
             tracks,
@@ -5365,7 +5439,8 @@ function buildChartWorkerPayload() {
             profiles: { nations: NATION_PROFILES, regions: REGION_PROFILES },
             audience,
             trends: state.trends,
-            defaultWeights: CHART_WEIGHTS
+            defaultWeights: CHART_WEIGHTS,
+            labelCompetition
         },
         trackMap
     };
@@ -5923,12 +5998,13 @@ function updateCumulativeLabelPoints(scores) {
         state.meta.cumulativeLabelPoints[label] = (state.meta.cumulativeLabelPoints[label] || 0) + points;
     });
 }
-function updateRivalMomentum(scores) {
+function updateRivalMomentum(scores, competition = ensureLabelCompetitionMap()) {
     state.rivals.forEach((rival) => {
         const points = scores[rival.name] || 0;
         const momentum = clamp(0.4 + points / (CHART_SIZES.global * 1.5), 0.35, 0.9);
+        const competitionMultiplier = Number.isFinite(competition?.[rival.name]) ? competition[rival.name] : 1;
         const bonus = typeof rival.seedBonus === "number" ? rival.seedBonus : 0;
-        rival.momentum = clamp(momentum + bonus, 0.35, 0.95);
+        rival.momentum = clamp(momentum * competitionMultiplier + bonus, 0.35, 0.95);
     });
 }
 function applyRivalStudioLeaseCosts() {
@@ -7122,8 +7198,9 @@ function weeklyUpdate() {
     const { globalScores } = computeChartsLocal();
     updateAudienceBiasFromCharts();
     const labelScores = computeLabelScoresFromCharts();
+    const labelCompetition = refreshLabelCompetition(labelScores);
     updateCumulativeLabelPoints(labelScores);
-    updateRivalMomentum(labelScores);
+    updateRivalMomentum(labelScores, labelCompetition);
     applyRivalStudioLeaseCosts();
     recordTrendLedgerSnapshot(globalScores);
     updateEconomy(globalScores);
@@ -7149,6 +7226,7 @@ async function onYearTick(year) {
     // Recompute charts and label scores to determine annual leader
     const { globalScores } = await computeCharts();
     const labelScores = computeLabelScoresFromCharts();
+    refreshLabelCompetition(labelScores);
     updateCumulativeLabelPoints(labelScores);
     captureSeedCalibration(year, labelScores);
     // Determine top labels
@@ -7477,7 +7555,7 @@ function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null
     const rngFn = typeof rng === "function" ? rng : Math.random;
     const dominant = dominantLabelId ? state.rivals.find((rival) => rival.id === dominantLabelId) : null;
     const pickRival = () => {
-        if (dominant && rngFn() < 0.45)
+        if (dominant && rngFn() < SEED_DOMINANT_PICK_CHANCE)
             return dominant;
         return seededPick(state.rivals, rngFn);
     };
@@ -8044,6 +8122,13 @@ function normalizeState() {
         state.meta.promoRuns = 0;
     if (!state.meta.cumulativeLabelPoints)
         state.meta.cumulativeLabelPoints = {};
+    if (!state.meta.labelShare || typeof state.meta.labelShare !== "object")
+        state.meta.labelShare = {};
+    if (!state.meta.labelCompetition || typeof state.meta.labelCompetition !== "object") {
+        state.meta.labelCompetition = {};
+    }
+    if (!Number.isFinite(state.meta.labelShareWeek))
+        state.meta.labelShareWeek = null;
     if (typeof state.meta.winShown !== "boolean")
         state.meta.winShown = false;
     if (typeof state.meta.endShown !== "boolean")
@@ -8685,17 +8770,50 @@ function planRivalRelease(genre, quality) {
         releaseAt: getReleaseAsapAt(state.time.epochMs)
     };
 }
+function collectKnownLabelNames() {
+    const labels = new Set();
+    const addLabel = (name) => {
+        if (typeof name !== "string")
+            return;
+        const trimmed = name.trim();
+        if (!trimmed)
+            return;
+        labels.add(trimmed);
+    };
+    addLabel(state.label?.name);
+    if (Array.isArray(state.rivals)) {
+        state.rivals.forEach((rival) => addLabel(rival?.name));
+    }
+    if (Array.isArray(state.marketTracks)) {
+        state.marketTracks.forEach((entry) => addLabel(entry?.label));
+    }
+    return labels;
+}
 function computeLabelScores() {
     const labelScores = {};
+    const knownLabels = collectKnownLabelNames();
     (state.charts.global || []).forEach((entry) => {
+        const label = entry.track?.label;
+        if (!label)
+            return;
         const points = Math.max(1, CHART_SIZES.global + 1 - entry.rank);
-        labelScores[entry.track.label] = (labelScores[entry.track.label] || 0) + points;
+        labelScores[label] = (labelScores[label] || 0) + points;
+        knownLabels.add(label);
+    });
+    knownLabels.forEach((label) => {
+        if (typeof labelScores[label] !== "number")
+            labelScores[label] = 0;
     });
     return labelScores;
 }
 function getLabelRanking(limit) {
     const ranking = Object.entries(computeLabelScores())
-        .sort((a, b) => b[1] - a[1]);
+        .sort((a, b) => {
+        const diff = b[1] - a[1];
+        if (diff !== 0)
+            return diff;
+        return String(a[0]).localeCompare(String(b[0]));
+    });
     return typeof limit === "number" ? ranking.slice(0, limit) : ranking;
 }
 function normalizeCommunityLabelRankingLimit(value) {

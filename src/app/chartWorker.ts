@@ -63,7 +63,7 @@ function resolveAudienceProfile(scopeId, profiles, audience) {
   };
 }
 
-function scoreTrack(track, regionName, profiles, trends, audience) {
+function scoreTrack(track, regionName, profiles, trends, audience, labelCompetition) {
   const nationProfiles = profiles?.nations || {};
   const regionProfiles = profiles?.regions || {};
   const fallback = nationProfiles.Annglora || { alignment: "", theme: "", moods: [] };
@@ -87,6 +87,8 @@ function scoreTrack(track, regionName, profiles, trends, audience) {
   score += Array.isArray(trends) && trends.includes(track.genre) ? 10 : 0;
   score += track.promoWeeks > 0 ? 10 : 0;
   score += rand(-4, 4);
+  const competitionMultiplier = Number.isFinite(labelCompetition?.[track.label]) ? labelCompetition[track.label] : 1;
+  if (competitionMultiplier !== 1) score = Math.round(score * competitionMultiplier);
   const decay = Math.max(0.4, 1 - (track.weeksOnChart || 0) * 0.05);
   return Math.round(score * decay);
 }
@@ -101,6 +103,7 @@ function computeCharts(payload) {
   const profiles = payload?.profiles || {};
   const trends = payload?.trends || [];
   const audience = payload?.audience || {};
+  const labelCompetition = payload?.labelCompetition || {};
 
   const nationScores = {};
   const regionScores = {};
@@ -115,7 +118,7 @@ function computeCharts(payload) {
   tracks.forEach((track) => {
     let sum = 0;
     nations.forEach((nation) => {
-      const score = scoreTrack(track, nation, profiles, trends, audience);
+      const score = scoreTrack(track, nation, profiles, trends, audience, labelCompetition);
       const metrics = buildChartMetrics(score, weights?.nations?.[nation], defaultWeights);
       nationScores[nation].push({ key: track.key, score, metrics });
       sum += score;
@@ -127,7 +130,7 @@ function computeCharts(payload) {
       metrics: buildChartMetrics(avg, weights?.global, defaultWeights)
     });
     regionIds.forEach((regionId) => {
-      const score = scoreTrack(track, regionId, profiles, trends, audience);
+      const score = scoreTrack(track, regionId, profiles, trends, audience, labelCompetition);
       const metrics = buildChartMetrics(score, weights?.regions?.[regionId], defaultWeights);
       regionScores[regionId].push({ key: track.key, score, metrics });
     });

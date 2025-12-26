@@ -28,3 +28,6 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 ## Economy + analytics
 - DEC-20251226-001: Eras view replaces the Tracks panel with an Era Performance panel, showing per-track type, chart points, sales/stream metrics, costs, earnings, and an embedded chart history table for the focused era.
 - DEC-20251226-002: Vinyl run recommendations use a demand curve (fan base, quality, trend alignment, project type, act size, promo lead time, and price sensitivity) plus baseline physical pricing to estimate unit cost, recommended units, and gross/cost projections for player planning.
+
+## Competitive balance
+- DEC-20251226-003: Chart scoring applies label competition pressure from recent chart share to prevent runaway dominance, and modern-era seeds reduce dominant label bias.

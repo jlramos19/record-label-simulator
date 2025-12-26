@@ -1,5 +1,18 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0723Z)
+- Chart scoring now applies label-competition pressure from recent chart share, and rival momentum scales with the same pressure to prevent runaway dominance.
+- Modern-era seed bias reduced (dominant label bonus + seed pick chance) to keep early rankings closer.
+
+## 2025-12-26 (RLS-PATCH-20251226-0709Z)
+- Added per-session usage logging with session IDs, action trail snapshots, and error capture for faster bug triage.
+- Debug bundle now exports the current usage session log alongside UI and simulation logs.
+- Guardrails now persist session logs and mark when runtime errors end a session.
+
+## 2025-12-26 (RLS-PATCH-20251226-0700Z)
+- Community label rankings now keep all known labels visible, with Inactive/Bankrupted status for zero-point labels.
+- Label ranking rows now show a "Since" date under the label pill.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0627Z)
 - Split gameplay tuning constants into `src/app/game/config.ts` to reduce `game.ts` surface area.
 - Split creator name pools into `src/app/game/names/` modules with `names.ts` as the barrel export.

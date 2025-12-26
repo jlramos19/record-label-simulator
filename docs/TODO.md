@@ -17,6 +17,7 @@
 - [ ] RLS-ERA-ROLLOUT-001: Implement rollout strategies (data model + Era planning + calendar expansion + auto-run + era completion husk).
 - [ ] RLS-DOC-PATCH-001: Cross-link new docs, update testing checklist, and add consolidated patch note summary.
 - [ ] RLS-ECONOMY-COSTS-001: Balance sheet/demo/master costs with quality scaling, creator supply-demand pressure, and skill progression/decay.
+- [ ] RLS-BALANCE-LABEL-DOMINANCE-001: Add label competition pressure and reduce seed bias to prevent runaway dominance.
 - [ ] RLS-ERA-FOCUS-001: Define Focus Era purpose, mechanics, and UX guardrails for quick decisions.
 - [ ] Update chart metrics to use regional consumption weights and refresh chart documentation.
 - [ ] RLS-UI-ACTIONS-001: Specify the Music Executive action buttons surface (panel/section), button copy, and status behavior (Live vs Simulated vs Placeholder).

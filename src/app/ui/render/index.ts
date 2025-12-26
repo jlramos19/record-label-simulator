@@ -871,8 +871,57 @@ function renderStats() {
   renderFocusEraStatus();
 }
 
+function buildLabelRankingMeta() {
+  const fallbackSinceAt = Number.isFinite(state.time?.startEpochMs)
+    ? state.time.startEpochMs
+    : (Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now());
+  const metaByLabel = new Map();
+  const ensure = (label) => {
+    if (!label) return null;
+    const key = String(label);
+    if (!metaByLabel.has(key)) metaByLabel.set(key, { sinceAt: fallbackSinceAt });
+    return metaByLabel.get(key);
+  };
+  const addBaseMeta = (label, { country = null, cash = null } = {}) => {
+    const meta = ensure(label);
+    if (!meta) return;
+    if (country) meta.country = country;
+    if (Number.isFinite(cash)) meta.cash = cash;
+  };
+  addBaseMeta(state.label?.name, {
+    country: state.label?.country,
+    cash: state.label?.wallet?.cash ?? state.label?.cash
+  });
+  if (Array.isArray(state.rivals)) {
+    state.rivals.forEach((rival) => {
+      addBaseMeta(rival?.name, {
+        country: rival?.country,
+        cash: rival?.wallet?.cash ?? rival?.cash
+      });
+    });
+  }
+  if (Array.isArray(state.marketTracks)) {
+    state.marketTracks.forEach((entry) => {
+      const meta = ensure(entry?.label);
+      if (!meta) return;
+      const releasedAt = Number.isFinite(entry?.releasedAt) ? entry.releasedAt : null;
+      if (releasedAt && releasedAt < meta.sinceAt) meta.sinceAt = releasedAt;
+      if (!meta.country && entry?.country) meta.country = entry.country;
+    });
+  }
+  return { metaByLabel, fallbackSinceAt };
+}
+
+function getLabelRankingStatus(points, meta) {
+  if (points > 0) return null;
+  const cash = meta?.cash;
+  if (Number.isFinite(cash) && cash <= 0) return "bankrupted";
+  return "inactive";
+}
+
 function buildLabelRankingList({ limit = null, showMore = false } = {}) {
   const fullRanking = getLabelRanking();
+  const { metaByLabel, fallbackSinceAt } = buildLabelRankingMeta();
   const visible = typeof limit === "number" ? fullRanking.slice(0, limit) : fullRanking;
   if (!visible.length) {
     return { markup: `<div class="muted">No labels yet.</div>`, visibleCount: 0, totalCount: fullRanking.length };
@@ -880,14 +929,25 @@ function buildLabelRankingList({ limit = null, showMore = false } = {}) {
   const list = visible.map((row, index) => {
     const labelName = row[0];
     const points = row[1];
-    const country = getRivalByName(labelName)?.country || state.label.country;
+    const meta = metaByLabel.get(labelName) || { sinceAt: fallbackSinceAt };
+    const sinceAt = Number.isFinite(meta.sinceAt) ? meta.sinceAt : fallbackSinceAt;
+    const status = getLabelRankingStatus(points, meta);
+    const statusLabel = status === "bankrupted" ? "Bankrupted" : "Inactive";
+    const statusMarkup = status ? `<span class="label-status label-status--${status}">${statusLabel}</span>` : "";
+    const country = meta.country || getRivalByName(labelName)?.country || state.label.country;
     const moreAction = showMore && index === 0
       ? `<button type="button" class="ghost mini" data-ranking-more="labels">More</button>`
       : "";
     return `
       <div class="list-item">
         <div class="list-row">
-          <div class="item-title">#${index + 1} ${renderLabelTag(labelName, country)}</div>
+          <div class="label-rank">
+            <div class="item-title">#${index + 1} ${renderLabelTag(labelName, country)}</div>
+            <div class="label-rank-meta">
+              <span class="muted">Since ${formatShortDate(sinceAt)}</span>
+              ${statusMarkup}
+            </div>
+          </div>
           <div class="ranking-actions">
             <span class="muted">${formatCount(points)} pts</span>
             ${moreAction}

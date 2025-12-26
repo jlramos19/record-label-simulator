@@ -1,4 +1,5 @@
 import { saveToActiveSlot, session } from "./game.js";
+import { finalizeUsageSession, recordUsageError, recordUsageEvent, startUsageSession } from "./usage-log.js";
 const RELEASE_STORAGE_KEY = "rls_release_patch_id";
 const TOAST_STACK_ID = "rls-toast-stack";
 const SAVE_THROTTLE_MS = 1500;
@@ -138,27 +139,57 @@ function recordReleaseStamp(release) {
     }
 }
 export function installLiveEditGuardrails(release) {
+    startUsageSession({ release });
     recordReleaseStamp(release);
     if (typeof window !== "undefined") {
         window.addEventListener("error", (event) => {
+            recordUsageError({
+                kind: "window.error",
+                message: event?.message || "Runtime error",
+                stack: event?.error?.stack,
+                filename: event?.filename,
+                lineno: event?.lineno,
+                colno: event?.colno,
+                reason: event?.error || null
+            });
             safeSave("runtime-error");
             showCriticalToast("Runtime error detected.", event?.message || "");
         });
         window.addEventListener("unhandledrejection", (event) => {
+            const reason = event?.reason;
+            recordUsageError({
+                kind: "unhandledrejection",
+                message: reason instanceof Error ? reason.message : String(reason || "Unhandled rejection"),
+                stack: reason instanceof Error ? reason.stack : null,
+                reason
+            });
             safeSave("unhandled-rejection");
             showCriticalToast("Unhandled promise rejection.", String(event?.reason || ""));
         });
-        window.addEventListener("pagehide", () => safeSave("pagehide"));
+        window.addEventListener("pagehide", () => {
+            recordUsageEvent("session.pagehide", { visibility: document?.visibilityState || null });
+            finalizeUsageSession("pagehide");
+            safeSave("pagehide");
+        });
     }
     if (typeof document !== "undefined") {
         document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === "hidden")
+            if (document.visibilityState === "hidden") {
+                recordUsageEvent("session.hidden", { visibility: document.visibilityState });
                 safeSave("hidden");
+            }
         });
     }
     return {
         safeSave,
         handleFatal(error) {
+            recordUsageError({
+                kind: "fatal",
+                message: error?.message || "Fatal init error",
+                stack: error?.stack,
+                reason: error
+            });
+            finalizeUsageSession("fatal");
             safeSave("fatal");
             showSafeMode(error);
         }
