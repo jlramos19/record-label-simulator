@@ -1,2 +1,16 @@
-The slots allow for IDs and Items to be equipped to an area.   
-When clicking the slot, a panel will open showing the allowed IDs or Items that the player can put on said slot. If the player doesn’t own a type of item that is allowed and unlocked, it will show greyed out. If the item remains unlocked, it won’t show on the UI.   
+# Area Slots
+
+Area slots are attachment points on an area or structure that gate upgrades, permits, and special capabilities.
+
+## Slot behavior
+- Clicking a slot opens a picker showing allowed IDs or items.
+- Locked items do not appear; unlocked-but-unowned items show disabled.
+- Each slot shows eligibility rules and a reason when blocked.
+
+## Slot types (examples)
+- Permit slots: legal access to operate specific structures or events.
+- Upgrade slots: equipment, staffing modules, or capacity boosts.
+- Service slots: partnerships (security, logistics, marketing) that modify outcomes.
+
+## Observability
+- Slot blocks show reason codes and suggested fixes (missing item, missing cash, or missing prerequisite).

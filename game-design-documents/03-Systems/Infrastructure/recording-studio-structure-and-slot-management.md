@@ -1,50 +1,27 @@
-### **`Recording Studio Structure and Slot Management in Record Label Simulator`**
+# Recording Studio Structure and Slot Management
 
-**`Overview`**`:`
+This document defines how recording studios gate the sheet -> demo -> master pipeline.
 
-* **`Songwriters`**`: Create sheet music.`  
-* **`Recorders`**`: Create demo recordings.`  
-* **`Producers (Player/CEO)`**`: Finalize tracks and create projects.`
+## Roles and slot types
+- Songwriter slots: assign songwriter IDs to create sheet music.
+- Recorder slots: assign recorder IDs to create demo recordings.
+- Producer slot: assign the producer (player or producer ID) to finalize masters.
+- Input slots: attach sheet or demo items required for the next stage.
 
-**`Slot Allocation`**`:`
+## Capacity and tiers
+- Slot counts are defined by studio tier and can scale as the label expands.
+- The UI surfaces stage columns (Sheet/Demo/Master) with the available slots.
+- Larger tiers can add slots or allow a single queued item per slot.
 
-* **`Songwriters`**`:`  
-  * **`Slots`**`: 6 (one for each theme, plus one extra for increased probability).`  
-  * **`Work Rate`**`: 1 sheet music per hour.`  
-* **`Recorders`**`:`  
-  * **`Slots`**`: 10 (one for each mood, plus one extra for increased probability).`  
-  * **`Work Rate`**`: 1 demo recording per 2 hours.`  
-* **`Producers`**`:`  
-  * **`Slots`**`: No slots needed; producer ID is the player.`  
-  * **`Work Rate`**`: 3 hours to finalize a track.`
+## Work order rules
+- A work order starts only when a slot is open, the required input is present, and the assigned ID is idle.
+- Slots remain occupied for the full work duration and release on completion.
+- Canceling a work order returns partial progress and frees the slot.
 
-### **`Workflow`**
+## Outputs and downstream slots
+- Sheet music feeds demo creation; demos feed master creation.
+- Finished tracks move into project tracklist slots for release planning.
 
-1. **`Sheet Music Creation`**`:`  
-   * **`Songwriter Work Rate`**`: 9 sheet music per day (9 hours).`  
-   * **`Weekly Output`**`: 45 sheet music (5 days).`  
-2. **`Demo Recording Creation`**`:`  
-   * **`Recorder Work Rate`**`: 1 demo recording per 2 hours.`  
-   * **`Daily Output`**`: 4.5 demo recordings per day (9 hours).`  
-   * **`Weekly Output`**`: 22.5 demo recordings (5 days).`  
-3. **`Track Finalization`**`:`  
-   * **`Producer Work Rate`**`: 3 hours per track.`  
-   * **`Daily Output`**`: 3 tracks per day (9 hours).`  
-   * **`Weekly Output`**`: 15 tracks (5 days).`
-
-### **`Content and Modifiers`**
-
-* **`Modifiers`**`:`  
-  * **`Sensory Sage`**`: Higher quality content at a lower speed.`  
-  * **`Dispatch Dust`**`: Lower quality content at a higher speed.`  
-* **`Content Slots`**`:`  
-  * **`Songwriter`**`: No content slot.`  
-  * **`Recorder`**`: Sheet music placed to create demo recordings.`  
-  * **`Producer`**`: Demo recordings placed to create tracks.`
-
-### **`Project Creation`**
-
-* **`Tracks`**`: Up to 32 slots for finished tracks.`  
-  * **`Tracklist Placement`**`: Determined by slot order.`  
-  * **`Digital Only`**`: Tracks 31 and 32.`
-
+## Observability
+- Blocked slots show a reason (missing input, busy ID, or locked stage).
+- All slot actions are logged for replay and debugging.

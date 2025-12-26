@@ -1,5 +1,11 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0456Z)
+- Rival rollout planning now preserves a cash reserve while scaling lease costs, so more labels schedule releases and promo.
+- Era completion now records outcomes (Flop/Mid/Successful/Iconic) from track economy and alignment, surfaced in logs/social.
+- Rollout strategy planner now shows base vs inflation-adjusted promo budget estimates with planned totals and per-type breakdowns.
+- Era husk generation now includes archived market releases; promo spend is tracked per track.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0446Z)
 - Eras view now uses an Era Performance panel with per-track chart points, sales, costs, earnings, and recommended vinyl runs.
 - Era Performance includes a full chart history table for the focused Era (DNC for non-charting weeks).

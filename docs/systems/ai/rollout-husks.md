@@ -40,6 +40,7 @@ A rival is in competitive rollout mode when it:
 Rivals are eligible to compete when they can cover:
 - A minimum cash buffer above operating costs, and
 - At least one drop plus required promo intensity for the next window.
+- Operating cost estimates cap leased usage to preserve the planning reserve.
 The anchor rival is forced into participation even if it is below the budget gate (promo may be skipped when unaffordable).
 
 ## Scheduling Rules

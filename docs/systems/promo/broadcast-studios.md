@@ -3,6 +3,10 @@
 Broadcast studios are eyeriS Corp facilities that host interviews, live performances, and broadcast programs.
 They exist to promote an Act (and optionally its content) by putting it in front of targeted audience segments.
 
+## Structure context
+- Broadcast studios are public facilities owned by eyeriS; booking uses facility slots (not creator ID slots).
+- Slots are day-based and surface warnings when full or ineligible.
+
 ## Promo targeting
 - Promo pushes can target an Act only, or an Act plus an associated Track.
 - Broadcast studio selection is automatic and scores for best fit.
@@ -59,3 +63,4 @@ Sunday has the highest availability to simulate heavier broadcast programming an
 ## Related
 - `docs/systems/promo/auto-promo.md`
 - `docs/systems/promo/filming-studios.md`
+- `docs/systems/structures/structures-and-slots.md`

@@ -30,6 +30,11 @@ Per-item metadata (additive for scheduling + audits):
 - Select a strategy and expand it to populate Calendar scheduling stores.
 - Optional: enable auto-run per strategy.
 
+## Budget Estimate (Planner)
+- The planner summarizes promo budget needs for the strategy.
+- Totals show base cost, inflation-adjusted cost, and the current planned spend.
+- Planned spend uses the promo budget inputs (change them to adapt on the fly).
+
 ## Husk -> Calendar Expansion
 Expansion converts planned items into scheduling stores (Calendar remains read-only):
 - Drops create entries in `state.releaseQueue` (same store used by Release Desk).

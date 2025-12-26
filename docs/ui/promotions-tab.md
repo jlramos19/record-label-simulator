@@ -4,6 +4,7 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 
 ## Scope
 - Promotions is the primary surface for promo pushes plus the eyeriSocial feed.
+- Touring is a separate tab to the right of Promotions and is the final promotion step of an Era.
 - The tab label is "Promotions"; the feed itself remains branded as eyeriSocial.
 - Promo Types support multi-select; the budget applies per selected type.
 - Total spend equals budget times the number of selected promo types.
@@ -21,3 +22,5 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 ## Related
 - `docs/systems/promo/broadcast-studios.md`
 - `docs/systems/promo/filming-studios.md`
+- `docs/ui/touring-tab.md`
+- `docs/systems/touring/venues.md`
