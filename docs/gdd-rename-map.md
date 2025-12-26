@@ -279,7 +279,7 @@ Generated: 2025-12-25T11:01:24.177787Z
 - "03-Systems/Countries for inspiration of names in Record Label Simulator In-Game.md" -> "03-Systems/countries-for-inspiration-of-names-in-record-label-simulator-in-game.md"
 - "03-Systems/Default demo album for Record Label Simulator Gameplay.md" -> "03-Systems/default-demo-album-for-record-label-simulator-gameplay.md"
 - "03-Systems/Economy/Index.md" -> "03-Systems/Economy/index.md"
-- "03-Systems/Economy/Revenue/Economy - Record Label Simulator Battle Pass.md" -> "03-Systems/Economy/Revenue/economy-record-label-simulator-battle-pass.md"
+- "03-Systems/Economy/Revenue/Economy - Record Label Simulator Battle Pass.md" -> "03-Systems/Economy/Revenue/economy-battle-pass.md"
 - "03-Systems/Entities Components and Systems in Record Label Simulator.md" -> "03-Systems/entities-components-and-systems-in-record-label-simulator.md"
 - "03-Systems/Eras in Record Label Simulator.md" -> "03-Systems/eras-in-record-label-simulator.md"
 - "03-Systems/Expanded and Integrated Stamina System.md" -> "03-Systems/expanded-and-integrated-stamina-system.md"

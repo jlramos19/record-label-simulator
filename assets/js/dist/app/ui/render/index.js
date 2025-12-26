@@ -3060,6 +3060,7 @@ function getSheetStartPlan({ mode, theme, modifierId, cash } = {}) {
             eligibleSongwriters,
             startableSongwriters: canStart ? sheetCrew : [],
             startableCount: canStart ? 1 : 0,
+            sheetCost,
             capacityLimit,
             studioSlotsAvailable,
             sheetStageSlots,
@@ -3077,6 +3078,7 @@ function getSheetStartPlan({ mode, theme, modifierId, cash } = {}) {
             eligibleSongwriters,
             startableSongwriters: [],
             startableCount: 0,
+            sheetCost: 0,
             capacityLimit,
             studioSlotsAvailable,
             sheetStageSlots,
@@ -3090,6 +3092,7 @@ function getSheetStartPlan({ mode, theme, modifierId, cash } = {}) {
     let stoppedByCash = false;
     let stoppedByCapacity = false;
     const startableSongwriters = [];
+    let sheetCost = 0;
     for (let i = 0; i < eligibleSongwriters.length; i += 1) {
         if (remainingCapacity <= 0) {
             stoppedByCapacity = true;
@@ -3104,6 +3107,7 @@ function getSheetStartPlan({ mode, theme, modifierId, cash } = {}) {
         startableSongwriters.push(songwriterId);
         remainingCash -= stageCost;
         remainingCapacity -= 1;
+        sheetCost += stageCost;
     }
     return {
         mode: resolvedMode,
@@ -3113,6 +3117,7 @@ function getSheetStartPlan({ mode, theme, modifierId, cash } = {}) {
         eligibleSongwriters,
         startableSongwriters,
         startableCount: startableSongwriters.length,
+        sheetCost,
         capacityLimit,
         studioSlotsAvailable,
         sheetStageSlots,
@@ -3131,9 +3136,9 @@ function getCreateStageAvailability() {
     const sheetCanStart = sheetPlan.startableCount > 0;
     const sheetReason = (() => {
         if (!sheetPlan.themeReady)
-            return "Select a Theme to start sheet music.";
+            return "Select a Theme to create sheet music.";
         if (!sheetPlan.assignedSongwriters.length)
-            return "Assign a Songwriter ID to start sheet music.";
+            return "Assign a Songwriter ID to create sheet music.";
         if (sheetPlan.mode === "solo" && sheetPlan.assignedSongwriters.length && !sheetPlan.eligibleSongwriters.length) {
             return `No available Songwriter creators with ${sheetPlan.staminaRequirement} stamina.`;
         }
@@ -3142,7 +3147,7 @@ function getCreateStageAvailability() {
         if (studioSlotsAvailable <= 0)
             return "No studio slots available. Finish a production or expand capacity first.";
         if (sheetPlan.stoppedByCash && !sheetPlan.startableCount)
-            return "Not enough cash to start sheet music.";
+            return "Not enough cash to create sheet music.";
         return "";
     })();
     const demoTracks = state.tracks.filter((track) => track.status === "Awaiting Demo");
@@ -3178,17 +3183,17 @@ function getCreateStageAvailability() {
         if (!demoReady)
             return "Track is not ready for demo recording.";
         if (!mood)
-            return "Select a Mood to start the demo recording.";
+            return "Select a Mood to create the demo recording.";
         if (!moodValid)
-            return "Select a valid Mood to start the demo recording.";
+            return "Select a valid Mood to create the demo recording.";
         if (!demoAssigned.length)
-            return "Assign a Performer ID to start the demo recording.";
+            return "Assign a Performer ID to create the demo recording.";
         if (studioSlotsAvailable <= 0)
             return "No studio slots available. Finish a production or expand capacity first.";
         if (demoStageSlots <= 0)
             return "No studio slots available for demo recording. Wait for a studio to free up.";
         if (state.label.cash < demoCost)
-            return "Not enough cash to start the demo recording.";
+            return "Not enough cash to create the demo recording.";
         return "";
     })();
     const masterTrackId = (state.ui.createTrackIds ? state.ui.createTrackIds.master : null)
@@ -3227,7 +3232,7 @@ function getCreateStageAvailability() {
         if (!masterTrack.mood)
             return "Demo recording must assign a Mood before mastering.";
         if (!masterAssigned.length)
-            return "Assign a Producer ID to start mastering.";
+            return "Assign a Producer ID to create the master recording.";
         if (!resolvedAlignment)
             return "Select a Content Alignment before mastering.";
         if (!alignmentValid)
@@ -3237,7 +3242,7 @@ function getCreateStageAvailability() {
         if (masterStageSlots <= 0)
             return "No studio slots available for mastering. Wait for a studio to free up.";
         if (state.label.cash < masterCost)
-            return "Not enough cash to start mastering.";
+            return "Not enough cash to create the master recording.";
         return "";
     })();
     return {
@@ -3247,6 +3252,9 @@ function getCreateStageAvailability() {
         sheetCanStart,
         demoCanStart,
         masterCanStart,
+        sheetCost: Number.isFinite(sheetPlan.sheetCost) ? sheetPlan.sheetCost : 0,
+        demoCost,
+        masterCost,
         sheetReason: sheetCanStart ? "" : (sheetReason || "Requirements not met."),
         demoReason: demoCanStart ? "" : (demoReason || "Requirements not met."),
         masterReason: masterCanStart ? "" : (masterReason || "Requirements not met.")
@@ -3302,7 +3310,8 @@ function renderCreateStageControls() {
     }
     const sheetBtn = $("startSheetBtn");
     if (sheetBtn) {
-        sheetBtn.textContent = "Start Sheet Music";
+        const sheetCostLabel = formatMoney(availability.sheetCost || 0);
+        sheetBtn.textContent = `Create Sheet Music (${sheetCostLabel})`;
         sheetBtn.disabled = !availability.sheetCanStart;
         sheetBtn.title = availability.sheetCanStart ? "" : availability.sheetReason;
     }
@@ -3313,7 +3322,8 @@ function renderCreateStageControls() {
     }
     const demoBtn = $("startDemoBtn");
     if (demoBtn) {
-        demoBtn.textContent = "Start Demo Recording";
+        const demoCostLabel = formatMoney(availability.demoCost || 0);
+        demoBtn.textContent = `Create Demo Recording (${demoCostLabel})`;
         demoBtn.disabled = !availability.demoCanStart;
         demoBtn.title = availability.demoCanStart ? "" : availability.demoReason;
     }
@@ -3324,7 +3334,8 @@ function renderCreateStageControls() {
     }
     const masterBtn = $("startMasterBtn");
     if (masterBtn) {
-        masterBtn.textContent = "Start Master Recording";
+        const masterCostLabel = formatMoney(availability.masterCost || 0);
+        masterBtn.textContent = `Create Master Recording (${masterCostLabel})`;
         masterBtn.disabled = !availability.masterCanStart;
         masterBtn.title = availability.masterCanStart ? "" : availability.masterReason;
     }

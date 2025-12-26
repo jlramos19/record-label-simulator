@@ -23,3 +23,4 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 
 ## Naming data
 - DEC-20251225-007: Creator name pools live in `src/app/game/names.ts`, sourced from `game-design-documents/03-Systems/record-label-simulator-alphabet-and-vocabulary.md`, ASCII-normalized, and mapped to Annglora/Bytenza/Crowlya regional lore.
+- DEC-20251225-008: Creator name pools are language-specific (Annglora = English, Bytenza = Korean, Crowlya = Spanish), with Bytenza surnames constrained to single Hangul syllable blocks and given names weighted toward 2/3/4 syllable blocks (85%/12.5%/2.5%); this supersedes the earlier vocabulary-source constraint for creator pools.

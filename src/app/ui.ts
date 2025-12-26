@@ -155,7 +155,8 @@ setUiHooks({
   renderSlots,
   renderStats,
   renderTime,
-  updateGenrePreview
+  updateGenrePreview,
+  refreshPromoTypes: () => updatePromoTypeHint(document)
 });
 
 const ROUTES = ["dashboard", "charts", "create", "releases", "eras", "roster", "world", "logs"];
@@ -3218,7 +3219,7 @@ function startSoloTracksFromUI() {
   const theme = themeSelect.value;
   if (!theme) {
     shakeField("themeSelect");
-    logEvent("Select a Theme to start sheet music.", "warn");
+    logEvent("Select a Theme to create sheet music.", "warn");
     return;
   }
   const moodSelect = $("moodSelect");
@@ -3232,7 +3233,7 @@ function startSoloTracksFromUI() {
   const assignedSongwriters = [...new Set(getTrackSlotIds("Songwriter"))];
   if (!assignedSongwriters.length) {
     shakeSlot(primaryTrackSlotTarget("Songwriter"));
-    logEvent("Cannot start sheet music: assign a Songwriter ID.", "warn");
+    logEvent("Cannot create sheet music: assign a Songwriter ID.", "warn");
     return;
   }
   const eligibleSongwriters = assignedSongwriters.filter((id) => {
@@ -3254,7 +3255,7 @@ function startSoloTracksFromUI() {
   const stageCosts = eligibleSongwriters.map((id) => getStageCost(0, modifier, [id]));
   const minCost = stageCosts.length ? Math.min(...stageCosts) : 0;
   if (state.label.cash < minCost) {
-    logEvent("Not enough cash to start new sheet music.", "warn");
+    logEvent("Not enough cash to create new sheet music.", "warn");
     return;
   }
   const recommendation = recommendTrackPlan();
@@ -3323,17 +3324,17 @@ function startSoloTracksFromUI() {
     });
     const creator = getCreator(songwriterId);
     const creatorLabel = creator ? ` by ${creator.name}` : "";
-    logEvent(`Started sheet music for "${track.title}" (Theme: ${track.theme})${creatorLabel}.`);
+    logEvent(`Created sheet music for "${track.title}" (Theme: ${track.theme})${creatorLabel}.`);
   }
   if (!startedCount) return;
   if (eligibleSongwriters.length > 1) {
-    logEvent(`Started ${startedCount} solo track${startedCount === 1 ? "" : "s"}.`);
+    logEvent(`Created ${startedCount} solo track${startedCount === 1 ? "" : "s"}.`);
   }
   if (stoppedByCash) {
-    logEvent("Stopped early: not enough cash to start more tracks.", "warn");
+    logEvent("Stopped early: not enough cash to create more tracks.", "warn");
   }
   if (stoppedByStudio) {
-    logEvent("Stopped early: no studio slots available for more sheet music.", "warn");
+    logEvent("Stopped early: no studio slots available to create more sheet music.", "warn");
   }
   $("trackTitle").value = "";
   $("projectName").value = "";
@@ -3415,7 +3416,7 @@ function startSheetFromUI() {
   const theme = themeSelect.value;
   if (!theme) {
     shakeField("themeSelect");
-    logEvent("Select a Theme to start sheet music.", "warn");
+    logEvent("Select a Theme to create sheet music.", "warn");
     return;
   }
   const moodSelect = $("moodSelect");
@@ -3430,7 +3431,7 @@ function startSheetFromUI() {
   const producerIds = getTrackSlotIds("Producer");
   if (!songwriterIds.length) {
     shakeSlot(primaryTrackSlotTarget("Songwriter"));
-    logEvent("Cannot start sheet music: assign a Songwriter ID.", "warn");
+    logEvent("Cannot create sheet music: assign a Songwriter ID.", "warn");
     return;
   }
   const availableStudios = getStudioAvailableSlots();
@@ -3440,7 +3441,7 @@ function startSheetFromUI() {
   }
   const stageCost = getStageCost(0, modifier, songwriterIds);
   if (state.label.cash < stageCost) {
-    logEvent("Not enough cash to start new sheet music.", "warn");
+    logEvent("Not enough cash to create new sheet music.", "warn");
     return;
   }
   const recommendation = recommendTrackPlan();
@@ -3487,7 +3488,7 @@ function startSheetFromUI() {
     mood,
     projectType
   });
-  logEvent(`Started sheet music for "${track.title}" (Theme: ${track.theme}).`);
+  logEvent(`Created sheet music for "${track.title}" (Theme: ${track.theme}).`);
   $("trackTitle").value = "";
   $("projectName").value = "";
   if ($("projectTypeSelect")) $("projectTypeSelect").value = "Single";

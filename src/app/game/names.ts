@@ -2520,20 +2520,23 @@ const BYTENZA_GIVEN_NAMES_ALL = [
   ...BYTENZA_GIVEN_NAMES_4,
 ];
 const CREATOR_NAME_PARTS = {
-  // Annglora = North America + Europe
+  // Annglora = English-language pool
   Annglora: {
-    given: RLS_GIVEN_NAMES,
-    surname: WESTERN_NAMES
+    given: ANGLORAN_GIVEN_NAMES,
+    surname: ANGLORAN_SURNAMES
   },
-  // Bytenza = Asia + Oceania
+  // Bytenza = Korean-language pool
   Bytenza: {
-    given: BYTENZA_GIVEN_NAMES,
+    given: BYTENZA_GIVEN_NAMES_ALL,
+    given2: BYTENZA_GIVEN_NAMES_2,
+    given3: BYTENZA_GIVEN_NAMES_3,
+    given4: BYTENZA_GIVEN_NAMES_4,
     surname: BYTENZA_SURNAMES
   },
-  // Crowlya = Africa + South America
+  // Crowlya = Spanish-language pool
   Crowlya: {
-    given: RLS_GIVEN_NAMES,
-    surname: LATIN_NAMES
+    given: CROWLYA_GIVEN_NAMES,
+    surname: CROWLYA_SURNAMES
   }
 };
 

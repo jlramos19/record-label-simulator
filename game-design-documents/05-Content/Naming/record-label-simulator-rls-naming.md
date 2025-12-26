@@ -21,3 +21,9 @@ Acronym: Always referred to as RLS in all documentation and in-game references.
 • The game went through three identity drafts before settling on RLS (Record Label Simulator).
 
 • Topoda Charts is the official name of the developing company; the game title remains Record Label Simulator (RLS).
+
+## **In-Universe Naming**
+
+- Record Label Simulator is a player-facing product name, not an in-world term.
+- In lore and dialogue, refer to Gaia, nations/regions, charts, institutions, or labels instead of the game title.
+- Avoid referencing "Record Label Simulator" inside narrative text, NPC dialogue, or in-world artifacts.

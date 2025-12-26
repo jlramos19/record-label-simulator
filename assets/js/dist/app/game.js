@@ -998,6 +998,28 @@ function namePartHangul(part) {
         return "";
     return String(part.hangul || "");
 }
+function pickBytenzaGivenPart(parts) {
+    if (!parts)
+        return null;
+    const given2 = Array.isArray(parts.given2) ? parts.given2 : [];
+    const given3 = Array.isArray(parts.given3) ? parts.given3 : [];
+    const given4 = Array.isArray(parts.given4) ? parts.given4 : [];
+    const fallback = Array.isArray(parts.given) ? parts.given : [];
+    const roll = Math.random();
+    if (roll < 0.85 && given2.length)
+        return pickOne(given2);
+    if (roll < 0.975 && given3.length)
+        return pickOne(given3);
+    if (given4.length)
+        return pickOne(given4);
+    if (given2.length)
+        return pickOne(given2);
+    if (given3.length)
+        return pickOne(given3);
+    if (fallback.length)
+        return pickOne(fallback);
+    return null;
+}
 function splitCreatorNameParts(name, country) {
     const cleaned = String(name || "").trim();
     if (!cleaned)
@@ -1028,7 +1050,9 @@ function buildCreatorNameParts(country, existingNames) {
     const parts = CREATOR_NAME_PARTS[country] || CREATOR_NAME_PARTS.Annglora;
     const existing = new Set(existingNames.filter(Boolean));
     for (let i = 0; i < 24; i += 1) {
-        const givenPart = pickOne(parts.given);
+        const givenPart = country === "Bytenza"
+            ? (pickBytenzaGivenPart(parts) || pickOne(parts.given))
+            : pickOne(parts.given);
         const surnamePart = pickOne(parts.surname);
         const givenName = namePartText(givenPart);
         const surname = namePartText(surnamePart);
@@ -1049,7 +1073,9 @@ function buildCreatorNameParts(country, existingNames) {
             surnameHangul
         };
     }
-    const fallbackGivenPart = pickOne(parts.given);
+    const fallbackGivenPart = country === "Bytenza"
+        ? (pickBytenzaGivenPart(parts) || pickOne(parts.given))
+        : pickOne(parts.given);
     const fallbackSurnamePart = pickOne(parts.surname);
     const fallbackGiven = namePartText(fallbackGivenPart);
     const fallbackSurname = namePartText(fallbackSurnamePart);
@@ -1188,6 +1214,7 @@ function staminaRequirement(role) {
 }
 function commitSlotChange({ updateStats = false } = {}) {
     uiHooks.renderSlots?.();
+    uiHooks.refreshPromoTypes?.();
     if (updateStats)
         uiHooks.renderStats?.();
     if (typeof window !== "undefined" && window.updateRecommendations) {
@@ -3702,7 +3729,7 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
     const normalizedProducers = normalizeRoleIds(producerIds, "Producer");
     const sheetCost = getStageCost(0, modifier, normalizedSongwriters);
     if (state.label.cash < sheetCost) {
-        logEvent("Not enough cash to start sheet music.", "warn");
+        logEvent("Not enough cash to create sheet music.", "warn");
         return null;
     }
     const track = {
@@ -3805,12 +3832,12 @@ function startDemoStage(track, mood, performerIds) {
     }
     if (!mood) {
         shakeField("moodSelect");
-        logEvent("Select a Mood to start the demo recording.", "warn");
+        logEvent("Select a Mood to create the demo recording.", "warn");
         return false;
     }
     if (Array.isArray(MOODS) && !MOODS.includes(mood)) {
         shakeField("moodSelect");
-        logEvent("Select a valid Mood to start the demo recording.", "warn");
+        logEvent("Select a valid Mood to create the demo recording.", "warn");
         return false;
     }
     const selectedPerformers = listFromIds(performerIds);
@@ -3819,7 +3846,7 @@ function startDemoStage(track, mood, performerIds) {
         : getTrackRoleIds(track, "Performer");
     if (!assignedPerformers.length) {
         shakeSlot(`${TRACK_ROLE_TARGETS.Performer}-1`);
-        logEvent("Assign a Performer ID to start the demo recording.", "warn");
+        logEvent("Assign a Performer ID to create the demo recording.", "warn");
         return false;
     }
     const availableStudios = getStudioAvailableSlots();
@@ -3833,7 +3860,7 @@ function startDemoStage(track, mood, performerIds) {
     }
     const stageCost = getStageCost(1, track.modifier, assignedPerformers);
     if (state.label.cash < stageCost) {
-        logEvent("Not enough cash to start the demo recording.", "warn");
+        logEvent("Not enough cash to create the demo recording.", "warn");
         return false;
     }
     track.creators.performerIds = assignedPerformers;
@@ -3862,7 +3889,7 @@ function startMasterStage(track, producerIds, alignment) {
         : getTrackRoleIds(track, "Producer");
     if (!assignedProducers.length) {
         shakeSlot(`${TRACK_ROLE_TARGETS.Producer}-1`);
-        logEvent("Assign a Producer ID to start mastering.", "warn");
+        logEvent("Assign a Producer ID to create the master recording.", "warn");
         return false;
     }
     const resolvedAlignment = alignment || track.alignment || state.label.alignment;
@@ -3887,7 +3914,7 @@ function startMasterStage(track, producerIds, alignment) {
     }
     const stageCost = getStageCost(2, track.modifier, assignedProducers);
     if (state.label.cash < stageCost) {
-        logEvent("Not enough cash to start mastering.", "warn");
+        logEvent("Not enough cash to create the master recording.", "warn");
         return false;
     }
     track.creators.producerIds = assignedProducers;
@@ -5490,7 +5517,7 @@ function questTemplates() {
                 createdAt: state.time.epochMs,
                 reward: 3200,
                 expReward: 420,
-                story: `Record Label Simulator tip: deliver a ${formatGenreKeyLabel(genre)} track to steer the week.`,
+                story: `Gaia tip: deliver a ${formatGenreKeyLabel(genre)} track to steer the week.`,
                 text: `Release 1 track in ${formatGenreKeyLabel(genre)}`,
                 done: false,
                 rewarded: false
