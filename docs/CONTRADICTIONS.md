@@ -125,12 +125,12 @@ This file tracks known mismatches between the current web MVP implementation and
 ### 2025-12-24-economy-pricing-01 - Digital pricing table thresholds
 - ID: 2025-12-24-economy-pricing-01
 - Description: Pricing docs conflict on digital track thresholds and baselines (EP 4-7 tracks at $4.99 vs Single 1-4 tracks at $0.69 and LP 8 tracks at $6.99). Sources: `game-design-documents/03-Systems/Economy/Pricing/...`.
-- Status: OPEN
-- Decision ID: TBD
-- TODO notes: Choose canonical pricing table for digital projects (Option A or B).
+- Status: DOCS
+- Decision ID: DEC-20251226-005
+- TODO notes: Align pricing docs to track-count thresholds (Single 1-4, EP 5-7, Album 8-32); confirm pricing baselines separately.
 - Docs commit/PR: TBD
-- Code commit/PR: N/A
-- Patch note entry: TBD
+- Code commit/PR: Local changes
+- Patch note entry: 2025-12-26
 
 ### 2025-12-24-economy-pricing-02 - Vinyl pricing baselines
 - ID: 2025-12-24-economy-pricing-02

@@ -475,6 +475,10 @@
         <a href="#/create" data-route="create" class="nav-item" aria-label="Create" title="Create">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">edit_note</span>
           <span class="nav-label">Create</span>
+          <span id="createNavBadge" class="nav-badge is-hidden" aria-hidden="true">
+            <span class="nav-badge-total" data-create-pending-total>0</span>
+            <span class="nav-badge-breakdown" data-create-pending-breakdown>🎼0 🎧0</span>
+          </span>
         </a>
         <a href="#/release" data-route="release" class="nav-item" aria-label="Release" title="Release">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">new_releases</span>
@@ -613,9 +617,13 @@
 <template id="view-create">
   <div class="view view--create">
     <section class="view-main">
-      <div class="panel card panel--scroll" data-panel="create-track">
+      <div class="tabs create-mode-tabs" id="createModeTabs" role="tablist" aria-label="Create mode">
+        <button class="tab active" data-create-mode="manual" type="button">Manual</button>
+        <button class="tab" data-create-mode="auto" type="button">Auto</button>
+      </div>
+      <div id="createManualPanel" class="panel card panel--scroll" data-panel="create-track">
         <div class="card-head">
-          <h2>Create Content</h2>
+          <h2>Create Content (Manual)</h2>
           <div class="panel-tools">
             <button id="createHelpToggle" type="button" class="ghost mini">Help</button>
           </div>
@@ -768,11 +776,14 @@
           <div class="tiny">Base cost: $2500 total. Modifiers adjust cost and time; stages consume 1, 2, and 3 in-game hours.</div>
         </div>
       </div>
-    </section>
-    <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="auto-create">
-        <h2>Auto Create</h2>
+      <div id="createAutoPanel" class="panel card panel--scroll hidden" data-panel="create-auto">
+        <div class="card-head">
+          <h2>Auto Create</h2>
+        </div>
         <div class="card-body">
+          <div class="callout">
+            Auto mode runs weekly and can also assign Acts plus advance demo/master stages.
+          </div>
           <div class="field">
             <label class="toggle-pill">
               <input id="autoCreateToggle" type="checkbox">
@@ -802,8 +813,14 @@
             </div>
           </div>
           <div id="autoCreateSummary" class="list"></div>
+          <div class="list-item">
+            <div class="item-title">Automation steps</div>
+            <div class="muted">Assign Acts, start demos, start masters, then create new sheet music within budget.</div>
+          </div>
         </div>
       </div>
+    </section>
+    <aside class="view-side">
       <div class="panel card panel--scroll" data-panel="tracks">
         <h2>Tracks</h2>
         <div class="tabs track-tabs" role="tablist" aria-label="Tracks panel tabs">

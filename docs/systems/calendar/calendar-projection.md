@@ -17,6 +17,7 @@ The Calendar is a projection layer over existing scheduling data. It does not re
 3. `calendar_grid_projection` groups scheduled content into week/day buckets for rendering.
 
 ## UI Surfaces
+- Release view (route `release`) hosts Release Desk scheduling + project planning.
 - Calendar view (route `releases`, labeled "Calendar") shows a grid projection with Label/Public/Eras tabs and filters.
 - A list view may be used for detail or overflow, but shares the same projection data.
 

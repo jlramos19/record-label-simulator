@@ -276,7 +276,7 @@ function makeDefaultState() {
             focusMoods: [],
             country: "Annglora"
         },
-        inventory: { modifiers: [] },
+        inventory: { modifiers: {} },
         studio: { slots: STARTING_STUDIO_SLOTS, inUse: 0 },
         creators: [],
         acts: [],
@@ -309,6 +309,7 @@ function makeDefaultState() {
             genreMood: "All",
             slotTarget: null,
             createStage: "sheet",
+            createMode: "manual",
             createTrackId: null,
             createTrackIds: { demo: null, master: null },
             recommendAllMode: "solo",
@@ -1157,24 +1158,65 @@ function resolveModifier(modifier) {
     }
     return null;
 }
+function getModifierInventoryCount(modifierId) {
+    if (!modifierId || modifierId === "None")
+        return 0;
+    const modifiers = state.inventory?.modifiers;
+    if (!modifiers || typeof modifiers !== "object")
+        return 0;
+    const value = modifiers[modifierId];
+    if (!Number.isFinite(value))
+        return 0;
+    return Math.max(0, Math.floor(value));
+}
 function getOwnedModifierIds() {
-    if (!state.inventory || !Array.isArray(state.inventory.modifiers))
+    if (!state.inventory || !state.inventory.modifiers || typeof state.inventory.modifiers !== "object")
         return [];
-    return state.inventory.modifiers.filter((entry) => typeof entry === "string" && entry);
+    return Object.entries(state.inventory.modifiers)
+        .filter(([, count]) => Number.isFinite(count) && count > 0)
+        .map(([id]) => id);
 }
 function hasModifierTool(modifierId) {
     if (!modifierId || modifierId === "None")
         return true;
-    return getOwnedModifierIds().includes(modifierId);
+    return getModifierInventoryCount(modifierId) > 0;
 }
-function addModifierTool(modifierId) {
+function addModifierTool(modifierId, amount = 1) {
     if (!modifierId || modifierId === "None")
         return false;
-    const owned = new Set(getOwnedModifierIds());
-    if (owned.has(modifierId))
+    const count = Math.max(0, Math.floor(amount));
+    if (!count)
         return false;
-    owned.add(modifierId);
-    state.inventory.modifiers = Array.from(owned);
+    if (!state.inventory || typeof state.inventory !== "object")
+        state.inventory = { modifiers: {} };
+    if (!state.inventory.modifiers || typeof state.inventory.modifiers !== "object") {
+        state.inventory.modifiers = {};
+    }
+    const current = getModifierInventoryCount(modifierId);
+    state.inventory.modifiers[modifierId] = current + count;
+    return true;
+}
+function consumeModifierTool(modifierId, amount = 1) {
+    if (!modifierId || modifierId === "None")
+        return false;
+    const count = Math.max(0, Math.floor(amount));
+    if (!count)
+        return false;
+    const current = getModifierInventoryCount(modifierId);
+    if (current < count)
+        return false;
+    const next = current - count;
+    if (!state.inventory || typeof state.inventory !== "object")
+        state.inventory = { modifiers: {} };
+    if (!state.inventory.modifiers || typeof state.inventory.modifiers !== "object") {
+        state.inventory.modifiers = {};
+    }
+    if (next > 0) {
+        state.inventory.modifiers[modifierId] = next;
+    }
+    else {
+        delete state.inventory.modifiers[modifierId];
+    }
     return true;
 }
 function modifierMatchesContent(modifier, { theme, mood, alignment } = {}) {
@@ -1201,27 +1243,25 @@ function getModifierQualityDelta(track, modifier) {
     }
     return resolved.qualityDelta;
 }
-function purchaseModifier(modifierId, { inflationMultiplier } = {}) {
+function purchaseModifier(modifierId, { inflationMultiplier, quantity } = {}) {
     const resolved = findModifier(modifierId);
     if (!resolved || resolved.id === "None") {
         logEvent("Modifier purchase failed: invalid tool.", "warn");
         return { ok: false, kind: "INVALID", reason: "INVALID_ID" };
     }
-    if (hasModifierTool(resolved.id)) {
-        logEvent(`${resolved.label} is already owned.`, "warn");
-        return { ok: false, kind: "OWNED", reason: "ALREADY_OWNED" };
-    }
     const basePrice = Number.isFinite(resolved.basePrice) ? resolved.basePrice : 0;
     const multiplier = Number.isFinite(inflationMultiplier) ? Math.max(1, inflationMultiplier) : 1;
-    const adjustedCost = Math.round(basePrice * multiplier);
+    const qty = Number.isFinite(quantity) ? Math.max(1, Math.floor(quantity)) : 1;
+    const adjustedCost = Math.round(basePrice * multiplier) * qty;
     if (state.label.cash < adjustedCost) {
         logEvent(`Not enough cash to buy ${resolved.label}.`, "warn");
-        return { ok: false, kind: "PRECONDITION", reason: "INSUFFICIENT_FUNDS", cost: adjustedCost };
+        return { ok: false, kind: "PRECONDITION", reason: "INSUFFICIENT_FUNDS", cost: adjustedCost, quantity: qty };
     }
     state.label.cash -= adjustedCost;
-    addModifierTool(resolved.id);
-    logEvent(`Purchased ${resolved.label} for ${formatMoney(adjustedCost)}.`, "receipt");
-    return { ok: true, modifierId: resolved.id, cost: adjustedCost, basePrice };
+    addModifierTool(resolved.id, qty);
+    const qtyLabel = qty > 1 ? ` x${qty}` : "";
+    logEvent(`Purchased ${resolved.label}${qtyLabel} for ${formatMoney(adjustedCost)}.`, "receipt");
+    return { ok: true, modifierId: resolved.id, cost: adjustedCost, basePrice, quantity: qty };
 }
 function getAdjustedStageHours(stageIndex, modifier, crewCount = 1) {
     const stage = STAGES[stageIndex];
@@ -4210,6 +4250,10 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
     const focusEra = resolvedActId ? getFocusEraForAct(resolvedActId) : null;
     const activeEra = resolvedActId ? (focusEra || getLatestActiveEraForAct(resolvedActId)) : null;
     const modifier = getModifier(modifierId);
+    if (modifier && modifier.id !== "None" && !hasModifierTool(modifier.id)) {
+        logEvent(`Modifier unavailable: ${modifier.label}.`, "warn");
+        return null;
+    }
     const resolvedAlignment = alignment || state.label.alignment || "Neutral";
     const resolvedProjectName = String(projectName || "").trim() || `${title} - Single`;
     const resolvedProjectType = normalizeProjectType(projectType);
@@ -4266,6 +4310,9 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
     }
     state.label.cash -= sheetCost;
     recordTrackProductionCost(track, sheetCost);
+    if (modifier && modifier.id !== "None") {
+        consumeModifierTool(modifier.id);
+    }
     return track;
 }
 function scheduleStage(track, stageIndex) {
@@ -7476,35 +7523,20 @@ function runAutoCreateContent() {
     const budgetCap = computeAutoCreateBudget(walletCash, budgetPct, minCash);
     const maxTracks = autoCreateMaxTracks();
     const mode = autoCreateMode();
-    const updateOutcome = (status, message, created = 0, spent = 0) => {
+    const updateOutcome = (status, message, stats = {}) => {
         state.meta.autoCreate.lastRunAt = now;
         state.meta.autoCreate.lastOutcome = {
             at: now,
             status,
             message,
-            created,
-            spent,
+            created: stats.created || 0,
+            demoStarted: stats.demoStarted || 0,
+            masterStarted: stats.masterStarted || 0,
+            actsAssigned: stats.actsAssigned || 0,
+            spent: stats.spent || 0,
             budgetCap
         };
     };
-    if (walletCash <= minCash) {
-        const message = `Auto create skipped: cash reserve ${formatMoney(minCash)} not met.`;
-        logEvent(message, "warn");
-        updateOutcome("skipped", message);
-        return;
-    }
-    if (!budgetCap) {
-        const message = "Auto create skipped: budget cap is 0.";
-        logEvent(message, "warn");
-        updateOutcome("skipped", message);
-        return;
-    }
-    if (getStageStudioAvailable(0) <= 0 || getStudioAvailableSlots() <= 0) {
-        const message = "Auto create skipped: no studio slots available.";
-        logEvent(message, "warn");
-        updateOutcome("skipped", message);
-        return;
-    }
     const busyIds = getBusyCreatorIds("In Progress");
     const pickCreatorId = (role, preferredId = null) => {
         const req = staminaRequirement(role);
@@ -7522,10 +7554,120 @@ function runAutoCreateContent() {
             .filter((creator) => getCreatorStaminaSpentToday(creator) + req <= STAMINA_OVERUSE_LIMIT);
         return candidates[0]?.id || null;
     };
-    let created = 0;
-    let spent = 0;
+    const stats = { created: 0, demoStarted: 0, masterStarted: 0, actsAssigned: 0, spent: 0 };
+    const canSpend = (stageCost) => {
+        if (!Number.isFinite(stageCost) || stageCost <= 0)
+            return { ok: false, reason: "invalid stage cost." };
+        const budgetLeft = budgetCap - stats.spent;
+        if (stageCost > budgetLeft) {
+            return { ok: false, reason: `budget cap ${formatMoney(budgetLeft)} below stage cost ${formatMoney(stageCost)}.` };
+        }
+        if (state.label.cash - stageCost < minCash) {
+            return { ok: false, reason: `cash reserve ${formatMoney(minCash)} blocks spend ${formatMoney(stageCost)}.` };
+        }
+        return { ok: true };
+    };
     let blockedReason = "";
+    state.tracks.forEach((track) => {
+        if (!track || track.status === "Released" || track.actId)
+            return;
+        const rec = recommendActForTrack(track);
+        if (!rec.actId)
+            return;
+        const assigned = assignTrackAct(track.id, rec.actId);
+        if (assigned)
+            stats.actsAssigned += 1;
+    });
+    let spendAllowed = true;
+    if (walletCash <= minCash) {
+        blockedReason = `cash reserve ${formatMoney(minCash)} not met.`;
+        spendAllowed = false;
+    }
+    else if (!budgetCap) {
+        blockedReason = "budget cap is 0.";
+        spendAllowed = false;
+    }
+    const startDemoForTrack = (track) => {
+        const rec = recommendTrackPlan();
+        const mood = track.mood || rec.mood;
+        const existingPerformers = track.creators?.performerIds?.length ? track.creators.performerIds : null;
+        const performerPick = existingPerformers ? null : pickCreatorId("Performer", rec.performerId);
+        const performerIds = existingPerformers || (performerPick ? [performerPick] : []);
+        if (!performerIds.length)
+            return "no Performer ready under daily limits.";
+        const stageCost = getStageCost(1, track.modifier, performerIds);
+        const budgetCheck = canSpend(stageCost);
+        if (!budgetCheck.ok)
+            return budgetCheck.reason;
+        if (getStudioAvailableSlots() <= 0 || getStageStudioAvailable(1) <= 0) {
+            return "no studio slots available for demo recording.";
+        }
+        if (startDemoStage(track, mood, performerIds)) {
+            stats.demoStarted += 1;
+            stats.spent += stageCost;
+            logEvent(`Auto create: started demo for "${track.title}" (Mood: ${mood}).`);
+            return null;
+        }
+        return "demo start failed due to constraints.";
+    };
+    const startMasterForTrack = (track) => {
+        const rec = recommendTrackPlan();
+        const existingProducers = track.creators?.producerIds?.length ? track.creators.producerIds : null;
+        const producerPick = existingProducers ? null : pickCreatorId("Producer", rec.producerId);
+        const producerIds = existingProducers || (producerPick ? [producerPick] : []);
+        if (!producerIds.length)
+            return "no Producer ready under daily limits.";
+        const stageCost = getStageCost(2, track.modifier, producerIds);
+        const budgetCheck = canSpend(stageCost);
+        if (!budgetCheck.ok)
+            return budgetCheck.reason;
+        if (getStudioAvailableSlots() <= 0 || getStageStudioAvailable(2) <= 0) {
+            return "no studio slots available for mastering.";
+        }
+        const alignment = track.alignment || state.label.alignment;
+        if (startMasterStage(track, producerIds, alignment)) {
+            stats.masterStarted += 1;
+            stats.spent += stageCost;
+            logEvent(`Auto create: started master for "${track.title}".`);
+            return null;
+        }
+        return "mastering start failed due to constraints.";
+    };
+    if (spendAllowed) {
+        const awaitingDemo = state.tracks.filter((track) => track.status === "Awaiting Demo" && track.stageIndex === 1);
+        for (const track of awaitingDemo) {
+            const reason = startDemoForTrack(track);
+            if (reason) {
+                if (reason.includes("budget cap") || reason.includes("cash reserve")) {
+                    blockedReason = reason;
+                    spendAllowed = false;
+                    break;
+                }
+                blockedReason = blockedReason || reason;
+            }
+        }
+    }
+    if (spendAllowed) {
+        const awaitingMaster = state.tracks.filter((track) => track.status === "Awaiting Master" && track.stageIndex === 2);
+        for (const track of awaitingMaster) {
+            const reason = startMasterForTrack(track);
+            if (reason) {
+                if (reason.includes("budget cap") || reason.includes("cash reserve")) {
+                    blockedReason = reason;
+                    spendAllowed = false;
+                    break;
+                }
+                blockedReason = blockedReason || reason;
+            }
+        }
+    }
+    if (spendAllowed && (getStageStudioAvailable(0) <= 0 || getStudioAvailableSlots() <= 0)) {
+        blockedReason = "no studio slots available for sheet music.";
+        spendAllowed = false;
+    }
     for (let i = 0; i < maxTracks; i += 1) {
+        if (!spendAllowed)
+            break;
         const plan = recommendTrackPlan();
         const songwriterId = pickCreatorId("Songwriter", plan.songwriterId);
         if (!songwriterId) {
@@ -7534,17 +7676,9 @@ function runAutoCreateContent() {
         }
         const modifier = getModifier(plan.modifierId);
         const stageCost = getStageCost(0, modifier, [songwriterId]);
-        if (!Number.isFinite(stageCost) || stageCost <= 0) {
-            blockedReason = "invalid stage cost.";
-            break;
-        }
-        const budgetLeft = budgetCap - spent;
-        if (stageCost > budgetLeft) {
-            blockedReason = `budget cap ${formatMoney(budgetLeft)} below stage cost ${formatMoney(stageCost)}.`;
-            break;
-        }
-        if (state.label.cash - stageCost < minCash) {
-            blockedReason = `cash reserve ${formatMoney(minCash)} blocks spend ${formatMoney(stageCost)}.`;
+        const budgetCheck = canSpend(stageCost);
+        if (!budgetCheck.ok) {
+            blockedReason = budgetCheck.reason;
             break;
         }
         const performerId = mode === "collab" ? pickCreatorId("Performer", plan.performerId) : null;
@@ -7564,24 +7698,30 @@ function runAutoCreateContent() {
             blockedReason = "creation blocked by studio or cash constraints.";
             break;
         }
-        created += 1;
-        spent += stageCost;
+        stats.created += 1;
+        stats.spent += stageCost;
         logEvent(`Auto create: started sheet music for "${track.title}" (Theme: ${track.theme}).`);
         if (getStageStudioAvailable(0) <= 0 || getStudioAvailableSlots() <= 0) {
             blockedReason = "no studio slots remaining.";
             break;
         }
     }
-    if (created > 0) {
-        const message = `Auto create ran: ${created} track${created === 1 ? "" : "s"} started, ${formatMoney(spent)} spent (cap ${formatMoney(budgetCap)}).`;
+    if (stats.created > 0 || stats.demoStarted > 0 || stats.masterStarted > 0 || stats.actsAssigned > 0) {
+        const counts = [
+            stats.actsAssigned ? `${stats.actsAssigned} act${stats.actsAssigned === 1 ? "" : "s"} assigned` : null,
+            stats.demoStarted ? `${stats.demoStarted} demo${stats.demoStarted === 1 ? "" : "s"}` : null,
+            stats.masterStarted ? `${stats.masterStarted} master${stats.masterStarted === 1 ? "" : "s"}` : null,
+            stats.created ? `${stats.created} track${stats.created === 1 ? "" : "s"} started` : null
+        ].filter(Boolean).join(" | ");
+        const message = `Auto create ran: ${counts || "no actions"}; ${formatMoney(stats.spent)} spent (cap ${formatMoney(budgetCap)}).`;
         logEvent(message);
-        updateOutcome("completed", message, created, spent);
+        updateOutcome("completed", message, stats);
     }
     else {
         const reason = blockedReason || "no eligible auto-create actions.";
         const message = `Auto create skipped: ${reason}`;
         logEvent(message, "warn");
-        updateOutcome("skipped", message);
+        updateOutcome("skipped", message, stats);
     }
 }
 function runAutoPromoForPlayer() {
@@ -8566,6 +8706,9 @@ function normalizeState() {
     if (!state.ui.createStage || !["sheet", "demo", "master"].includes(state.ui.createStage)) {
         state.ui.createStage = "sheet";
     }
+    if (!state.ui.createMode || (state.ui.createMode !== "manual" && state.ui.createMode !== "auto")) {
+        state.ui.createMode = "manual";
+    }
     if (typeof state.ui.createTrackId === "undefined")
         state.ui.createTrackId = null;
     if (!state.ui.createTrackIds || typeof state.ui.createTrackIds !== "object") {
@@ -8783,6 +8926,12 @@ function normalizeState() {
             outcome.message = "";
         if (typeof outcome.created !== "number")
             outcome.created = 0;
+        if (typeof outcome.demoStarted !== "number")
+            outcome.demoStarted = 0;
+        if (typeof outcome.masterStarted !== "number")
+            outcome.masterStarted = 0;
+        if (typeof outcome.actsAssigned !== "number")
+            outcome.actsAssigned = 0;
         if (typeof outcome.spent !== "number")
             outcome.spent = 0;
         if (typeof outcome.budgetCap !== "number")
@@ -9060,18 +9209,33 @@ function normalizeState() {
         });
     }
     if (!state.inventory || typeof state.inventory !== "object")
-        state.inventory = { modifiers: [] };
-    if (!Array.isArray(state.inventory.modifiers))
-        state.inventory.modifiers = [];
-    const ownedModifiers = new Set(state.inventory.modifiers.filter(Boolean));
+        state.inventory = { modifiers: {} };
+    const rawModifierInventory = state.inventory.modifiers;
+    const modifierCounts = {};
+    if (Array.isArray(rawModifierInventory)) {
+        rawModifierInventory.forEach((entry) => {
+            const id = typeof entry === "string" ? entry : entry?.id;
+            if (!id)
+                return;
+            modifierCounts[id] = (modifierCounts[id] || 0) + 1;
+        });
+    }
+    else if (rawModifierInventory && typeof rawModifierInventory === "object") {
+        Object.entries(rawModifierInventory).forEach(([id, count]) => {
+            const qty = Math.max(0, Math.floor(Number(count) || 0));
+            if (id && qty > 0)
+                modifierCounts[id] = qty;
+        });
+    }
     if (state.tracks?.length) {
         state.tracks.forEach((track) => {
             const modifierId = resolveModifier(track.modifier)?.id;
-            if (modifierId && modifierId !== "None")
-                ownedModifiers.add(modifierId);
+            if (modifierId && modifierId !== "None" && !modifierCounts[modifierId]) {
+                modifierCounts[modifierId] = 1;
+            }
         });
     }
-    state.inventory.modifiers = Array.from(ownedModifiers);
+    state.inventory.modifiers = modifierCounts;
     if (state.marketTracks?.length) {
         state.marketTracks.forEach((entry) => {
             if (!entry.distribution)
@@ -9926,7 +10090,11 @@ function buildStudioEntries() {
     });
     return entries;
 }
-function setTimeSpeed(nextSpeed) {
+function setTimeSpeed(nextSpeed, options = {}) {
+    const skipAutoStop = options?.skipAutoStop;
+    if (!skipAutoStop && typeof window !== "undefined" && typeof window.stopAutoSkips === "function") {
+        window.stopAutoSkips();
+    }
     const speed = nextSpeed === "pause" || nextSpeed === "play" || nextSpeed === "fast" ? nextSpeed : "pause";
     const changed = state.time.speed !== speed;
     state.time.speed = speed;

@@ -2056,17 +2056,42 @@ function updateAutoCreateSummary(scope) {
   const modeLabel = settings.mode === "collab" ? "Collab" : "Solo";
   const pctLabel = `${Math.round(pct * 100)}%`;
   const last = settings.lastOutcome;
+  const lastStamp = last?.at ? formatDate(last.at) : "-";
+  const lastCounts = last
+    ? [
+      last.actsAssigned ? `${last.actsAssigned} act${last.actsAssigned === 1 ? "" : "s"} assigned` : null,
+      last.demoStarted ? `${last.demoStarted} demo${last.demoStarted === 1 ? "" : "s"}` : null,
+      last.masterStarted ? `${last.masterStarted} master${last.masterStarted === 1 ? "" : "s"}` : null,
+      last.created ? `${last.created} track${last.created === 1 ? "" : "s"} started` : null
+    ].filter(Boolean).join(" | ")
+    : "";
   const lastLine = last?.message
-    ? `Last run ${last.at ? formatDate(last.at) : "-"}: ${last.message}`
+    ? `Last run ${lastStamp}: ${last.message}`
     : "No auto-create runs yet.";
   summary.innerHTML = `
     <div class="list-item">
       <div class="item-title">Auto Create Plan</div>
       <div class="muted">${enabled ? "Enabled" : "Disabled"} | Next check ${scheduleLabel} (chart update)</div>
       <div class="muted">Budget cap ${formatMoney(budgetCap)} (${pctLabel}) | Reserve ${formatMoney(reserve)} | Max ${maxTracks} | Mode ${modeLabel}</div>
+      ${lastCounts ? `<div class="muted">Last run output: ${lastCounts}</div>` : ""}
       <div class="muted">${lastLine}</div>
     </div>
   `;
+}
+
+function updateCreateModePanels(scope) {
+  const root = scope || document;
+  const mode = state.ui?.createMode === "auto" ? "auto" : "manual";
+  const manualPanel = root.querySelector("#createManualPanel");
+  const autoPanel = root.querySelector("#createAutoPanel");
+  if (manualPanel) manualPanel.classList.toggle("hidden", mode !== "manual");
+  if (autoPanel) autoPanel.classList.toggle("hidden", mode !== "auto");
+  root.querySelectorAll("[data-create-mode]").forEach((btn) => {
+    const isActive = btn.dataset.createMode === mode;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-pressed", String(isActive));
+  });
+  if (mode === "auto") updateAutoCreateSummary(root);
 }
 
 function bindGlobalHandlers() {
@@ -2599,6 +2624,18 @@ function bindViewHandlers(route, root) {
 
   if (route === "create") {
     syncCreatePanelToggles();
+    const modeTabs = root.querySelector("#createModeTabs");
+    if (modeTabs) {
+      modeTabs.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-create-mode]");
+        if (!btn) return;
+        const nextMode = btn.dataset.createMode === "auto" ? "auto" : "manual";
+        state.ui.createMode = nextMode;
+        updateCreateModePanels(root);
+        saveToActiveSlot();
+      });
+    }
+    updateCreateModePanels(root);
     on("createHelpToggle", "click", () => {
       state.ui.createHelpOpen = !state.ui.createHelpOpen;
       syncCreatePanelToggles();
@@ -3603,6 +3640,7 @@ function updateRecommendations() {
 window.updateRecommendations = updateRecommendations;
 window.updateAutoCreateSummary = () => updateAutoCreateSummary(document);
 window.updateAutoPromoSummary = () => updateAutoPromoSummary(document);
+window.updateCreateModePanels = () => updateCreateModePanels(document);
 
 function ensureSlotDropdowns() {
   document.querySelectorAll(".id-slot").forEach((slot) => {
@@ -3632,6 +3670,14 @@ if (typeof window !== "undefined") {
   window.updateTimeControls = () => {
     updateTimeControlButtons();
     syncTimeControlAria();
+  };
+  window.stopAutoSkips = () => {
+    const active = Boolean(autoSkipDayTimer || autoSkipWeekTimer);
+    if (!active) return false;
+    stopAutoSkipDay({ silent: true });
+    stopAutoSkipWeek({ silent: true });
+    clearAutoSkipPrevSpeed();
+    return true;
   };
   window.loadCSV = loadCSV;
 }
@@ -5042,7 +5088,8 @@ function stopAutoSkipDay({ silent = false } = {}) {
     autoSkipDayTimer = null;
   }
   autoSkipDayInFlight = false;
-  updateAutoSkipDayButton();
+  updateTimeControlButtons();
+  syncTimeControlAria();
   if (!silent) logEvent("Auto 24h disabled.");
 }
 
@@ -5089,7 +5136,8 @@ function startAutoSkipDay() {
   autoSkipDayTimer = setInterval(() => {
     void runAutoSkipDayTick();
   }, AUTO_SKIP_DAY_INTERVAL_MS);
-  updateAutoSkipDayButton();
+  updateTimeControlButtons();
+  syncTimeControlAria();
   logEvent("Auto 24h enabled (12s interval).");
 }
 
@@ -5108,7 +5156,8 @@ function stopAutoSkipWeek({ silent = false } = {}) {
     autoSkipWeekTimer = null;
   }
   autoSkipWeekInFlight = false;
-  updateAutoSkipWeekButton();
+  updateTimeControlButtons();
+  syncTimeControlAria();
   if (!silent) logEvent("Auto 7d disabled.");
 }
 
@@ -5155,7 +5204,8 @@ function startAutoSkipWeek() {
   autoSkipWeekTimer = setInterval(() => {
     void runAutoSkipWeekTick();
   }, AUTO_SKIP_WEEK_INTERVAL_MS);
-  updateAutoSkipWeekButton();
+  updateTimeControlButtons();
+  syncTimeControlAria();
   logEvent("Auto 7d enabled (7s interval).");
 }
 

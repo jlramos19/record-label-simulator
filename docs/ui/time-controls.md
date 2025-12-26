@@ -7,3 +7,4 @@ The header time controls drive simulation pacing and quick skips.
 - Auto 24h: toggles auto-skipping one day every 12 seconds.
 - Auto 7d: toggles auto-skipping one week every 7 seconds.
 - Skip Time: opens the custom time skip modal.
+- Only one time control can be active at once; auto-skips pause manual speed, and manual speed stops auto-skips.

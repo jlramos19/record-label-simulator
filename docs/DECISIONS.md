@@ -28,6 +28,7 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 ## Economy + analytics
 - DEC-20251226-001: Eras view replaces the Tracks panel with an Era Performance panel, showing per-track type, chart points, sales/stream metrics, costs, earnings, and an embedded chart history table for the focused era.
 - DEC-20251226-002: Vinyl run recommendations use a demand curve (fan base, quality, trend alignment, project type, act size, promo lead time, and price sensitivity) plus baseline physical pricing to estimate unit cost, recommended units, and gross/cost projections for player planning.
+- DEC-20251226-005: Project type track-count constraints follow `game-design-documents/03-Systems/Economy/Pricing/economy-pricing-and-track-limits-by-format.md` (Single 1-4, EP 5-7, Album 8-32) for create/release validation and seeded market projects.
 
 ## Competitive balance
 - DEC-20251226-003: Chart scoring applies label competition pressure from recent chart share to prevent runaway dominance, and modern-era seeds reduce dominant label bias.

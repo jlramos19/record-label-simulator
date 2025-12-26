@@ -1,5 +1,23 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1011Z)
+- Create view now lets you toggle between Manual and Auto panels while keeping the Tracks panel visible.
+- Auto Create now assigns Acts and auto-advances demo/master stages, using the same weekly budget rules and summary reporting.
+
+## 2025-12-26 (RLS-PATCH-20251226-1008Z)
+- Create tab now shows a pending pipeline badge with totals plus 🎼 sheet and 🎧 demo counts before mastering.
+
+## 2025-12-26 (RLS-PATCH-20251226-1003Z)
+- Time controls now enforce a single active mode; auto-skips pause manual speed and manual speed cancels auto-skips.
+
+## 2025-12-26 (RLS-PATCH-20251226-1002Z)
+- Chart update countdown now renders as fixed-width hours (000.00) to prevent layout jitter.
+
+## 2025-12-26 (RLS-PATCH-20251226-1001Z)
+- Community tab now lists modifier tools with inflation-adjusted pricing and purchase actions.
+- Create view now includes a Modifier Inventory panel and modifier select is limited to owned tools.
+- Added mood/theme/alignment-focused modifier tools with conditional quality boosts.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0955Z)
 - Tutorial now uses tabbed navigation (loops, concepts, economy, roles) and includes live economy formula readouts.
 - Added cheater mode toggle in Settings to unlock economy tuning edits; cheater mode disables achievements and quests while active.
@@ -17,6 +35,12 @@
 
 ## 2025-12-26 (RLS-PATCH-20251226-0934Z)
 - Create view Tracks panel now focuses on the creation pipeline and includes in-progress demo/master work orders.
+
+## 2025-12-26 (RLS-PATCH-20251226-1004Z)
+- Release Desk moved into a dedicated Release tab between Create and Calendar; Calendar now focuses solely on scheduling.
+- Added Project Planner guidance in Release plus project track-count constraints (Single 1-4, EP 5-7, Album 8-32) across create/release flows.
+- Charts now include a Projects mode alongside Tracks for project-level rankings.
+- Modern Era (2400) seeding now generates grouped projects (Singles/EPs/Albums) in the market.
 
 ## 2025-12-26 (RLS-PATCH-20251226-0927Z)
 - Added a Touring tab placeholder in the primary nav with a stub Touring Desk view.
@@ -282,3 +306,4 @@
 - Calendar view now projects scheduling into a grid from existing release queues; Releases is labeled Calendar, and the Eras calendar panel is merged into the Calendar view (list modal retained).
 - Calendar grid now renders a 6-week window with preview weeks and snap navigation (wheel/drag/touch) that only shifts the calendar anchor.
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
+

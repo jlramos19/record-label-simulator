@@ -130,6 +130,7 @@ import {
 
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
 const PROMO_BUDGET_MIN = 100;
+const CREATE_PENDING_EMOJIS = { sheet: "🎼", demo: "🎧" };
 
 function getPromoInflationMultiplier() {
   const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
@@ -990,6 +991,43 @@ function renderStats() {
     }
   }
   renderFocusEraStatus();
+}
+
+function getCreatePendingCounts() {
+  const counts = { sheet: 0, demo: 0 };
+  if (!Array.isArray(state.tracks)) return { ...counts, total: 0 };
+  state.tracks.forEach((track) => {
+    if (!track) return;
+    const stageIndex = Number(track.stageIndex);
+    if (!Number.isFinite(stageIndex)) return;
+    if (stageIndex === 0) counts.sheet += 1;
+    if (stageIndex === 1) counts.demo += 1;
+  });
+  return { ...counts, total: counts.sheet + counts.demo };
+}
+
+function renderCreateNavBadge() {
+  const navItem = document.querySelector(".app-nav [data-route=\"create\"]");
+  const badge = $("createNavBadge");
+  if (!navItem || !badge) return;
+  const totalEl = badge.querySelector("[data-create-pending-total]");
+  const breakdownEl = badge.querySelector("[data-create-pending-breakdown]");
+  const { sheet, demo, total } = getCreatePendingCounts();
+  if (totalEl) totalEl.textContent = formatCount(total);
+  if (breakdownEl) {
+    const sheetLabel = formatCount(sheet);
+    const demoLabel = formatCount(demo);
+    breakdownEl.textContent = `${CREATE_PENDING_EMOJIS.sheet}${sheetLabel} ${CREATE_PENDING_EMOJIS.demo}${demoLabel}`;
+  }
+  badge.classList.toggle("is-hidden", total <= 0);
+  if (total > 0) {
+    const detail = `${sheet} sheet${sheet === 1 ? "" : "s"}, ${demo} demo${demo === 1 ? "" : "s"}`;
+    navItem.setAttribute("aria-label", `Create (${total} pending: ${detail})`);
+    navItem.setAttribute("title", `${total} pending: ${CREATE_PENDING_EMOJIS.sheet}${sheet} ${CREATE_PENDING_EMOJIS.demo}${demo}`);
+  } else {
+    navItem.setAttribute("aria-label", "Create");
+    navItem.setAttribute("title", "Create");
+  }
 }
 
 function buildLabelRankingMeta() {
@@ -4656,6 +4694,9 @@ function renderActiveView(view) {
     renderModifierInventory();
     renderCreateTrends();
     updateGenrePreview();
+    if (typeof window !== "undefined" && typeof window.updateCreateModePanels === "function") {
+      window.updateCreateModePanels();
+    }
     if (typeof window !== "undefined" && typeof window.updateAutoCreateSummary === "function") {
       window.updateAutoCreateSummary();
     }
@@ -4693,6 +4734,7 @@ function renderAll({ save = true } = {}) {
   syncLabelWallets();
   renderTime();
   renderStats();
+  renderCreateNavBadge();
   renderTopBar();
   renderActiveView(state.ui.activeView);
   renderWallet();
