@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "RLS: Start Server",
+      "type": "npm",
+      "script": "start",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": ".+"
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*python -m http.server 5173.*",
+          "endsPattern": "Serving HTTP on .* port 5173"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "RLS: Watch TypeScript",
+      "type": "npm",
+      "script": "watch",
+      "isBackground": true,
+      "problemMatcher": "$tsc-watch",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "RLS: Dev Server + Watch",
+      "dependsOn": [
+        "RLS: Start Server",
+        "RLS: Watch TypeScript"
+      ],
+      "dependsOrder": "parallel"
+    }
+  ]
+}

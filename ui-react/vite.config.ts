@@ -7,6 +7,10 @@ export default defineConfig({
   define: {
     "process.env.NODE_ENV": "\"production\""
   },
+  server: {
+    port: 5174,
+    strictPort: true
+  },
   build: {
     outDir: path.resolve(__dirname, "../assets/js/ui-react"),
     emptyOutDir: true,

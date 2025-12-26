@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-26 10:21:51 -04:00
+Last updated: 2025-12-26 10:53:49 -04:00
 
 ## Quick start
 
@@ -36,19 +36,25 @@ npm run watch
 npm run dev:logs
 ```
 
+### VS Code Run/Debug (Edge)
+Use the `RLS: Edge (Dev)` Run/Debug config to launch Edge with `npm run start` + `npm run watch` prelaunch tasks.
+
 ### React UI islands (optional)
 ```bash
 cd ui-react
 npm install
 npm run build
+npm run dev
 ```
+`npm run dev` serves the React islands preview on `http://localhost:5174`.
 
 ## Project scripts
 
 - `npm run build` — compile TypeScript (`tsc -p tsconfig.json`)
-- `npm run watch` — compile in watch mode (`tsc -p tsconfig.json --watch`)
-- `npm run start` — serve via PowerShell + Python (`python -m http.server 5173`)
+- `npm run watch` - compile in watch mode (`tsc -p tsconfig.json --watch`)
+- `npm run start` - serve via PowerShell + Python (`python -m http.server 5173`)
 - `npm run dev:logs` - run watch + server + Edge (Puppeteer) with NDJSON logs in `usage-logs/`, including `[usage]` session events and errors
+- `npm run lint` - lint JS/MJS/CJS files with ESLint (TypeScript checks stay in `tsc`)
 
 ## Runtime entrypoints
 
@@ -59,6 +65,7 @@ npm run build
 ## Docs
 
 - Acronyms + abbreviations: `docs/glossary/acronyms.md`
+- Dev environment: `docs/dev-environment.md`
 - Unity to web glossary: `docs/glossary/unity-to-web.md`
 
 ## Code layout (high level)

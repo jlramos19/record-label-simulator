@@ -1,5 +1,10 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1453Z)
+- VS Code Edge debug now launches through the Edge Tools config with prelaunch dev server + TypeScript watch tasks.
+- React UI islands dev server now uses port 5174 to avoid conflicts with the main game server.
+- Added VS Code extension recommendations plus ESLint/Markdownlint configuration and a lint script.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1420Z)
 - Release desk now lists only mastered tracks as release-ready (unfinished masters stay in the Create pipeline).
 - Scheduled releases now exclude unmastered entries and surface a blocked summary for legacy or missing-track schedules.
@@ -27,8 +32,6 @@
 ## 2025-12-26 (RLS-PATCH-20251226-1250Z)
 - React calendar label text now uses grid-safe black/white for country color contrast.
 - React islands now define a production env flag to avoid a browser-only process error.
-
-# Patch Notes
 
 ## 2025-12-26 (RLS-PATCH-20251226-1219Z)
 - Live Performance promo card now upgrades into Prime Time Showcases with eligibility gating and updated costs/requirements.
