@@ -1,5 +1,10 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1132Z)
+- Added an optional `ui-react/` Vite + React build that outputs UI island bundles into `assets/js/ui-react/`.
+- Calendar modal + track slots now render via React islands with a shared state-change event bridge.
+- Added a small React pill/tag token demo inside Create to validate reusable UI tokens.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1113Z)
 - Era Desk rollout strategy controls now use a wrapped grid layout for horizontal planning.
 

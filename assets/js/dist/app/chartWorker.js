@@ -137,6 +137,10 @@ function scoreTrack(track, regionName, profiles, trends, audience, labelCompetit
     }
     score += Array.isArray(trends) && trends.includes(track.genre) ? 10 : 0;
     score += track.promoWeeks > 0 ? 10 : 0;
+    const promoGapPenalty = Number.isFinite(track?.promoGapPenalty) ? track.promoGapPenalty : 0;
+    const actStalePenalty = Number.isFinite(track?.actPromoStalePenalty) ? track.actPromoStalePenalty : 0;
+    if (promoGapPenalty || actStalePenalty)
+        score -= promoGapPenalty + actStalePenalty;
     const scopeNation = resolveScopeNation(regionName, regionDefs, nations);
     if (scopeNation) {
         const originMeta = resolveTrackOriginMeta(track);

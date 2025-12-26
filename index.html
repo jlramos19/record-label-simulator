@@ -9,8 +9,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Ubuntu+Mono:wght@400;700&family=Ubuntu+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/js/ui-react/ui-react.css">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0f141c">
+<meta name="theme-color" content="#330000">
 <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 </head>
@@ -34,6 +35,15 @@
       <label for="difficultySelect">Difficulty</label>
       <select id="difficultySelect" aria-label="Difficulty selection"></select>
       <div id="difficultyHint" class="tiny"></div>
+    </div>
+    <div class="field">
+      <label for="uiThemeSelect">UI Theme</label>
+      <select id="uiThemeSelect" aria-label="UI theme selection">
+        <option value="dark">Warm Dark</option>
+        <option value="light">Cool Light</option>
+        <option value="system">System</option>
+      </select>
+      <div class="tiny">System follows your OS color scheme.</div>
     </div>
     <div class="field">
       <label for="startTheme1">Starting Preferences</label>
@@ -268,7 +278,8 @@
       <h2>Calendar List</h2>
       <button id="calendarClose" type="button" class="ghost">Close</button>
     </div>
-    <div class="card-body">
+  <div class="card-body">
+      <div id="rls-react-calendar-root"></div>
       <div class="tabs" id="calendarModalTabs">
         <button class="tab active" data-calendar-tab="label" type="button">Label</button>
         <button class="tab" data-calendar-tab="public" type="button">Public</button>
@@ -768,6 +779,7 @@
           </div>
           <div class="subhead">Recommendation</div>
           <div id="trackRecommend" class="callout"></div>
+          <div id="rls-react-pills-root"></div>
           <div class="section-head">
             <div class="subhead">Creator Slots</div>
             <div class="section-actions">
@@ -775,6 +787,7 @@
             </div>
           </div>
           <div id="trackSlotMeta" class="tiny muted">Songwriters up to 15, recorders up to 10, producers up to 5. Larger teams move faster but drain more stamina and can dilute fit bonuses.</div>
+          <div id="rls-react-trackslots-root"></div>
           <div id="trackSlotGrid" class="slot-grid slot-grid--stack"></div>
           <div id="createAdvancedOptions" class="advanced-options hidden">
             <div class="field">
@@ -1489,5 +1502,6 @@
 <script src="assets/js/data/ai_labels.js"></script>
 <script src="assets/js/data/social_templates.js"></script>
 <script type="module" src="assets/js/dist/main.js"></script>
+<script type="module" src="assets/js/ui-react/ui-react.js"></script>
 </body>
 </html>

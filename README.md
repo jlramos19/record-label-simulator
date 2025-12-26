@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-26 07:18:46 -04:00
+Last updated: 2025-12-26 07:35:39 -04:00
 
 ## Quick start
 
@@ -36,6 +36,13 @@ npm run watch
 npm run dev:logs
 ```
 
+### React UI islands (optional)
+```bash
+cd ui-react
+npm install
+npm run build
+```
+
 ## Project scripts
 
 - `npm run build` — compile TypeScript (`tsc -p tsconfig.json`)
@@ -46,6 +53,7 @@ npm run dev:logs
 ## Runtime entrypoints
 
 - `index.html` loads global data from `assets/js/data/*.js` and the app module from `assets/js/dist/main.js`.
+- React UI islands (optional) load from `assets/js/ui-react/ui-react.js` + `assets/js/ui-react/ui-react.css`.
 - `src/main.ts` calls `initUI()` and registers `service-worker.js`.
 
 ## Docs

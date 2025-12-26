@@ -1245,7 +1245,7 @@ select, input[type="text"], input[type="number"] {
   padding: 7px 9px;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background: #0f141c;
+  background: var(--panel-2);
   color: var(--text);
 }
 select.theme-select {

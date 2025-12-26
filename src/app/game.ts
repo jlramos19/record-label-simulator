@@ -65,7 +65,6 @@ import {
   RIVAL_COMPETE_DROP_COST,
   ROLE_ACTION_STATUS,
   ROLE_ACTIONS,
-  ROLE_LABELS,
   ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS,
   ROLLOUT_EVENT_SCHEDULE,
   SEED_CALIBRATION_KEY,
@@ -96,6 +95,19 @@ import {
   WEEKLY_SCHEDULE,
   WEEKLY_UPDATE_WARN_MS
 } from "./game/config.js";
+import {
+  evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks,
+  getProjectTrackLimits,
+  normalizeProjectName,
+  normalizeProjectType
+} from "./game/project-tracks.js";
+import {
+  buildDefaultTrackSlotVisibility,
+  buildEmptyTrackSlotList,
+  parseTrackRoleTarget,
+  roleLabel,
+  trackRoleLimit
+} from "./game/track-roles.js";
 
 const ECONOMY_BASELINES_DEFAULT = { ...ECONOMY_BASELINES };
 const ECONOMY_TUNING_DEFAULT = { ...ECONOMY_TUNING };
@@ -109,85 +121,8 @@ const session = {
   lastLiveSyncAt: 0
 };
 
-const PROJECT_TRACK_LIMITS = {
-  Single: { min: 1, max: 4 },
-  EP: { min: 5, max: 7 },
-  Album: { min: 8, max: 32 }
-};
-const PROJECT_TYPE_ALIASES = {
-  single: "Single",
-  singles: "Single",
-  ep: "EP",
-  "e.p.": "EP",
-  album: "Album",
-  lp: "Album",
-  "long play": "Album"
-};
-
-function normalizeProjectType(projectType) {
-  const raw = String(projectType || "").trim();
-  if (!raw) return "Single";
-  const key = raw.toLowerCase();
-  return PROJECT_TYPE_ALIASES[key] || (PROJECT_TRACK_LIMITS[raw] ? raw : "Single");
-}
-
-function normalizeProjectName(projectName) {
-  return String(projectName || "").replace(/\s+/g, " ").trim().toLowerCase();
-}
-
-function getProjectTrackLimits(projectType) {
-  const normalizedType = normalizeProjectType(projectType);
-  const limits = PROJECT_TRACK_LIMITS[normalizedType] || PROJECT_TRACK_LIMITS.Single;
-  return { ...limits, type: normalizedType };
-}
-
-function listProjectTracks(projectName) {
-  const normalizedName = normalizeProjectName(projectName);
-  if (!normalizedName) return [];
-  return state.tracks.filter((track) => normalizeProjectName(track.projectName) === normalizedName);
-}
-
 function evaluateProjectTrackConstraints(projectName, projectType) {
-  const normalizedType = normalizeProjectType(projectType);
-  const limits = getProjectTrackLimits(normalizedType);
-  const normalizedName = normalizeProjectName(projectName);
-  if (!normalizedName) {
-    return { ok: true, normalizedType, limits, count: 0, existingTypes: [] };
-  }
-  const tracks = listProjectTracks(projectName);
-  const count = tracks.length;
-  const existingTypes = Array.from(new Set(tracks.map((track) => normalizeProjectType(track.projectType))));
-  const conflict = existingTypes.find((type) => type !== normalizedType);
-  if (conflict) {
-    return {
-      ok: false,
-      normalizedType,
-      limits,
-      count,
-      existingTypes,
-      reason: `Project "${projectName}" already uses ${conflict} tracks. Use ${conflict} or rename the project.`
-    };
-  }
-  if (Number.isFinite(limits.max) && count >= limits.max) {
-    return {
-      ok: false,
-      normalizedType,
-      limits,
-      count,
-      existingTypes,
-      reason: `${normalizedType} projects cap at ${limits.max} tracks. "${projectName}" already has ${count}.`
-    };
-  }
-  return { ok: true, normalizedType, limits, count, existingTypes };
-}
-
-function trackRoleLimit(role) {
-  const limit = TRACK_ROLE_LIMITS?.[role];
-  return Number.isFinite(limit) ? limit : 1;
-}
-
-function roleLabel(role) {
-  return ROLE_LABELS[role] || role;
+  return evaluateProjectTrackConstraintsWithTracks(state.tracks, projectName, projectType);
 }
 
 function nowMs() {
@@ -201,18 +136,6 @@ function logDuration(label, startTime, thresholdMs, context = "") {
     console.warn(`[perf] ${label} took ${durationMs.toFixed(2)}ms${contextSuffix}.`);
   }
   return durationMs;
-}
-
-function buildEmptyTrackSlotList(role) {
-  return Array.from({ length: trackRoleLimit(role) }, () => null);
-}
-
-function buildDefaultTrackSlotVisibility() {
-  return {
-    Songwriter: Math.min(DEFAULT_TRACK_SLOT_VISIBLE, trackRoleLimit("Songwriter")),
-    Performer: Math.min(DEFAULT_TRACK_SLOT_VISIBLE, trackRoleLimit("Performer")),
-    Producer: Math.min(DEFAULT_TRACK_SLOT_VISIBLE, trackRoleLimit("Producer"))
-  };
 }
 
 function ensureTrackSlotArrays() {
@@ -231,15 +154,6 @@ function ensureTrackSlotArrays() {
     while (current.length < limit) current.push(null);
     state.ui.trackSlots[key] = current;
   });
-}
-
-function parseTrackRoleTarget(targetId) {
-  const match = TRACK_ROLE_TARGET_PATTERN.exec(targetId || "");
-  if (!match) return null;
-  const role = TRACK_ROLE_MATCH[match[1]];
-  if (!role) return null;
-  const index = match[2] ? Math.max(0, Number(match[2]) - 1) : 0;
-  return { role, key: TRACK_ROLE_KEYS[role], index };
 }
 
 function listFromIds(ids) {
@@ -406,6 +320,7 @@ function makeDefaultState() {
     genreRanking: [],
     charts: { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} },
     promoContent: [],
+    touring: { drafts: [], bookings: [], lastDraftId: 0 },
     promoCharts: { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} },
     tourCharts: { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} },
     tourChartHistory: {},
@@ -451,6 +366,7 @@ function makeDefaultState() {
         return acc;
       }, {}),
       promoSlots: { actId: null, trackId: null },
+      tourDraftId: null,
       socialSlots: { trackId: null },
       viewContext: {
         actId: null,
@@ -841,6 +757,15 @@ const DAY_MS = HOUR_MS * 24;
 const WEEK_MS = DAY_MS * 7;
 const YEAR_MS = DAY_MS * 365;
 const CREATOR_INACTIVITY_MS = YEAR_MS * 2;
+const ACT_PROMO_WARNING_MS = YEAR_MS / 2;
+const ACT_PROMO_WARNING_WEEKS = Math.round(ACT_PROMO_WARNING_MS / WEEK_MS);
+const ACT_PROMO_STALE_PENALTY_STEP_WEEKS = 8;
+const ACT_PROMO_STALE_PENALTY_STEP = 2;
+const ACT_PROMO_STALE_PENALTY_MAX = 10;
+const PROMO_GAP_PENALTY_PER_TYPE = 3;
+const PROMO_GAP_PENALTY_MAX = 9;
+const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
+  .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
 const CREATOR_SKILL_GAIN_BY_STAGE = [0.15, 0.25, 0.4];
 const CREATOR_SKILL_DECAY_GRACE_WEEKS = 6;
 const CREATOR_SKILL_DECAY_STEP_WEEKS = 2;
@@ -1433,6 +1358,9 @@ function commitSlotChange({ updateStats = false } = {}) {
     window.updateRecommendations();
   }
   saveToActiveSlot();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("rls:state-changed"));
+  }
 }
 
 function ejectLowStaminaTrackSlots() {
@@ -3147,7 +3075,9 @@ function makeAct({ name, type, alignment, memberIds }) {
     alignment,
     memberIds,
     promoWeeks: 0,
-    lastPromoAt: null
+    lastPromoAt: null,
+    promoTypesUsed: {},
+    promoTypesLastAt: {}
   };
 }
 
@@ -4090,8 +4020,15 @@ function getRivalByName(name) {
 function creatorHasActiveAct(creatorId) {
   const memberActs = state.acts.filter((act) => act.memberIds.includes(creatorId));
   if (!memberActs.length) return false;
-  const activeEraActIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.actId));
-  return memberActs.some((act) => activeEraActIds.has(act.id));
+  const activeEras = getActiveEras().filter((era) => era.status === "Active");
+  if (!activeEras.length) return false;
+  return memberActs.some((act) => {
+    const era = activeEras.find((entry) => entry.actId === act.id);
+    if (!era) return false;
+    const weeksStale = getActPromoStalenessWeeks(act, era.startedAt);
+    if (Number.isFinite(weeksStale) && weeksStale >= ACT_PROMO_WARNING_WEEKS) return false;
+    return true;
+  });
 }
 
 function creatorHasActiveWork(creatorId) {
@@ -4448,7 +4385,9 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
     marketId: null,
     promo: {
       preReleaseWeeks: 0,
-      musicVideoUsed: false
+      musicVideoUsed: false,
+      typesUsed: {},
+      typesLastAt: {}
     }
   };
   refreshTrackQuality(track, 0);
@@ -4896,6 +4835,15 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
   track.trendAtRelease = state.trends.includes(track.genre);
   track.distribution = dist;
   const preReleaseWeeks = Math.max(0, track.promo?.preReleaseWeeks || 0);
+  const promoTypesUsed = track.promo?.typesUsed && typeof track.promo.typesUsed === "object"
+    ? { ...track.promo.typesUsed }
+    : {};
+  if (track.promo?.musicVideoUsed && !Number.isFinite(promoTypesUsed.musicVideo)) {
+    promoTypesUsed.musicVideo = 1;
+  }
+  const promoTypesLastAt = track.promo?.typesLastAt && typeof track.promo.typesLastAt === "object"
+    ? { ...track.promo.typesLastAt }
+    : {};
   const act = getAct(track.actId);
   const era = track.eraId ? getEraById(track.eraId) : null;
   const projectName = track.projectName || `${track.title} - Single`;
@@ -4924,7 +4872,9 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     distribution: track.distribution,
     releasedAt: track.releasedAt,
     weeksOnChart: 0,
-    promoWeeks: preReleaseWeeks
+    promoWeeks: preReleaseWeeks,
+    promoTypesUsed,
+    promoTypesLastAt
   };
   track.marketId = marketEntry.id;
   state.marketTracks.push(marketEntry);
@@ -4933,6 +4883,9 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
   logEvent(`Released "${track.title}" to market${note ? ` (${note})` : ""}.${feeNote}`);
   postTrackRelease(track);
   markRolloutDropsReleasedByTrack(track.id, track.releasedAt);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("rls:state-changed"));
+  }
   return true;
 }
 
@@ -4979,6 +4932,9 @@ function scheduleRelease(track, hoursFromNow, distribution, note) {
   ensureEraForTrack(track, "Release scheduled");
   const feeNote = feeResult.fee ? ` Distribution fee: ${formatMoney(feeResult.fee)}.` : "";
   logEvent(`Scheduled "${track.title}" for release in ${scheduleHours}h.${feeNote}`);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("rls:state-changed"));
+  }
   return true;
 }
 
@@ -5029,11 +4985,15 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
     const feeNote = feeResult.fee ? ` Distribution fee: ${formatMoney(feeResult.fee)}.` : "";
     logEvent(`Scheduled "${track.title}" for release on ${formatDate(releaseAt)}.${feeNote}`);
   }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("rls:state-changed"));
+  }
   return { ok: true, entry };
 }
 
 function processReleaseQueue() {
   const now = state.time.epochMs;
+  const previousCount = state.releaseQueue.length;
   const remaining = [];
   state.releaseQueue.forEach((entry) => {
     if (entry.releaseAt <= now) {
@@ -5050,6 +5010,9 @@ function processReleaseQueue() {
     }
   });
   state.releaseQueue = remaining;
+  if (remaining.length !== previousCount && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("rls:state-changed"));
+  }
 }
 
 function shouldLogRolloutBlock(item, reason, mode) {
@@ -5706,6 +5669,98 @@ function getLabelCompetitionMultiplier(label) {
   return Number.isFinite(multiplier) ? multiplier : 1;
 }
 
+function resolvePromoTypesUsed(target) {
+  if (!target || typeof target !== "object") return null;
+  if (target.promoTypesUsed && typeof target.promoTypesUsed === "object") return target.promoTypesUsed;
+  if (target.promo?.typesUsed && typeof target.promo.typesUsed === "object") return target.promo.typesUsed;
+  return null;
+}
+
+function hasPromoTypeUsage(target, typeId) {
+  if (!target || !typeId) return false;
+  const used = resolvePromoTypesUsed(target);
+  const count = used && Number.isFinite(used[typeId]) ? used[typeId] : 0;
+  if (count > 0) return true;
+  if (typeId === "musicVideo") return !!target?.promo?.musicVideoUsed;
+  return false;
+}
+
+function recordPromoTypeUsage(target, typeId, atMs = state.time.epochMs) {
+  if (!target || !typeId) return;
+  const stamp = Number.isFinite(atMs) ? atMs : state.time.epochMs;
+  if (target.promo && typeof target.promo === "object") {
+    if (!target.promo.typesUsed || typeof target.promo.typesUsed !== "object") target.promo.typesUsed = {};
+    if (!target.promo.typesLastAt || typeof target.promo.typesLastAt !== "object") target.promo.typesLastAt = {};
+    target.promo.typesUsed[typeId] = (Number(target.promo.typesUsed[typeId]) || 0) + 1;
+    target.promo.typesLastAt[typeId] = stamp;
+    if (typeId === "musicVideo") target.promo.musicVideoUsed = true;
+    return;
+  }
+  if (!target.promoTypesUsed || typeof target.promoTypesUsed !== "object") target.promoTypesUsed = {};
+  if (!target.promoTypesLastAt || typeof target.promoTypesLastAt !== "object") target.promoTypesLastAt = {};
+  target.promoTypesUsed[typeId] = (Number(target.promoTypesUsed[typeId]) || 0) + 1;
+  target.promoTypesLastAt[typeId] = stamp;
+}
+
+function recordPromoUsage({ track = null, market = null, act = null, promoType, atMs = state.time.epochMs } = {}) {
+  if (!promoType) return;
+  const stamp = Number.isFinite(atMs) ? atMs : state.time.epochMs;
+  if (track) recordPromoTypeUsage(track, promoType, stamp);
+  if (market) recordPromoTypeUsage(market, promoType, stamp);
+  if (act) {
+    recordPromoTypeUsage(act, promoType, stamp);
+    act.lastPromoAt = stamp;
+  }
+}
+
+function getTrackMissingPromoTypes(track, { includeScheduled = false } = {}) {
+  if (!track) return [];
+  const isReleased = track.status === "Released" || Number.isFinite(track.releasedAt);
+  const isScheduled = track.status === "Scheduled";
+  const isEligible = isReleased || (includeScheduled && isScheduled);
+  if (!isEligible) return [];
+  return PROMO_TRACK_REQUIRED_TYPES.filter((typeId) => {
+    if (typeId === "musicVideo" && !isReleased) return false;
+    return !hasPromoTypeUsage(track, typeId);
+  });
+}
+
+function getTrackPromoGapPenalty(track) {
+  const missing = getTrackMissingPromoTypes(track);
+  if (!missing.length) return 0;
+  return Math.min(PROMO_GAP_PENALTY_MAX, missing.length * PROMO_GAP_PENALTY_PER_TYPE);
+}
+
+function resolveActPromoAt(act, fallbackAt) {
+  if (!act) return null;
+  if (Number.isFinite(act.lastPromoAt)) return act.lastPromoAt;
+  if (Number.isFinite(fallbackAt)) return fallbackAt;
+  return null;
+}
+
+function getActPromoStalenessWeeks(act, fallbackAt, now = state.time.epochMs) {
+  const anchor = resolveActPromoAt(act, fallbackAt);
+  if (!Number.isFinite(anchor)) return null;
+  const delta = Math.max(0, Number(now) - anchor);
+  return Math.floor(delta / WEEK_MS);
+}
+
+function getActPromoStalePenalty(act, fallbackAt, now = state.time.epochMs) {
+  const weeksStale = getActPromoStalenessWeeks(act, fallbackAt, now);
+  if (!Number.isFinite(weeksStale) || weeksStale < ACT_PROMO_WARNING_WEEKS) return 0;
+  const steps = Math.floor((weeksStale - ACT_PROMO_WARNING_WEEKS) / ACT_PROMO_STALE_PENALTY_STEP_WEEKS) + 1;
+  return Math.min(ACT_PROMO_STALE_PENALTY_MAX, steps * ACT_PROMO_STALE_PENALTY_STEP);
+}
+
+function getActPromoStalePenaltyForTrack(track, now = state.time.epochMs) {
+  if (!track?.actId) return 0;
+  const act = getAct(track.actId);
+  if (!act) return 0;
+  const era = track.eraId ? getEraById(track.eraId) : null;
+  const fallbackAt = Number.isFinite(era?.startedAt) ? era.startedAt : null;
+  return getActPromoStalePenalty(act, fallbackAt, now);
+}
+
 function scoreTrack(track, regionName) {
   const audience = getAudienceProfile(regionName);
   let score = track.quality;
@@ -5721,6 +5776,9 @@ function scoreTrack(track, regionName) {
   score += track.promoWeeks > 0 ? 10 : 0;
   const actPromoWeeks = track.actId ? (getAct(track.actId)?.promoWeeks || 0) : 0;
   score += actPromoWeeks > 0 ? Math.min(6, actPromoWeeks * 2) : 0;
+  const promoGapPenalty = getTrackPromoGapPenalty(track);
+  const actStalePenalty = getActPromoStalePenaltyForTrack(track);
+  if (promoGapPenalty || actStalePenalty) score -= promoGapPenalty + actStalePenalty;
   const scopeNation = resolveScopeNation(regionName);
   if (scopeNation) {
     const originMeta = resolveTrackOriginMeta(track);
@@ -5749,6 +5807,9 @@ function scoreTrackProjected(track, regionName, seedKey) {
   score += track.promoWeeks > 0 ? 10 : 0;
   const actPromoWeeks = track.actId ? (getAct(track.actId)?.promoWeeks || 0) : 0;
   score += actPromoWeeks > 0 ? Math.min(6, actPromoWeeks * 2) : 0;
+  const promoGapPenalty = getTrackPromoGapPenalty(track);
+  const actStalePenalty = getActPromoStalePenaltyForTrack(track);
+  if (promoGapPenalty || actStalePenalty) score -= promoGapPenalty + actStalePenalty;
   const scopeNation = resolveScopeNation(regionName);
   if (scopeNation) {
     const originMeta = resolveTrackOriginMeta(track);
@@ -5960,6 +6021,16 @@ function ensureChartStoreStructure(store) {
 function ensurePromoContentStore() {
   if (!Array.isArray(state.promoContent)) state.promoContent = [];
   return state.promoContent;
+}
+
+function ensureTouringStore() {
+  if (!state.touring || typeof state.touring !== "object") {
+    state.touring = { drafts: [], bookings: [], lastDraftId: 0 };
+  }
+  if (!Array.isArray(state.touring.drafts)) state.touring.drafts = [];
+  if (!Array.isArray(state.touring.bookings)) state.touring.bookings = [];
+  if (typeof state.touring.lastDraftId !== "number") state.touring.lastDraftId = 0;
+  return state.touring;
 }
 
 function ensurePromoChartsStore() {
@@ -6424,6 +6495,8 @@ function buildChartWorkerPayload() {
       mood: track.mood,
       genre: track.genre,
       promoWeeks: track.promoWeeks,
+      promoGapPenalty: getTrackPromoGapPenalty(track),
+      actPromoStalePenalty: getActPromoStalePenaltyForTrack(track),
       weeksOnChart: track.weeksOnChart,
       label: track.label,
       country: track.country,
@@ -6743,7 +6816,17 @@ function buildProjectedMarketTracks(targetEpochMs) {
       const creatorCountries = resolveCreatorCountriesFromTrack(track);
       const actCountry = resolveActCountryFromMembers(track.actId);
       const originCountry = actCountry || dominantValue(creatorCountries, null) || state.label.country || "Annglora";
+      const era = track.eraId ? getEraById(track.eraId) : null;
       const weeksOnChart = Math.max(0, weekIndexForEpochMs(safeEpoch) - weekIndexForEpochMs(entry.releaseAt));
+      const promoTypesUsed = track.promo?.typesUsed && typeof track.promo.typesUsed === "object"
+        ? { ...track.promo.typesUsed }
+        : {};
+      if (track.promo?.musicVideoUsed && !Number.isFinite(promoTypesUsed.musicVideo)) {
+        promoTypesUsed.musicVideo = 1;
+      }
+      const promoTypesLastAt = track.promo?.typesLastAt && typeof track.promo.typesLastAt === "object"
+        ? { ...track.promo.typesLastAt }
+        : {};
       projected.push({
         id: uid("MKP"),
         trackId: track.id,
@@ -6751,6 +6834,8 @@ function buildProjectedMarketTracks(targetEpochMs) {
         label: state.label.name,
         actId: track.actId,
         actName: act ? act.name : "Unknown Act",
+        eraId: track.eraId || null,
+        eraName: era ? era.name : null,
         projectName,
         projectType: track.projectType || "Single",
         isPlayer: true,
@@ -6765,7 +6850,9 @@ function buildProjectedMarketTracks(targetEpochMs) {
         distribution: entry.distribution || track.distribution || "Digital",
         releasedAt: entry.releaseAt,
         weeksOnChart,
-        promoWeeks: Math.max(0, track.promo?.preReleaseWeeks || 0)
+        promoWeeks: Math.max(0, track.promo?.preReleaseWeeks || 0),
+        promoTypesUsed,
+        promoTypesLastAt
       });
       if (key) seen.add(key);
     });
@@ -8164,6 +8251,7 @@ function processRivalPromoEntry(entry) {
   rival.wallet.cash = rival.cash;
   const boostWeeks = promoWeeksFromBudget(budget);
   market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
+  recordPromoUsage({ market, promoType, atMs: state.time.epochMs });
   recordPromoContent({
     promoType,
     actId: market.actId || null,
@@ -8516,6 +8604,8 @@ function runAutoPromoForPlayer() {
   recordTrackPromoCost(track, totalCost);
   const boostWeeks = promoWeeksFromBudget(budget);
   market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
+  const act = track.actId ? getAct(track.actId) : null;
+  if (act) act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
   state.meta.promoRuns = (state.meta.promoRuns || 0) + usableTypes.length;
   const promoIds = [
     ...(track.creators?.songwriterIds || []),
@@ -8523,13 +8613,10 @@ function runAutoPromoForPlayer() {
     ...(track.creators?.producerIds || [])
   ].filter(Boolean);
   markCreatorPromo(promoIds);
-  if (usableTypes.includes("musicVideo")) {
-    if (!track.promo || typeof track.promo !== "object") track.promo = {};
-    track.promo.musicVideoUsed = true;
-  }
-  const act = track.actId ? getAct(track.actId) : null;
+  const promoStamp = state.time.epochMs;
   const promoLabel = market?.label || state.label?.name || "";
   usableTypes.forEach((promoType) => {
+    recordPromoUsage({ track, market, act, promoType, atMs: promoStamp });
     recordPromoContent({
       promoType,
       actId: track.actId || null,
@@ -8604,13 +8691,14 @@ function runAutoPromoForRivals() {
       if (!reservation.ok) return;
     }
     rival.cash -= budget;
-    if (!rival.wallet) rival.wallet = { cash: rival.cash };
-    rival.wallet.cash = rival.cash;
-    const boostWeeks = promoWeeksFromBudget(budget);
-    market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
-    recordPromoContent({
-      promoType,
-      actId: market.actId || null,
+  if (!rival.wallet) rival.wallet = { cash: rival.cash };
+  rival.wallet.cash = rival.cash;
+  const boostWeeks = promoWeeksFromBudget(budget);
+  market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
+  recordPromoUsage({ market, promoType, atMs: state.time.epochMs });
+  recordPromoContent({
+    promoType,
+    actId: market.actId || null,
       actName: market.actName || null,
       trackId: market.trackId || null,
       marketId: market.id,
@@ -9206,6 +9294,7 @@ function normalizeState() {
       promoType: DEFAULT_PROMO_TYPE,
       promoTypes: [DEFAULT_PROMO_TYPE],
       promoSlots: { actId: null, trackId: null },
+      tourDraftId: null,
       activeView: "charts"
     };
   }
@@ -9290,6 +9379,7 @@ function normalizeState() {
   if (!state.ui.eraSlots) state.ui.eraSlots = { actId: null };
   if (!state.ui.promoSlots) state.ui.promoSlots = { actId: null, trackId: null };
   if (typeof state.ui.promoSlots.actId !== "string") state.ui.promoSlots.actId = state.ui.promoSlots.actId || null;
+  if (typeof state.ui.tourDraftId !== "string") state.ui.tourDraftId = state.ui.tourDraftId || null;
   if (!state.ui.socialSlots) state.ui.socialSlots = { trackId: null };
   if (typeof state.ui.chartHistoryWeek !== "number") state.ui.chartHistoryWeek = null;
   if (typeof state.ui.chartHistorySnapshot === "undefined") state.ui.chartHistorySnapshot = null;
@@ -9464,6 +9554,8 @@ function normalizeState() {
     if (!Array.isArray(act.memberIds)) act.memberIds = [];
     if (typeof act.promoWeeks !== "number") act.promoWeeks = 0;
     if (typeof act.lastPromoAt !== "number") act.lastPromoAt = null;
+    if (!act.promoTypesUsed || typeof act.promoTypesUsed !== "object") act.promoTypesUsed = {};
+    if (!act.promoTypesLastAt || typeof act.promoTypesLastAt !== "object") act.promoTypesLastAt = {};
     return act;
   });
   if (!state.creators) state.creators = [];
@@ -9613,6 +9705,29 @@ function normalizeState() {
     if (!next.chartHistory || typeof next.chartHistory !== "object") next.chartHistory = {};
     return next;
   });
+  const touring = ensureTouringStore();
+  touring.drafts = touring.drafts.filter(Boolean).map((draft) => {
+    const next = draft || {};
+    if (!next.id) next.id = uid("TD");
+    if (typeof next.name !== "string") next.name = "";
+    if (next.goal !== "visibility" && next.goal !== "revenue") next.goal = "visibility";
+    if (typeof next.actId !== "string") next.actId = next.actId || null;
+    if (typeof next.eraId !== "string") next.eraId = next.eraId || null;
+    if (!Array.isArray(next.anchorTrackIds)) next.anchorTrackIds = [];
+    next.anchorTrackIds = next.anchorTrackIds.filter(Boolean);
+    if (typeof next.anchorProjectId !== "string") next.anchorProjectId = next.anchorProjectId || null;
+    if (!next.window || typeof next.window !== "object") next.window = { startWeek: null, endWeek: null };
+    if (!Number.isFinite(next.window.startWeek)) next.window.startWeek = null;
+    if (!Number.isFinite(next.window.endWeek)) next.window.endWeek = null;
+    if (!Array.isArray(next.legs)) next.legs = [];
+    if (typeof next.notes !== "string") next.notes = "";
+    if (!next.status) next.status = "Draft";
+    if (typeof next.createdAt !== "number") next.createdAt = state.time?.epochMs || Date.now();
+    if (typeof next.updatedAt !== "number") next.updatedAt = next.createdAt;
+    return next;
+  });
+  touring.lastDraftId = Math.max(0, Math.round(Number(touring.lastDraftId) || 0));
+  touring.bookings = touring.bookings.filter(Boolean);
   state.promoCharts = ensureChartStoreStructure(state.promoCharts);
   state.tourCharts = ensureChartStoreStructure(state.tourCharts);
   if (!state.tourChartHistory || typeof state.tourChartHistory !== "object") state.tourChartHistory = {};
@@ -9794,6 +9909,11 @@ function normalizeState() {
       if (!track.promo || typeof track.promo !== "object") track.promo = {};
       if (typeof track.promo.preReleaseWeeks !== "number") track.promo.preReleaseWeeks = 0;
       if (typeof track.promo.musicVideoUsed !== "boolean") track.promo.musicVideoUsed = false;
+      if (!track.promo.typesUsed || typeof track.promo.typesUsed !== "object") track.promo.typesUsed = {};
+      if (!track.promo.typesLastAt || typeof track.promo.typesLastAt !== "object") track.promo.typesLastAt = {};
+      if (track.promo.musicVideoUsed && !Number.isFinite(track.promo.typesUsed.musicVideo)) {
+        track.promo.typesUsed.musicVideo = 1;
+      }
       if (typeof track.stageIndex !== "number") {
         track.stageIndex = track.status === "Ready" ? STAGES.length : 0;
       }
@@ -9833,11 +9953,31 @@ function normalizeState() {
       if (!entry.distribution) entry.distribution = "Digital";
       if (typeof entry.releasedAt !== "number") entry.releasedAt = state.time?.epochMs || Date.now();
       if (typeof entry.isPlayer !== "boolean") entry.isPlayer = false;
+      if (!entry.promoTypesUsed || typeof entry.promoTypesUsed !== "object") entry.promoTypesUsed = {};
+      if (!entry.promoTypesLastAt || typeof entry.promoTypesLastAt !== "object") entry.promoTypesLastAt = {};
       const originMeta = resolveTrackOriginMeta(entry);
       if (!Array.isArray(entry.creatorCountries) || !entry.creatorCountries.length) {
         entry.creatorCountries = originMeta.creatorCountries;
       }
       if (!entry.actCountry) entry.actCountry = originMeta.actCountry;
+      if (entry.trackId) {
+        const track = getTrack(entry.trackId);
+        if (track?.promo?.typesUsed && typeof track.promo.typesUsed === "object") {
+          Object.entries(track.promo.typesUsed).forEach(([typeId, count]) => {
+            const existing = entry.promoTypesUsed[typeId];
+            if (!Number.isFinite(existing) || existing < count) entry.promoTypesUsed[typeId] = count;
+          });
+        }
+        if (track?.promo?.typesLastAt && typeof track.promo.typesLastAt === "object") {
+          Object.entries(track.promo.typesLastAt).forEach(([typeId, stamp]) => {
+            const existing = entry.promoTypesLastAt[typeId];
+            if (!Number.isFinite(existing) || existing < stamp) entry.promoTypesLastAt[typeId] = stamp;
+          });
+        }
+        if (track?.promo?.musicVideoUsed && !Number.isFinite(entry.promoTypesUsed.musicVideo)) {
+          entry.promoTypesUsed.musicVideo = 1;
+        }
+      }
       if (entry.isPlayer) {
         const originCountry = originMeta.actCountry
           || dominantValue(originMeta.creatorCountries, entry.country || null)
@@ -10299,7 +10439,14 @@ function getTopActSnapshot() {
   const scores = {};
   entries.forEach((track) => {
     const actPromoWeeks = track.actId ? (getAct(track.actId)?.promoWeeks || 0) : 0;
-    const score = track.quality + Math.max(0, 12 - track.weeksOnChart) * 5 + track.promoWeeks * 4 + actPromoWeeks * 2;
+    const promoGapPenalty = getTrackPromoGapPenalty(track);
+    const actStalePenalty = getActPromoStalePenaltyForTrack(track);
+    const score = track.quality
+      + Math.max(0, 12 - track.weeksOnChart) * 5
+      + track.promoWeeks * 4
+      + actPromoWeeks * 2
+      - promoGapPenalty
+      - actStalePenalty;
     scores[track.actId] = (scores[track.actId] || 0) + score;
   });
   const bestId = Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0];
@@ -10939,3 +11086,9 @@ export {
   weekIndex,
   weekNumberFromEpochMs,
 };
+
+if (typeof window !== "undefined") {
+  window.rlsState = state;
+  window.rlsBuildCalendarProjection = buildCalendarProjection;
+  window.rlsBridge = { state, buildCalendarProjection };
+}

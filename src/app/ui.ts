@@ -234,6 +234,12 @@ const ROLE_LABELS = {
   Recorder: "Recorder",
   Producer: "Producer"
 };
+const STATE_EVENT = "rls:state-changed";
+
+function emitStateChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(STATE_EVENT));
+}
 
 function calendarAnchorWeek() {
   return Number.isFinite(state.ui?.calendarWeekIndex) ? state.ui.calendarWeekIndex : weekIndex();
@@ -244,8 +250,29 @@ function setCalendarAnchorWeek(next) {
   if (state.ui.calendarWeekIndex === clamped) return false;
   state.ui.calendarWeekIndex = clamped;
   renderCalendarView();
+  renderCalendarList("calendarFullList", 12);
   saveToActiveSlot();
+  emitStateChanged();
   return true;
+}
+
+function setCalendarTab(tab) {
+  if (!tab) return;
+  state.ui.calendarTab = tab;
+  renderCalendarView();
+  renderCalendarList("calendarFullList", 12);
+  saveToActiveSlot();
+  emitStateChanged();
+}
+
+function setCalendarFilter(key, checked) {
+  if (!key) return;
+  if (!state.ui.calendarFilters) state.ui.calendarFilters = {};
+  state.ui.calendarFilters[key] = checked;
+  renderCalendarView();
+  renderCalendarList("calendarFullList", 12);
+  saveToActiveSlot();
+  emitStateChanged();
 }
 
 function shiftCalendarAnchorWeek(delta) {
@@ -451,6 +478,7 @@ function setTrackSlotIds(role, ids) {
       "warn"
     );
   }
+  emitStateChanged();
 }
 
 function primaryTrackSlotTarget(role) {
@@ -2282,26 +2310,18 @@ function bindGlobalHandlers() {
     });
   }
   on("calendarClose", "click", () => closeOverlay("calendarModal"));
-  const refreshCalendar = () => {
-    renderCalendarView();
-    renderCalendarList("calendarFullList", 12);
-  };
   document.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const tab = btn.dataset.calendarTab;
       if (!tab) return;
-      state.ui.calendarTab = tab;
-      refreshCalendar();
-      saveToActiveSlot();
+      setCalendarTab(tab);
     });
   });
   document.querySelectorAll("[data-calendar-filter]").forEach((input) => {
     input.addEventListener("change", (e) => {
       const key = e.target.dataset.calendarFilter;
       if (!key) return;
-      state.ui.calendarFilters[key] = e.target.checked;
-      refreshCalendar();
-      saveToActiveSlot();
+      setCalendarFilter(key, e.target.checked);
     });
   });
   on("chartHistoryClose", "click", () => closeOverlay("chartHistoryModal"));
@@ -2781,6 +2801,7 @@ function bindViewHandlers(route, root) {
       }
       renderSlots();
       saveToActiveSlot();
+      emitStateChanged();
     });
   }
 
@@ -2802,18 +2823,14 @@ function bindViewHandlers(route, root) {
       btn.addEventListener("click", () => {
         const tab = btn.dataset.calendarTab;
         if (!tab) return;
-        state.ui.calendarTab = tab;
-        renderCalendarView();
-        saveToActiveSlot();
+        setCalendarTab(tab);
       });
     });
     root.querySelectorAll("[data-calendar-filter]").forEach((input) => {
       input.addEventListener("change", (e) => {
         const key = e.target.dataset.calendarFilter;
         if (!key) return;
-        state.ui.calendarFilters[key] = e.target.checked;
-        renderCalendarView();
-        saveToActiveSlot();
+        setCalendarFilter(key, e.target.checked);
       });
     });
     const calendarGrid = root.querySelector("#calendarGrid");
@@ -2950,6 +2967,7 @@ function bindViewHandlers(route, root) {
       state.ui.slotTarget = target;
       renderAll();
       saveToActiveSlot();
+      emitStateChanged();
     });
   }
   on("demoTrackSelect", "change", (e) => {
@@ -3684,6 +3702,7 @@ function recommendAllCreators(stageOverride) {
   const summary = assignAllCreatorsToSlots();
   renderSlots();
   saveToActiveSlot();
+  emitStateChanged();
   updateGenrePreview();
   updateTrackRecommendation();
   const counts = summary.map((entry) => `${roleLabel(entry.role)} ${entry.count}`).join(" | ");
@@ -3706,6 +3725,7 @@ window.updateCreateModePanels = () => updateCreateModePanels(document);
 
 function ensureSlotDropdowns() {
   document.querySelectorAll(".id-slot").forEach((slot) => {
+    if (slot.closest("#rls-react-trackslots-root")) return;
     if (slot.querySelector(".slot-select")) return;
     const select = document.createElement("select");
     select.className = "slot-select";
@@ -3742,10 +3762,15 @@ if (typeof window !== "undefined") {
     return true;
   };
   window.loadCSV = loadCSV;
+  window.emitStateChanged = emitStateChanged;
+  window.rlsUi = window.rlsUi || {};
+  window.rlsUi.setCalendarTab = setCalendarTab;
+  window.rlsUi.setCalendarFilter = setCalendarFilter;
 }
 
 function updateSlotDropdowns() {
   document.querySelectorAll(".id-slot").forEach((slot) => {
+    if (slot.closest("#rls-react-trackslots-root")) return;
     const select = slot.querySelector(".slot-select");
     if (!select) return;
     const target = slot.dataset.slotTarget;
@@ -4671,7 +4696,6 @@ function runPromotion() {
     trackContext.track.promo = promo;
   }
   act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
-  act.lastPromoAt = state.time.epochMs;
   state.meta.promoRuns = (state.meta.promoRuns || 0) + selectedTypes.length;
   const promoIds = Array.from(new Set([
     ...(trackContext.track?.creators?.songwriterIds || []),
@@ -4680,9 +4704,11 @@ function runPromotion() {
     ...(act.memberIds || [])
   ])).filter(Boolean);
   if (promoIds.length) markCreatorPromo(promoIds);
+  const promoStamp = state.time.epochMs;
   selectedTypes.forEach((promoType) => {
     const budget = budgets[promoType];
     const weeks = weeksByType[promoType] || boostWeeks;
+    game.recordPromoUsage({ track: trackContext.track, market, act, promoType, atMs: promoStamp });
     logUiEvent("action_submit", { action: "promotion", actId: act.id, trackId: trackContext.track?.id || null, budget, weeks, promoType, totalCost });
     game.recordPromoContent({
       promoType,

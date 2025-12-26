@@ -60,6 +60,7 @@ import {
   getGameMode,
   getLabelRanking,
   getModifier,
+  getModifierInventoryCount,
   getProjectTrackLimits,
   getOwnedStudioSlots,
   getReleaseAsapAt,
@@ -117,7 +118,7 @@ import {
   weekIndex,
   weekNumberFromEpochMs,
 } from "../../game.js";
-import { getPromoTypeCosts, PROMO_TYPE_DETAILS } from "../../promo_types.js";
+import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
 import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
@@ -128,102 +129,16 @@ import {
   getMoodEmoji,
   setThemeSelectAccent
 } from "../themeMoodOptions.js";
+import {
+  buildRolloutBudgetSummary,
+  getModifierCosts,
+  getPromoInflationMultiplier
+} from "./promo-budget.js";
 
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
-const PROMO_BUDGET_MIN = 100;
 const CREATE_PENDING_EMOJIS = { sheet: "🎼", demo: "🎧" };
 const RELEASE_PENDING_EMOJI = "💿";
 
-function getPromoInflationMultiplier() {
-  const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
-  const baseYear = state.meta?.startYear || new Date(state.time?.startEpochMs || state.time?.epochMs || Date.now()).getUTCFullYear();
-  const yearsElapsed = Math.max(0, currentYear - baseYear);
-  const annualInflation = 0.02;
-  return Math.pow(1 + annualInflation, yearsElapsed);
-}
-
-function getModifierInventoryCount(modifierId) {
-  if (!modifierId || modifierId === "None") return 0;
-  const modifiers = state.inventory?.modifiers;
-  if (!modifiers || typeof modifiers !== "object") return 0;
-  const value = modifiers[modifierId];
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.floor(value));
-}
-
-function getOwnedModifierIds() {
-  if (!state.inventory || !state.inventory.modifiers || typeof state.inventory.modifiers !== "object") return [];
-  return Object.entries(state.inventory.modifiers)
-    .filter(([, count]) => Number.isFinite(count) && count > 0)
-    .map(([id]) => id);
-}
-
-function getModifierCosts(modifier, inflationMultiplier = 1) {
-  const baseCost = Number.isFinite(modifier?.basePrice) ? modifier.basePrice : 0;
-  const adjustedCost = Math.round(baseCost * Math.max(1, inflationMultiplier));
-  return { baseCost, adjustedCost };
-}
-
-function getRolloutBudgetForType(typeId, inflationMultiplier) {
-  const { adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
-  const raw = state.ui?.promoBudgets?.[typeId];
-  const parsed = Number(raw);
-  const fallback = Math.max(PROMO_BUDGET_MIN, adjustedCost);
-  if (!Number.isFinite(parsed)) return fallback;
-  return Math.max(PROMO_BUDGET_MIN, Math.round(parsed));
-}
-
-function buildRolloutBudgetSummary(strategy) {
-  if (!strategy || !Array.isArray(strategy.weeks)) return null;
-  const inflationMultiplier = getPromoInflationMultiplier();
-  const counts = {};
-  strategy.weeks.forEach((week) => {
-    (week?.events || []).forEach((eventItem) => {
-      const typeId = eventItem?.actionType || "";
-      if (!typeId) return;
-      counts[typeId] = (counts[typeId] || 0) + 1;
-    });
-  });
-  const entries = Object.entries(counts);
-  if (!entries.length) {
-    return {
-      eventCount: 0,
-      totalBase: 0,
-      totalAdjusted: 0,
-      totalPlanned: 0,
-      byType: []
-    };
-  }
-  const summary = {
-    eventCount: 0,
-    totalBase: 0,
-    totalAdjusted: 0,
-    totalPlanned: 0,
-    byType: []
-  };
-  entries.forEach(([typeId, count]) => {
-    const { baseCost, adjustedCost } = getPromoTypeCosts(typeId, inflationMultiplier);
-    const plannedCost = getRolloutBudgetForType(typeId, inflationMultiplier);
-    const label = PROMO_TYPE_DETAILS[typeId]?.label || typeId;
-    const entry = {
-      typeId,
-      label,
-      count,
-      baseCost,
-      adjustedCost,
-      plannedCost,
-      totalBase: baseCost * count,
-      totalAdjusted: adjustedCost * count,
-      totalPlanned: plannedCost * count
-    };
-    summary.eventCount += count;
-    summary.totalBase += entry.totalBase;
-    summary.totalAdjusted += entry.totalAdjusted;
-    summary.totalPlanned += entry.totalPlanned;
-    summary.byType.push(entry);
-  });
-  return summary;
-}
 
 function renderRolloutBudgetSummary(strategy) {
   const summary = buildRolloutBudgetSummary(strategy);
@@ -582,6 +497,7 @@ function renderSlots() {
   applyTrackSlotVisibility();
   const activeTarget = state.ui.slotTarget;
   document.querySelectorAll(".id-slot").forEach((slot) => {
+    if (slot.closest("#rls-react-trackslots-root")) return;
     const target = slot.dataset.slotTarget;
     slot.classList.toggle("active", target === activeTarget);
   });
@@ -606,6 +522,7 @@ function renderSlots() {
   if ($("socialTrackSlot")) $("socialTrackSlot").textContent = socialTrack ? socialTrack.title : unassignedLabel;
 
   document.querySelectorAll(".id-slot").forEach((slot) => {
+    if (slot.closest("#rls-react-trackslots-root")) return;
     const target = slot.dataset.slotTarget;
     const type = slot.dataset.slotType;
     const slotGroup = slot.dataset.slotGroup || "";
@@ -661,6 +578,7 @@ function renderSlots() {
   });
 
   document.querySelectorAll("[data-slot-group-label]").forEach((label) => {
+    if (label.closest("#rls-react-trackslots-root")) return;
     const role = label.dataset.slotGroupLabel;
     if (!role) return;
     const limit = trackRoleLimit(role);
@@ -677,6 +595,7 @@ function renderSlots() {
         ? "Songwriter"
         : null;
   document.querySelectorAll(".slot-role-group").forEach((group) => {
+    if (group.closest("#rls-react-trackslots-root")) return;
     const role = group.dataset.slotRoleGroup;
     group.classList.toggle("is-active", !!stageRole && role === stageRole);
   });

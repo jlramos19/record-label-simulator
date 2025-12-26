@@ -11,6 +11,7 @@
 - [x] RLS-AUTO-CREATE-001: Add auto-create rules (cash reserve + budget percent, weekly cadence, max tracks, solo/collab) with Create view controls and status disclosure.
 - [ ] RLS-ROLE-RECORDER-001: Replace Performer naming with Recorder across UI copy + docs, keeping role labels consistent in gameplay surfaces.
 - [ ] RLS-PROMO-ACT-001: Add Act promo targeting (act-only or act+content) with visible active act promo tracking.
+- [ ] RLS-PROMO-GAPS-001: Surface promo-gap alerts per type for active-era content, plus stale-act warnings tied to popularity/drop risk.
 - [ ] RLS-PROMO-BROADCAST-001: Define EyeriS broadcast studio profiles + program tiers (scope, age, theme, mood, alignment) with high-stakes eligibility criteria.
 - [ ] RLS-OPS-LIVEEDIT-001: Define live-edit guardrails, release patch stamping, and cache/version rules for hosted builds.
 - [ ] RLS-PROMO-LOGS-001: Remove Loss Archives and Debug Bundle panels from Promotions view; keep internal logging for balance review.
