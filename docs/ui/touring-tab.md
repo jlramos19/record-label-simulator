@@ -5,6 +5,7 @@ This doc defines the Touring view (planned) for the future touring feature.
 ## Status
 - UI stub is live in the primary nav with a placeholder Touring Desk view.
 - Booking logic, calendar integration, and costs remain planned.
+- Touring chart rankings surface in the Charts view with attendance-based draw while bookings are still stubbed.
 
 ## Placement
 - The tab sits to the right of Promotions in the primary nav.

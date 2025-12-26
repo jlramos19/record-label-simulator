@@ -32,6 +32,7 @@ Stamina reduces effective skill even if the stage can start, so low stamina lowe
 - Modifiers are purchased as tools from the Community tab before they appear in Create.
 - Each modifier has a base price; the buy cost is inflation-adjusted (2% annually) from the label start year.
 - Modifier quality boosts apply only when the tool focus matches the track mood/theme/alignment (if specified).
+- Modifiers are consumable; each track consumes one charge when sheet music starts.
 
 ## Skill Drift
 - Skill gains on stage completion; higher stages grant more progress than earlier stages.

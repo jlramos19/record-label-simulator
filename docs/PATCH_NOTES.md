@@ -1,5 +1,10 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1026Z)
+- Modifiers now consume per track; inventory tracks counts and Create shows remaining charges.
+- Community Tools list now supports repeat purchases with owned counts and inflation-adjusted pricing.
+- Modifier selection now includes remaining counts and hides tools with zero charges.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1011Z)
 - Create view now lets you toggle between Manual and Auto panels while keeping the Tracks panel visible.
 - Auto Create now assigns Acts and auto-advances demo/master stages, using the same weekly budget rules and summary reporting.

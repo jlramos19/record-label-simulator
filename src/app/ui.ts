@@ -75,6 +75,7 @@ const {
   makeProjectTitle,
   makeLabelName,
   getModifier,
+  getModifierInventoryCount,
   purchaseModifier,
   getProjectTrackLimits,
   staminaRequirement,
@@ -3906,6 +3907,7 @@ function startSoloTracksFromUI() {
   const resolvedProjectType = normalizeProjectType(projectType);
   const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
   const modifier = getModifier(modifierId);
+  const modifierCount = modifier && modifier.id !== "None" ? getModifierInventoryCount(modifier.id) : null;
   const req = staminaRequirement("Songwriter");
   const assignedSongwriters = [...new Set(getTrackSlotIds("Songwriter"))];
   if (!assignedSongwriters.length) {
@@ -3945,6 +3947,16 @@ function startSoloTracksFromUI() {
         "warn"
       );
       maxTracksToCreate = remaining;
+    }
+  }
+  if (modifier && modifier.id !== "None") {
+    if (!modifierCount) {
+      logEvent(`Modifier unavailable: ${modifier.label}.`, "warn");
+      return;
+    }
+    if (modifierCount < maxTracksToCreate) {
+      logEvent(`Only ${modifierCount} ${modifier.label} modifier${modifierCount === 1 ? "" : "s"} left.`, "warn");
+      maxTracksToCreate = modifierCount;
     }
   }
   const availableStudios = getStudioAvailableSlots();
@@ -4127,6 +4139,10 @@ function startSheetFromUI() {
   const resolvedProjectType = normalizeProjectType(projectType);
   const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
   const modifier = getModifier(modifierId);
+  if (modifier && modifier.id !== "None" && getModifierInventoryCount(modifier.id) <= 0) {
+    logEvent(`Modifier unavailable: ${modifier.label}.`, "warn");
+    return;
+  }
   const songwriterIds = getTrackSlotIds("Songwriter");
   const performerIds = getTrackSlotIds("Performer");
   const producerIds = getTrackSlotIds("Producer");

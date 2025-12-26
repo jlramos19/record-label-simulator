@@ -140,9 +140,20 @@ function getPromoInflationMultiplier() {
   return Math.pow(1 + annualInflation, yearsElapsed);
 }
 
+function getModifierInventoryCount(modifierId) {
+  if (!modifierId || modifierId === "None") return 0;
+  const modifiers = state.inventory?.modifiers;
+  if (!modifiers || typeof modifiers !== "object") return 0;
+  const value = modifiers[modifierId];
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.floor(value));
+}
+
 function getOwnedModifierIds() {
-  if (!state.inventory || !Array.isArray(state.inventory.modifiers)) return [];
-  return state.inventory.modifiers.filter((entry) => typeof entry === "string" && entry);
+  if (!state.inventory || !state.inventory.modifiers || typeof state.inventory.modifiers !== "object") return [];
+  return Object.entries(state.inventory.modifiers)
+    .filter(([, count]) => Number.isFinite(count) && count > 0)
+    .map(([id]) => id);
 }
 
 function getModifierCosts(modifier, inflationMultiplier = 1) {
@@ -697,9 +708,12 @@ function refreshSelectOptions() {
   if (moodSelect) moodSelect.innerHTML = buildMoodOptions();
   const modifierSelect = $("modifierSelect");
   if (modifierSelect) {
-    const owned = new Set(getOwnedModifierIds());
-    const options = MODIFIERS.filter((mod) => mod.id === "None" || owned.has(mod.id));
-    modifierSelect.innerHTML = options.map((mod) => `<option value="${mod.id}">${mod.label}</option>`).join("");
+    const options = MODIFIERS.filter((mod) => mod.id === "None" || getModifierInventoryCount(mod.id) > 0);
+    modifierSelect.innerHTML = options.map((mod) => {
+      if (mod.id === "None") return `<option value="${mod.id}">${mod.label}</option>`;
+      const count = getModifierInventoryCount(mod.id);
+      return `<option value="${mod.id}">${mod.label} (x${count})</option>`;
+    }).join("");
   }
   const actTypeSelect = $("actTypeSelect");
   if (actTypeSelect) actTypeSelect.innerHTML = ACT_TYPES.map((type) => `<option value="${type}">${type}</option>`).join("");
@@ -2005,18 +2019,22 @@ function renderInventory() {
 function renderModifierInventory() {
   const listEl = $("modifierInventoryList");
   if (!listEl) return;
-  const owned = new Set(getOwnedModifierIds());
-  const items = MODIFIERS.filter((mod) => mod.id !== "None" && owned.has(mod.id));
+  const items = MODIFIERS.filter((mod) => mod.id !== "None" && getModifierInventoryCount(mod.id) > 0);
   if (!items.length) {
     listEl.innerHTML = `<div class="muted">No modifiers purchased yet.</div>`;
     return;
   }
   listEl.innerHTML = items.map((modifier) => `
     <div class="list-item">
-      <div class="item-title">${modifier.label}</div>
-      <div class="muted">${modifier.desc}</div>
-      ${renderModifierFocus(modifier)}
-      <div class="tiny muted">${formatModifierDelta(modifier)}</div>
+      <div class="list-row">
+        <div>
+          <div class="item-title">${modifier.label}</div>
+          <div class="muted">${modifier.desc}</div>
+          ${renderModifierFocus(modifier)}
+          <div class="tiny muted">${formatModifierDelta(modifier)}</div>
+        </div>
+        <div class="pill">x${getModifierInventoryCount(modifier.id)}</div>
+      </div>
     </div>
   `).join("");
 }
@@ -2027,7 +2045,6 @@ function renderModifierTools() {
   const inflationMultiplier = getPromoInflationMultiplier();
   const inflationLabel = $("modifierInflationLabel");
   if (inflationLabel) inflationLabel.textContent = `Inflation x${inflationMultiplier.toFixed(2)}`;
-  const owned = new Set(getOwnedModifierIds());
   const tools = MODIFIERS.filter((mod) => mod.id !== "None");
   if (!tools.length) {
     listEl.innerHTML = `<div class="muted">No modifiers available.</div>`;
@@ -2035,15 +2052,14 @@ function renderModifierTools() {
   }
   listEl.innerHTML = tools.map((modifier) => {
     const { baseCost, adjustedCost } = getModifierCosts(modifier, inflationMultiplier);
-    const isOwned = owned.has(modifier.id);
+    const ownedCount = getModifierInventoryCount(modifier.id);
     const canAfford = state.label.cash >= adjustedCost;
-    const buttonLabel = isOwned
-      ? "Owned"
-      : `Buy ${formatMoney(adjustedCost)}${canAfford ? "" : " (short)"}`;
-    const buttonState = isOwned || !canAfford ? " disabled" : "";
+    const buttonLabel = `Buy ${formatMoney(adjustedCost)}${canAfford ? "" : " (short)"}`;
+    const buttonState = !canAfford ? " disabled" : "";
     const focusLine = renderModifierFocus(modifier);
     const deltaLine = `<div class="tiny muted">${formatModifierDelta(modifier)}</div>`;
     const priceLine = `<div class="tiny muted">Base ${formatMoney(baseCost)} | Inflation-adjusted ${formatMoney(adjustedCost)}</div>`;
+    const ownedLine = ownedCount ? `<div class="tiny muted">Owned: x${ownedCount}</div>` : "";
     return `
       <div class="list-item">
         <div class="list-row">
@@ -2053,6 +2069,7 @@ function renderModifierTools() {
             ${focusLine}
             ${deltaLine}
             ${priceLine}
+            ${ownedLine}
           </div>
           <button type="button" class="ghost mini" data-modifier-buy="${modifier.id}"${buttonState}>${buttonLabel}</button>
         </div>

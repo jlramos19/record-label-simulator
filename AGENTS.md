@@ -21,3 +21,10 @@
 - Git status handling: If `git status` shows local changes, proceed on top of them and incorporate them when there is no conflict; ask if there is a conflict or ambiguity.
 - Unexpected files: always adapt to unexpected files found and account for them in the current pass when there is no conflict.
 - Branching: use branches to isolate work when helpful; you may create branches directly, but ask for naming conventions or timing if unclear.
+- Modifiers and tools rules:
+  - Modifiers are consumable production tools applied per track (consume on sheet creation); inventory stores counts.
+  - Skills are creator-intrinsic; bullet pens/mics are skill flavor, not tools.
+  - Tools are permanent equip items that adjust creator preferences (theme/mood/alignment/genre), not occupations.
+  - Preference tools must not target a theme/mood/alignment/genre the creator already prefers; do not consume the tool on a failed apply.
+  - When applying a preference tool, replace a non-matching preference slot and avoid duplicate preferences.
+  - If an item needs both a preference tweak and a production boost, keep them as separate tool + modifier entries.

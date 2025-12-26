@@ -10101,6 +10101,7 @@ export {
   getLabelRanking,
   getLossArchives,
   getModifier,
+  getModifierInventoryCount,
   getOwnedStudioSlots,
   getPromoFacilityAvailability,
   getPromoFacilityForType,

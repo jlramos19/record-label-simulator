@@ -9,7 +9,7 @@ import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistor
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, normalizeCreator, normalizeProjectName, normalizeProjectType, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, normalizeCreator, normalizeProjectName, normalizeProjectType, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -3853,6 +3853,7 @@ function startSoloTracksFromUI() {
     const resolvedProjectType = normalizeProjectType(projectType);
     const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
     const modifier = getModifier(modifierId);
+    const modifierCount = modifier && modifier.id !== "None" ? getModifierInventoryCount(modifier.id) : null;
     const req = staminaRequirement("Songwriter");
     const assignedSongwriters = [...new Set(getTrackSlotIds("Songwriter"))];
     if (!assignedSongwriters.length) {
@@ -3889,6 +3890,16 @@ function startSoloTracksFromUI() {
         if (remaining < maxTracksToCreate) {
             logEvent(`Only ${remaining} track slot${remaining === 1 ? "" : "s"} left for "${projectNameInput}" (${resolvedProjectType}).`, "warn");
             maxTracksToCreate = remaining;
+        }
+    }
+    if (modifier && modifier.id !== "None") {
+        if (!modifierCount) {
+            logEvent(`Modifier unavailable: ${modifier.label}.`, "warn");
+            return;
+        }
+        if (modifierCount < maxTracksToCreate) {
+            logEvent(`Only ${modifierCount} ${modifier.label} modifier${modifierCount === 1 ? "" : "s"} left.`, "warn");
+            maxTracksToCreate = modifierCount;
         }
     }
     const availableStudios = getStudioAvailableSlots();
@@ -4070,6 +4081,10 @@ function startSheetFromUI() {
     const resolvedProjectType = normalizeProjectType(projectType);
     const modifierId = $("modifierSelect") ? $("modifierSelect").value : "None";
     const modifier = getModifier(modifierId);
+    if (modifier && modifier.id !== "None" && getModifierInventoryCount(modifier.id) <= 0) {
+        logEvent(`Modifier unavailable: ${modifier.label}.`, "warn");
+        return;
+    }
     const songwriterIds = getTrackSlotIds("Songwriter");
     const performerIds = getTrackSlotIds("Performer");
     const producerIds = getTrackSlotIds("Producer");
