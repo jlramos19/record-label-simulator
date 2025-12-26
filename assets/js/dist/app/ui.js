@@ -6,6 +6,7 @@ import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDeta
 import { setUiHooks } from "./game/ui-hooks.js";
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTracks, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
+import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
 const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, startEraForAct, endEraById, createRolloutStrategyForEra, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, normalizeCreator, postCreatorSigned, getSlotData, resetState, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
@@ -509,43 +510,100 @@ function saveStartPreferences(prefs) {
         return;
     localStorage.setItem(START_PREFS_KEY, JSON.stringify(prefs));
 }
-function normalizeStartPreferences(prefs = {}) {
-    const themePool = Array.isArray(THEMES) ? THEMES : [];
-    const moodPool = Array.isArray(MOODS) ? MOODS : [];
-    const themes = Array.isArray(prefs.themes) ? prefs.themes.filter((theme) => themePool.includes(theme)) : [];
-    const moods = Array.isArray(prefs.moods) ? prefs.moods.filter((mood) => moodPool.includes(mood)) : [];
-    const uniqueThemes = [...new Set(themes)];
-    const uniqueMoods = [...new Set(moods)];
-    if (uniqueThemes.length < 2) {
-        uniqueThemes.push(...pickDistinct(themePool.filter((theme) => !uniqueThemes.includes(theme)), 2 - uniqueThemes.length));
-    }
-    if (uniqueMoods.length < 2) {
-        uniqueMoods.push(...pickDistinct(moodPool.filter((mood) => !uniqueMoods.includes(mood)), 2 - uniqueMoods.length));
-    }
-    return { themes: uniqueThemes.slice(0, 2), moods: uniqueMoods.slice(0, 2) };
-}
-function syncStartPreferenceSelects() {
+function getStartPreferenceElements() {
     const theme1 = $("startTheme1");
     const theme2 = $("startTheme2");
     const mood1 = $("startMood1");
     const mood2 = $("startMood2");
     if (!theme1 || !theme2 || !mood1 || !mood2)
+        return null;
+    return { theme1, theme2, mood1, mood2 };
+}
+function sanitizeStartPreferences(prefs = {}) {
+    const themePool = Array.isArray(THEMES) ? THEMES : [];
+    const moodPool = Array.isArray(MOODS) ? MOODS : [];
+    const themes = Array.isArray(prefs.themes) ? prefs.themes : [];
+    const moods = Array.isArray(prefs.moods) ? prefs.moods : [];
+    const sanitizedThemes = [themes[0], themes[1]].map((theme) => (themePool.includes(theme) ? theme : ""));
+    const sanitizedMoods = [moods[0], moods[1]].map((mood) => (moodPool.includes(mood) ? mood : ""));
+    return { themes: sanitizedThemes, moods: sanitizedMoods };
+}
+function setStartPreferenceValues(prefs, options = {}) {
+    const elements = getStartPreferenceElements();
+    if (!elements)
         return;
-    theme1.innerHTML = THEMES.map((theme) => `<option value="${theme}">${theme}</option>`).join("");
-    theme2.innerHTML = THEMES.map((theme) => `<option value="${theme}">${theme}</option>`).join("");
-    mood1.innerHTML = MOODS.map((mood) => `<option value="${mood}">${mood}</option>`).join("");
-    mood2.innerHTML = MOODS.map((mood) => `<option value="${mood}">${mood}</option>`).join("");
-    const stored = normalizeStartPreferences(loadStartPreferences() || {});
-    const apply = (next) => {
-        const normalized = normalizeStartPreferences(next);
-        theme1.value = normalized.themes[0];
-        theme2.value = normalized.themes[1];
-        mood1.value = normalized.moods[0];
-        mood2.value = normalized.moods[1];
-        saveStartPreferences(normalized);
-    };
-    apply(stored);
-    const onChange = () => apply({
+    const { theme1, theme2, mood1, mood2 } = elements;
+    const { persist = true } = options;
+    const sanitized = sanitizeStartPreferences(prefs);
+    theme1.value = sanitized.themes[0] || "";
+    theme2.value = sanitized.themes[1] || "";
+    mood1.value = sanitized.moods[0] || "";
+    mood2.value = sanitized.moods[1] || "";
+    setThemeSelectAccent(theme1);
+    setThemeSelectAccent(theme2);
+    if (persist) {
+        saveStartPreferences({
+            themes: [theme1.value, theme2.value],
+            moods: [mood1.value, mood2.value]
+        });
+    }
+}
+function readStartPreferences() {
+    const elements = getStartPreferenceElements();
+    if (!elements)
+        return sanitizeStartPreferences(loadStartPreferences() || {});
+    return sanitizeStartPreferences({
+        themes: [elements.theme1.value, elements.theme2.value],
+        moods: [elements.mood1.value, elements.mood2.value]
+    });
+}
+function validateStartPreferences(prefs) {
+    const sanitized = sanitizeStartPreferences(prefs);
+    const themes = sanitized.themes;
+    const moods = sanitized.moods;
+    const hasMissingThemes = themes.some((theme) => !theme);
+    const hasMissingMoods = moods.some((mood) => !mood);
+    if (hasMissingThemes || hasMissingMoods) {
+        return {
+            ok: false,
+            message: "Pick two Themes and two Moods before starting.",
+            fields: ["startTheme1", "startTheme2", "startMood1", "startMood2"]
+        };
+    }
+    if (themes[0] === themes[1]) {
+        return { ok: false, message: "Pick two different Themes before starting.", fields: ["startTheme1", "startTheme2"] };
+    }
+    if (moods[0] === moods[1]) {
+        return { ok: false, message: "Pick two different Moods before starting.", fields: ["startMood1", "startMood2"] };
+    }
+    return { ok: true, prefs: sanitized };
+}
+function pickRandomPreference(pool, exclude = []) {
+    const safePool = Array.isArray(pool) ? pool : [];
+    const filtered = safePool.filter((item) => !exclude.includes(item));
+    const options = filtered.length ? filtered : safePool;
+    const [picked] = pickDistinct(options, 1);
+    return picked || "";
+}
+function pickRandomPair(pool) {
+    const picks = pickDistinct(pool, 2);
+    return [picks[0] || "", picks[1] || ""];
+}
+function syncStartPreferenceSelects() {
+    const elements = getStartPreferenceElements();
+    if (!elements)
+        return;
+    const { theme1, theme2, mood1, mood2 } = elements;
+    const themeOptions = buildThemeOptions([{ value: "", label: "Select theme" }]);
+    const moodOptions = buildMoodOptions([{ value: "", label: "Select mood" }]);
+    theme1.innerHTML = themeOptions;
+    theme2.innerHTML = themeOptions;
+    mood1.innerHTML = moodOptions;
+    mood2.innerHTML = moodOptions;
+    setStartPreferenceValues(loadStartPreferences() || {}, { persist: false });
+    bindThemeSelectAccent(theme1);
+    bindThemeSelectAccent(theme2);
+    const onChange = () => setStartPreferenceValues({
         themes: [theme1.value, theme2.value],
         moods: [mood1.value, mood2.value]
     });
@@ -555,19 +613,51 @@ function syncStartPreferenceSelects() {
         select.dataset.bound = "1";
         select.addEventListener("change", onChange);
     });
+    const bindRandom = (id, handler) => {
+        const btn = $(id);
+        if (!btn || btn.dataset.bound)
+            return;
+        btn.dataset.bound = "1";
+        btn.addEventListener("click", handler);
+    };
+    bindRandom("randomTheme1Btn", () => {
+        const prefs = readStartPreferences();
+        const next = pickRandomPreference(THEMES, prefs.themes[1] ? [prefs.themes[1]] : []);
+        setStartPreferenceValues({ themes: [next, prefs.themes[1]], moods: prefs.moods });
+    });
+    bindRandom("randomTheme2Btn", () => {
+        const prefs = readStartPreferences();
+        const next = pickRandomPreference(THEMES, prefs.themes[0] ? [prefs.themes[0]] : []);
+        setStartPreferenceValues({ themes: [prefs.themes[0], next], moods: prefs.moods });
+    });
+    bindRandom("randomMood1Btn", () => {
+        const prefs = readStartPreferences();
+        const next = pickRandomPreference(MOODS, prefs.moods[1] ? [prefs.moods[1]] : []);
+        setStartPreferenceValues({ themes: prefs.themes, moods: [next, prefs.moods[1]] });
+    });
+    bindRandom("randomMood2Btn", () => {
+        const prefs = readStartPreferences();
+        const next = pickRandomPreference(MOODS, prefs.moods[0] ? [prefs.moods[0]] : []);
+        setStartPreferenceValues({ themes: prefs.themes, moods: [prefs.moods[0], next] });
+    });
+    bindRandom("randomThemesBtn", () => {
+        const prefs = readStartPreferences();
+        const [next1, next2] = pickRandomPair(THEMES);
+        setStartPreferenceValues({ themes: [next1, next2], moods: prefs.moods });
+    });
+    bindRandom("randomMoodsBtn", () => {
+        const prefs = readStartPreferences();
+        const [next1, next2] = pickRandomPair(MOODS);
+        setStartPreferenceValues({ themes: prefs.themes, moods: [next1, next2] });
+    });
+    bindRandom("randomAllPrefsBtn", () => {
+        const [themeA, themeB] = pickRandomPair(THEMES);
+        const [moodA, moodB] = pickRandomPair(MOODS);
+        setStartPreferenceValues({ themes: [themeA, themeB], moods: [moodA, moodB] });
+    });
 }
 function getSelectedStartPreferences() {
-    const theme1 = $("startTheme1");
-    const theme2 = $("startTheme2");
-    const mood1 = $("startMood1");
-    const mood2 = $("startMood2");
-    if (!theme1 || !theme2 || !mood1 || !mood2) {
-        return normalizeStartPreferences(loadStartPreferences() || {});
-    }
-    return normalizeStartPreferences({
-        themes: [theme1.value, theme2.value],
-        moods: [mood1.value, mood2.value]
-    });
+    return readStartPreferences();
 }
 function panelByKey(key) {
     return document.querySelector(`.panel.card[data-panel="${key}"]`);
@@ -1735,7 +1825,13 @@ function bindGlobalHandlers() {
                 const mode = getSelectedGameModeId();
                 const difficulty = getSelectedGameDifficultyId();
                 const startPreferences = getSelectedStartPreferences();
-                await loadSlot(slot, true, { mode, difficulty, startPreferences });
+                const validation = validateStartPreferences(startPreferences);
+                if (!validation.ok) {
+                    logEvent(validation.message, "warn");
+                    validation.fields.forEach((field) => shakeField(field));
+                    return;
+                }
+                await loadSlot(slot, true, { mode, difficulty, startPreferences: validation.prefs });
                 exitMenuToGame();
             }
         });
@@ -2697,8 +2793,11 @@ function updateTrackRecommendation() {
 }
 function applyTrackRecommendationPlan(rec, stage) {
     if (stage === "sheet") {
-        if ($("themeSelect"))
-            $("themeSelect").value = rec.theme;
+        const themeSelect = $("themeSelect");
+        if (themeSelect) {
+            themeSelect.value = rec.theme;
+            setThemeSelectAccent(themeSelect);
+        }
         if ($("moodSelect"))
             $("moodSelect").value = rec.mood;
         if ($("modifierSelect"))
@@ -3737,7 +3836,8 @@ function signCreatorById(id) {
         creatorId: id,
         role: creator?.role,
         outcome: result.ok ? "accepted" : (result.kind || "unknown").toLowerCase(),
-        reason: result.reason
+        reason: result.reason,
+        reasonDetail: result.detail
     });
     if (!result.ok) {
         const card = document.querySelector(`[data-ccc-creator="${id}"]`);

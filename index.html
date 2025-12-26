@@ -37,14 +37,23 @@
     </div>
     <div class="field">
       <label for="startTheme1">Starting Preferences</label>
-      <div class="tiny">Pick two Themes and two Moods to seed early Creator preferences.</div>
-      <div class="input-row">
+      <div class="tiny">Pick two Themes and two Moods (required) to seed early Creator preferences. Use 🎲 to randomize.</div>
+      <div class="input-row pref-row">
         <select id="startTheme1" aria-label="Starting theme 1"></select>
+        <button id="randomTheme1Btn" type="button" class="ghost mini pref-dice" aria-label="Randomize theme 1" title="Randomize theme 1">🎲</button>
         <select id="startTheme2" aria-label="Starting theme 2"></select>
+        <button id="randomTheme2Btn" type="button" class="ghost mini pref-dice" aria-label="Randomize theme 2" title="Randomize theme 2">🎲</button>
       </div>
-      <div class="input-row">
+      <div class="input-row pref-row">
         <select id="startMood1" aria-label="Starting mood 1"></select>
+        <button id="randomMood1Btn" type="button" class="ghost mini pref-dice" aria-label="Randomize mood 1" title="Randomize mood 1">🎲</button>
         <select id="startMood2" aria-label="Starting mood 2"></select>
+        <button id="randomMood2Btn" type="button" class="ghost mini pref-dice" aria-label="Randomize mood 2" title="Randomize mood 2">🎲</button>
+      </div>
+      <div class="pref-actions">
+        <button id="randomThemesBtn" type="button" class="ghost mini" aria-label="Randomize both themes" title="Randomize both themes">🎲 Themes</button>
+        <button id="randomMoodsBtn" type="button" class="ghost mini" aria-label="Randomize both moods" title="Randomize both moods">🎲 Moods</button>
+        <button id="randomAllPrefsBtn" type="button" class="ghost mini" aria-label="Randomize all preferences" title="Randomize all preferences">🎲 All</button>
       </div>
       <div class="tiny">Trends remain hidden until gameplay begins.</div>
     </div>
@@ -100,7 +109,7 @@
       <div class="actions">
         <button id="quickRecipesBtn" type="button" class="ghost">Quick Recipes</button>
       </div>
-      <div class="subhead">Quick Start (First Week)</div>
+      <div class="subhead">Game Loops</div>
       <div class="list">
         <div class="list-item">
           <div class="item-title">Sign Creator IDs (Community -> CCC)</div>
@@ -122,12 +131,16 @@
           <div class="item-title">Promote (Promotions -> eyeriSocial)</div>
           <div class="muted">Pick a released Track ID, set budget, and fund promo pushes.</div>
         </div>
+        <div class="list-item">
+          <div class="item-title">Weekly cadence (168 in-game hours)</div>
+          <div class="muted">Release processing Friday 00:00, trends Friday 12:00, charts Saturday 00:00. Use Pause/Play/Fast and Skip Time to move weeks.</div>
+        </div>
       </div>
-      <div class="subhead">Core Loop &amp; Timing</div>
+      <div class="subhead">Game Concepts</div>
       <div class="list">
         <div class="list-item">
-          <div class="item-title">Charts update weekly (168 in-game hours)</div>
-          <div class="muted">Use Pause/Play/Fast and Skip Time to move weeks.</div>
+          <div class="item-title">Creator signing decisions</div>
+          <div class="muted">CCC acceptance depends on label focus Themes/Moods, creator skill, and market heat. Rejections log a reason and lock until the 12AM refresh.</div>
         </div>
         <div class="list-item">
           <div class="item-title">Trends guide demand</div>
@@ -145,24 +158,9 @@
           <div class="item-title">Cashflow matters</div>
           <div class="muted">Watch Wallet for weekly revenue/upkeep and avoid negative cash.</div>
         </div>
-      </div>
-      <div class="subhead">Interface Tips</div>
-      <div class="list">
         <div class="list-item">
-          <div class="item-title">Use ID slots</div>
-          <div class="muted">Tap a slot, then tap an ID, or drag IDs into slots. Use Clear to reset.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Speed up assignments</div>
-          <div class="muted">Auto Assign and Recommend All help fill creator slots quickly.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Customize the layout</div>
-          <div class="muted">Use Sidebars and Panels to toggle UI sections for each view.</div>
-        </div>
-        <div class="list-item">
-          <div class="item-title">Save early, save often</div>
-          <div class="muted">Enable Auto Save in Settings or manually save game slots.</div>
+          <div class="item-title">Interface tips</div>
+          <div class="muted">Use ID slots or drag-and-drop, Auto Assign/Recommend All to fill quickly, customize panels, and save often.</div>
         </div>
       </div>
       <div class="subhead">Roles &amp; Actions</div>

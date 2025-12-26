@@ -1,4 +1,4 @@
-# **`Game Development Roadmap for Record Label Simulator`**
+# **`Game Design Roadmap for Record Label Simulator`**
 
 `Monday, August 28, 2023`  
 `7:19 PM`  

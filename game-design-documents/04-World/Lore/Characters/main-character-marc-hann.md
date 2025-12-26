@@ -96,7 +96,7 @@
    10. `Narrative Strategy:`  
        * `Using AI-generated content for character voiceovers and images.`  
        * `Incorporating personal experiences as quests and chapters, exploring them from a third-person perspective.`  
-   11. `Game Development:`  
+   11. `Game Design:`  
        * `Developing a game and book that mirror each other's storyline.`  
        * `Building the game as a web application.`  
        * `Leveraging Leonardo.AI for AI-generated images.`  

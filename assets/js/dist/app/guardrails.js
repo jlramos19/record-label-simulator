@@ -1,9 +1,12 @@
 import { saveToActiveSlot, session } from "./game.js";
 const RELEASE_STORAGE_KEY = "rls_release_patch_id";
-const BANNER_ID = "rls-guardrail-banner";
+const TOAST_STACK_ID = "rls-toast-stack";
 const SAVE_THROTTLE_MS = 1500;
+const TOAST_LIMIT = 3;
+const TOAST_THROTTLE_MS = 600;
+const TOAST_LIFETIME_MS = 12000;
 let lastSaveAt = 0;
-let lastBannerAt = 0;
+let lastToastAt = 0;
 function safeSetStorage(storage, key, value) {
     try {
         storage.setItem(key, value);
@@ -28,60 +31,73 @@ function safeSave(reason) {
         console.warn("[guardrails] auto-save failed.", error);
     }
 }
-function ensureBanner() {
+function ensureToastStack() {
     if (typeof document === "undefined")
         return null;
-    const existing = document.getElementById(BANNER_ID);
+    if (!document.body)
+        return null;
+    const existing = document.getElementById(TOAST_STACK_ID);
     if (existing)
         return existing;
-    const banner = document.createElement("div");
-    banner.id = BANNER_ID;
-    banner.style.position = "fixed";
-    banner.style.bottom = "16px";
-    banner.style.left = "16px";
-    banner.style.right = "16px";
-    banner.style.zIndex = "9999";
-    banner.style.background = "rgba(15, 20, 26, 0.92)";
-    banner.style.color = "#f4f1ea";
-    banner.style.border = "1px solid rgba(244, 241, 234, 0.2)";
-    banner.style.borderRadius = "10px";
-    banner.style.padding = "12px 14px";
-    banner.style.font = "14px/1.4 \"Trebuchet MS\", \"Segoe UI\", sans-serif";
-    banner.style.display = "flex";
-    banner.style.alignItems = "center";
-    banner.style.justifyContent = "space-between";
-    banner.style.gap = "12px";
-    const message = document.createElement("div");
-    message.dataset.guardrailMessage = "true";
+    const stack = document.createElement("div");
+    stack.id = TOAST_STACK_ID;
+    stack.className = "toast-stack";
+    stack.setAttribute("role", "status");
+    stack.setAttribute("aria-live", "polite");
+    document.body.appendChild(stack);
+    return stack;
+}
+function formatToastDetail(detail) {
+    const text = String(detail || "").trim();
+    if (!text)
+        return "";
+    if (text.length <= 160)
+        return text;
+    return `${text.slice(0, 157)}...`;
+}
+function showCriticalToast(summary, detail) {
+    const now = Date.now();
+    if (now - lastToastAt < TOAST_THROTTLE_MS)
+        return;
+    lastToastAt = now;
+    const stack = ensureToastStack();
+    if (!stack)
+        return;
+    const toast = document.createElement("div");
+    toast.className = "toast toast--critical";
+    const dismiss = () => toast.remove();
+    const title = document.createElement("div");
+    title.className = "toast-title";
+    title.textContent = summary;
+    toast.appendChild(title);
+    const detailText = formatToastDetail(detail);
+    if (detailText) {
+        const detailEl = document.createElement("div");
+        detailEl.className = "toast-detail";
+        detailEl.textContent = detailText;
+        toast.appendChild(detailEl);
+    }
     const actions = document.createElement("div");
+    actions.className = "toast-actions";
     const reload = document.createElement("button");
     reload.type = "button";
+    reload.className = "ghost mini";
     reload.textContent = "Reload";
-    reload.style.background = "#f4f1ea";
-    reload.style.color = "#10151c";
-    reload.style.border = "none";
-    reload.style.borderRadius = "999px";
-    reload.style.padding = "6px 12px";
-    reload.style.cursor = "pointer";
     reload.addEventListener("click", () => window.location.reload());
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "ghost mini";
+    close.textContent = "Dismiss";
+    close.addEventListener("click", dismiss);
     actions.appendChild(reload);
-    banner.appendChild(message);
-    banner.appendChild(actions);
-    document.body.appendChild(banner);
-    return banner;
-}
-function showGuardrailBanner(summary, detail) {
-    const now = Date.now();
-    if (now - lastBannerAt < 500)
-        return;
-    lastBannerAt = now;
-    const banner = ensureBanner();
-    if (!banner)
-        return;
-    const message = banner.querySelector("[data-guardrail-message]");
-    if (!message)
-        return;
-    message.textContent = detail ? `${summary} ${detail}` : summary;
+    actions.appendChild(close);
+    toast.appendChild(actions);
+    stack.appendChild(toast);
+    window.setTimeout(dismiss, TOAST_LIFETIME_MS);
+    const toasts = stack.querySelectorAll(".toast");
+    if (toasts.length > TOAST_LIMIT) {
+        toasts[0].remove();
+    }
 }
 function showSafeMode(error) {
     if (typeof document === "undefined")
@@ -126,11 +142,11 @@ export function installLiveEditGuardrails(release) {
     if (typeof window !== "undefined") {
         window.addEventListener("error", (event) => {
             safeSave("runtime-error");
-            showGuardrailBanner("Runtime error detected.", event?.message || "");
+            showCriticalToast("Runtime error detected.", event?.message || "");
         });
         window.addEventListener("unhandledrejection", (event) => {
             safeSave("unhandled-rejection");
-            showGuardrailBanner("Unhandled promise rejection.", String(event?.reason || ""));
+            showCriticalToast("Unhandled promise rejection.", String(event?.reason || ""));
         });
         window.addEventListener("pagehide", () => safeSave("pagehide"));
     }

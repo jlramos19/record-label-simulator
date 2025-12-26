@@ -447,7 +447,7 @@ Certainly, here is a summary of the parameters you've provided for your game and
    4. Narrative Approach:
       * Combining personal experiences, philosophical elements, and AI-generated content.
       * Dual-storyline approach with a game and book mirroring each other's narrative.
-   5. Game Development:
+   5. Game Design:
       * Utilizing web app build.
       * Incorporating AI-generated content using Leonardo.AI for images.
       * Crafting an engaging narrative with player-reader choices and introspection.

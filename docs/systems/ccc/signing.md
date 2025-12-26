@@ -25,6 +25,14 @@ Creators resolve offers instantly using a single acceptance roll:
 
 Accept if `random(0-1) < acceptanceChance`. This same rule applies to player and AI labels.
 
+## Decline Feedback (MVP Rule)
+If a Creator rejects the offer, the engine selects one or two decline drivers and surfaces them to the player:
+- Focus mismatch: label focus Themes/Moods do not overlap the Creator preferences (or label focus is unset).
+- High expectations: Creator skill >= 85.
+- Hot market: role scarcity or market heat drives a negative acceptance delta.
+
+The primary driver is stored on the CCC lockout record, logged to the system feed, and shown under the locked Sign button.
+
 ## MVP Rules
 1. Preconditions (no lockout)
    - If wallet cash < signing cost, do not consume the attempt; do not lock out; show "Insufficient funds".

@@ -2089,38 +2089,161 @@ const EAST_ASIAN_NAMES = [
   "Zieger",
 ];
 
-const mergeUnique = (primary, secondary) => {
+const BYTENZA_GIVEN_SYLLABLES_PRIMARY = [
+  { hangul: "\ubbfc", romanized: "Min" },
+  { hangul: "\uc11c", romanized: "Seo" },
+  { hangul: "\uc9c0", romanized: "Ji" },
+  { hangul: "\ud604", romanized: "Hyeon" },
+  { hangul: "\ud558", romanized: "Ha" },
+  { hangul: "\ub3c4", romanized: "Do" },
+  { hangul: "\uc720", romanized: "Yu" },
+  { hangul: "\uc138", romanized: "Se" },
+  { hangul: "\uc218", romanized: "Su" },
+  { hangul: "\uc608", romanized: "Ye" },
+  { hangul: "\ucc44", romanized: "Chae" },
+  { hangul: "\uc724", romanized: "Yun" },
+  { hangul: "\ud0dc", romanized: "Tae" },
+  { hangul: "\ub098", romanized: "Na" },
+  { hangul: "\uc601", romanized: "Yeong" },
+  { hangul: "\uc900", romanized: "Jun" },
+  { hangul: "\uc740", romanized: "Eun" },
+  { hangul: "\ud638", romanized: "Ho" },
+  { hangul: "\uc7ac", romanized: "Jae" },
+  { hangul: "\uc6b0", romanized: "Woo" },
+  { hangul: "\uae30", romanized: "Gi" },
+  { hangul: "\ub2e4", romanized: "Da" },
+  { hangul: "\ub77c", romanized: "Ra" },
+  { hangul: "\uc194", romanized: "Sol" },
+];
+
+const BYTENZA_GIVEN_SYLLABLES_SECONDARY = [
+  { hangul: "\uc900", romanized: "Jun" },
+  { hangul: "\uc724", romanized: "Yun" },
+  { hangul: "\ub9bc", romanized: "Rim" },
+  { hangul: "\uc544", romanized: "A" },
+  { hangul: "\ube48", romanized: "Bin" },
+  { hangul: "\ud601", romanized: "Hyeok" },
+  { hangul: "\uc6b0", romanized: "Woo" },
+  { hangul: "\ud76c", romanized: "Hui" },
+  { hangul: "\uc601", romanized: "Yeong" },
+  { hangul: "\ubbfc", romanized: "Min" },
+  { hangul: "\ud638", romanized: "Ho" },
+  { hangul: "\uc5f0", romanized: "Yeon" },
+  { hangul: "\uc9c4", romanized: "Jin" },
+  { hangul: "\uc11c", romanized: "Seo" },
+  { hangul: "\ubcc4", romanized: "Byeol" },
+  { hangul: "\ud558", romanized: "Ha" },
+  { hangul: "\uc194", romanized: "Sol" },
+  { hangul: "\ub098", romanized: "Na" },
+  { hangul: "\ub9ac", romanized: "Ri" },
+  { hangul: "\uacbd", romanized: "Gyeong" },
+];
+
+const BYTENZA_SURNAME_SYLLABLES = [
+  { hangul: "\uae40", romanized: "Kim" },
+  { hangul: "\uc774", romanized: "Lee" },
+  { hangul: "\ubc15", romanized: "Park" },
+  { hangul: "\ucd5c", romanized: "Choi" },
+  { hangul: "\uc815", romanized: "Jeong" },
+  { hangul: "\uac15", romanized: "Kang" },
+  { hangul: "\uc870", romanized: "Jo" },
+  { hangul: "\uc724", romanized: "Yoon" },
+  { hangul: "\uc7a5", romanized: "Jang" },
+  { hangul: "\uc784", romanized: "Lim" },
+  { hangul: "\uc624", romanized: "Oh" },
+  { hangul: "\ud55c", romanized: "Han" },
+  { hangul: "\uc2e0", romanized: "Shin" },
+  { hangul: "\uc11c", romanized: "Seo" },
+  { hangul: "\uad8c", romanized: "Kwon" },
+  { hangul: "\ud669", romanized: "Hwang" },
+  { hangul: "\uc548", romanized: "Ahn" },
+  { hangul: "\uc1a1", romanized: "Song" },
+  { hangul: "\uc804", romanized: "Jeon" },
+  { hangul: "\ud64d", romanized: "Hong" },
+  { hangul: "\uc720", romanized: "Yoo" },
+  { hangul: "\uace0", romanized: "Ko" },
+  { hangul: "\ubb38", romanized: "Moon" },
+  { hangul: "\uc591", romanized: "Yang" },
+  { hangul: "\uc190", romanized: "Son" },
+  { hangul: "\ubc30", romanized: "Bae" },
+  { hangul: "\ub0a8", romanized: "Nam" },
+  { hangul: "\ubc31", romanized: "Baek" },
+  { hangul: "\ubcc0", romanized: "Byeon" },
+  { hangul: "\uc124", romanized: "Seol" },
+];
+
+const buildBytenzaGivenNames = () => {
+  const names = [];
   const seen = new Set();
-  const out = [];
-  primary.forEach((name) => {
-    const key = name.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push(name);
-  });
-  secondary.forEach((name) => {
-    const key = name.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push(name);
-  });
-  return out;
+  const pushName = (syllables) => {
+    const hangul = syllables.map((entry) => entry.hangul).join("");
+    if (seen.has(hangul)) return false;
+    seen.add(hangul);
+    const romanized = syllables.map((entry) => entry.romanized).join("-");
+    names.push({ hangul, romanized });
+    return true;
+  };
+  const addTwo = (limit) => {
+    let added = 0;
+    for (let i = 0; i < BYTENZA_GIVEN_SYLLABLES_PRIMARY.length; i += 1) {
+      for (let j = 0; j < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; j += 1) {
+        if (pushName([BYTENZA_GIVEN_SYLLABLES_PRIMARY[i], BYTENZA_GIVEN_SYLLABLES_SECONDARY[j]])) {
+          added += 1;
+        }
+        if (added >= limit) return;
+      }
+    }
+  };
+  const addThree = (limit) => {
+    let added = 0;
+    for (let i = 0; i < BYTENZA_GIVEN_SYLLABLES_PRIMARY.length; i += 1) {
+      for (let j = 0; j < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; j += 1) {
+        for (let k = 0; k < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; k += 1) {
+          if (pushName([BYTENZA_GIVEN_SYLLABLES_PRIMARY[i], BYTENZA_GIVEN_SYLLABLES_SECONDARY[j], BYTENZA_GIVEN_SYLLABLES_SECONDARY[k]])) {
+            added += 1;
+          }
+          if (added >= limit) return;
+        }
+      }
+    }
+  };
+  const addFour = (limit) => {
+    let added = 0;
+    for (let i = 0; i < BYTENZA_GIVEN_SYLLABLES_PRIMARY.length; i += 1) {
+      for (let j = 0; j < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; j += 1) {
+        for (let k = 0; k < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; k += 1) {
+          for (let l = 0; l < BYTENZA_GIVEN_SYLLABLES_SECONDARY.length; l += 1) {
+            if (pushName([BYTENZA_GIVEN_SYLLABLES_PRIMARY[i], BYTENZA_GIVEN_SYLLABLES_SECONDARY[j], BYTENZA_GIVEN_SYLLABLES_SECONDARY[k], BYTENZA_GIVEN_SYLLABLES_SECONDARY[l]])) {
+              added += 1;
+            }
+            if (added >= limit) return;
+          }
+        }
+      }
+    }
+  };
+  addTwo(400);
+  addThree(300);
+  addFour(200);
+  return names;
 };
 
+const BYTENZA_GIVEN_NAMES = buildBytenzaGivenNames();
+const BYTENZA_SURNAMES = BYTENZA_SURNAME_SYLLABLES.slice();
 const CREATOR_NAME_PARTS = {
   // Annglora = North America + Europe
   Annglora: {
-    given: mergeUnique(TOPODA_GIVEN_NAMES, WESTERN_NAMES),
+    given: TOPODA_GIVEN_NAMES,
     surname: WESTERN_NAMES
   },
   // Bytenza = Asia + Oceania
   Bytenza: {
-    given: EAST_ASIAN_NAMES,
-    surname: EAST_ASIAN_NAMES
+    given: BYTENZA_GIVEN_NAMES,
+    surname: BYTENZA_SURNAMES
   },
   // Crowlya = Africa + South America
   Crowlya: {
-    given: LATIN_NAMES,
+    given: TOPODA_GIVEN_NAMES,
     surname: LATIN_NAMES
   }
 };

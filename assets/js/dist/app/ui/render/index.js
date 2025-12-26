@@ -2,18 +2,8 @@
 import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getOwnedStudioSlots, getReleaseAsapAt, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { CalendarView } from "../../calendar.js";
 import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
+import { buildMoodOptions, buildThemeOptions, bindThemeSelectAccent, getMoodEmoji, setThemeSelectAccent } from "../themeMoodOptions.js";
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
-const MOOD_EMOJIS = {
-    Cheering: "🌞",
-    Saddening: "💧",
-    Angering: "💢",
-    Energizing: "⚡",
-    Calming: "🕊️",
-    Thrilling: "🔥",
-    Uplifting: "⬆️",
-    Boring: "▫",
-    Daring: "❓"
-};
 let trackHistoryRequestId = 0;
 function resolveCssColor(value) {
     const raw = String(value || "").trim();
@@ -94,17 +84,27 @@ function renderNationalityPill(country) {
     const demonym = countryDemonym(country);
     return `<span class="pill country-pill" style="color:${textColor}; border-color:${color}; background:${color};">${demonym}</span>`;
 }
+function renderCreatorName(creator, { stacked = true } = {}) {
+    if (!creator)
+        return "";
+    const romanized = creator.name || "";
+    const hangul = creator.nameHangul
+        || (creator.surnameHangul && creator.givenNameHangul ? `${creator.surnameHangul}${creator.givenNameHangul}` : "");
+    if (!hangul || !stacked)
+        return romanized;
+    return `<span class="name-stack"><span class="name-ko" lang="ko">${hangul}</span><span class="name-romanized">${romanized}</span></span>`;
+}
 function renderLabelTag(label, country) {
     const color = countryColor(country);
     const textColor = country === "Bytenza" ? "#f4f1ea" : "#0b0f14";
     return `<span class="tag" style="color:${textColor}; border-color:${color}; background:${color};"><span class="tag-dot" style="background:${textColor};"></span>${label}</span>`;
 }
 function renderMoodTag(mood) {
-    const emoji = MOOD_EMOJIS[mood] || "❓";
+    const emoji = getMoodEmoji(mood) || "❓";
     return `<span class="tag mood"><span class="mood-emoji">${emoji}</span>${mood}</span>`;
 }
 function renderMoodLabel(mood) {
-    const emoji = MOOD_EMOJIS[mood] || "❓";
+    const emoji = getMoodEmoji(mood) || "❓";
     return `<span class="tag mood">${mood} <span class="mood-emoji">${emoji}</span></span>`;
 }
 function ensureTrackSlotGrid() {
@@ -234,11 +234,11 @@ function renderSlots() {
     const unassignedLabel = UNASSIGNED_SLOT_LABEL;
     const unassignedCreatorLabel = UNASSIGNED_CREATOR_LABEL;
     if ($("actLeadSlot"))
-        $("actLeadSlot").textContent = actLead ? actLead.name : unassignedCreatorLabel;
+        $("actLeadSlot").innerHTML = actLead ? renderCreatorName(actLead) : unassignedCreatorLabel;
     if ($("actMember2Slot"))
-        $("actMember2Slot").textContent = actMember2 ? actMember2.name : unassignedCreatorLabel;
+        $("actMember2Slot").innerHTML = actMember2 ? renderCreatorName(actMember2) : unassignedCreatorLabel;
     if ($("actMember3Slot"))
-        $("actMember3Slot").textContent = actMember3 ? actMember3.name : unassignedCreatorLabel;
+        $("actMember3Slot").innerHTML = actMember3 ? renderCreatorName(actMember3) : unassignedCreatorLabel;
     if ($("trackActSlot"))
         $("trackActSlot").textContent = trackAct ? trackAct.name : unassignedLabel;
     if ($("eraActSlot"))
@@ -257,7 +257,7 @@ function renderSlots() {
             return;
         if (type === "creator") {
             const creator = value ? getCreator(value) : null;
-            valueEl.textContent = creator ? creator.name : unassignedCreatorLabel;
+            valueEl.innerHTML = creator ? renderCreatorName(creator) : unassignedCreatorLabel;
             if (avatarEl) {
                 const portraitUrl = creator ? getCreatorPortraitUrl(creator) : null;
                 const hasImage = Boolean(portraitUrl);
@@ -336,11 +336,13 @@ function refreshSelectOptions() {
     if (trackAlignment)
         trackAlignment.innerHTML = ALIGNMENTS.map((a) => `<option value="${a}">${a}</option>`).join("");
     const themeSelect = $("themeSelect");
-    if (themeSelect)
-        themeSelect.innerHTML = THEMES.map((t) => `<option value="${t}">${t}</option>`).join("");
+    if (themeSelect) {
+        themeSelect.innerHTML = buildThemeOptions();
+        bindThemeSelectAccent(themeSelect);
+    }
     const moodSelect = $("moodSelect");
     if (moodSelect)
-        moodSelect.innerHTML = MOODS.map((m) => `<option value="${m}">${m}</option>`).join("");
+        moodSelect.innerHTML = buildMoodOptions();
     const modifierSelect = $("modifierSelect");
     if (modifierSelect)
         modifierSelect.innerHTML = MODIFIERS.map((mod) => `<option value="${mod.id}">${mod.label}</option>`).join("");
@@ -352,19 +354,21 @@ function refreshSelectOptions() {
         actAlignmentSelect.innerHTML = ALIGNMENTS.map((a) => `<option value="${a}">${a}</option>`).join("");
     const genreThemeFilter = $("genreThemeFilter");
     if (genreThemeFilter) {
-        genreThemeFilter.innerHTML = [`<option value="All">All Themes</option>`, ...THEMES.map((t) => `<option value="${t}">${t}</option>`)].join("");
+        genreThemeFilter.innerHTML = buildThemeOptions([{ value: "All", label: "All Themes" }]);
+        bindThemeSelectAccent(genreThemeFilter);
     }
     const genreMoodFilter = $("genreMoodFilter");
     if (genreMoodFilter) {
-        genreMoodFilter.innerHTML = [`<option value="All">All Moods</option>`, ...MOODS.map((m) => `<option value="${m}">${m}</option>`)].join("");
+        genreMoodFilter.innerHTML = buildMoodOptions([{ value: "All", label: "All Moods" }]);
     }
     const cccThemeFilter = $("cccThemeFilter");
     if (cccThemeFilter) {
-        cccThemeFilter.innerHTML = [`<option value="All">All Themes</option>`, ...THEMES.map((t) => `<option value="${t}">${t}</option>`)].join("");
+        cccThemeFilter.innerHTML = buildThemeOptions([{ value: "All", label: "All Themes" }]);
+        bindThemeSelectAccent(cccThemeFilter);
     }
     const cccMoodFilter = $("cccMoodFilter");
     if (cccMoodFilter) {
-        cccMoodFilter.innerHTML = [`<option value="All">All Moods</option>`, ...MOODS.map((m) => `<option value="${m}">${m}</option>`)].join("");
+        cccMoodFilter.innerHTML = buildMoodOptions([{ value: "All", label: "All Moods" }]);
     }
     const trendScopeSelect = $("trendScopeSelect");
     if (trendScopeSelect)
@@ -375,12 +379,13 @@ function refreshSelectOptions() {
     }
     const eraPlanTheme = $("eraPlanTheme");
     if (eraPlanTheme) {
-        eraPlanTheme.innerHTML = [`<option value="Any">Any Theme</option>`, ...THEMES.map((t) => `<option value="${t}">${t}</option>`)].join("");
+        eraPlanTheme.innerHTML = buildThemeOptions([{ value: "Any", label: "Any Theme" }]);
         eraPlanTheme.value = state.ui.eraPlan?.themeTarget || "Any";
+        bindThemeSelectAccent(eraPlanTheme);
     }
     const eraPlanMood = $("eraPlanMood");
     if (eraPlanMood) {
-        eraPlanMood.innerHTML = [`<option value="Any">Any Mood</option>`, ...MOODS.map((m) => `<option value="${m}">${m}</option>`)].join("");
+        eraPlanMood.innerHTML = buildMoodOptions([{ value: "Any", label: "Any Mood" }]);
         eraPlanMood.value = state.ui.eraPlan?.moodTarget || "Any";
     }
     const eraPlanRollout = $("eraPlanRollout");
@@ -421,12 +426,16 @@ function refreshSelectOptions() {
     const labelNameInput = $("labelNameInput");
     if (labelNameInput)
         labelNameInput.value = state.label.name;
-    if (genreThemeFilter)
+    if (genreThemeFilter) {
         genreThemeFilter.value = state.ui.genreTheme || "All";
+        setThemeSelectAccent(genreThemeFilter);
+    }
     if (genreMoodFilter)
         genreMoodFilter.value = state.ui.genreMood || "All";
-    if (cccThemeFilter)
+    if (cccThemeFilter) {
         cccThemeFilter.value = state.ui.cccThemeFilter || "All";
+        setThemeSelectAccent(cccThemeFilter);
+    }
     if (cccMoodFilter)
         cccMoodFilter.value = state.ui.cccMoodFilter || "All";
     const cccSort = $("cccSort");
@@ -475,7 +484,7 @@ function renderAutoAssignModal() {
           <div class="list-item">
             <div class="auto-assign-candidate">
               <div>
-                <div class="item-title">${creator.name}</div>
+                <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
                 <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
                 <div class="muted">ID ${creator.id} | Skill <span class="grade-text" data-grade="${scoreGrade(creator.skill)}">${creator.skill}</span></div>
@@ -1345,12 +1354,14 @@ function renderCalendarList(targetId, weeks, projectionOverride) {
         </div>
         ${entries.map((entry) => {
             const label = entry.label || "Label";
+            const labelCountry = getRivalByName(label)?.country || state.label.country || "Annglora";
+            const labelTag = label ? renderLabelTag(label, labelCountry) : "Label";
             const actName = entry.actName || "Unknown";
             const title = entry.title || "Untitled";
             const typeLabel = entry.typeLabel || "Event";
             const distribution = entry.distribution || "Digital";
             return `
-            <div class="muted">${label} | ${actName} | ${title} (${typeLabel}, ${distribution})</div>
+            <div class="muted">${labelTag} | ${actName} | ${title} (${typeLabel}, ${distribution})</div>
           `;
         }).join("")}
       </div>
@@ -1404,7 +1415,7 @@ function renderCreatorFallbackSymbols({ unassigned = false } = {}) {
     return `<span class="avatar-symbols" aria-hidden="true"><span class="material-symbols-rounded avatar-icon">${CREATOR_FALLBACK_ICON}</span><span class="avatar-emoji">${emoji}</span></span>`;
 }
 function renderCreatorAvatar(creator) {
-    const initials = creatorInitials(creator?.name || "");
+    const initials = creatorInitials(creator?.nameHangul || creator?.name || "");
     const portraitUrl = getCreatorPortraitUrl(creator);
     const hasImage = Boolean(portraitUrl);
     const imageStyle = hasImage ? ` style="background-image: url('${safeAvatarUrl(portraitUrl)}')"` : "";
@@ -1437,7 +1448,7 @@ function renderCreators() {
             <div class="creator-card">
               ${renderCreatorAvatar(creator)}
               <div>
-                <div class="item-title">${creator.name}</div>
+                <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
                 <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
                 <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
@@ -1489,8 +1500,10 @@ function renderMarket() {
     const themeSelect = $("cccThemeFilter");
     const moodSelect = $("cccMoodFilter");
     const sortSelect = $("cccSort");
-    if (themeSelect)
+    if (themeSelect) {
         themeSelect.value = themeFilter;
+        setThemeSelectAccent(themeSelect);
+    }
     if (moodSelect)
         moodSelect.value = moodFilter;
     if (sortSelect)
@@ -1565,9 +1578,10 @@ function renderMarket() {
             const itemClass = `list-item${isLocked ? " ccc-market-item--failed" : ""}`;
             const buttonState = isLocked ? " disabled" : "";
             const buttonLabel = isLocked ? "Locked until refresh" : `Sign ${formatMoney(creator.signCost || 0)}`;
-            const lockoutHint = isLocked ? `<div class="tiny muted">Locked until 12AM refresh</div>` : "";
+            const lockoutReason = isLocked && lockout?.reason ? ` - ${lockout.reason}` : "";
+            const lockoutHint = isLocked ? `<div class="tiny muted">Locked until 12AM refresh${lockoutReason}</div>` : "";
             const lockoutTitle = isLocked && lockout
-                ? ` title="Locked until ${formatDate(lockout.lockedUntilEpochMs)}"`
+                ? ` title="Locked until ${formatDate(lockout.lockedUntilEpochMs)}${lockout?.reason ? ` | ${lockout.reason}` : ""}"`
                 : "";
             const themeCells = (creator.prefThemes || []).map((theme) => renderThemeTag(theme)).join("");
             const moodCells = (creator.prefMoods || []).map((mood) => renderMoodTag(mood)).join("");
@@ -1577,7 +1591,7 @@ function renderMarket() {
             <div class="creator-card">
               ${renderCreatorAvatar(creator)}
               <div>
-                <div class="item-title">${creator.name}</div>
+                <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
                 <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
                 <div class="muted">ID ${creator.id} | ${roleLabelText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>

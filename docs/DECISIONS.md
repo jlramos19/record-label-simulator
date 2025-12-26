@@ -22,4 +22,4 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 - DEC-20251225-006: UI render/DOM helpers live under `src/app/ui/`, and game logic triggers UI updates through `uiHooks` instead of calling renderers directly.
 
 ## Naming data
-- DEC-20251225-007: Creator name pools live in `src/app/game/names.ts`, sourced from `game-development-documents/03-Systems/topoda-charts-alphabet-and-vocabulary.md`, ASCII-normalized, and mapped to Annglora/Bytenza/Crowlya regional lore.
+- DEC-20251225-007: Creator name pools live in `src/app/game/names.ts`, sourced from `game-design-documents/03-Systems/record-label-simulator-alphabet-and-vocabulary.md`, ASCII-normalized, and mapped to Annglora/Bytenza/Crowlya regional lore.

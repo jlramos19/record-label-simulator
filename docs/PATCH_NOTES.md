@@ -1,5 +1,28 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0248Z)
+- Calendar tabs no longer compress under the Calendar header.
+- Rival calendar events now show label color cues in the grid and list views.
+- Theme/mood selects now surface theme colors and mood emojis, including start preferences and filters.
+
+## 2025-12-26 (RLS-PATCH-20251226-0243Z)
+- Bytenza surnames now use single Hangul syllable blocks; given names now span 2-4 syllable blocks.
+
+## 2025-12-26 (RLS-PATCH-20251226-0233Z)
+- Creator name pools now store full given/surname parts, with Bytenza names using Hangul + romanized variants and surname-first ordering.
+- Creator name displays now stack Hangul over romanized labels and apply the Korean font treatment.
+
+## 2025-12-25 (RLS-PATCH-20251226-0231Z)
+- CCC signing rejections now log why a Creator declined and show a short reason on locked CCC cards until the 12AM refresh.
+- Tutorial now separates game loops from game concepts and calls out creator signing decision logic.
+
+## 2025-12-25 (RLS-PATCH-20251226-0247Z)
+- Critical runtime errors now surface as non-blocking, auto-dismiss in-app toasts (console logging remains the default elsewhere).
+
+## 2025-12-25 (RLS-PATCH-20251226-0226Z)
+- Starting preferences now require two distinct Themes and Moods before creating a new game slot.
+- Added dice randomize controls for individual Theme/Mood picks, both Themes, both Moods, or all four.
+
 ## 2025-12-25 (RLS-PATCH-20251226-0206Z)
 - Header Top Labels/Top Trends now include persistent "More" buttons that open a draggable, scrollable rankings window (Top 8 labels, Top 40 trends).
 - Removed Top Labels/Top Trends panels from the Community view.

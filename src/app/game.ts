@@ -1041,17 +1041,89 @@ function seededPickUniqueName(list, existingNames, suffix, rng) {
   return `${seededPick(list, rng)} ${suffix || "II"}`;
 }
 
-function buildCreatorName(country, existingNames) {
+function namePartText(part) {
+  if (!part) return "";
+  if (typeof part === "string") return part;
+  if (typeof part === "object" && part.romanized) return String(part.romanized);
+  return String(part);
+}
+
+function namePartHangul(part) {
+  if (!part || typeof part === "string") return "";
+  return String(part.hangul || "");
+}
+
+function splitCreatorNameParts(name, country) {
+  const cleaned = String(name || "").trim();
+  if (!cleaned) return { givenName: "", surname: "" };
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  if (!parts.length) return { givenName: "", surname: "" };
+  if (country === "Bytenza") {
+    return {
+      surname: parts[0] || "",
+      givenName: parts.slice(1).join(" ").trim()
+    };
+  }
+  return {
+    givenName: parts[0] || "",
+    surname: parts.slice(1).join(" ").trim()
+  };
+}
+
+function formatCreatorFullName(country, givenName, surname) {
+  const given = String(givenName || "").trim();
+  const family = String(surname || "").trim();
+  if (country === "Bytenza") {
+    return `${family}${given ? ` ${given}` : ""}`.trim();
+  }
+  return `${given}${family ? ` ${family}` : ""}`.trim();
+}
+
+function buildCreatorNameParts(country, existingNames) {
   const parts = CREATOR_NAME_PARTS[country] || CREATOR_NAME_PARTS.Annglora;
   const existing = new Set(existingNames.filter(Boolean));
   for (let i = 0; i < 24; i += 1) {
-    const given = pickOne(parts.given);
-    const surname = pickOne(parts.surname);
-    const name = country === "Bytenza" ? `${surname} ${given}` : `${given} ${surname}`;
-    if (!existing.has(name)) return name;
+    const givenPart = pickOne(parts.given);
+    const surnamePart = pickOne(parts.surname);
+    const givenName = namePartText(givenPart);
+    const surname = namePartText(surnamePart);
+    const name = formatCreatorFullName(country, givenName, surname);
+    if (existing.has(name)) continue;
+    const givenNameHangul = namePartHangul(givenPart) || null;
+    const surnameHangul = namePartHangul(surnamePart) || null;
+    const nameHangul = country === "Bytenza" && surnameHangul && givenNameHangul
+      ? `${surnameHangul}${givenNameHangul}`
+      : null;
+    return {
+      name,
+      givenName,
+      surname,
+      nameHangul,
+      givenNameHangul,
+      surnameHangul
+    };
   }
-  const fallback = `${pickOne(parts.given)} ${pickOne(parts.surname)}`;
-  return existing.has(fallback) ? `${fallback} II` : fallback;
+  const fallbackGivenPart = pickOne(parts.given);
+  const fallbackSurnamePart = pickOne(parts.surname);
+  const fallbackGiven = namePartText(fallbackGivenPart);
+  const fallbackSurname = namePartText(fallbackSurnamePart);
+  const baseName = formatCreatorFullName(country, fallbackGiven, fallbackSurname);
+  const suffix = existing.has(baseName) ? " II" : "";
+  const name = `${baseName}${suffix}`.trim();
+  const fallbackGivenHangul = namePartHangul(fallbackGivenPart) || null;
+  const fallbackSurnameHangul = namePartHangul(fallbackSurnamePart) || null;
+  const baseHangul = country === "Bytenza" && fallbackSurnameHangul && fallbackGivenHangul
+    ? `${fallbackSurnameHangul}${fallbackGivenHangul}`
+    : null;
+  const nameHangul = baseHangul ? `${baseHangul}${suffix}`.trim() : null;
+  return {
+    name,
+    givenName: fallbackGiven,
+    surname: fallbackSurname,
+    nameHangul,
+    givenNameHangul: fallbackGivenHangul,
+    surnameHangul: fallbackSurnameHangul
+  };
 }
 
 function buildCompositeName(prefixes, suffixes, existingNames, fallbackList, suffix) {
@@ -1969,9 +2041,10 @@ function makeCreator(role, existingNames, country, options = {}) {
   const existing = existingNames
     || [...state.creators.map((creator) => creator.name), ...state.marketCreators.map((creator) => creator.name)];
   const origin = country || pickOne(NATIONS);
+  const nameParts = buildCreatorNameParts(origin, existing);
   return {
     id: uid("CR"),
-    name: buildCreatorName(origin, existing),
+    ...nameParts,
     role,
     skill: clampSkill(rand(55, 92)),
     stamina: STAMINA_MAX,
@@ -1988,6 +2061,20 @@ function normalizeCreator(creator) {
   if (!creator.prefThemes?.length) creator.prefThemes = pickDistinct(THEMES, 2);
   if (!creator.prefMoods?.length) creator.prefMoods = pickDistinct(MOODS, 2);
   if (!creator.country) creator.country = pickOne(NATIONS);
+  if (!creator.givenName || !creator.surname) {
+    const parsed = splitCreatorNameParts(creator.name, creator.country);
+    if (!creator.givenName) creator.givenName = parsed.givenName;
+    if (!creator.surname) creator.surname = parsed.surname;
+  }
+  if (!creator.name) {
+    creator.name = formatCreatorFullName(creator.country, creator.givenName, creator.surname);
+  }
+  if (typeof creator.nameHangul !== "string" || !creator.nameHangul.trim()) creator.nameHangul = null;
+  if (typeof creator.givenNameHangul !== "string" || !creator.givenNameHangul.trim()) creator.givenNameHangul = null;
+  if (typeof creator.surnameHangul !== "string" || !creator.surnameHangul.trim()) creator.surnameHangul = null;
+  if (!creator.nameHangul && creator.country === "Bytenza" && creator.surnameHangul && creator.givenNameHangul) {
+    creator.nameHangul = `${creator.surnameHangul}${creator.givenNameHangul}`;
+  }
   const now = typeof state?.time?.epochMs === "number" ? state.time.epochMs : Date.now();
   if (typeof creator.lastActivityAt !== "number") creator.lastActivityAt = now;
   if (typeof creator.lastReleaseAt !== "number") creator.lastReleaseAt = null;
@@ -2172,11 +2259,17 @@ function isCreatorSignLocked(creatorId, nowEpochMs = state.time.epochMs) {
   return !!getCreatorSignLockout(creatorId, nowEpochMs);
 }
 
-function setCreatorSignLockout(creatorId, lockedUntilEpochMs) {
+function setCreatorSignLockout(creatorId, lockedUntilEpochMs, reason = null) {
   if (!creatorId) return;
   ensureCccState();
   if (!Number.isFinite(lockedUntilEpochMs)) return;
-  state.ccc.signLockoutsByCreatorId[creatorId] = { lockedUntilEpochMs };
+  const entry = { lockedUntilEpochMs };
+  if (reason && typeof reason === "object") {
+    entry.reason = reason.label || reason.code || null;
+    entry.reasonCode = reason.code || null;
+    entry.reasonDetail = reason.detail || null;
+  }
+  state.ccc.signLockoutsByCreatorId[creatorId] = entry;
 }
 
 function clearCreatorSignLockout(creatorId) {
@@ -2190,21 +2283,122 @@ function clearCreatorSignLockouts() {
   state.ccc.signLockoutsByCreatorId = {};
 }
 
-function creatorSignAcceptanceChance(creator) {
-  let chance = 0.7;
-  const focusThemes = Array.isArray(state.label.focusThemes) ? state.label.focusThemes : [];
-  const focusMoods = Array.isArray(state.label.focusMoods) ? state.label.focusMoods : [];
-  if (creator.prefThemes?.some((theme) => focusThemes.includes(theme))) chance += 0.08;
-  if (creator.prefMoods?.some((mood) => focusMoods.includes(mood))) chance += 0.05;
-  if (creator.skill >= 85) chance -= 0.08;
-  if (creator.skill <= 60) chance += 0.05;
+function buildCreatorSignContext(creator) {
+  const focusThemes = Array.isArray(state.label?.focusThemes) ? state.label.focusThemes : [];
+  const focusMoods = Array.isArray(state.label?.focusMoods) ? state.label.focusMoods : [];
+  const themeMatch = Boolean(creator.prefThemes?.some((theme) => focusThemes.includes(theme)));
+  const moodMatch = Boolean(creator.prefMoods?.some((mood) => focusMoods.includes(mood)));
+  const skillHigh = creator.skill >= 85;
+  const skillLow = creator.skill <= 60;
   const pressure = marketPressureForRole(creator.role);
+  let chance = 0.7;
+  if (themeMatch) chance += 0.08;
+  if (moodMatch) chance += 0.05;
+  if (skillHigh) chance -= 0.08;
+  if (skillLow) chance += 0.05;
   chance += pressure.acceptanceDelta;
-  return clamp(chance, 0.35, 0.9);
+  return {
+    chance: clamp(chance, 0.35, 0.9),
+    focusThemes,
+    focusMoods,
+    themeMatch,
+    moodMatch,
+    skillHigh,
+    skillLow,
+    pressure
+  };
 }
 
-function creatorAcceptsOffer(creator) {
-  return Math.random() < creatorSignAcceptanceChance(creator);
+function creatorSignAcceptanceChance(creator) {
+  return buildCreatorSignContext(creator).chance;
+}
+
+function formatPreferenceList(items, fallback) {
+  if (!Array.isArray(items) || !items.length) return fallback;
+  return items.slice(0, 2).join(" / ");
+}
+
+function describeCreatorSignDecline(creator, context) {
+  const reasons = [];
+  const themePrefs = formatPreferenceList(creator.prefThemes, "their themes");
+  const moodPrefs = formatPreferenceList(creator.prefMoods, "their moods");
+  const focusSet = (context.focusThemes?.length || 0) + (context.focusMoods?.length || 0) > 0;
+
+  if (!focusSet) {
+    reasons.push({
+      code: "FOCUS_UNSET",
+      weight: 2.6,
+      label: "Focus undefined",
+      text: "label focus is undefined; wants clearer direction"
+    });
+  } else if (!context.themeMatch && !context.moodMatch) {
+    reasons.push({
+      code: "FOCUS_MISMATCH",
+      weight: 3,
+      label: "Focus mismatch",
+      text: `focus mismatch with ${themePrefs} / ${moodPrefs}`
+    });
+  } else {
+    if (!context.themeMatch) {
+      reasons.push({
+        code: "THEME_MISMATCH",
+        weight: 2.2,
+        label: "Theme mismatch",
+        text: `wants more ${themePrefs} themes`
+      });
+    }
+    if (!context.moodMatch) {
+      reasons.push({
+        code: "MOOD_MISMATCH",
+        weight: 1.8,
+        label: "Mood mismatch",
+        text: `wants more ${moodPrefs} moods`
+      });
+    }
+  }
+
+  if (context.skillHigh) {
+    reasons.push({
+      code: "HIGH_SKILL",
+      weight: 2.4,
+      label: "High expectations",
+      text: "holding out for a premium offer"
+    });
+  }
+
+  const marketHeadwind = context.pressure?.acceptanceDelta < -0.02;
+  if (marketHeadwind) {
+    reasons.push({
+      code: "MARKET_HEAT",
+      weight: 2,
+      label: "Hot market",
+      text: `${roleLabel(creator.role)} market is hot`
+    });
+  }
+
+  if (!reasons.length) {
+    reasons.push({
+      code: "NOT_A_FIT",
+      weight: 1,
+      label: "Not a fit",
+      text: "not a fit right now"
+    });
+  }
+
+  reasons.sort((a, b) => b.weight - a.weight);
+  const primary = reasons[0];
+  const secondary = reasons.slice(1).find((reason) => reason.weight >= primary.weight * 0.75);
+  const detail = secondary ? `${primary.text}; ${secondary.text}` : primary.text;
+  return { code: primary.code, label: primary.label, detail };
+}
+
+function resolveCreatorSignDecision(creator) {
+  const context = buildCreatorSignContext(creator);
+  const roll = Math.random();
+  if (roll < context.chance) {
+    return { accepted: true, chance: context.chance, roll };
+  }
+  return { accepted: false, chance: context.chance, roll, decline: describeCreatorSignDecline(creator, context) };
 }
 
 function attemptSignCreator({ creatorId, recordLabelId, nowEpochMs } = {}) {
@@ -2237,11 +2431,14 @@ function attemptSignCreator({ creatorId, recordLabelId, nowEpochMs } = {}) {
     logEvent("Not enough cash to sign this creator.", "warn");
     return { ok: false, kind: "PRECONDITION", reason: "INSUFFICIENT_FUNDS", cost };
   }
-  if (!creatorAcceptsOffer(creator)) {
+  const decision = resolveCreatorSignDecision(creator);
+  if (!decision.accepted) {
     const lockedUntilEpochMs = nextMidnightEpochMs(now);
-    setCreatorSignLockout(creatorId, lockedUntilEpochMs);
-    logEvent(`Creator ${creator.name} rejected the signing attempt. Next attempt after the 12AM refresh.`, "warn");
-    return { ok: false, kind: "REJECTED", reason: "REJECTED", cost, lockedUntilEpochMs };
+    const decline = decision.decline || { code: "REJECTED", label: "Declined", detail: "" };
+    const detail = decline.detail ? `: ${decline.detail}` : " the offer";
+    setCreatorSignLockout(creatorId, lockedUntilEpochMs, decline);
+    logEvent(`Creator ${creator.name} declined${detail}. Next attempt after the 12AM refresh.`, "warn");
+    return { ok: false, kind: "REJECTED", reason: decline.code || "REJECTED", detail: decline.detail, cost, lockedUntilEpochMs };
   }
   state.marketCreators.splice(index, 1);
   state.label.cash -= cost;
@@ -7867,12 +8064,17 @@ function buildCalendarSources() {
     const isPromo = queueType === "promo";
     const promoLabel = isPromo ? getPromoTypeDetails(entry.promoType).label : null;
     const title = entry.title || (isPromo ? promoLabel : "Unknown Track");
+    const rival = getRivalByName(entry.label);
+    const labelCountry = rival?.country || entry.country || state.label.country;
+    const labelColor = countryColor(labelCountry);
     return {
       id: entry.id,
       ts: entry.releaseAt,
       title,
       actName: entry.actName || (isPromo ? "Promotion" : "Unknown"),
       label: entry.label,
+      labelColor,
+      showLabel: true,
       kind: isPromo ? "rivalPromo" : "rivalScheduled",
       typeLabel: isPromo ? "Rival Promo" : "Rival Scheduled",
       distribution: isPromo ? promoLabel : (entry.distribution || "Digital")
@@ -7880,16 +8082,23 @@ function buildCalendarSources() {
   });
   const rivalReleased = state.marketTracks
     .filter((entry) => !entry.isPlayer)
-    .map((entry) => ({
-      id: entry.id,
-      ts: entry.releasedAt,
-      title: entry.title,
-      actName: entry.actName || "Unknown",
-      label: entry.label,
-      kind: "rivalReleased",
-      typeLabel: "Rival Released",
-      distribution: entry.distribution || "Digital"
-    }));
+    .map((entry) => {
+      const rival = getRivalByName(entry.label);
+      const labelCountry = rival?.country || entry.country || state.label.country;
+      const labelColor = countryColor(labelCountry);
+      return {
+        id: entry.id,
+        ts: entry.releasedAt,
+        title: entry.title,
+        actName: entry.actName || "Unknown",
+        label: entry.label,
+        labelColor,
+        showLabel: true,
+        kind: "rivalReleased",
+        typeLabel: "Rival Released",
+        distribution: entry.distribution || "Digital"
+      };
+    });
   const eras = getActiveEras()
     .filter((entry) => entry.status === "Active")
     .map((era) => {

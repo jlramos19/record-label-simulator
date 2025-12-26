@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-25 22:06:31 -04:00
+Last updated: 2025-12-25 22:49:37 -04:00
 
 ## Quick start
 
@@ -47,6 +47,11 @@ npm run dev:logs
 
 - `index.html` loads global data from `assets/js/data/*.js` and the app module from `assets/js/dist/main.js`.
 - `src/main.ts` calls `initUI()` and registers `service-worker.js`.
+
+## Docs
+
+- Acronyms + abbreviations: `docs/glossary/acronyms.md`
+- Unity to web glossary: `docs/glossary/unity-to-web.md`
 
 ## Code layout (high level)
 

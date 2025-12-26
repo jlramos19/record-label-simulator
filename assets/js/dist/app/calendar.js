@@ -111,9 +111,15 @@ export function CalendarDayCell(day) {
         const distribution = event.distribution ? `, ${event.distribution}` : "";
         const detail = `${labelName} | ${actName} | ${title} (${typeLabel}${distribution})`;
         const kindClass = event.className || toKebabCase(event.kind || "event");
+        const showLabel = event.showLabel && labelName;
+        const labelColor = showLabel ? event.labelColor || "" : "";
+        const labelStyle = labelColor ? ` style="--label-color:${escapeAttr(labelColor)}"` : "";
+        const labelClass = labelColor ? " has-label-color" : "";
+        const labelLine = showLabel ? `<span class="calendar-event-label">${labelName}</span>` : "";
         return `
-      <div class="calendar-event calendar-event--${kindClass}" title="${escapeAttr(detail)}">
+      <div class="calendar-event calendar-event--${kindClass}${labelClass}"${labelStyle} title="${escapeAttr(detail)}">
         <span class="calendar-event-type">${typeLabel}</span>
+        ${labelLine}
         <span class="calendar-event-title">${title}</span>
       </div>
     `;

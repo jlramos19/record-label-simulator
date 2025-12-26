@@ -5,12 +5,13 @@ Ensure CCC signing only deducts cash on successful sign attempts and that failed
 
 ## Canon Check (What the Docs Say)
 - Canon spec lives in `docs/systems/ccc/signing.md`, including acceptance criteria and lockout timing.
-- Reference-only GDD notes (`game-development-documents/03-Systems/record-label-simulator-how-to-sign-a-creator-system.md`) describe accept/reconsider/decline outcomes but do not define how creators decide.
+- Reference-only GDD notes (`game-design-documents/03-Systems/record-label-simulator-how-to-sign-a-creator-system.md`) describe accept/reconsider/decline outcomes; canon now defines acceptance rules and decline drivers.
 
 ## Current Behavior (Baseline)
 - Successful sign removes the creator from the CCC market and adds them to the roster with a cash deduction.
 - Rejections lock the creator's sign action until the next midnight refresh.
 - Precondition failures (insufficient funds, roster full) do not lock out the creator.
+ - Rejections log a decline reason and store a short tag on the lockout for UI feedback.
 
 ## Implementation Plan
 1. CCC signing flow (`src/app/game.ts` + `src/app/ui.ts`):
