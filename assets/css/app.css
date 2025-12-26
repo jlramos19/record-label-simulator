@@ -160,9 +160,10 @@ body::before {
 }
 .hud-actions {
   display: flex;
+  flex-direction: column;
   gap: 6px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-start;
 }
 .hud-trend {
   font-size: 12px;
@@ -866,6 +867,24 @@ body::before {
 }
 .list-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
 .item-main { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.panel[data-panel="release-desk"] .list-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+.panel[data-panel="release-desk"] .item-main {
+  align-items: flex-start;
+}
+.panel[data-panel="release-desk"] .time-row {
+  width: 100%;
+  justify-content: flex-start;
+}
+.panel[data-panel="release-desk"] .input-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.panel[data-panel="release-desk"] .input-row select {
+  flex: 1 1 100%;
+}
 .content-thumb {
   height: 46px;
   aspect-ratio: 1 / 1;
@@ -1431,7 +1450,8 @@ select.theme-select {
   gap: 8px;
 }
 .slot-grid--multi {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 280px));
+  justify-content: start;
 }
 .slot-grid--stack {
   display: grid;
@@ -1796,6 +1816,9 @@ select.theme-select {
   .hud-right {
     justify-items: start;
     text-align: left;
+  }
+  .hud-actions {
+    align-items: flex-start;
   }
   .world-summary {
     grid-template-columns: 1fr;

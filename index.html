@@ -422,6 +422,10 @@
           <span class="material-symbols-rounded icon-glyph" aria-hidden="true">settings</span>
           <span>Settings</span>
         </button>
+        <button id="saveNowBtn" type="button" class="ghost">
+          <span class="material-symbols-rounded icon-glyph" aria-hidden="true">save</span>
+          <span>Save Now</span>
+        </button>
         <button id="sidePanelsBtn" type="button" class="ghost">
           <span class="material-symbols-rounded icon-glyph" aria-hidden="true">view_sidebar</span>
           <span>Sidebars</span>
@@ -1066,11 +1070,17 @@
           <div class="ccc-filters">
             <div class="field">
               <label for="cccThemeFilter">Preferred Theme</label>
-              <select id="cccThemeFilter"></select>
+              <div class="input-row">
+                <select id="cccThemeFilter"></select>
+                <button id="cccThemeTrendBtn" type="button" class="ghost mini" aria-label="Cycle top 3 trend themes" title="Cycle top 3 trend themes">Top 3</button>
+              </div>
             </div>
             <div class="field">
               <label for="cccMoodFilter">Preferred Mood</label>
-              <select id="cccMoodFilter"></select>
+              <div class="input-row">
+                <select id="cccMoodFilter"></select>
+                <button id="cccMoodTrendBtn" type="button" class="ghost mini" aria-label="Cycle top 3 trend moods" title="Cycle top 3 trend moods">Top 3</button>
+              </div>
             </div>
             <div class="field">
               <label for="cccSort">Sort By</label>
@@ -1121,7 +1131,8 @@
             <label class="check-pill"><input type="checkbox" data-social-filter="ccc">CCC</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="system">System</label>
           </div>
-            <div class="subhead">Promotion Targets</div>
+          <div class="subhead">Promotion Targets</div>
+          <div class="promo-target-grid slot-grid slot-grid--multi">
             <div class="id-slot" data-slot-target="promo-act" data-slot-type="act">
               <div class="slot-label">Act ID</div>
               <div id="promoActSlot" class="slot-value">?</div>
@@ -1132,6 +1143,7 @@
               <div id="promoTrackSlot" class="slot-value">?</div>
               <button type="button" class="ghost mini" data-slot-clear="promo-track">Clear</button>
             </div>
+          </div>
           <div class="list-item">
             <div class="list-row">
               <div>

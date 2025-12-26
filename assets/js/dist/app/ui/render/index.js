@@ -192,6 +192,28 @@ function renderCreatorName(creator, { stacked = true } = {}) {
         return romanized;
     return `<span class="name-stack"><span class="name-ko" lang="ko">${hangul}</span><span class="name-romanized">${romanized}</span></span>`;
 }
+const SKILL_LEVEL_COUNT = 10;
+const SKILL_EXP_PER_LEVEL = Math.max(1, (SKILL_MAX - SKILL_MIN + 1) / SKILL_LEVEL_COUNT);
+const SKILL_EXP_PER_LEVEL_LABEL = Number.isInteger(SKILL_EXP_PER_LEVEL)
+    ? String(SKILL_EXP_PER_LEVEL)
+    : SKILL_EXP_PER_LEVEL.toFixed(2);
+function getCreatorSkillLevel(creator) {
+    const skill = Number.isFinite(creator?.skill) ? creator.skill : SKILL_MIN;
+    const bounded = clamp(skill, SKILL_MIN, SKILL_MAX) - SKILL_MIN;
+    return clamp(Math.floor(bounded / SKILL_EXP_PER_LEVEL) + 1, 1, SKILL_LEVEL_COUNT);
+}
+function getCreatorSkillExp(creator) {
+    const skill = Number.isFinite(creator?.skill) ? creator.skill : SKILL_MIN;
+    const progress = Number.isFinite(creator?.skillProgress) ? creator.skillProgress : 0;
+    const bounded = clamp(skill, SKILL_MIN, SKILL_MAX) - SKILL_MIN;
+    const exp = (bounded % SKILL_EXP_PER_LEVEL) + progress;
+    return clamp(exp, 0, SKILL_EXP_PER_LEVEL);
+}
+function renderCreatorSkillProgress(creator) {
+    const level = getCreatorSkillLevel(creator);
+    const exp = getCreatorSkillExp(creator);
+    return `Skill Level ${level} | EXP ${exp.toFixed(2)} / ${SKILL_EXP_PER_LEVEL_LABEL}`;
+}
 function renderLabelTag(label, country) {
     const color = countryColor(country);
     const textColor = country === "Bytenza" ? "#f4f1ea" : "#0b0f14";
@@ -611,6 +633,7 @@ function renderAutoAssignModal() {
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
                 <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
                 <div class="muted">ID ${creator.id} | Skill <span class="grade-text" data-grade="${scoreGrade(creator.skill)}">${creator.skill}</span></div>
+                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
               </div>
               <div class="actions">
                 ${creator.ready ? "" : `<span class="tag low">Low stamina</span>`}
@@ -1732,6 +1755,7 @@ function renderCreators() {
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
                 <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
                 <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
+                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
                 <div class="muted">Acts: ${actText}</div>
                 <div class="time-row">${nationalityPill}</div>
                 <div class="muted">Preferred Themes:</div>
@@ -1855,14 +1879,22 @@ function renderMarket() {
             const nationalityPill = renderNationalityPill(creator.country);
             const lockout = getCreatorSignLockout(creator.id, now);
             const isLocked = !!lockout;
+            const signCost = Number.isFinite(creator.signCost) ? creator.signCost : 0;
+            const canAfford = state.label.cash >= signCost;
             const itemClass = `list-item${isLocked ? " ccc-market-item--failed" : ""}`;
-            const buttonState = isLocked ? " disabled" : "";
-            const buttonLabel = isLocked ? "Locked until refresh" : `Sign ${formatMoney(creator.signCost || 0)}`;
+            const buttonState = isLocked || !canAfford ? " disabled" : "";
+            const buttonLabel = isLocked
+                ? "Locked until refresh"
+                : `Sign ${formatMoney(signCost)}${canAfford ? "" : " (not enough money)"}`;
             const lockoutReason = isLocked && lockout?.reason ? ` - ${lockout.reason}` : "";
             const lockoutHint = isLocked ? `<div class="tiny muted">Locked until 12AM refresh${lockoutReason}</div>` : "";
             const lockoutTitle = isLocked && lockout
                 ? ` title="Locked until ${formatDate(lockout.lockedUntilEpochMs)}${lockout?.reason ? ` | ${lockout.reason}` : ""}"`
                 : "";
+            const cashTitle = !isLocked && !canAfford
+                ? ' title="Not enough money to sign this creator."'
+                : "";
+            const buttonTitle = lockoutTitle || cashTitle;
             const themeCells = (creator.prefThemes || []).map((theme) => renderThemeTag(theme)).join("");
             const moodCells = (creator.prefMoods || []).map((mood) => renderMoodTag(mood)).join("");
             return `
@@ -1875,6 +1907,7 @@ function renderMarket() {
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
                 <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
                 <div class="muted">ID ${creator.id} | ${roleLabelText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
+                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
                 <div class="time-row">${nationalityPill}</div>
                 <div class="muted">Preferred Themes:</div>
                 <div class="time-row">${themeCells}</div>
@@ -1883,7 +1916,7 @@ function renderMarket() {
               </div>
             </div>
             <div>
-              <button type="button" data-sign="${creator.id}"${buttonState}${lockoutTitle}>${buttonLabel}</button>
+              <button type="button" data-sign="${creator.id}"${buttonState}${buttonTitle}>${buttonLabel}</button>
               ${lockoutHint}
             </div>
           </div>
@@ -2625,6 +2658,24 @@ function renderEraPerformance() {
     renderEraHistoryPanel(targetEra);
 }
 function renderReleaseDesk() {
+    const readyList = $("readyList");
+    if (!readyList)
+        return;
+    if (!state.ui)
+        state.ui = {};
+    if (typeof document !== "undefined") {
+        const active = document.activeElement;
+        const activeSelect = active && active.matches
+            ? active.matches("select[data-assign-act]") && readyList.contains(active)
+            : false;
+        if (state.ui.releaseDeskLock && !activeSelect)
+            state.ui.releaseDeskLock = false;
+        if (state.ui.releaseDeskLock)
+            return;
+    }
+    else if (state.ui.releaseDeskLock) {
+        state.ui.releaseDeskLock = false;
+    }
     const queuedIds = new Set(state.releaseQueue.map((entry) => entry.trackId));
     const asapAt = getReleaseAsapAt();
     const asapLabel = formatDate(asapAt);
@@ -2701,7 +2752,7 @@ function renderReleaseDesk() {
       `;
         }).join("")
         : `<div class="muted">No ready or mastering tracks.</div>`;
-    $("readyList").innerHTML = readyHtml;
+    readyList.innerHTML = readyHtml;
     if (!state.releaseQueue.length) {
         $("releaseQueueList").innerHTML = `<div class="muted">No scheduled releases.</div>`;
         return;

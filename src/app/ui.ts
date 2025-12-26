@@ -126,6 +126,9 @@ const {
   formatMoney,
   formatDate,
   formatWeekRangeLabel,
+  moodFromGenre,
+  themeFromGenre,
+  TREND_DETAIL_COUNT,
   handleFromName,
   setSlotTarget,
   assignToSlot,
@@ -821,6 +824,55 @@ function syncStartPreferenceSelects() {
 
 function getSelectedStartPreferences() {
   return readStartPreferences();
+}
+
+function getCccTrendSlots() {
+  const trendList = Array.isArray(state.trends) && state.trends.length
+    ? state.trends
+    : Array.isArray(state.trendRanking)
+      ? state.trendRanking
+      : [];
+  const limit = Number.isFinite(TREND_DETAIL_COUNT) ? TREND_DETAIL_COUNT : 3;
+  return trendList.filter(Boolean).slice(0, limit);
+}
+
+function getNextTrendIndex(currentIndex, count) {
+  if (!count) return 0;
+  if (!Number.isFinite(currentIndex)) return 0;
+  return (currentIndex + 1) % count;
+}
+
+function applyCccTrendFilter(kind) {
+  const selectId = kind === "theme" ? "cccThemeFilter" : "cccMoodFilter";
+  const slots = getCccTrendSlots();
+  if (!slots.length) {
+    logEvent("Top trends are not available yet.", "warn");
+    shakeField(selectId);
+    return;
+  }
+  if (!state.ui) state.ui = {};
+  const indexKey = kind === "theme" ? "cccThemeTrendIndex" : "cccMoodTrendIndex";
+  const nextIndex = getNextTrendIndex(state.ui[indexKey], slots.length);
+  const genre = slots[nextIndex] || "";
+  const value = kind === "theme" ? themeFromGenre(genre) : moodFromGenre(genre);
+  if (!value) {
+    logEvent("Top trends are missing a valid genre slot.", "warn");
+    shakeField(selectId);
+    return;
+  }
+  state.ui[indexKey] = nextIndex;
+  if (kind === "theme") {
+    state.ui.cccThemeFilter = value;
+  } else {
+    state.ui.cccMoodFilter = value;
+  }
+  const select = $(selectId);
+  if (select) {
+    select.value = value;
+    if (kind === "theme") setThemeSelectAccent(select);
+  }
+  renderAll();
+  saveToActiveSlot();
 }
 
 function panelByKey(key) {
@@ -1912,6 +1964,15 @@ function bindGlobalHandlers() {
     const el = $(id);
     if (el) el.addEventListener(event, handler);
   };
+  const handleManualSave = (refreshMenu) => {
+    if (!session.activeSlot) {
+      logEvent("Select a game slot before saving.", "warn");
+      return;
+    }
+    saveToActiveSlot();
+    if (refreshMenu) renderMainMenu();
+    logEvent(`Saved Game Slot ${session.activeSlot}.`);
+  };
 
   on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
   on("playBtn", "click", () => { setTimeSpeed("play"); });
@@ -1961,15 +2022,8 @@ function bindGlobalHandlers() {
     updateTimeControlButtons();
     syncTimeControlAria();
   });
-  on("menuSaveBtn", "click", () => {
-    if (!session.activeSlot) {
-      logEvent("Select a game slot before saving.", "warn");
-      return;
-    }
-    saveToActiveSlot();
-    renderMainMenu();
-    logEvent(`Saved Game Slot ${session.activeSlot}.`);
-  });
+  on("menuSaveBtn", "click", () => handleManualSave(true));
+  on("saveNowBtn", "click", () => handleManualSave(false));
   const lossList = $("usageLedgerList");
   if (lossList) {
     lossList.addEventListener("click", (e) => {
@@ -2612,12 +2666,26 @@ function bindViewHandlers(route, root) {
   });
 
   const readyList = root.querySelector("#readyList");
-  if (readyList) readyList.addEventListener("click", handleReleaseAction);
-  if (readyList) readyList.addEventListener("click", handleReleaseActRecommendation);
   if (readyList) {
+    readyList.addEventListener("click", handleReleaseAction);
+    readyList.addEventListener("click", handleReleaseActRecommendation);
+    readyList.addEventListener("focusin", (e) => {
+      const select = e.target.closest("[data-assign-act]");
+      if (!select) return;
+      if (!state.ui) state.ui = {};
+      state.ui.releaseDeskLock = true;
+    });
+    readyList.addEventListener("focusout", (e) => {
+      const select = e.target.closest("[data-assign-act]");
+      if (!select) return;
+      if (!state.ui) state.ui = {};
+      state.ui.releaseDeskLock = false;
+    });
     readyList.addEventListener("change", (e) => {
       const select = e.target.closest("[data-assign-act]");
       if (!select) return;
+      if (!state.ui) state.ui = {};
+      state.ui.releaseDeskLock = false;
       const trackId = select.dataset.assignAct;
       const actId = select.value;
       const assigned = assignTrackAct(trackId, actId);
@@ -2660,6 +2728,12 @@ function bindViewHandlers(route, root) {
     ensureMarketCreators();
     logEvent("Talent market refreshed.");
     renderAll();
+  });
+  on("cccThemeTrendBtn", "click", () => {
+    applyCccTrendFilter("theme");
+  });
+  on("cccMoodTrendBtn", "click", () => {
+    applyCccTrendFilter("mood");
   });
   on("cccThemeFilter", "change", (e) => {
     state.ui.cccThemeFilter = e.target.value || "All";

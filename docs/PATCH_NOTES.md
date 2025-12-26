@@ -1,5 +1,20 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0851Z)
+- CCC preferred Theme/Mood filters now include Top 3 trend toggles that cycle through the first three trend slots.
+
+## 2025-12-26 (RLS-PATCH-20251226-0849Z)
+- Header action buttons now stack vertically, and Save Now is available in the header for manual saves.
+
+## 2025-12-26 (RLS-PATCH-20251226-0846Z)
+- eyeriSocial promo target slots now sit side-by-side, with promo tiles capped to rectangular widths.
+
+## 2025-12-26 (RLS-PATCH-20251226-0833Z)
+- CCC Sign buttons now disable when cash is short and show "(not enough money)" inline.
+
+## 2025-12-26 (RLS-PATCH-20251226-0823Z)
+- Creator cards now show skill level and EXP progress in roster, CCC, and auto-assign views.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0758Z)
 - Added external storage support via the File System Access API for logs, saves, and chart history.
 - Logs view now includes external storage controls to sync/export and import save data + chart history.

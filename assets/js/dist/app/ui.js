@@ -9,7 +9,7 @@ import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistor
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTracks, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, startEraForAct, endEraById, createRolloutStrategyForEra, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, normalizeCreator, postCreatorSigned, getSlotData, resetState, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatWeekRangeLabel, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, startEraForAct, endEraById, createRolloutStrategyForEra, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, normalizeCreator, postCreatorSigned, getSlotData, resetState, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatWeekRangeLabel, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -667,6 +667,57 @@ function syncStartPreferenceSelects() {
 }
 function getSelectedStartPreferences() {
     return readStartPreferences();
+}
+function getCccTrendSlots() {
+    const trendList = Array.isArray(state.trends) && state.trends.length
+        ? state.trends
+        : Array.isArray(state.trendRanking)
+            ? state.trendRanking
+            : [];
+    const limit = Number.isFinite(TREND_DETAIL_COUNT) ? TREND_DETAIL_COUNT : 3;
+    return trendList.filter(Boolean).slice(0, limit);
+}
+function getNextTrendIndex(currentIndex, count) {
+    if (!count)
+        return 0;
+    if (!Number.isFinite(currentIndex))
+        return 0;
+    return (currentIndex + 1) % count;
+}
+function applyCccTrendFilter(kind) {
+    const selectId = kind === "theme" ? "cccThemeFilter" : "cccMoodFilter";
+    const slots = getCccTrendSlots();
+    if (!slots.length) {
+        logEvent("Top trends are not available yet.", "warn");
+        shakeField(selectId);
+        return;
+    }
+    if (!state.ui)
+        state.ui = {};
+    const indexKey = kind === "theme" ? "cccThemeTrendIndex" : "cccMoodTrendIndex";
+    const nextIndex = getNextTrendIndex(state.ui[indexKey], slots.length);
+    const genre = slots[nextIndex] || "";
+    const value = kind === "theme" ? themeFromGenre(genre) : moodFromGenre(genre);
+    if (!value) {
+        logEvent("Top trends are missing a valid genre slot.", "warn");
+        shakeField(selectId);
+        return;
+    }
+    state.ui[indexKey] = nextIndex;
+    if (kind === "theme") {
+        state.ui.cccThemeFilter = value;
+    }
+    else {
+        state.ui.cccMoodFilter = value;
+    }
+    const select = $(selectId);
+    if (select) {
+        select.value = value;
+        if (kind === "theme")
+            setThemeSelectAccent(select);
+    }
+    renderAll();
+    saveToActiveSlot();
 }
 function panelByKey(key) {
     return document.querySelector(`.panel.card[data-panel="${key}"]`);
@@ -1788,6 +1839,16 @@ function bindGlobalHandlers() {
         if (el)
             el.addEventListener(event, handler);
     };
+    const handleManualSave = (refreshMenu) => {
+        if (!session.activeSlot) {
+            logEvent("Select a game slot before saving.", "warn");
+            return;
+        }
+        saveToActiveSlot();
+        if (refreshMenu)
+            renderMainMenu();
+        logEvent(`Saved Game Slot ${session.activeSlot}.`);
+    };
     on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
     on("playBtn", "click", () => { setTimeSpeed("play"); });
     on("fastBtn", "click", () => { setTimeSpeed("fast"); });
@@ -1837,15 +1898,8 @@ function bindGlobalHandlers() {
         updateTimeControlButtons();
         syncTimeControlAria();
     });
-    on("menuSaveBtn", "click", () => {
-        if (!session.activeSlot) {
-            logEvent("Select a game slot before saving.", "warn");
-            return;
-        }
-        saveToActiveSlot();
-        renderMainMenu();
-        logEvent(`Saved Game Slot ${session.activeSlot}.`);
-    });
+    on("menuSaveBtn", "click", () => handleManualSave(true));
+    on("saveNowBtn", "click", () => handleManualSave(false));
     const lossList = $("usageLedgerList");
     if (lossList) {
         lossList.addEventListener("click", (e) => {
@@ -2532,15 +2586,32 @@ function bindViewHandlers(route, root) {
         renderReleaseDesk();
     });
     const readyList = root.querySelector("#readyList");
-    if (readyList)
-        readyList.addEventListener("click", handleReleaseAction);
-    if (readyList)
-        readyList.addEventListener("click", handleReleaseActRecommendation);
     if (readyList) {
+        readyList.addEventListener("click", handleReleaseAction);
+        readyList.addEventListener("click", handleReleaseActRecommendation);
+        readyList.addEventListener("focusin", (e) => {
+            const select = e.target.closest("[data-assign-act]");
+            if (!select)
+                return;
+            if (!state.ui)
+                state.ui = {};
+            state.ui.releaseDeskLock = true;
+        });
+        readyList.addEventListener("focusout", (e) => {
+            const select = e.target.closest("[data-assign-act]");
+            if (!select)
+                return;
+            if (!state.ui)
+                state.ui = {};
+            state.ui.releaseDeskLock = false;
+        });
         readyList.addEventListener("change", (e) => {
             const select = e.target.closest("[data-assign-act]");
             if (!select)
                 return;
+            if (!state.ui)
+                state.ui = {};
+            state.ui.releaseDeskLock = false;
             const trackId = select.dataset.assignAct;
             const actId = select.value;
             const assigned = assignTrackAct(trackId, actId);
@@ -2580,6 +2651,12 @@ function bindViewHandlers(route, root) {
         ensureMarketCreators();
         logEvent("Talent market refreshed.");
         renderAll();
+    });
+    on("cccThemeTrendBtn", "click", () => {
+        applyCccTrendFilter("theme");
+    });
+    on("cccMoodTrendBtn", "click", () => {
+        applyCccTrendFilter("mood");
     });
     on("cccThemeFilter", "change", (e) => {
         state.ui.cccThemeFilter = e.target.value || "All";

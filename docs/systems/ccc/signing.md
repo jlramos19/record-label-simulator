@@ -2,7 +2,7 @@
 
 ## Definitions
 - Creators Community Chamber (CCC): A world-owned signing hub where labels browse and attempt to sign Creator IDs.
-- Creator ID: A creator card with role, skill, stamina, and theme/mood preferences available for signing.
+- Creator ID: A creator card with role, skill (level + EXP progress), stamina, and theme/mood preferences available for signing.
 - Signing attempt: An executed offer that can be accepted or rejected by the Creator.
 - Precondition failure: A failed attempt that does not consume a signing attempt (insufficient funds, roster full, or invalid state).
 - Wallet (cash balance): `state.label.cash`, the funds available for signing costs.
@@ -12,6 +12,7 @@
 - CCC pool persists until the next 12AM refresh or a manual refresh action.
 - Filters: role, preferred Theme, preferred Mood.
 - Sorting: preferred Theme/Mood (A-Z or Z-A) and quality (creator skill) high/low.
+- Sign buttons disable when wallet cash is short and show "(not enough money)" in the label.
 
 ## Acceptance Criteria (MVP Rule)
 Creators resolve offers instantly using a single acceptance roll:
