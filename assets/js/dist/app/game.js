@@ -8,6 +8,7 @@ import { ACT_NAMES, CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PA
 import { AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
 import { evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks, getProjectTrackLimits, normalizeProjectName, normalizeProjectType } from "./game/project-tracks.js";
 import { buildDefaultTrackSlotVisibility, buildEmptyTrackSlotList, parseTrackRoleTarget, roleLabel, trackRoleLimit } from "./game/track-roles.js";
+import { alignmentClass, countryColor, countryDemonym, formatGenreKeyLabel, formatGenreLabel, makeGenre, moodFromGenre, slugify, themeFromGenre } from "./game/label-utils.js";
 const ECONOMY_BASELINES_DEFAULT = { ...ECONOMY_BASELINES };
 const ECONOMY_TUNING_DEFAULT = { ...ECONOMY_TUNING };
 const ECONOMY_PRICE_MULTIPLIERS_DEFAULT = { ...ECONOMY_PRICE_MULTIPLIERS };
@@ -1014,54 +1015,6 @@ function fillTemplate(template, tokens) {
         .replace("{act}", tokens.act)
         .replace(/\s+/g, " ")
         .trim();
-}
-function makeGenre(theme, mood) {
-    if (!theme || !mood)
-        return "";
-    return `${theme} / ${mood}`;
-}
-function formatGenreLabel(theme, mood) {
-    if (!theme || !mood)
-        return "-";
-    return `${theme.toLowerCase()} but it's ${mood.toLowerCase()}`;
-}
-function formatGenreKeyLabel(genre) {
-    if (!genre)
-        return "-";
-    const parts = genre.split(" / ");
-    if (parts.length !== 2)
-        return genre;
-    return formatGenreLabel(parts[0], parts[1]);
-}
-function themeFromGenre(genre) {
-    if (!genre)
-        return "";
-    return genre.split(" / ")[0];
-}
-function moodFromGenre(genre) {
-    if (!genre)
-        return "";
-    return genre.split(" / ")[1];
-}
-function themeColor(theme) {
-    return THEME_COLORS[theme] || "var(--accent)";
-}
-function countryColor(country) {
-    return COUNTRY_COLORS[country] || "var(--accent)";
-}
-function countryDemonym(country) {
-    if (!country)
-        return "Unknown";
-    return COUNTRY_DEMONYMS[country] || country;
-}
-function alignmentClass(alignment) {
-    return alignment ? alignment.toLowerCase() : "neutral";
-}
-function slugify(text) {
-    return String(text || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-");
 }
 function findModifier(id) {
     if (!id)

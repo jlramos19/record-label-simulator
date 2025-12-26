@@ -1,5 +1,6 @@
 // @ts-nocheck
 import {
+  ACT_PROMO_WARNING_WEEKS,
   ACHIEVEMENTS,
   ACHIEVEMENT_TARGET,
   CREATOR_FALLBACK_EMOJI,
@@ -136,6 +137,8 @@ import {
 } from "./promo-budget.js";
 
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
+const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
+  .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
 const CREATE_PENDING_EMOJIS = { sheet: "🎼", demo: "🎧" };
 const RELEASE_PENDING_EMOJI = "💿";
 

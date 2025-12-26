@@ -7,6 +7,8 @@ import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
 import { buildMoodOptions, buildThemeOptions, bindThemeSelectAccent, getMoodEmoji, setThemeSelectAccent } from "../themeMoodOptions.js";
 import { buildRolloutBudgetSummary, getModifierCosts, getPromoInflationMultiplier } from "./promo-budget.js";
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
+const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
+    .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
 const CREATE_PENDING_EMOJIS = { sheet: "🎼", demo: "🎧" };
 const RELEASE_PENDING_EMOJI = "💿";
 function renderRolloutBudgetSummary(strategy) {

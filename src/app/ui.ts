@@ -3743,14 +3743,7 @@ if (typeof window !== "undefined") {
     updateTimeControlButtons();
     syncTimeControlAria();
   };
-  window.stopAutoSkips = () => {
-    const active = Boolean(autoSkipDayTimer || autoSkipWeekTimer);
-    if (!active) return false;
-    stopAutoSkipDay({ silent: true });
-    stopAutoSkipWeek({ silent: true });
-    clearAutoSkipPrevSpeed();
-    return true;
-  };
+  window.stopAutoSkips = () => false;
   window.loadCSV = loadCSV;
   window.emitStateChanged = emitStateChanged;
   window.rlsUi = window.rlsUi || {};
@@ -5133,6 +5126,105 @@ function formatRealTimeSeconds(seconds) {
   return `${rounded}s`;
 }
 
+function parseQuickSkipValue(value) {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : null;
+}
+
+function getQuickSkipConfig(button) {
+  if (!button) return null;
+  return {
+    hours: parseQuickSkipValue(button.dataset.skipHours),
+    days: parseQuickSkipValue(button.dataset.skipDays),
+    months: parseQuickSkipValue(button.dataset.skipMonths),
+    label: button.dataset.skipLabel || ""
+  };
+}
+
+function formatQuickSkipDescriptor(config) {
+  if (!config) return "";
+  if (config.months) return `+${formatCount(config.months)}mo`;
+  if (config.days) return `+${formatCount(config.days)}d`;
+  if (config.hours) return `+${formatCount(config.hours)}h`;
+  return "";
+}
+
+function buildQuickSkipButtonLabel(button, baseLabel) {
+  const config = getQuickSkipConfig(button);
+  const descriptor = formatQuickSkipDescriptor(config);
+  return descriptor ? `${baseLabel} (${descriptor})` : baseLabel;
+}
+
+function daysInUtcMonth(year, monthIndex) {
+  return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+}
+
+function addUtcMonths(date, months) {
+  const next = new Date(date.getTime());
+  const day = next.getUTCDate();
+  next.setUTCDate(1);
+  next.setUTCMonth(next.getUTCMonth() + months);
+  const maxDay = daysInUtcMonth(next.getUTCFullYear(), next.getUTCMonth());
+  next.setUTCDate(Math.min(day, maxDay));
+  return next;
+}
+
+function resolveQuickSkipHours(config) {
+  if (!config) return 0;
+  if (config.hours) return Math.round(config.hours);
+  if (config.days) return Math.round(config.days * 24);
+  if (config.months) {
+    const months = Math.round(config.months);
+    const target = addUtcMonths(new Date(state.time.epochMs), months);
+    const diffMs = target.getTime() - state.time.epochMs;
+    if (diffMs <= 0) return 0;
+    return Math.floor(diffMs / HOUR_MS);
+  }
+  return 0;
+}
+
+function buildQuickSkipRunLabel(config, totalHours) {
+  if (config?.label) return config.label;
+  if (config?.months) {
+    const months = Math.round(config.months);
+    return `Skipping ${formatCount(months)} month${months === 1 ? "" : "s"}`;
+  }
+  if (config?.days) {
+    const days = Math.round(config.days);
+    return `Skipping ${formatCount(days)} day${days === 1 ? "" : "s"}`;
+  }
+  if (config?.hours) {
+    const hours = Math.round(config.hours);
+    return `Skipping ${formatCount(hours)} hour${hours === 1 ? "" : "s"}`;
+  }
+  return `Skipping ${formatCount(totalHours)} hours`;
+}
+
+function runQuickSkipFromButton(button, { closeModal = false } = {}) {
+  const config = getQuickSkipConfig(button);
+  if (!config) return;
+  const totalHours = resolveQuickSkipHours(config);
+  if (!totalHours || totalHours <= 0) {
+    logEvent("Quick skip option is invalid.", "warn");
+    return;
+  }
+  const label = buildQuickSkipRunLabel(config, totalHours);
+  runTimeJump(totalHours, label);
+  if (closeModal) closeOverlay("skipTimeModal");
+}
+
+function bindQuickSkipButtons(root) {
+  const scope = root || document;
+  scope.querySelectorAll(QUICK_SKIP_SELECTOR).forEach((button) => {
+    if (button.dataset.skipBound) return;
+    button.dataset.skipBound = "1";
+    button.addEventListener("click", () => {
+      const closeModal = Boolean(button.closest("#skipTimeModal"));
+      runQuickSkipFromButton(button, { closeModal });
+    });
+  });
+}
+
 function updateTimeControlLabels() {
   const pauseBtn = $("pauseBtn");
   if (pauseBtn) pauseBtn.textContent = "Pause (stopped)";
@@ -5145,17 +5237,9 @@ function updateTimeControlLabels() {
     fastBtn.textContent = `Fast (1h = ${formatRealTimeSeconds(state.time?.secPerHourFast)})`;
   }
   const autoDayBtn = $("autoSkipDayBtn");
-  if (autoDayBtn) {
-    const daySeconds = AUTO_SKIP_DAY_INTERVAL_MS / 1000;
-    autoDayBtn.textContent = `Auto Day (24h = ${formatRealTimeSeconds(daySeconds)})`;
-  }
+  if (autoDayBtn) autoDayBtn.textContent = buildQuickSkipButtonLabel(autoDayBtn, "Auto Day");
   const autoWeekBtn = $("autoSkipWeekBtn");
-  if (autoWeekBtn) {
-    const weekDays = Math.round(WEEK_HOURS / 24);
-    const weekLabel = Number.isFinite(weekDays) ? `${weekDays}d` : "7d";
-    const weekSeconds = AUTO_SKIP_WEEK_INTERVAL_MS / 1000;
-    autoWeekBtn.textContent = `Auto Week (${weekLabel} = ${formatRealTimeSeconds(weekSeconds)})`;
-  }
+  if (autoWeekBtn) autoWeekBtn.textContent = buildQuickSkipButtonLabel(autoWeekBtn, "Auto Week");
   const skipBtn = $("skipTimeBtn");
   if (skipBtn) skipBtn.textContent = "Skip (custom)";
 }
@@ -5165,197 +5249,19 @@ function updateTimeControlButtons() {
   const pauseBtn = $("pauseBtn");
   const playBtn = $("playBtn");
   const fastBtn = $("fastBtn");
-  if (pauseBtn) pauseBtn.classList.remove("active");
-  if (playBtn) playBtn.classList.remove("active");
-  if (fastBtn) fastBtn.classList.remove("active");
-  const autoSkipActive = Boolean(autoSkipDayTimer || autoSkipWeekTimer);
-  if (!autoSkipActive) {
-    if (state.time.speed === "pause" && pauseBtn) pauseBtn.classList.add("active");
-    if (state.time.speed === "play" && playBtn) playBtn.classList.add("active");
-    if (state.time.speed === "fast" && fastBtn) fastBtn.classList.add("active");
-  }
-  updateAutoSkipDayButton();
-  updateAutoSkipWeekButton();
+  if (pauseBtn) pauseBtn.classList.toggle("active", state.time.speed === "pause");
+  if (playBtn) playBtn.classList.toggle("active", state.time.speed === "play");
+  if (fastBtn) fastBtn.classList.toggle("active", state.time.speed === "fast");
 }
 
 // Accessibility: set aria-pressed on time controls
 function syncTimeControlAria() {
   const map = { pause: 'pauseBtn', play: 'playBtn', fast: 'fastBtn' };
-  const autoSkipActive = Boolean(autoSkipDayTimer || autoSkipWeekTimer);
   Object.keys(map).forEach((k) => {
     const el = $(map[k]);
     if (!el) return;
-    el.setAttribute('aria-pressed', !autoSkipActive && state.time.speed === k ? 'true' : 'false');
+    el.setAttribute('aria-pressed', state.time.speed === k ? 'true' : 'false');
   });
-}
-
-function updateAutoSkipDayButton() {
-  const btn = $("autoSkipDayBtn");
-  if (!btn) return;
-  const active = Boolean(autoSkipDayTimer);
-  btn.classList.toggle("active", active);
-  btn.setAttribute("aria-pressed", active ? "true" : "false");
-}
-
-function updateAutoSkipWeekButton() {
-  const btn = $("autoSkipWeekBtn");
-  if (!btn) return;
-  const active = Boolean(autoSkipWeekTimer);
-  btn.classList.toggle("active", active);
-  btn.setAttribute("aria-pressed", active ? "true" : "false");
-}
-
-function cacheAutoSkipPrevSpeed() {
-  if (autoSkipPrevSpeed !== null) return;
-  if (autoSkipDayTimer || autoSkipWeekTimer) return;
-  autoSkipPrevSpeed = state.time.speed;
-}
-
-function clearAutoSkipPrevSpeed() {
-  autoSkipPrevSpeed = null;
-}
-
-function restoreAutoSkipSpeed() {
-  if (autoSkipPrevSpeed === null) return;
-  const prev = autoSkipPrevSpeed;
-  autoSkipPrevSpeed = null;
-  setTimeSpeed(prev);
-}
-
-function stopAutoSkipDay({ silent = false } = {}) {
-  if (autoSkipDayTimer) {
-    clearInterval(autoSkipDayTimer);
-    autoSkipDayTimer = null;
-  }
-  autoSkipDayInFlight = false;
-  updateTimeControlButtons();
-  syncTimeControlAria();
-  if (!silent) logEvent("Auto 24h disabled.");
-}
-
-async function runAutoSkipDayTick() {
-  if (autoSkipDayInFlight) return;
-  if (!session.activeSlot) {
-    stopAutoSkipDay({ silent: true });
-    clearAutoSkipPrevSpeed();
-    logEvent("Auto 24h stopped: no active slot.", "warn");
-    return;
-  }
-  if (state.meta?.gameOver) {
-    stopAutoSkipDay({ silent: true });
-    clearAutoSkipPrevSpeed();
-    logEvent("Auto 24h stopped: game over.", "warn");
-    return;
-  }
-  autoSkipDayInFlight = true;
-  try {
-    await advanceHours(24, { renderQuarterly: false });
-  } catch (error) {
-    console.error("autoSkipDay error:", error);
-    logEvent("Auto 24h failed; stopping.", "warn");
-    stopAutoSkipDay({ silent: true });
-    clearAutoSkipPrevSpeed();
-  } finally {
-    autoSkipDayInFlight = false;
-  }
-}
-
-function startAutoSkipDay() {
-  if (autoSkipDayTimer) return;
-  if (!session.activeSlot) {
-    logEvent("Select a game slot before auto-skipping.", "warn");
-    return;
-  }
-  if (state.meta?.gameOver) {
-    logEvent("Cannot auto-skip after game over.", "warn");
-    return;
-  }
-  cacheAutoSkipPrevSpeed();
-  stopAutoSkipWeek({ silent: true });
-  setTimeSpeed("pause", { skipAutoStop: true });
-  autoSkipDayTimer = setInterval(() => {
-    void runAutoSkipDayTick();
-  }, AUTO_SKIP_DAY_INTERVAL_MS);
-  updateTimeControlButtons();
-  syncTimeControlAria();
-  logEvent("Auto 24h enabled (12s interval).");
-}
-
-function toggleAutoSkipDay() {
-  if (autoSkipDayTimer) {
-    stopAutoSkipDay();
-    if (!autoSkipWeekTimer) restoreAutoSkipSpeed();
-  } else {
-    startAutoSkipDay();
-  }
-}
-
-function stopAutoSkipWeek({ silent = false } = {}) {
-  if (autoSkipWeekTimer) {
-    clearInterval(autoSkipWeekTimer);
-    autoSkipWeekTimer = null;
-  }
-  autoSkipWeekInFlight = false;
-  updateTimeControlButtons();
-  syncTimeControlAria();
-  if (!silent) logEvent("Auto 7d disabled.");
-}
-
-async function runAutoSkipWeekTick() {
-  if (autoSkipWeekInFlight) return;
-  if (!session.activeSlot) {
-    stopAutoSkipWeek({ silent: true });
-    clearAutoSkipPrevSpeed();
-    logEvent("Auto 7d stopped: no active slot.", "warn");
-    return;
-  }
-  if (state.meta?.gameOver) {
-    stopAutoSkipWeek({ silent: true });
-    clearAutoSkipPrevSpeed();
-    logEvent("Auto 7d stopped: game over.", "warn");
-    return;
-  }
-  autoSkipWeekInFlight = true;
-  try {
-    await advanceHours(WEEK_HOURS, { renderQuarterly: false });
-  } catch (error) {
-    console.error("autoSkipWeek error:", error);
-    logEvent("Auto 7d failed; stopping.", "warn");
-    stopAutoSkipWeek({ silent: true });
-    clearAutoSkipPrevSpeed();
-  } finally {
-    autoSkipWeekInFlight = false;
-  }
-}
-
-function startAutoSkipWeek() {
-  if (autoSkipWeekTimer) return;
-  if (!session.activeSlot) {
-    logEvent("Select a game slot before auto-skipping.", "warn");
-    return;
-  }
-  if (state.meta?.gameOver) {
-    logEvent("Cannot auto-skip after game over.", "warn");
-    return;
-  }
-  cacheAutoSkipPrevSpeed();
-  stopAutoSkipDay({ silent: true });
-  setTimeSpeed("pause", { skipAutoStop: true });
-  autoSkipWeekTimer = setInterval(() => {
-    void runAutoSkipWeekTick();
-  }, AUTO_SKIP_WEEK_INTERVAL_MS);
-  updateTimeControlButtons();
-  syncTimeControlAria();
-  logEvent("Auto 7d enabled (7s interval).");
-}
-
-function toggleAutoSkipWeek() {
-  if (autoSkipWeekTimer) {
-    stopAutoSkipWeek();
-    if (!autoSkipDayTimer) restoreAutoSkipSpeed();
-  } else {
-    startAutoSkipWeek();
-  }
 }
 
 function setSkipProgress(total, current, label) {
