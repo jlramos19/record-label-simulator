@@ -143,3 +143,4 @@ export const ANGLORAN_SURNAMES = [
     "Ward",
     "Watson",
 ];
+//# sourceMappingURL=annglora.js.map

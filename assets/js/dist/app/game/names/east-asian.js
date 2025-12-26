@@ -738,3 +738,4 @@ export const EAST_ASIAN_NAMES = [
     "Zamani",
     "Zieger",
 ];
+//# sourceMappingURL=east-asian.js.map

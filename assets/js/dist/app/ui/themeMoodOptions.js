@@ -68,3 +68,4 @@ function bindThemeSelectAccent(select) {
     select.addEventListener("change", () => setThemeSelectAccent(select));
 }
 export { buildMoodOptions, buildThemeOptions, bindThemeSelectAccent, getMoodEmoji, setThemeSelectAccent };
+//# sourceMappingURL=themeMoodOptions.js.map

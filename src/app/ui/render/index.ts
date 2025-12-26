@@ -30,6 +30,7 @@ import {
   clamp,
   collectTrendRanking,
   commitSlotChange,
+  computeChartProjectionForScope,
   computePopulationSnapshot,
   countryColor,
   countryDemonym,
@@ -1217,6 +1218,66 @@ function renderTopBar() {
   }
 }
 
+function buildChartPulsePromoEntries({ startAt, endAt, scopeType, scopeTarget }) {
+  const entries = [];
+  const scopeNation = scopeType === "global"
+    ? null
+    : scopeType === "nation"
+      ? scopeTarget
+      : REGION_DEFS.find((region) => region.id === scopeTarget)?.nation || null;
+  const allowCountry = (country) => !scopeNation || country === scopeNation;
+  const labelName = state.label?.name || "Label";
+  const labelCountry = state.label?.country || "Annglora";
+
+  if (Array.isArray(state.scheduledEvents) && allowCountry(labelCountry)) {
+    state.scheduledEvents.forEach((entry) => {
+      if (entry.status === "Cancelled") return;
+      if (!Number.isFinite(entry.scheduledAt)) return;
+      if (entry.scheduledAt < startAt || entry.scheduledAt >= endAt) return;
+      const details = PROMO_TYPE_DETAILS[entry.actionType];
+      if (!details) return;
+      const track = entry.contentId ? getTrack(entry.contentId) : null;
+      const act = entry.actId ? getAct(entry.actId) : track ? getAct(track.actId) : null;
+      entries.push({
+        id: entry.id,
+        ts: entry.scheduledAt,
+        title: track ? track.title : details.label,
+        actName: act ? act.name : "Unknown",
+        label: labelName,
+        typeLabel: details.label,
+        impact: details.cost
+      });
+    });
+  }
+
+  if (Array.isArray(state.rivalReleaseQueue)) {
+    state.rivalReleaseQueue.forEach((entry) => {
+      if ((entry.queueType || "release") !== "promo") return;
+      if (!Number.isFinite(entry.releaseAt)) return;
+      if (entry.releaseAt < startAt || entry.releaseAt >= endAt) return;
+      const details = PROMO_TYPE_DETAILS[entry.promoType];
+      if (!details) return;
+      const rival = getRivalByName(entry.label);
+      const rivalCountry = rival?.country || entry.country || labelCountry;
+      if (!allowCountry(rivalCountry)) return;
+      entries.push({
+        id: entry.id,
+        ts: entry.releaseAt,
+        title: entry.title || details.label,
+        actName: entry.actName || "Promotion",
+        label: entry.label || "Rival",
+        typeLabel: details.label,
+        impact: details.cost
+      });
+    });
+  }
+
+  return entries
+    .sort((a, b) => b.impact - a.impact || a.ts - b.ts)
+    .slice(0, 5)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
 function renderDashboard() {
   const statsEl = $("dashboardStats");
   if (!statsEl) return;
@@ -1316,21 +1377,162 @@ function renderDashboard() {
 
   const chartsEl = $("dashboardChartsList");
   if (chartsEl) {
-    const entries = (state.charts.global || []).slice(0, 5);
-    if (!entries.length) {
-      chartsEl.innerHTML = `<div class="muted">No chart entries yet.</div>`;
+    const scopeTabs = $("chartPulseScopeTabs");
+    const contentTabs = $("chartPulseContentTabs");
+    const targetSelect = $("chartPulseTarget");
+    const targetLabel = $("chartPulseTargetLabel");
+    const metaEl = $("chartPulseMeta");
+    const contentType = state.ui.chartPulseContentType || "tracks";
+    const scopeType = state.ui.chartPulseScopeType || "global";
+    let scopeTarget = state.ui.chartPulseScopeTarget || "global";
+
+    if (contentTabs) {
+      contentTabs.querySelectorAll(".tab").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.chartPulseContent === contentType);
+      });
+    }
+    if (scopeTabs) {
+      scopeTabs.querySelectorAll(".tab").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.chartPulseScope === scopeType);
+      });
+    }
+
+    if (scopeType === "global") {
+      scopeTarget = "global";
+      state.ui.chartPulseScopeTarget = scopeTarget;
+      if (targetLabel) targetLabel.textContent = "Global";
+      if (targetSelect) {
+        targetSelect.disabled = true;
+        targetSelect.innerHTML = `<option value="global">Global</option>`;
+        targetSelect.value = "global";
+      }
+    } else if (scopeType === "nation") {
+      const nations = Array.isArray(NATIONS) ? NATIONS : [];
+      const labelNation = nations.includes(state.label?.country) ? state.label.country : nations[0];
+      if (!nations.includes(scopeTarget)) scopeTarget = labelNation || "";
+      state.ui.chartPulseScopeTarget = scopeTarget;
+      if (targetLabel) targetLabel.textContent = "Nation";
+      if (targetSelect) {
+        targetSelect.disabled = false;
+        targetSelect.innerHTML = nations.map((nation) => `<option value="${nation}">${nation}</option>`).join("");
+        targetSelect.value = scopeTarget;
+      }
     } else {
-      chartsEl.innerHTML = entries.map((entry) => `
-        <div class="list-item">
-          <div class="list-row">
-            <div>
-              <div class="item-title">#${entry.rank} ${entry.track.title}</div>
-              <div class="muted">${entry.track.label} | ${renderTrackGenrePills(entry.track, { fallback: "Genre -" })}</div>
+      const regions = Array.isArray(REGION_DEFS) ? REGION_DEFS : [];
+      const regionIds = regions.map((region) => region.id);
+      const labelRegion = regions.find((region) => region.nation === state.label?.country)?.id;
+      if (!regionIds.includes(scopeTarget)) scopeTarget = labelRegion || regionIds[0] || "";
+      state.ui.chartPulseScopeTarget = scopeTarget;
+      if (targetLabel) targetLabel.textContent = "Region";
+      if (targetSelect) {
+        targetSelect.disabled = false;
+        targetSelect.innerHTML = regions.map((region) => `<option value="${region.id}">${region.label}</option>`).join("");
+        targetSelect.value = scopeTarget;
+      }
+    }
+
+    const scopeKey = scopeType === "global" ? "global" : scopeTarget;
+    const scopeLabel = chartScopeLabel(scopeKey);
+    const slotMs = DAY_MS / 4;
+    const slotCount = 6;
+    const slots = Array.from({ length: slotCount }).map((_, index) => {
+      const offsetHours = index * 6;
+      const slotStart = state.time.epochMs + index * slotMs;
+      const slotEnd = slotStart + slotMs;
+      let entries = [];
+
+      if (contentType === "promos") {
+        entries = buildChartPulsePromoEntries({
+          startAt: slotStart,
+          endAt: slotEnd,
+          scopeType,
+          scopeTarget
+        });
+      } else {
+        const projected = computeChartProjectionForScope({
+          targetEpochMs: slotStart,
+          scopeType,
+          scopeTarget,
+          limit: contentType === "tracks" ? 5 : null
+        });
+        entries = contentType === "projects"
+          ? collectProjectChartEntries(projected).slice(0, 5)
+          : projected.slice(0, 5);
+      }
+
+      return { offsetHours, slotStart, entries };
+    });
+
+    chartsEl.innerHTML = slots.map((slot) => {
+      const label = slot.offsetHours === 0 ? "Now" : `+${slot.offsetHours}h`;
+      const timeLabel = formatDate(slot.slotStart);
+      const emptyLabel = contentType === "promos"
+        ? "No promo events in this window."
+        : "No projected entries yet.";
+      let entryMarkup = "";
+      if (!slot.entries.length) {
+        entryMarkup = `<div class="muted">${emptyLabel}</div>`;
+      } else if (contentType === "promos") {
+        entryMarkup = slot.entries.map((entry) => `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">#${entry.rank} ${entry.title}</div>
+                <div class="muted">${entry.typeLabel} | ${entry.actName} | ${entry.label}</div>
+              </div>
+              <div class="pill">${formatMoney(entry.impact)}</div>
             </div>
-            <div class="pill">${formatCount(entry.score)}</div>
+          </div>
+        `).join("");
+      } else if (contentType === "projects") {
+        entryMarkup = slot.entries.map((entry) => `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">#${entry.rank} ${entry.projectName}</div>
+                <div class="muted">${entry.projectType} | ${entry.actName || "-"} | ${entry.label || "-"}</div>
+              </div>
+              <div class="pill">${formatCount(entry.score)}</div>
+            </div>
+          </div>
+        `).join("");
+      } else {
+        entryMarkup = slot.entries.map((entry) => {
+          const track = entry.track || entry;
+          return `
+            <div class="list-item">
+              <div class="list-row">
+                <div>
+                  <div class="item-title">#${entry.rank} ${track?.title || "Unknown Track"}</div>
+                  <div class="muted">${track?.label || "Unknown"} | ${renderTrackGenrePills(track, { fallback: "Genre -" })}</div>
+                </div>
+                <div class="pill">${formatCount(entry.score)}</div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      return `
+        <div class="chart-pulse-slot">
+          <div class="slot-head">
+            <div>
+              <div class="slot-label">${label}</div>
+              <div class="tiny muted">${timeLabel}</div>
+            </div>
+          </div>
+          <div class="list">
+            ${entryMarkup}
           </div>
         </div>
-      `).join("");
+      `;
+    }).join("");
+
+    if (metaEl) {
+      const contentLabel = contentType === "projects" ? "Projects" : contentType === "promos" ? "Promos" : "Tracks";
+      metaEl.textContent = contentType === "promos"
+        ? `Promo feed in 6h windows • ${scopeLabel}.`
+        : `Projected Top 5 every 6h • ${scopeLabel} • ${contentLabel}.`;
     }
   }
 
@@ -3776,22 +3978,32 @@ function renderCharts() {
     btn.classList.toggle("active", btn.dataset.chart === state.ui.activeChart);
   });
   const activeChart = state.ui.activeChart || "global";
+  const chartSource = contentType === "promotions"
+    ? state.promoCharts
+    : contentType === "tours"
+      ? state.tourCharts
+      : state.charts;
   let entries = [];
   let size = CHART_SIZES.global;
-  let scopeKey = "global";
+  let baseScopeKey = "global";
   if (activeChart === "global") {
-    entries = state.charts.global;
+    entries = chartSource?.global || [];
     size = CHART_SIZES.global;
-    scopeKey = "global";
+    baseScopeKey = "global";
   } else if (NATIONS.includes(activeChart)) {
-    entries = state.charts.nations[activeChart] || [];
+    entries = chartSource?.nations?.[activeChart] || [];
     size = CHART_SIZES.nation;
-    scopeKey = `nation:${activeChart}`;
+    baseScopeKey = `nation:${activeChart}`;
   } else {
-    entries = state.charts.regions[activeChart] || [];
+    entries = chartSource?.regions?.[activeChart] || [];
     size = CHART_SIZES.region;
-    scopeKey = `region:${activeChart}`;
+    baseScopeKey = `region:${activeChart}`;
   }
+  const scopeKey = contentType === "promotions"
+    ? `promo:${baseScopeKey}`
+    : contentType === "tours"
+      ? `tour:${baseScopeKey}`
+      : baseScopeKey;
   const scopeLabel = chartScopeLabel(activeChart);
 
   const historyWeek = state.ui.chartHistoryWeek;
@@ -3822,10 +4034,16 @@ function renderCharts() {
 
   const meta = $("chartMeta");
   if (meta) {
-    const weights = chartWeightsForScope(state.ui.activeChart || "global");
-    const pct = (value) => Math.round(value * 100);
-    const contentLabel = contentType === "projects" ? "Project" : "Track";
-    meta.textContent = `Top ${size} | ${scopeLabel} | ${contentLabel} charts | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
+    if (contentType === "tracks" || contentType === "projects") {
+      const weights = chartWeightsForScope(state.ui.activeChart || "global");
+      const pct = (value) => Math.round(value * 100);
+      const contentLabel = contentType === "projects" ? "Project" : "Track";
+      meta.textContent = `Top ${size} | ${scopeLabel} | ${contentLabel} charts | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
+    } else if (contentType === "promotions") {
+      meta.textContent = `Top ${size} | ${scopeLabel} | Promotions chart | Metrics Likes / Views / Comments`;
+    } else {
+      meta.textContent = `Top ${size} | ${scopeLabel} | Touring chart | Metric Attendance draw`;
+    }
   }
 
   const globalLocked = contentType === "tracks" && activeChart === "global" && displayEntries.length < size;
@@ -3837,8 +4055,9 @@ function renderCharts() {
   } else if (!displayEntries.length) {
     $("chartList").innerHTML = `<div class="muted">No chart data yet.</div>`;
   } else {
-    const rows = contentType === "projects"
-      ? displayEntries.map((entry) => {
+    let rows = [];
+    if (contentType === "projects") {
+      rows = displayEntries.map((entry) => {
         const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
         const alignTag = renderAlignmentTag(entry.alignment);
         const metrics = entry.metrics || {};
@@ -3867,8 +4086,83 @@ function renderCharts() {
             <td class="chart-score">${formatCount(entry.score || 0)}</td>
           </tr>
         `;
-      })
-      : displayEntries.map((entry) => {
+      });
+    } else if (contentType === "promotions") {
+      rows = displayEntries.map((entry) => {
+        const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
+        const alignTag = renderAlignmentTag(entry.alignment);
+        const actName = entry.actName || "-";
+        const targetLine = entry.trackTitle ? `Track: ${entry.trackTitle}` : "Act push";
+        const projectLine = entry.projectName || (entry.trackTitle ? "Single" : "Act visibility");
+        const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
+        const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
+        const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
+        const metrics = entry.metrics || {};
+        const primaryLabel = metrics.primaryLabel || "Engagement";
+        const primaryValue = Number(metrics.primary || 0);
+        return `
+          <tr>
+            <td class="chart-rank">#${entry.rank}</td>
+            <td class="chart-title">
+              <div class="item-title">${entry.promoLabel || "Promo push"}</div>
+              <div class="muted">${targetLine}</div>
+            </td>
+            <td class="chart-label">${labelTag}</td>
+            <td class="chart-act">
+              <div>${actName}</div>
+              <div class="muted">${projectLine}</div>
+            </td>
+            <td class="chart-align">${alignTag}</td>
+            <td class="chart-metrics">
+              <div class="muted">${lastRank} | ${peak} | ${woc}</div>
+              <div class="muted">${primaryLabel} ${formatCount(primaryValue)}</div>
+              <div class="muted">Likes ${formatCount(metrics.likes || 0)} | Views ${formatCount(metrics.views || 0)} | Comments ${formatCount(metrics.comments || 0)}</div>
+            </td>
+            <td class="chart-score">${formatCount(entry.score || 0)}</td>
+          </tr>
+        `;
+      });
+    } else if (contentType === "tours") {
+      rows = displayEntries.map((entry) => {
+        const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
+        const alignTag = renderAlignmentTag(entry.alignment);
+        const trackCount = entry.trackCount || 0;
+        const primaryTrack = entry.primaryTrack || {
+          title: entry.primaryTrackTitle || entry.title || "-",
+          theme: entry.primaryTrackTheme || entry.theme || "",
+          mood: entry.primaryTrackMood || entry.mood || "",
+          genre: entry.primaryTrackGenre || entry.genre || ""
+        };
+        const genreLine = renderTrackGenrePills(primaryTrack, { fallback: "Genre -" });
+        const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
+        const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
+        const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
+        const metrics = entry.metrics || {};
+        return `
+          <tr>
+            <td class="chart-rank">#${entry.rank}</td>
+            <td class="chart-title">
+              <div class="item-title">${entry.actName || "-"}</div>
+              <div class="muted">Charting tracks ${formatCount(trackCount)}</div>
+            </td>
+            <td class="chart-label">${labelTag}</td>
+            <td class="chart-act">
+              <div>${primaryTrack?.title || "-"}</div>
+              <div class="muted">${genreLine}</div>
+            </td>
+            <td class="chart-align">${alignTag}</td>
+            <td class="chart-metrics">
+              <div class="muted">${lastRank} | ${peak} | ${woc}</div>
+              <div class="muted">Attendance ${formatCount(metrics.attendance || 0)}</div>
+              <div class="muted">Sales ${formatCount(metrics.sales || 0)} | Stream ${formatCount(metrics.streaming || 0)}</div>
+              <div class="muted">Air ${formatCount(metrics.airplay || 0)} | Social ${formatCount(metrics.social || 0)}</div>
+            </td>
+            <td class="chart-score">${formatCount(entry.score || 0)}</td>
+          </tr>
+        `;
+      });
+    } else {
+      rows = displayEntries.map((entry) => {
         const track = entry.track || entry;
         const labelTag = renderLabelTag(track.label, track.country || "Annglora");
         const alignTag = renderAlignmentTag(track.alignment);
@@ -3900,9 +4194,35 @@ function renderCharts() {
           </tr>
         `;
       });
+    }
 
     if (displayEntries.length < size) {
       for (let i = displayEntries.length + 1; i <= size; i += 1) {
+        let statsMarkup = `
+          <div class="muted">LW -- | Peak -- | WOC 0</div>
+          <div class="muted">Sales N/A | Stream N/A</div>
+          <div class="muted">Air N/A | Social N/A</div>
+        `;
+        if (contentType === "projects") {
+          statsMarkup = `
+            <div class="muted">Charting tracks N/A</div>
+            <div class="muted">Sales N/A | Stream N/A</div>
+            <div class="muted">Air N/A | Social N/A</div>
+          `;
+        } else if (contentType === "promotions") {
+          statsMarkup = `
+            <div class="muted">LW -- | Peak -- | WOC 0</div>
+            <div class="muted">Engagement N/A</div>
+            <div class="muted">Likes N/A | Views N/A | Comments N/A</div>
+          `;
+        } else if (contentType === "tours") {
+          statsMarkup = `
+            <div class="muted">LW -- | Peak -- | WOC 0</div>
+            <div class="muted">Attendance N/A</div>
+            <div class="muted">Sales N/A | Stream N/A</div>
+            <div class="muted">Air N/A | Social N/A</div>
+          `;
+        }
         rows.push(`
           <tr class="chart-empty">
             <td class="chart-rank">#${i}</td>
@@ -3917,9 +4237,7 @@ function renderCharts() {
             </td>
             <td class="chart-align"><span class="muted">N/A</span></td>
             <td class="chart-metrics">
-              <div class="muted">LW -- | Peak -- | WOC 0</div>
-              <div class="muted">Sales N/A | Stream N/A</div>
-              <div class="muted">Air N/A | Social N/A</div>
+              ${statsMarkup}
             </td>
             <td class="chart-score">N/A</td>
           </tr>
@@ -3927,8 +4245,20 @@ function renderCharts() {
       }
     }
     const rowMarkup = rows.join("");
-    const contentHeader = contentType === "projects" ? "Project" : "Track";
-    const actHeader = contentType === "projects" ? "Act / Genre" : "Act / Project";
+    const contentHeader = contentType === "projects"
+      ? "Project"
+      : contentType === "promotions"
+        ? "Promotion"
+        : contentType === "tours"
+          ? "Tour"
+          : "Track";
+    const actHeader = contentType === "projects"
+      ? "Act / Genre"
+      : contentType === "promotions"
+        ? "Act / Target"
+        : contentType === "tours"
+          ? "Top Track / Genre"
+          : "Act / Project";
     $("chartList").innerHTML = `
       <div class="chart-table-wrap">
         <table class="chart-table">

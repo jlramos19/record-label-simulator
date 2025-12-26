@@ -230,3 +230,4 @@ workerScope.addEventListener("message", async (event) => {
         workerScope.postMessage({ type: "snapshotsPersisted", id: message.id, payload });
     }
 });
+//# sourceMappingURL=chartWorker.js.map

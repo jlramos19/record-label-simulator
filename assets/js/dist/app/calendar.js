@@ -180,3 +180,4 @@ export function CalendarView(projection) {
     </div>
   `;
 }
+//# sourceMappingURL=calendar.js.map

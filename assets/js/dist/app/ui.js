@@ -938,11 +938,17 @@ async function handleExternalStorageClear(root) {
     await refreshExternalStorageStatus(root);
 }
 function chartScopeKey(chartKey) {
-    if (chartKey === "global")
-        return "global";
-    if (NATIONS.includes(chartKey))
-        return `nation:${chartKey}`;
-    return `region:${chartKey}`;
+    const base = chartKey === "global"
+        ? "global"
+        : NATIONS.includes(chartKey)
+            ? `nation:${chartKey}`
+            : `region:${chartKey}`;
+    const contentType = state.ui?.chartContentType || "tracks";
+    if (contentType === "promotions")
+        return `promo:${base}`;
+    if (contentType === "tours")
+        return `tour:${base}`;
+    return base;
 }
 function chartScopeLabel(chartKey) {
     return game.chartScopeLabel(chartKey);
@@ -982,7 +988,14 @@ async function applyChartHistoryWeek(week, chartKey) {
 async function renderChartHistoryModal() {
     const list = $("chartHistoryList");
     const scopeLabel = chartScopeLabel(state.ui.activeChart || "global");
-    const contentLabel = state.ui.chartContentType === "projects" ? "Projects" : "Tracks";
+    const contentType = state.ui.chartContentType || "tracks";
+    const contentLabel = contentType === "projects"
+        ? "Projects"
+        : contentType === "promotions"
+            ? "Promotions"
+            : contentType === "tours"
+                ? "Touring"
+                : "Tracks";
     const scopeEl = $("chartHistoryScope");
     if (scopeEl)
         scopeEl.textContent = `Scope: ${scopeLabel} (${contentLabel})`;
@@ -2503,6 +2516,58 @@ function bindViewHandlers(route, root) {
                 return;
             state.ui.chartContentType = next;
             renderCharts();
+        });
+    }
+    const chartPulseContentTabs = root.querySelector("#chartPulseContentTabs");
+    if (chartPulseContentTabs) {
+        chartPulseContentTabs.addEventListener("click", (e) => {
+            const tab = e.target.closest(".tab");
+            if (!tab)
+                return;
+            const next = tab.dataset.chartPulseContent || "tracks";
+            if (next === state.ui.chartPulseContentType)
+                return;
+            state.ui.chartPulseContentType = next;
+            renderAll({ save: false });
+            saveToActiveSlot();
+        });
+    }
+    const chartPulseScopeTabs = root.querySelector("#chartPulseScopeTabs");
+    if (chartPulseScopeTabs) {
+        chartPulseScopeTabs.addEventListener("click", (e) => {
+            const tab = e.target.closest(".tab");
+            if (!tab)
+                return;
+            const next = tab.dataset.chartPulseScope || "global";
+            if (next === state.ui.chartPulseScopeType)
+                return;
+            state.ui.chartPulseScopeType = next;
+            if (next === "global") {
+                state.ui.chartPulseScopeTarget = "global";
+            }
+            else if (next === "nation") {
+                const labelNation = NATIONS.includes(state.label?.country) ? state.label.country : NATIONS[0];
+                if (!NATIONS.includes(state.ui.chartPulseScopeTarget)) {
+                    state.ui.chartPulseScopeTarget = labelNation || "Annglora";
+                }
+            }
+            else if (next === "region") {
+                const regionIds = REGION_DEFS.map((region) => region.id);
+                const labelRegion = REGION_DEFS.find((region) => region.nation === state.label?.country)?.id;
+                if (!regionIds.includes(state.ui.chartPulseScopeTarget)) {
+                    state.ui.chartPulseScopeTarget = labelRegion || regionIds[0] || "";
+                }
+            }
+            renderAll({ save: false });
+            saveToActiveSlot();
+        });
+    }
+    const chartPulseTarget = root.querySelector("#chartPulseTarget");
+    if (chartPulseTarget) {
+        chartPulseTarget.addEventListener("change", (e) => {
+            state.ui.chartPulseScopeTarget = e.target.value;
+            renderAll({ save: false });
+            saveToActiveSlot();
         });
     }
     const syncCreatePanelToggles = () => {
@@ -4569,6 +4634,19 @@ function runPromotion() {
         const budget = budgets[promoType];
         const weeks = weeksByType[promoType] || boostWeeks;
         logUiEvent("action_submit", { action: "promotion", actId: act.id, trackId: trackContext.track?.id || null, budget, weeks, promoType, totalCost });
+        game.recordPromoContent({
+            promoType,
+            actId: act.id,
+            actName: act.name,
+            trackId: trackContext.track?.id || null,
+            marketId: market?.id || null,
+            trackTitle: trackContext.track?.title || null,
+            projectName: trackContext.track?.projectName || null,
+            label: state.label?.name || "",
+            budget,
+            weeks,
+            isPlayer: true
+        });
         if (typeof postFromTemplate === "function") {
             postFromTemplate(promoType, {
                 trackTitle: trackContext.track ? trackContext.track.title : act.name,
@@ -5286,3 +5364,4 @@ function runTimeJump(totalHours, label) {
     setTimeout(step, 0);
 }
 export default initUI;
+//# sourceMappingURL=ui.js.map

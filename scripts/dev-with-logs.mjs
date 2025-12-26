@@ -5,7 +5,8 @@ import http from "node:http";
 import puppeteer from "puppeteer";
 
 const PORT = 5173;
-const URL = `http://localhost:${PORT}/`;
+const HOST = process.env.RLS_HOST || "127.0.0.1";
+const URL = `http://${HOST}:${PORT}/`;
 const LOG_KEEP_COUNT = 3;
 const MAX_LOG_LINE = 240;
 const MAX_ARG_CHARS = 160;
@@ -23,6 +24,20 @@ function spawnNpm(script, options) {
 }
 
 const lineBuffers = new Map();
+const serverLineHistory = [];
+const MAX_SERVER_LINES = 6;
+
+function recordServerLine(line) {
+  serverLineHistory.push(line);
+  if (serverLineHistory.length > MAX_SERVER_LINES) {
+    serverLineHistory.shift();
+  }
+}
+
+function formatServerHistory() {
+  if (!serverLineHistory.length) return "";
+  return `\nLast server output:\n${serverLineHistory.map((line) => `- ${line}`).join("\n")}`;
+}
 
 function stripAnsi(value) {
   return value.replace(ANSI_OSC_REGEX, "").replace(ANSI_REGEX, "");
@@ -59,6 +74,7 @@ function writeChunk(write, type, chunk, { skip } = {}) {
     const compact = compactLine(line);
     if (!compact) continue;
     if (skip && skip(compact)) continue;
+    if (type.startsWith("server.")) recordServerLine(compact);
     write({ type, t: Date.now(), msg: compact });
   }
 }
@@ -150,7 +166,9 @@ function waitForServer(url, timeoutMs = 20_000) {
       });
       req.on("error", () => {
         if (Date.now() - start > timeoutMs) {
-          reject(new Error(`Server not reachable at ${url} within ${timeoutMs}ms`));
+          const details = formatServerHistory();
+          const hint = `\nCheck that \`npm run start\` works and that port ${PORT} is free.`;
+          reject(new Error(`Server not reachable at ${url} within ${timeoutMs}ms.${details}${hint}`));
         } else {
           setTimeout(tryOnce, 250);
         }
@@ -158,6 +176,30 @@ function waitForServer(url, timeoutMs = 20_000) {
     };
     tryOnce();
   });
+}
+
+function serverExitError(exitInfo) {
+  const code = exitInfo?.code ?? "unknown";
+  const signal = exitInfo?.signal ?? "unknown";
+  const details = formatServerHistory();
+  const hint = `\nCheck that \`npm run start\` works and that port ${PORT} is free.`;
+  return new Error(`Server exited before it was reachable (code ${code}, signal ${signal}).${details}${hint}`);
+}
+
+async function waitForServerReady(url, serverExitPromise, shutdownPromise, timeoutMs = 20_000) {
+  const result = await Promise.race([
+    waitForServer(url, timeoutMs).then(() => ({ status: "ready" })),
+    serverExitPromise.then((exitInfo) => ({ status: "exit", exitInfo })),
+    shutdownPromise.then((signal) => ({ status: "shutdown", signal }))
+  ]);
+  if (result.status === "ready") return { ready: true };
+  if (result.status === "shutdown") return { shutdown: true, signal: result.signal };
+  try {
+    await waitForServer(url, 1_000);
+    return { ready: true, serverExited: result.exitInfo };
+  } catch {
+    throw serverExitError(result.exitInfo);
+  }
 }
 
 async function maximizeWindow(page) {
@@ -182,6 +224,29 @@ function safeKill(child) {
   }
 }
 
+function createShutdownSignal() {
+  let signal = null;
+  let resolve;
+  const promise = new Promise((res) => {
+    resolve = res;
+  });
+  const onSignal = (value) => {
+    if (signal) return;
+    signal = value;
+    resolve(value);
+  };
+  process.once("SIGINT", () => onSignal("SIGINT"));
+  process.once("SIGTERM", () => onSignal("SIGTERM"));
+  return {
+    promise,
+    get signal() {
+      return signal;
+    }
+  };
+}
+
+const shutdown = createShutdownSignal();
+
 const run = async () => {
   const logsDir = path.resolve("usage-logs");
   const profileDir = process.env.RLS_BROWSER_PROFILE_DIR
@@ -203,12 +268,25 @@ const run = async () => {
     tsc = spawnNpm("watch", { stdio: ["ignore", "pipe", "pipe"] });
     tsc.stdout.on("data", (d) => writeChunk(write, "tsc.stdout", d));
     tsc.stderr.on("data", (d) => writeChunk(write, "tsc.stderr", d));
+    tsc.on("exit", (code, signal) => {
+      write({ type: "tsc.exit", t: Date.now(), code, signal });
+    });
 
     server = spawnNpm("start", { stdio: ["ignore", "pipe", "pipe"] });
     server.stdout.on("data", (d) => writeChunk(write, "server.stdout", d, { skip: shouldSkipServerLine }));
     server.stderr.on("data", (d) => writeChunk(write, "server.stderr", d, { skip: shouldSkipServerLine }));
+    server.on("exit", (code, signal) => {
+      write({ type: "server.exit", t: Date.now(), code, signal });
+    });
 
-    await waitForServer(URL);
+    const serverExit = new Promise((resolve) => {
+      server.once("exit", (code, signal) => resolve({ code, signal }));
+    });
+    const ready = await waitForServerReady(URL, serverExit, shutdown.promise);
+    if (ready.shutdown) {
+      write({ type: "session.signal", t: Date.now(), signal: ready.signal });
+      return;
+    }
 
     const edgePath = resolveEdgeExecutable();
     if (!edgePath || !fs.existsSync(edgePath)) {
@@ -292,7 +370,13 @@ const run = async () => {
     console.log(`- Profile dir: ${profileDir}`);
     console.log("Interact with the opened browser. Close it to stop.");
 
-    await new Promise((resolve) => browser.on("disconnected", resolve));
+    const exitReason = await Promise.race([
+      new Promise((resolve) => browser.on("disconnected", () => resolve("browser"))),
+      shutdown.promise
+    ]);
+    if (exitReason !== "browser") {
+      write({ type: "session.signal", t: Date.now(), signal: exitReason });
+    }
     flushLineBuffers(write);
     write({ type: "session.end", t: Date.now() });
   } catch (err) {
@@ -313,14 +397,6 @@ const run = async () => {
     safeKill(tsc);
   }
 };
-
-process.on("SIGINT", () => {
-  process.exit(0);
-});
-
-process.on("SIGTERM", () => {
-  process.exit(0);
-});
 
 run().catch((err) => {
   console.error(err);

@@ -384,3 +384,4 @@ export const WESTERN_NAMES = [
     "Quicksand",
     "Querstain",
 ];
+//# sourceMappingURL=western.js.map

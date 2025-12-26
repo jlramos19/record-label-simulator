@@ -2618,6 +2618,55 @@ function bindViewHandlers(route, root) {
     });
   }
 
+  const chartPulseContentTabs = root.querySelector("#chartPulseContentTabs");
+  if (chartPulseContentTabs) {
+    chartPulseContentTabs.addEventListener("click", (e) => {
+      const tab = e.target.closest(".tab");
+      if (!tab) return;
+      const next = tab.dataset.chartPulseContent || "tracks";
+      if (next === state.ui.chartPulseContentType) return;
+      state.ui.chartPulseContentType = next;
+      renderAll({ save: false });
+      saveToActiveSlot();
+    });
+  }
+
+  const chartPulseScopeTabs = root.querySelector("#chartPulseScopeTabs");
+  if (chartPulseScopeTabs) {
+    chartPulseScopeTabs.addEventListener("click", (e) => {
+      const tab = e.target.closest(".tab");
+      if (!tab) return;
+      const next = tab.dataset.chartPulseScope || "global";
+      if (next === state.ui.chartPulseScopeType) return;
+      state.ui.chartPulseScopeType = next;
+      if (next === "global") {
+        state.ui.chartPulseScopeTarget = "global";
+      } else if (next === "nation") {
+        const labelNation = NATIONS.includes(state.label?.country) ? state.label.country : NATIONS[0];
+        if (!NATIONS.includes(state.ui.chartPulseScopeTarget)) {
+          state.ui.chartPulseScopeTarget = labelNation || "Annglora";
+        }
+      } else if (next === "region") {
+        const regionIds = REGION_DEFS.map((region) => region.id);
+        const labelRegion = REGION_DEFS.find((region) => region.nation === state.label?.country)?.id;
+        if (!regionIds.includes(state.ui.chartPulseScopeTarget)) {
+          state.ui.chartPulseScopeTarget = labelRegion || regionIds[0] || "";
+        }
+      }
+      renderAll({ save: false });
+      saveToActiveSlot();
+    });
+  }
+
+  const chartPulseTarget = root.querySelector("#chartPulseTarget");
+  if (chartPulseTarget) {
+    chartPulseTarget.addEventListener("change", (e) => {
+      state.ui.chartPulseScopeTarget = e.target.value;
+      renderAll({ save: false });
+      saveToActiveSlot();
+    });
+  }
+
   const syncCreatePanelToggles = () => {
     const help = root.querySelector("#createHelp");
     const helpBtn = root.querySelector("#createHelpToggle");

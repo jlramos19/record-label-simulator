@@ -5,6 +5,8 @@
     "moduleResolution": "Bundler",
     "rootDir": "src",
     "outDir": "assets/js/dist",
+    "sourceMap": true,
+    "inlineSources": true,
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,

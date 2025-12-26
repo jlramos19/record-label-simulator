@@ -58,3 +58,4 @@ function describeSlot(targetId) {
     return label ? label.textContent : targetId;
 }
 export { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen };
+//# sourceMappingURL=dom.js.map

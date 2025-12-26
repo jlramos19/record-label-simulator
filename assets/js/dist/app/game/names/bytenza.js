@@ -151,3 +151,4 @@ export const BYTENZA_GIVEN_NAMES_ALL = [
     ...BYTENZA_GIVEN_NAMES_3,
     ...BYTENZA_GIVEN_NAMES_4,
 ];
+//# sourceMappingURL=bytenza.js.map

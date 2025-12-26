@@ -399,3 +399,4 @@ export const LATIN_NAMES = [
     "Quilapayun",
     "Quiros",
 ];
+//# sourceMappingURL=latin.js.map

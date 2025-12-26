@@ -122,3 +122,4 @@ export const CROWLYA_SURNAMES = [
     "Leon",
     "Mora",
 ];
+//# sourceMappingURL=crowlya.js.map

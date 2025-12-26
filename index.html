@@ -555,8 +555,26 @@
       <div class="panel card panel--scroll" data-panel="dashboard-charts">
         <h2>Chart Pulse</h2>
         <div class="card-body">
-          <div id="dashboardChartsList" class="list"></div>
-          <div class="tiny">Global top 5.</div>
+          <div class="chart-pulse-controls">
+            <div class="tabs" id="chartPulseContentTabs">
+              <button type="button" class="tab active" data-chart-pulse-content="tracks">Tracks</button>
+              <button type="button" class="tab" data-chart-pulse-content="projects">Projects</button>
+              <button type="button" class="tab" data-chart-pulse-content="promos">Promos</button>
+            </div>
+            <div class="chart-pulse-scope">
+              <div class="tabs" id="chartPulseScopeTabs">
+                <button type="button" class="tab active" data-chart-pulse-scope="global">Global</button>
+                <button type="button" class="tab" data-chart-pulse-scope="nation">Nation</button>
+                <button type="button" class="tab" data-chart-pulse-scope="region">Region</button>
+              </div>
+              <div class="chart-pulse-target">
+                <label id="chartPulseTargetLabel" class="tiny muted" for="chartPulseTarget">Target</label>
+                <select id="chartPulseTarget"></select>
+              </div>
+            </div>
+          </div>
+          <div id="dashboardChartsList" class="list chart-pulse-slots"></div>
+          <div id="chartPulseMeta" class="tiny muted"></div>
         </div>
       </div>
       <div class="panel card panel--scroll" data-panel="dashboard-eras">
@@ -955,42 +973,44 @@
             <button id="endEraBtn" type="button" class="ghost">End Era</button>
           </div>
           <div class="subhead">Rollout Strategy</div>
-          <div class="field">
-            <label for="rolloutStrategySelect">Strategy</label>
-            <div class="input-row">
-              <select id="rolloutStrategySelect"></select>
-              <button id="rolloutStrategyCreate" type="button" class="ghost mini">New</button>
+          <div class="rollout-strategy-grid">
+            <div class="field">
+              <label for="rolloutStrategySelect">Strategy</label>
+              <div class="input-row">
+                <select id="rolloutStrategySelect"></select>
+                <button id="rolloutStrategyCreate" type="button" class="ghost mini">New</button>
+              </div>
+              <div class="tiny muted">Plan weekly drops/events, then expand into the Calendar.</div>
             </div>
-            <div class="tiny muted">Plan weekly drops/events, then expand into the Calendar.</div>
-          </div>
-          <div class="field">
-            <label for="rolloutStrategyWeek">Week</label>
-            <input id="rolloutStrategyWeek" type="number" min="1" value="1">
-          </div>
-          <div class="field">
-            <label for="rolloutStrategyDropId">Drop Track ID</label>
-            <div class="input-row">
-              <input id="rolloutStrategyDropId" type="text" placeholder="Track ID">
-              <button id="rolloutStrategyAddDrop" type="button" class="ghost mini">Add Drop</button>
+            <div class="field">
+              <label for="rolloutStrategyWeek">Week</label>
+              <input id="rolloutStrategyWeek" type="number" min="1" value="1">
             </div>
-          </div>
-          <div class="field">
-            <label for="rolloutStrategyEventType">Event Type</label>
-            <div class="input-row">
-              <select id="rolloutStrategyEventType"></select>
-              <button id="rolloutStrategyAddEvent" type="button" class="ghost mini">Add Event</button>
+            <div class="field">
+              <label for="rolloutStrategyDropId">Drop Track ID</label>
+              <div class="input-row">
+                <input id="rolloutStrategyDropId" type="text" placeholder="Track ID">
+                <button id="rolloutStrategyAddDrop" type="button" class="ghost mini">Add Drop</button>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label for="rolloutStrategyEventContent">Event Content ID (optional)</label>
-            <input id="rolloutStrategyEventContent" type="text" placeholder="Track ID">
-          </div>
-          <div class="field">
-            <label class="toggle-pill">
-              <input id="rolloutStrategyAutoRun" type="checkbox">
-              <span>Auto-run Strategy</span>
-            </label>
-            <div class="tiny">Auto-schedule items when ready and within calendar rules.</div>
+            <div class="field">
+              <label for="rolloutStrategyEventType">Event Type</label>
+              <div class="input-row">
+                <select id="rolloutStrategyEventType"></select>
+                <button id="rolloutStrategyAddEvent" type="button" class="ghost mini">Add Event</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="rolloutStrategyEventContent">Event Content ID (optional)</label>
+              <input id="rolloutStrategyEventContent" type="text" placeholder="Track ID">
+            </div>
+            <div class="field">
+              <label class="toggle-pill">
+                <input id="rolloutStrategyAutoRun" type="checkbox">
+                <span>Auto-run Strategy</span>
+              </label>
+              <div class="tiny">Auto-schedule items when ready and within calendar rules.</div>
+            </div>
           </div>
           <div class="actions">
             <button id="rolloutStrategyExpand" type="button" class="ghost">Expand to Calendar</button>

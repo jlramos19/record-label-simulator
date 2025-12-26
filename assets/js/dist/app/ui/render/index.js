@@ -1148,6 +1148,71 @@ function renderTopBar() {
         $("topActPortrait").style.color = topAct ? topAct.textColor : "";
     }
 }
+function buildChartPulsePromoEntries({ startAt, endAt, scopeType, scopeTarget }) {
+    const entries = [];
+    const scopeNation = scopeType === "global"
+        ? null
+        : scopeType === "nation"
+            ? scopeTarget
+            : REGION_DEFS.find((region) => region.id === scopeTarget)?.nation || null;
+    const allowCountry = (country) => !scopeNation || country === scopeNation;
+    const labelName = state.label?.name || "Label";
+    const labelCountry = state.label?.country || "Annglora";
+    if (Array.isArray(state.scheduledEvents) && allowCountry(labelCountry)) {
+        state.scheduledEvents.forEach((entry) => {
+            if (entry.status === "Cancelled")
+                return;
+            if (!Number.isFinite(entry.scheduledAt))
+                return;
+            if (entry.scheduledAt < startAt || entry.scheduledAt >= endAt)
+                return;
+            const details = PROMO_TYPE_DETAILS[entry.actionType];
+            if (!details)
+                return;
+            const track = entry.contentId ? getTrack(entry.contentId) : null;
+            const act = entry.actId ? getAct(entry.actId) : track ? getAct(track.actId) : null;
+            entries.push({
+                id: entry.id,
+                ts: entry.scheduledAt,
+                title: track ? track.title : details.label,
+                actName: act ? act.name : "Unknown",
+                label: labelName,
+                typeLabel: details.label,
+                impact: details.cost
+            });
+        });
+    }
+    if (Array.isArray(state.rivalReleaseQueue)) {
+        state.rivalReleaseQueue.forEach((entry) => {
+            if ((entry.queueType || "release") !== "promo")
+                return;
+            if (!Number.isFinite(entry.releaseAt))
+                return;
+            if (entry.releaseAt < startAt || entry.releaseAt >= endAt)
+                return;
+            const details = PROMO_TYPE_DETAILS[entry.promoType];
+            if (!details)
+                return;
+            const rival = getRivalByName(entry.label);
+            const rivalCountry = rival?.country || entry.country || labelCountry;
+            if (!allowCountry(rivalCountry))
+                return;
+            entries.push({
+                id: entry.id,
+                ts: entry.releaseAt,
+                title: entry.title || details.label,
+                actName: entry.actName || "Promotion",
+                label: entry.label || "Rival",
+                typeLabel: details.label,
+                impact: details.cost
+            });
+        });
+    }
+    return entries
+        .sort((a, b) => b.impact - a.impact || a.ts - b.ts)
+        .slice(0, 5)
+        .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
 function renderDashboard() {
     const statsEl = $("dashboardStats");
     if (!statsEl)
@@ -3730,24 +3795,34 @@ function renderCharts() {
         btn.classList.toggle("active", btn.dataset.chart === state.ui.activeChart);
     });
     const activeChart = state.ui.activeChart || "global";
+    const chartSource = contentType === "promotions"
+        ? state.promoCharts
+        : contentType === "tours"
+            ? state.tourCharts
+            : state.charts;
     let entries = [];
     let size = CHART_SIZES.global;
-    let scopeKey = "global";
+    let baseScopeKey = "global";
     if (activeChart === "global") {
-        entries = state.charts.global;
+        entries = chartSource?.global || [];
         size = CHART_SIZES.global;
-        scopeKey = "global";
+        baseScopeKey = "global";
     }
     else if (NATIONS.includes(activeChart)) {
-        entries = state.charts.nations[activeChart] || [];
+        entries = chartSource?.nations?.[activeChart] || [];
         size = CHART_SIZES.nation;
-        scopeKey = `nation:${activeChart}`;
+        baseScopeKey = `nation:${activeChart}`;
     }
     else {
-        entries = state.charts.regions[activeChart] || [];
+        entries = chartSource?.regions?.[activeChart] || [];
         size = CHART_SIZES.region;
-        scopeKey = `region:${activeChart}`;
+        baseScopeKey = `region:${activeChart}`;
     }
+    const scopeKey = contentType === "promotions"
+        ? `promo:${baseScopeKey}`
+        : contentType === "tours"
+            ? `tour:${baseScopeKey}`
+            : baseScopeKey;
     const scopeLabel = chartScopeLabel(activeChart);
     const historyWeek = state.ui.chartHistoryWeek;
     const historySnapshot = state.ui.chartHistorySnapshot;
@@ -3779,10 +3854,18 @@ function renderCharts() {
     }
     const meta = $("chartMeta");
     if (meta) {
-        const weights = chartWeightsForScope(state.ui.activeChart || "global");
-        const pct = (value) => Math.round(value * 100);
-        const contentLabel = contentType === "projects" ? "Project" : "Track";
-        meta.textContent = `Top ${size} | ${scopeLabel} | ${contentLabel} charts | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
+        if (contentType === "tracks" || contentType === "projects") {
+            const weights = chartWeightsForScope(state.ui.activeChart || "global");
+            const pct = (value) => Math.round(value * 100);
+            const contentLabel = contentType === "projects" ? "Project" : "Track";
+            meta.textContent = `Top ${size} | ${scopeLabel} | ${contentLabel} charts | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
+        }
+        else if (contentType === "promotions") {
+            meta.textContent = `Top ${size} | ${scopeLabel} | Promotions chart | Metrics Likes / Views / Comments`;
+        }
+        else {
+            meta.textContent = `Top ${size} | ${scopeLabel} | Touring chart | Metric Attendance draw`;
+        }
     }
     const globalLocked = contentType === "tracks" && activeChart === "global" && displayEntries.length < size;
     if (historyMissing) {
@@ -3796,8 +3879,9 @@ function renderCharts() {
         $("chartList").innerHTML = `<div class="muted">No chart data yet.</div>`;
     }
     else {
-        const rows = contentType === "projects"
-            ? displayEntries.map((entry) => {
+        let rows = [];
+        if (contentType === "projects") {
+            rows = displayEntries.map((entry) => {
                 const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
                 const alignTag = renderAlignmentTag(entry.alignment);
                 const metrics = entry.metrics || {};
@@ -3826,8 +3910,86 @@ function renderCharts() {
             <td class="chart-score">${formatCount(entry.score || 0)}</td>
           </tr>
         `;
-            })
-            : displayEntries.map((entry) => {
+            });
+        }
+        else if (contentType === "promotions") {
+            rows = displayEntries.map((entry) => {
+                const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
+                const alignTag = renderAlignmentTag(entry.alignment);
+                const actName = entry.actName || "-";
+                const targetLine = entry.trackTitle ? `Track: ${entry.trackTitle}` : "Act push";
+                const projectLine = entry.projectName || (entry.trackTitle ? "Single" : "Act visibility");
+                const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
+                const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
+                const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
+                const metrics = entry.metrics || {};
+                const primaryLabel = metrics.primaryLabel || "Engagement";
+                const primaryValue = Number(metrics.primary || 0);
+                return `
+          <tr>
+            <td class="chart-rank">#${entry.rank}</td>
+            <td class="chart-title">
+              <div class="item-title">${entry.promoLabel || "Promo push"}</div>
+              <div class="muted">${targetLine}</div>
+            </td>
+            <td class="chart-label">${labelTag}</td>
+            <td class="chart-act">
+              <div>${actName}</div>
+              <div class="muted">${projectLine}</div>
+            </td>
+            <td class="chart-align">${alignTag}</td>
+            <td class="chart-metrics">
+              <div class="muted">${lastRank} | ${peak} | ${woc}</div>
+              <div class="muted">${primaryLabel} ${formatCount(primaryValue)}</div>
+              <div class="muted">Likes ${formatCount(metrics.likes || 0)} | Views ${formatCount(metrics.views || 0)} | Comments ${formatCount(metrics.comments || 0)}</div>
+            </td>
+            <td class="chart-score">${formatCount(entry.score || 0)}</td>
+          </tr>
+        `;
+            });
+        }
+        else if (contentType === "tours") {
+            rows = displayEntries.map((entry) => {
+                const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
+                const alignTag = renderAlignmentTag(entry.alignment);
+                const trackCount = entry.trackCount || 0;
+                const primaryTrack = entry.primaryTrack || {
+                    title: entry.primaryTrackTitle || entry.title || "-",
+                    theme: entry.primaryTrackTheme || entry.theme || "",
+                    mood: entry.primaryTrackMood || entry.mood || "",
+                    genre: entry.primaryTrackGenre || entry.genre || ""
+                };
+                const genreLine = renderTrackGenrePills(primaryTrack, { fallback: "Genre -" });
+                const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
+                const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
+                const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
+                const metrics = entry.metrics || {};
+                return `
+          <tr>
+            <td class="chart-rank">#${entry.rank}</td>
+            <td class="chart-title">
+              <div class="item-title">${entry.actName || "-"}</div>
+              <div class="muted">Charting tracks ${formatCount(trackCount)}</div>
+            </td>
+            <td class="chart-label">${labelTag}</td>
+            <td class="chart-act">
+              <div>${primaryTrack?.title || "-"}</div>
+              <div class="muted">${genreLine}</div>
+            </td>
+            <td class="chart-align">${alignTag}</td>
+            <td class="chart-metrics">
+              <div class="muted">${lastRank} | ${peak} | ${woc}</div>
+              <div class="muted">Attendance ${formatCount(metrics.attendance || 0)}</div>
+              <div class="muted">Sales ${formatCount(metrics.sales || 0)} | Stream ${formatCount(metrics.streaming || 0)}</div>
+              <div class="muted">Air ${formatCount(metrics.airplay || 0)} | Social ${formatCount(metrics.social || 0)}</div>
+            </td>
+            <td class="chart-score">${formatCount(entry.score || 0)}</td>
+          </tr>
+        `;
+            });
+        }
+        else {
+            rows = displayEntries.map((entry) => {
                 const track = entry.track || entry;
                 const labelTag = renderLabelTag(track.label, track.country || "Annglora");
                 const alignTag = renderAlignmentTag(track.alignment);
@@ -3859,8 +4021,36 @@ function renderCharts() {
           </tr>
         `;
             });
+        }
         if (displayEntries.length < size) {
             for (let i = displayEntries.length + 1; i <= size; i += 1) {
+                let statsMarkup = `
+          <div class="muted">LW -- | Peak -- | WOC 0</div>
+          <div class="muted">Sales N/A | Stream N/A</div>
+          <div class="muted">Air N/A | Social N/A</div>
+        `;
+                if (contentType === "projects") {
+                    statsMarkup = `
+            <div class="muted">Charting tracks N/A</div>
+            <div class="muted">Sales N/A | Stream N/A</div>
+            <div class="muted">Air N/A | Social N/A</div>
+          `;
+                }
+                else if (contentType === "promotions") {
+                    statsMarkup = `
+            <div class="muted">LW -- | Peak -- | WOC 0</div>
+            <div class="muted">Engagement N/A</div>
+            <div class="muted">Likes N/A | Views N/A | Comments N/A</div>
+          `;
+                }
+                else if (contentType === "tours") {
+                    statsMarkup = `
+            <div class="muted">LW -- | Peak -- | WOC 0</div>
+            <div class="muted">Attendance N/A</div>
+            <div class="muted">Sales N/A | Stream N/A</div>
+            <div class="muted">Air N/A | Social N/A</div>
+          `;
+                }
                 rows.push(`
           <tr class="chart-empty">
             <td class="chart-rank">#${i}</td>
@@ -3875,9 +4065,7 @@ function renderCharts() {
             </td>
             <td class="chart-align"><span class="muted">N/A</span></td>
             <td class="chart-metrics">
-              <div class="muted">LW -- | Peak -- | WOC 0</div>
-              <div class="muted">Sales N/A | Stream N/A</div>
-              <div class="muted">Air N/A | Social N/A</div>
+              ${statsMarkup}
             </td>
             <td class="chart-score">N/A</td>
           </tr>
@@ -3885,8 +4073,20 @@ function renderCharts() {
             }
         }
         const rowMarkup = rows.join("");
-        const contentHeader = contentType === "projects" ? "Project" : "Track";
-        const actHeader = contentType === "projects" ? "Act / Genre" : "Act / Project";
+        const contentHeader = contentType === "projects"
+            ? "Project"
+            : contentType === "promotions"
+                ? "Promotion"
+                : contentType === "tours"
+                    ? "Tour"
+                    : "Track";
+        const actHeader = contentType === "projects"
+            ? "Act / Genre"
+            : contentType === "promotions"
+                ? "Act / Target"
+                : contentType === "tours"
+                    ? "Top Track / Genre"
+                    : "Act / Project";
         $("chartList").innerHTML = `
       <div class="chart-table-wrap">
         <table class="chart-table">
@@ -4769,3 +4969,4 @@ function renderAll({ save = true } = {}) {
         saveToActiveSlot();
 }
 export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderModifierInventory, renderReleaseDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderTutorialEconomy, renderModifierTools, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };
+//# sourceMappingURL=index.js.map

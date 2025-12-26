@@ -126,3 +126,4 @@ export function clearFileHandle(id) {
         tx.objectStore(STORE_FILE_HANDLES).delete(id);
     })).catch(() => false);
 }
+//# sourceMappingURL=db.js.map

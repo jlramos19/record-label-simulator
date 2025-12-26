@@ -22,7 +22,7 @@ Use a compact grid of buttons with a status badge on each button.
 - Place IDs (Live)
   - Detail: Open Create view to place Creator IDs in track slots.
 - Schedule Release (Live)
-  - Detail: Open Calendar > Release Desk to schedule drops.
+  - Detail: Open Release > Release Desk to schedule drops.
 - Conduct Era (Live)
   - Detail: Open Eras > Era Desk to launch/manage an Era.
 - Plan Tours (Placeholder)

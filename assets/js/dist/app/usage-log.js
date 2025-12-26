@@ -298,3 +298,4 @@ export function getUsageSessionSnapshot() {
 export function getUsageSessionId() {
     return currentSession?.id || null;
 }
+//# sourceMappingURL=usage-log.js.map

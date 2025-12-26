@@ -78,3 +78,4 @@ export const ERA_NAME_TEMPLATES = [
     "Project {act} - First Wave",
     "{act}: Longform Bloom",
 ];
+//# sourceMappingURL=templates.js.map

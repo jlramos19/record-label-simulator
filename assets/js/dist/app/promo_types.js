@@ -78,3 +78,4 @@ const buildPromoHint = (typeId, inflationMultiplier = 1) => {
     return `Requirement: ${details.requirement} | Base: ${formatMoney(baseCost)}${inflatedLabel}`;
 };
 export { PROMO_TYPE_DETAILS, DEFAULT_PROMO_TYPE, getPromoTypeDetails, getPromoTypeCosts, buildPromoHint };
+//# sourceMappingURL=promo_types.js.map
