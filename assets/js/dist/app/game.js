@@ -22,6 +22,33 @@ const session = {
 function evaluateProjectTrackConstraints(projectName, projectType) {
     return evaluateProjectTrackConstraintsWithTracks(state.tracks, projectName, projectType);
 }
+const RELEASE_TYPE_ALIASES = {
+    single: "Single",
+    singles: "Single",
+    project: "Project",
+    "project track": "Project",
+    "project-track": "Project",
+    album: "Project",
+    ep: "Project"
+};
+function normalizeReleaseType(releaseType, fallbackProjectType) {
+    const raw = String(releaseType || "").trim().toLowerCase();
+    if (raw && RELEASE_TYPE_ALIASES[raw])
+        return RELEASE_TYPE_ALIASES[raw];
+    const fallback = normalizeProjectType(fallbackProjectType || "Single");
+    return fallback === "Single" ? "Single" : "Project";
+}
+function resolveTrackReleaseType(track) {
+    if (!track)
+        return "Single";
+    return normalizeReleaseType(track.releaseType, track.projectType);
+}
+function resolveTrackPricingType(track) {
+    const releaseType = resolveTrackReleaseType(track);
+    if (releaseType === "Single")
+        return "Single";
+    return normalizeProjectType(track?.projectType || "Single");
+}
 function nowMs() {
     return typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
 }
@@ -642,6 +669,11 @@ const ACT_PROMO_WARNING_WEEKS = Math.round(ACT_PROMO_WARNING_MS / WEEK_MS);
 const ACT_PROMO_STALE_PENALTY_STEP_WEEKS = 8;
 const ACT_PROMO_STALE_PENALTY_STEP = 2;
 const ACT_PROMO_STALE_PENALTY_MAX = 10;
+const ERA_PROJECT_GAP_WEEKS = ACT_PROMO_WARNING_WEEKS;
+const ERA_PROJECT_DELUXE_LIMIT = 3;
+const ERA_PROJECT_MAIN_LIMIT = getProjectTrackLimits("Album").max || 32;
+const ERA_PROJECT_DELUXE_SUFFIX = " (Deluxe)";
+const ERA_TOURING_STAGE_INDEX = ERA_STAGES.indexOf("Legacy");
 const PROMO_GAP_PENALTY_PER_TYPE = 3;
 const PROMO_GAP_PENALTY_MAX = 9;
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
@@ -3757,7 +3789,15 @@ function startEraForAct({ actId, name, rolloutId, contentType, contentId, source
         contentTypes: [],
         contentItems: [],
         rolloutStrategyId: null,
-        rolloutHuskGenerated: false
+        rolloutHuskGenerated: false,
+        projectName: null,
+        projectType: null,
+        projectStatus: "Open",
+        projectDeluxeName: null,
+        projectClosedAt: null,
+        projectClosedReason: null,
+        projectLastReleaseAt: null,
+        projectLastPromoAt: null
     };
     registerEraContent(era, contentType, contentId);
     state.era.active.push(era);
@@ -3788,7 +3828,15 @@ function archiveEra(era, status) {
             rolloutWeeks: Array.isArray(era.rolloutWeeks) ? era.rolloutWeeks.slice() : null,
             startedWeek: era.startedWeek || null,
             startedAt: era.startedAt || null,
-            rolloutStrategyId: era.rolloutStrategyId || null
+            rolloutStrategyId: era.rolloutStrategyId || null,
+            projectName: era.projectName || null,
+            projectType: era.projectType || null,
+            projectStatus: era.projectStatus || null,
+            projectDeluxeName: era.projectDeluxeName || null,
+            projectClosedAt: era.projectClosedAt || null,
+            projectClosedReason: era.projectClosedReason || null,
+            projectLastReleaseAt: era.projectLastReleaseAt || null,
+            projectLastPromoAt: era.projectLastPromoAt || null
         });
     }
 }
@@ -3810,30 +3858,265 @@ function endEraById(eraId, reason) {
     logEvent(`Era ended: ${era.name}${reason ? ` (${reason})` : ""}${outcomeLabel}.`);
     return era;
 }
-function ensureEraForTrack(track, source) {
+function ensureEraProjectState(era) {
+    if (!era)
+        return null;
+    if (typeof era.projectName !== "string")
+        era.projectName = era.projectName || null;
+    if (typeof era.projectType !== "string")
+        era.projectType = era.projectType || null;
+    if (typeof era.projectStatus !== "string")
+        era.projectStatus = "Open";
+    if (typeof era.projectDeluxeName !== "string")
+        era.projectDeluxeName = era.projectDeluxeName || null;
+    if (typeof era.projectClosedAt !== "number")
+        era.projectClosedAt = era.projectClosedAt || null;
+    if (typeof era.projectClosedReason !== "string")
+        era.projectClosedReason = era.projectClosedReason || null;
+    if (typeof era.projectLastReleaseAt !== "number")
+        era.projectLastReleaseAt = era.projectLastReleaseAt || null;
+    if (typeof era.projectLastPromoAt !== "number")
+        era.projectLastPromoAt = era.projectLastPromoAt || null;
+    return era;
+}
+function recordEraProjectReleaseActivity(era, atMs) {
+    if (!era)
+        return;
+    ensureEraProjectState(era);
+    const stamp = Number.isFinite(atMs) ? atMs : state.time.epochMs;
+    era.projectLastReleaseAt = stamp;
+}
+function recordEraProjectPromoActivity(track, act, atMs) {
+    const stamp = Number.isFinite(atMs) ? atMs : state.time.epochMs;
+    const era = track?.eraId
+        ? getEraById(track.eraId)
+        : act?.id
+            ? (getFocusEraForAct(act.id) || getLatestActiveEraForAct(act.id))
+            : null;
+    if (!era || era.status !== "Active")
+        return;
+    ensureEraProjectState(era);
+    era.projectLastPromoAt = stamp;
+}
+function getEraProjectActivityAt(era) {
+    if (!era)
+        return null;
+    const stamps = [];
+    if (Number.isFinite(era.projectLastReleaseAt))
+        stamps.push(era.projectLastReleaseAt);
+    if (Number.isFinite(era.projectLastPromoAt))
+        stamps.push(era.projectLastPromoAt);
+    if (Number.isFinite(era.startedAt))
+        stamps.push(era.startedAt);
+    if (!stamps.length)
+        return null;
+    return Math.max(...stamps);
+}
+function getEraProjectGapWeeks(era, now = state.time.epochMs) {
+    const anchor = getEraProjectActivityAt(era);
+    if (!Number.isFinite(anchor) || !Number.isFinite(now) || now <= anchor)
+        return 0;
+    return Math.floor((now - anchor) / WEEK_MS);
+}
+function isEraProjectStale(era, now = state.time.epochMs) {
+    const gap = getEraProjectGapWeeks(era, now);
+    return Number.isFinite(gap) && gap >= ERA_PROJECT_GAP_WEEKS;
+}
+function closeEraProject(era, reason, { log = true } = {}) {
+    if (!era)
+        return false;
+    ensureEraProjectState(era);
+    if (era.projectStatus === "Closed")
+        return false;
+    era.projectStatus = "Closed";
+    era.projectClosedReason = reason || "Closed";
+    era.projectClosedAt = state.time.epochMs;
+    if (log)
+        logEvent(`Era project closed: ${era.name}${reason ? ` (${reason})` : ""}.`);
+    return true;
+}
+function isEraTouring(era) {
+    if (!era)
+        return false;
+    if (era.projectStatus === "Touring")
+        return true;
+    return Number.isFinite(era.stageIndex)
+        && ERA_TOURING_STAGE_INDEX >= 0
+        && era.stageIndex >= ERA_TOURING_STAGE_INDEX;
+}
+function openEraTouring(era, { log = true } = {}) {
+    if (!era)
+        return false;
+    ensureEraProjectState(era);
+    if (era.projectStatus === "Closed")
+        return false;
+    if (era.projectStatus !== "Touring") {
+        era.projectStatus = "Touring";
+        era.projectClosedReason = "Touring";
+        if (!Number.isFinite(era.projectClosedAt))
+            era.projectClosedAt = state.time.epochMs;
+        if (log)
+            logEvent(`Touring started for "${era.name}". Deluxe window open.`);
+    }
+    return true;
+}
+function isDefaultSingleProjectName(track, projectName) {
+    if (!track)
+        return false;
+    const raw = String(projectName || "").trim();
+    if (!raw)
+        return false;
+    const fallback = `${track.title || ""} - Single`;
+    return normalizeProjectName(raw) === normalizeProjectName(fallback);
+}
+function ensureEraProjectName(era, track) {
+    ensureEraProjectState(era);
+    if (era.projectName)
+        return era.projectName;
+    const candidate = String(track?.projectName || "").trim();
+    if (candidate && !isDefaultSingleProjectName(track, candidate)) {
+        era.projectName = candidate;
+    }
+    else {
+        era.projectName = makeProjectTitle();
+    }
+    return era.projectName;
+}
+function ensureEraProjectType(era, track) {
+    ensureEraProjectState(era);
+    const existing = normalizeProjectType(era.projectType || "");
+    if (existing && existing !== "Single") {
+        era.projectType = existing;
+        return era.projectType;
+    }
+    const candidate = normalizeProjectType(track?.projectType || "");
+    if (candidate && candidate !== "Single") {
+        era.projectType = candidate;
+        return era.projectType;
+    }
+    era.projectType = "Album";
+    return era.projectType;
+}
+function ensureEraProjectDeluxeName(era) {
+    ensureEraProjectState(era);
+    if (!era.projectDeluxeName) {
+        const base = era.projectName || "Deluxe Project";
+        era.projectDeluxeName = `${base}${ERA_PROJECT_DELUXE_SUFFIX}`;
+    }
+    return era.projectDeluxeName;
+}
+function countEraProjectReleasedTracks(eraId, projectName) {
+    const normalized = normalizeProjectName(projectName);
+    if (!eraId || !normalized)
+        return 0;
+    return state.tracks.filter((track) => {
+        if (track.status !== "Released")
+            return false;
+        if (track.eraId !== eraId)
+            return false;
+        return normalizeProjectName(track.projectName) === normalized;
+    }).length;
+}
+function listReleaseEraCandidates(actId, track) {
+    const candidates = [];
+    const add = (era) => {
+        if (!era || era.status !== "Active")
+            return;
+        if (candidates.some((entry) => entry.id === era.id))
+            return;
+        candidates.push(era);
+    };
+    if (track?.eraId)
+        add(getEraById(track.eraId));
+    add(getFocusEraForAct(actId));
+    add(getLatestActiveEraForAct(actId));
+    return candidates;
+}
+function pickReleaseEraForTrack(track, now, { log = true } = {}) {
+    if (!track?.actId)
+        return null;
+    const candidates = listReleaseEraCandidates(track.actId, track);
+    for (const era of candidates) {
+        ensureEraProjectState(era);
+        if (era.projectStatus === "Closed")
+            continue;
+        if (era.projectStatus === "Open" && isEraProjectStale(era, now)) {
+            const gap = getEraProjectGapWeeks(era, now);
+            closeEraProject(era, `Inactive ${gap}w`, { log });
+            continue;
+        }
+        if (isEraTouring(era)) {
+            openEraTouring(era, { log });
+        }
+        return era;
+    }
+    return null;
+}
+function ensureEraForTrack(track, source, { releaseType = null, mode = "release" } = {}) {
     if (!track)
         return null;
     const actId = track.actId;
     if (!actId)
         return null;
-    const existing = track.eraId ? getEraById(track.eraId) : null;
-    if (existing && existing.status === "Active") {
-        registerEraContent(existing, "Track", track.id);
-        return existing;
+    const now = state.time.epochMs;
+    track.releaseType = normalizeReleaseType(releaseType || track.releaseType, track.projectType);
+    const logProjectChanges = mode !== "preview";
+    let era = pickReleaseEraForTrack(track, now, { log: logProjectChanges });
+    if (!era) {
+        era = startEraForAct({
+            actId,
+            contentType: "Track",
+            contentId: track.id,
+            source
+        });
     }
-    const focused = getFocusEraForAct(actId);
-    if (focused) {
-        track.eraId = focused.id;
-        registerEraContent(focused, "Track", track.id);
-        return focused;
+    let attempts = 0;
+    while (era && attempts < 2) {
+        ensureEraProjectState(era);
+        if (isEraTouring(era)) {
+            openEraTouring(era, { log: logProjectChanges });
+        }
+        const projectName = ensureEraProjectName(era, track);
+        const projectType = ensureEraProjectType(era, track);
+        if (era.projectStatus === "Touring") {
+            const deluxeName = ensureEraProjectDeluxeName(era);
+            const deluxeReleased = countEraProjectReleasedTracks(era.id, deluxeName);
+            if (deluxeReleased >= ERA_PROJECT_DELUXE_LIMIT) {
+                closeEraProject(era, `Deluxe cap ${ERA_PROJECT_DELUXE_LIMIT}`, { log: logProjectChanges });
+                era = startEraForAct({
+                    actId,
+                    contentType: "Track",
+                    contentId: track.id,
+                    source: `${source} (new era)`
+                });
+                attempts += 1;
+                continue;
+            }
+            track.projectName = deluxeName;
+            track.projectType = projectType;
+            track.projectEdition = "Deluxe";
+        }
+        else {
+            const releasedCount = countEraProjectReleasedTracks(era.id, projectName);
+            if (releasedCount >= ERA_PROJECT_MAIN_LIMIT) {
+                closeEraProject(era, `Album cap ${ERA_PROJECT_MAIN_LIMIT}`, { log: logProjectChanges });
+                era = startEraForAct({
+                    actId,
+                    contentType: "Track",
+                    contentId: track.id,
+                    source: `${source} (new era)`
+                });
+                attempts += 1;
+                continue;
+            }
+            track.projectName = projectName;
+            track.projectType = projectType;
+            track.projectEdition = null;
+        }
+        track.eraId = era.id;
+        registerEraContent(era, "Track", track.id);
+        return era;
     }
-    const era = startEraForAct({
-        actId,
-        contentType: "Track",
-        contentId: track.id,
-        source
-    });
-    track.eraId = era.id;
     return era;
 }
 function resolveRolloutWeekIndex(strategy, weekNumber) {
@@ -4268,6 +4551,8 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
         actId: resolvedActId,
         projectName: resolvedProjectName,
         projectType: resolvedProjectType,
+        releaseType: normalizeReleaseType(null, resolvedProjectType),
+        projectEdition: null,
         eraId: activeEra ? activeEra.id : null,
         modifier: modifier && modifier.id !== "None" ? modifier : null,
         distribution: "Digital",
@@ -4662,7 +4947,7 @@ function recommendPhysicalRun(track, { act = null, label = state.label } = {}) {
             isBudgetCapped: false
         };
     }
-    const projectType = track.projectType || "Single";
+    const projectType = resolveTrackPricingType(track);
     const unitPrice = estimatePhysicalUnitPrice(projectType);
     const unitCost = estimatePhysicalUnitCost(projectType);
     const fans = Math.max(0, label?.fans || 0);
@@ -4739,9 +5024,10 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
             feeNote = ` Distribution fee: ${formatMoney(feeResult.fee)}.`;
         }
     }
-    ensureEraForTrack(track, "Release");
+    const era = ensureEraForTrack(track, "Release", { releaseType: track.releaseType, mode: "release" });
     track.status = "Released";
     track.releasedAt = state.time.epochMs;
+    recordEraProjectReleaseActivity(era || (track.eraId ? getEraById(track.eraId) : null), track.releasedAt);
     track.trendAtRelease = state.trends.includes(track.genre);
     track.distribution = dist;
     const preReleaseWeeks = Math.max(0, track.promo?.preReleaseWeeks || 0);
@@ -4755,7 +5041,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
         ? { ...track.promo.typesLastAt }
         : {};
     const act = getAct(track.actId);
-    const era = track.eraId ? getEraById(track.eraId) : null;
+    const resolvedEra = era || (track.eraId ? getEraById(track.eraId) : null);
     const projectName = track.projectName || `${track.title} - Single`;
     const creatorCountries = resolveCreatorCountriesFromTrack(track);
     const actCountry = resolveActCountryFromMembers(track.actId);
@@ -4768,7 +5054,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
         actId: track.actId,
         actName: act ? act.name : "Unknown Act",
         eraId: track.eraId || null,
-        eraName: era ? era.name : null,
+        eraName: resolvedEra ? resolvedEra.name : null,
         projectName,
         isPlayer: true,
         theme: track.theme,
@@ -4839,7 +5125,7 @@ function scheduleRelease(track, hoursFromNow, distribution, note) {
     state.releaseQueue.push({ id: uid("RQ"), trackId: track.id, releaseAt, note: releaseNote, distribution: dist });
     if (isReady)
         track.status = "Scheduled";
-    ensureEraForTrack(track, "Release scheduled");
+    ensureEraForTrack(track, "Release scheduled", { releaseType: track.releaseType, mode: "schedule" });
     const feeNote = feeResult.fee ? ` Distribution fee: ${formatMoney(feeResult.fee)}.` : "";
     logEvent(`Scheduled "${track.title}" for release in ${scheduleHours}h.${feeNote}`);
     if (typeof window !== "undefined") {
@@ -4889,7 +5175,7 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
     state.releaseQueue.push(entry);
     if (isReady)
         track.status = "Scheduled";
-    ensureEraForTrack(track, "Release scheduled");
+    ensureEraForTrack(track, "Release scheduled", { releaseType: track.releaseType, mode: "schedule" });
     if (!suppressLog) {
         const feeNote = feeResult.fee ? ` Distribution fee: ${formatMoney(feeResult.fee)}.` : "";
         logEvent(`Scheduled "${track.title}" for release on ${formatDate(releaseAt)}.${feeNote}`);
@@ -5652,6 +5938,8 @@ function recordPromoUsage({ track = null, market = null, act = null, promoType, 
         recordPromoTypeUsage(act, promoType, stamp);
         act.lastPromoAt = stamp;
     }
+    if (track || act)
+        recordEraProjectPromoActivity(track, act, stamp);
 }
 function getTrackMissingPromoTypes(track, { includeScheduled = false } = {}) {
     if (!track)
@@ -8334,6 +8622,9 @@ function advanceEraWeek() {
                 generateEraRolloutHusk(era);
                 return;
             }
+            if (isEraTouring(era)) {
+                openEraTouring(era);
+            }
             logEvent(`Era shift: ${era.name} moved to ${ERA_STAGES[era.stageIndex]}.`);
         }
         stillActive.push(era);
@@ -9981,6 +10272,22 @@ function normalizeState() {
             era.rolloutStrategyId = null;
         if (typeof era.rolloutHuskGenerated !== "boolean")
             era.rolloutHuskGenerated = false;
+        if (typeof era.projectName !== "string")
+            era.projectName = era.projectName || null;
+        if (typeof era.projectType !== "string")
+            era.projectType = era.projectType || null;
+        if (typeof era.projectStatus !== "string")
+            era.projectStatus = "Open";
+        if (typeof era.projectDeluxeName !== "string")
+            era.projectDeluxeName = era.projectDeluxeName || null;
+        if (typeof era.projectClosedAt !== "number")
+            era.projectClosedAt = era.projectClosedAt || null;
+        if (typeof era.projectClosedReason !== "string")
+            era.projectClosedReason = era.projectClosedReason || null;
+        if (typeof era.projectLastReleaseAt !== "number")
+            era.projectLastReleaseAt = era.projectLastReleaseAt || null;
+        if (typeof era.projectLastPromoAt !== "number")
+            era.projectLastPromoAt = era.projectLastPromoAt || null;
         return era;
     });
     state.era.history = state.era.history.filter(Boolean).map((era) => {
@@ -9996,6 +10303,22 @@ function normalizeState() {
             era.outcomeStats = null;
         if (typeof era.rolloutStrategyId !== "string")
             era.rolloutStrategyId = null;
+        if (typeof era.projectName !== "string")
+            era.projectName = era.projectName || null;
+        if (typeof era.projectType !== "string")
+            era.projectType = era.projectType || null;
+        if (typeof era.projectStatus !== "string")
+            era.projectStatus = "Open";
+        if (typeof era.projectDeluxeName !== "string")
+            era.projectDeluxeName = era.projectDeluxeName || null;
+        if (typeof era.projectClosedAt !== "number")
+            era.projectClosedAt = era.projectClosedAt || null;
+        if (typeof era.projectClosedReason !== "string")
+            era.projectClosedReason = era.projectClosedReason || null;
+        if (typeof era.projectLastReleaseAt !== "number")
+            era.projectLastReleaseAt = era.projectLastReleaseAt || null;
+        if (typeof era.projectLastPromoAt !== "number")
+            era.projectLastPromoAt = era.projectLastPromoAt || null;
         return era;
     });
     if (!Array.isArray(state.rolloutStrategies))
@@ -10170,6 +10493,9 @@ function normalizeState() {
                 track.trendAtRelease = false;
             if (!track.projectType)
                 track.projectType = "Single";
+            track.releaseType = normalizeReleaseType(track.releaseType, track.projectType);
+            if (typeof track.projectEdition !== "string")
+                track.projectEdition = track.projectEdition || null;
             if (!track.distribution)
                 track.distribution = "Digital";
             if (!track.promo || typeof track.promo !== "object")
@@ -11130,7 +11456,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, countryColor, countryDemonym, createRolloutStrategyForEra, createTrack, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, reservePromoFacilitySlot, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, setSlotTarget, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, trendAlignmentLeader, uid, weekIndex, weekNumberFromEpochMs, };
+export { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, countryColor, countryDemonym, createRolloutStrategyForEra, createTrack, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, reservePromoFacilitySlot, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, setSlotTarget, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, trendAlignmentLeader, uid, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

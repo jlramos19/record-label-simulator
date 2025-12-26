@@ -1,5 +1,19 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1420Z)
+- Release desk now lists only mastered tracks as release-ready (unfinished masters stay in the Create pipeline).
+- Scheduled releases now exclude unmastered entries and surface a blocked summary for legacy or missing-track schedules.
+
+## 2025-12-26 (RLS-PATCH-20251226-1416Z)
+- Era projects now auto-group releases by promo/release activity; inactivity closes the project and later releases start a new Era, with album caps at 32 tracks.
+- Legacy-stage touring locks the main project and opens a 3-track deluxe window.
+- Release Desk now lets you tag releases as Singles vs Project tracks, and single pricing respects the release type even when attached to a project.
+
+## 2025-12-26 (RLS-PATCH-20251226-1411Z)
+- Added lore-aligned Bytenza Korean act/project names with English variations for stacked display.
+- Expanded act/project name pools with GDD-aligned titles and country motif entries.
+- Act name rendering now stacks Korean/English variants across focus, calendar, chart, and roster views.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1344Z)
 - Release scheduling now requires mastered (Ready) tracks, preventing past-due releases for in-progress masters.
 - Release desk summaries now separate Ready vs Mastering counts, and past-due scheduled entries show pending production status.

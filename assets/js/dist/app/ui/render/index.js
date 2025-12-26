@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getModifierInventoryCount, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getModifierInventoryCount, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -202,6 +202,12 @@ function renderActName(act) {
     if (!translation)
         return name;
     return renderLocalizedName(name, translation);
+}
+function formatActNamePlain(name) {
+    if (!name)
+        return "";
+    const translation = ACT_NAME_TRANSLATIONS?.[name] || "";
+    return translation ? `${name} / ${translation}` : name;
 }
 function isCreatorInAct(creatorId) {
     if (!creatorId)
@@ -807,9 +813,10 @@ function renderFocusEraStatus() {
     const fallbackEra = !focusEra && activeEras.length === 1 ? activeEras[0] : null;
     const displayEra = focusEra || fallbackEra;
     const actName = displayEra ? getAct(displayEra.actId)?.name : null;
+    const actLabel = actName ? renderActName(actName) : "";
     const stageName = displayEra ? ERA_STAGES[displayEra.stageIndex] || "Active" : "";
     const baseLabel = displayEra
-        ? `${displayEra.name}${actName ? ` (${actName})` : ""}${stageName ? ` | ${stageName}` : ""}`
+        ? `${displayEra.name}${actLabel ? ` (${actLabel})` : ""}${stageName ? ` | ${stageName}` : ""}`
         : "";
     const headerLabel = focusEra
         ? baseLabel
@@ -834,10 +841,11 @@ function renderFocusEraStatus() {
                 : "No active eras";
     const headerEl = $("focusEraDisplay");
     if (headerEl) {
-        headerEl.textContent = headerLabel;
+        headerEl.innerHTML = headerLabel;
         if (displayEra) {
             const stageName = ERA_STAGES[displayEra.stageIndex] || "Active";
-            headerEl.title = `Act: ${actName || "Unknown"} | Stage: ${stageName}`;
+            const actTitle = actName ? formatActNamePlain(actName) : "Unknown";
+            headerEl.title = `Act: ${actTitle} | Stage: ${stageName}`;
         }
         else {
             headerEl.title = "";
@@ -845,10 +853,10 @@ function renderFocusEraStatus() {
     }
     const labelEl = $("eraFocusLabel");
     if (labelEl)
-        labelEl.textContent = detailLabel;
+        labelEl.innerHTML = detailLabel;
     const promoEl = $("promoFocusLabel");
     if (promoEl)
-        promoEl.textContent = promoLabel;
+        promoEl.innerHTML = promoLabel;
     const clearBtn = $("eraFocusClear");
     if (clearBtn)
         clearBtn.disabled = !focusEra;
@@ -1141,9 +1149,10 @@ function renderTopBar() {
         const category = rankingWindow.dataset.category || "labels";
         renderRankingWindow(category);
     }
-    if ($("topActName")) {
+    const topActNameEl = $("topActName");
+    if (topActNameEl) {
         const topAct = getTopActSnapshot();
-        $("topActName").textContent = topAct ? `Top Act: ${topAct.name}` : "Top Act: -";
+        topActNameEl.innerHTML = topAct ? `Top Act: ${renderActName(topAct.name)}` : "Top Act: -";
         $("topActPortrait").textContent = topAct ? topAct.initials : "RLS";
         $("topActPortrait").style.background = topAct ? topAct.color : "";
         $("topActPortrait").style.color = topAct ? topAct.textColor : "";
@@ -1417,7 +1426,7 @@ function renderDashboard() {
             <div class="list-row">
               <div>
                 <div class="item-title">#${entry.rank} ${renderTrackTitle(entry.title)}</div>
-                <div class="muted">${entry.typeLabel} | ${entry.actName} | ${entry.label}</div>
+                <div class="muted">${entry.typeLabel} | ${renderActName(entry.actName || "-")} | ${entry.label}</div>
               </div>
               <div class="pill">${formatMoney(entry.impact)}</div>
             </div>
@@ -1430,7 +1439,7 @@ function renderDashboard() {
             <div class="list-row">
               <div>
                 <div class="item-title">#${entry.rank} ${renderProjectName(entry.projectName)}</div>
-                <div class="muted">${entry.projectType} | ${entry.actName || "-"} | ${entry.label || "-"}</div>
+                <div class="muted">${entry.projectType} | ${renderActName(entry.actName || "-")} | ${entry.label || "-"}</div>
               </div>
               <div class="pill">${formatCount(entry.score)}</div>
             </div>
@@ -1951,8 +1960,9 @@ function renderPromoAlerts() {
         return;
     }
     const act = getAct(displayEra.actId);
+    const actLabel = act ? renderActName(act) : "";
     const stageName = ERA_STAGES[displayEra.stageIndex] || "Active";
-    const eraLabel = `${displayEra.name}${act ? ` (${act.name})` : ""} | ${stageName}`;
+    const eraLabel = `${displayEra.name}${actLabel ? ` (${actLabel})` : ""} | ${stageName}`;
     const now = state.time.epochMs;
     const tracks = state.tracks.filter((track) => track.eraId === displayEra.id)
         .filter((track) => track.status === "Released" || track.status === "Scheduled");
@@ -2425,14 +2435,14 @@ function renderCalendarUpcomingFooter(projection, tab) {
             const title = entry.title || "Untitled";
             const typeLabel = entry.typeLabel || "Event";
             const distribution = entry.distribution || "Digital";
-            const actName = entry.actName || "Unknown";
+            const actLabel = renderActName(entry.actName || "Unknown");
             const labelName = entry.label || "Label";
             const showLabel = entry.showLabel || tab === "public";
             const labelCountry = getRivalByName(labelName)?.country || state.label.country || "Annglora";
             const labelTag = showLabel ? renderLabelTag(labelName, labelCountry) : "";
             const labelLine = showLabel
-                ? `${labelTag}<span class="calendar-upcoming-event-act">${actName}</span>`
-                : `<span class="calendar-upcoming-event-act">${actName}</span>`;
+                ? `${labelTag}<span class="calendar-upcoming-event-act">${actLabel}</span>`
+                : `<span class="calendar-upcoming-event-act">${actLabel}</span>`;
             return `
         <div class="calendar-upcoming-event">
           <div class="calendar-upcoming-event-title">${title}</div>
@@ -2515,12 +2525,12 @@ function renderCalendarList(targetId, weeks, projectionOverride) {
             const label = entry.label || "Label";
             const labelCountry = getRivalByName(label)?.country || state.label.country || "Annglora";
             const labelTag = label ? renderLabelTag(label, labelCountry) : "Label";
-            const actName = entry.actName || "Unknown";
+            const actLabel = renderActName(entry.actName || "Unknown");
             const title = entry.title || "Untitled";
             const typeLabel = entry.typeLabel || "Event";
             const distribution = entry.distribution || "Digital";
             return `
-            <div class="muted">${labelTag} | ${actName} | ${title} (${typeLabel}, ${distribution})</div>
+            <div class="muted">${labelTag} | ${actLabel} | ${title} (${typeLabel}, ${distribution})</div>
           `;
         }).join("")}
       </div>
@@ -2599,7 +2609,9 @@ function renderCreators() {
             const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
             const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
             const nationalityPill = renderNationalityPill(creator.country);
-            const memberships = state.acts.filter((act) => act.memberIds.includes(creator.id)).map((act) => act.name);
+            const memberships = state.acts
+                .filter((act) => act.memberIds.includes(creator.id))
+                .map((act) => renderActName(act));
             const actText = memberships.length ? memberships.join(", ") : "No Act";
             return `
         <div class="list-item" data-entity-type="creator" data-entity-id="${creator.id}" data-entity-name="${creator.name}" draggable="true">
@@ -3567,7 +3579,7 @@ function renderReleaseDesk() {
     if (typeof document !== "undefined") {
         const active = document.activeElement;
         const activeSelect = active && active.matches
-            ? active.matches("select[data-assign-act]") && readyList.contains(active)
+            ? (active.matches("select[data-assign-act]") || active.matches("select[data-release-type]")) && readyList.contains(active)
             : false;
         if (state.ui.releaseDeskLock && !activeSelect)
             state.ui.releaseDeskLock = false;
@@ -3577,7 +3589,14 @@ function renderReleaseDesk() {
     else if (state.ui.releaseDeskLock) {
         state.ui.releaseDeskLock = false;
     }
-    const queuedIds = new Set(state.releaseQueue.map((entry) => entry.trackId));
+    const releaseReadyStatuses = new Set(["Ready", "Scheduled", "Released"]);
+    const queueEntries = state.releaseQueue.map((entry) => {
+        const track = getTrack(entry.trackId);
+        const isReleaseReady = track ? releaseReadyStatuses.has(track.status) : false;
+        return { entry, track, isReleaseReady };
+    });
+    const queuedIds = new Set(queueEntries.filter((item) => item.isReleaseReady).map((item) => item.entry.trackId));
+    const blockedQueue = queueEntries.filter((item) => !item.isReleaseReady);
     const projectSummaries = collectProjectSummaries(state.tracks, queuedIds);
     const projectSummaryByKey = new Map(projectSummaries.map((summary) => [projectKey(summary.projectName, summary.projectType), summary]));
     const projectList = $("releaseProjectList");
@@ -3598,7 +3617,9 @@ function renderReleaseDesk() {
                 const statusClass = minRemaining > 0 || maxRemaining === 0 ? "badge warn" : "badge";
                 const readyLabel = `Ready ${formatCount(summary.readyCount)}`;
                 const masteringLabel = `Mastering ${formatCount(summary.masteringCount)}`;
-                const actLabel = summary.actNames.size ? Array.from(summary.actNames).join(", ") : "Unassigned";
+                const actLabel = summary.actNames.size
+                    ? Array.from(summary.actNames).map((name) => renderActName(name)).join(", ")
+                    : "Unassigned";
                 return `
           <div class="list-item">
             <div class="list-row">
@@ -3622,9 +3643,7 @@ function renderReleaseDesk() {
     const readyTracks = state.tracks.filter((track) => {
         if (queuedIds.has(track.id))
             return false;
-        if (track.status === "Ready")
-            return true;
-        return isMasteringTrack(track);
+        return track.status === "Ready";
     });
     const readyHtml = readyTracks.length
         ? readyTracks.map((track) => {
@@ -3647,6 +3666,9 @@ function renderReleaseDesk() {
                 : `<div class="muted">No Acts available. Create one in Roster.</div>`;
             const project = track.projectName || `${track.title} - Single`;
             const projectType = normalizeProjectType(track.projectType || "Single");
+            const releaseType = resolveTrackReleaseType(track);
+            const releaseTypeLabel = releaseType === "Single" ? "Single" : "Project track";
+            const editionLabel = track.projectEdition === "Deluxe" ? " | Deluxe" : "";
             const limits = getProjectTrackLimits(projectType);
             const summaryKey = projectKey(project, projectType);
             const summary = projectSummaryByKey.get(summaryKey);
@@ -3666,10 +3688,18 @@ function renderReleaseDesk() {
             const rec = derivedGenre ? recommendReleasePlan({ ...track, genre: derivedGenre }) : recommendReleasePlan(track);
             const recLabel = `${rec.distribution} ${rec.scheduleKey === "now" ? "now" : rec.scheduleKey === "fortnight" ? "+14d" : "+7d"}`;
             const recFeeLabel = formatMoney(getReleaseDistributionFee(rec.distribution));
-            const statusLabel = isReady ? "" : track.status === "In Production" ? "Mastering" : "Awaiting Master";
             const genreLabel = renderGenrePillsFromGenre(derivedGenre, { fallback: "-", alignment: track.alignment });
             const hasAct = Boolean(track.actId);
             const canSchedule = hasAct && isReady;
+            const releaseTypeSelect = `
+        <div class="field">
+          <label>Release Type</label>
+          <select data-release-type="${track.id}">
+            <option value="Single"${releaseType === "Single" ? " selected" : ""}>Single</option>
+            <option value="Project"${releaseType === "Project" ? " selected" : ""}>Project track</option>
+          </select>
+        </div>
+      `;
             return `
         <div class="list-item">
           <div class="list-row">
@@ -3677,12 +3707,14 @@ function renderReleaseDesk() {
               <div class="content-thumb" aria-hidden="true"></div>
               <div>
                 <div class="item-title">${renderTrackTitle(track.title)}</div>
-                <div class="muted">${genreLabel} | <span class="grade-text" data-grade="${grade}">${grade}</span>${isReady ? "" : ` | ${statusLabel}`}</div>
+                <div class="muted">${genreLabel} | <span class="grade-text" data-grade="${grade}">${grade}</span></div>
                 <div class="muted">${themeTag} ${alignTag}</div>
-                <div class="muted">Act: ${renderActName(act || "Unassigned")} | Project: ${renderProjectName(project)} (${projectType})</div>
+                <div class="muted">Act: ${renderActName(act || "Unassigned")} | Project: ${renderProjectName(project)} (${projectType}${editionLabel})</div>
+                <div class="muted">Release type: ${releaseTypeLabel}</div>
                 <div class="muted">${projectCountLine}</div>
                 <div class="muted">Modifier: ${modifierName}</div>
                 <div class="muted">Recommended: ${recLabel} - ${rec.reason}</div>
+                ${releaseTypeSelect}
                 ${actSelect}
               </div>
             </div>
@@ -3701,47 +3733,60 @@ function renderReleaseDesk() {
         }).join("")
         : `<div class="muted">No release-ready tracks yet.</div>`;
     readyList.innerHTML = readyHtml;
-    if (!state.releaseQueue.length) {
-        $("releaseQueueList").innerHTML = `<div class="muted">No scheduled releases.</div>`;
+    const releaseQueueList = $("releaseQueueList");
+    if (!releaseQueueList)
+        return;
+    if (!queueEntries.length) {
+        releaseQueueList.innerHTML = `<div class="muted">No scheduled releases.</div>`;
         return;
     }
-    const now = state.time.epochMs;
-    const queue = state.releaseQueue.map((entry) => {
-        const track = getTrack(entry.trackId);
-        const date = formatDate(entry.releaseAt);
-        const act = track ? getAct(track.actId) : null;
-        const project = track ? (track.projectName || `${track.title} - Single`) : "Unknown";
-        const projectType = track ? normalizeProjectType(track.projectType || "Single") : "Single";
-        const distribution = entry.distribution || entry.note || "Digital";
-        const isPastDue = entry.releaseAt <= now;
-        const needsReady = track && isPastDue && !["Ready", "Scheduled", "Released"].includes(track.status);
-        let pendingStatus = "";
-        if (needsReady) {
-            const stageIndex = Number.isFinite(track.stageIndex) ? track.stageIndex : null;
-            if (stageIndex === 2)
-                pendingStatus = "Pending mastering";
-            else if (stageIndex === 1)
-                pendingStatus = "Pending demo";
+    const blockedNote = (() => {
+        if (!blockedQueue.length)
+            return "";
+        let missingCount = 0;
+        let unmasteredCount = 0;
+        blockedQueue.forEach(({ track }) => {
+            if (!track)
+                missingCount += 1;
             else
-                pendingStatus = "Pending production";
-        }
-        const statusNote = pendingStatus ? ` | ${pendingStatus}` : "";
-        return `
+                unmasteredCount += 1;
+        });
+        const parts = [];
+        if (unmasteredCount)
+            parts.push(`${formatCount(unmasteredCount)} not mastered yet`);
+        if (missingCount)
+            parts.push(`${formatCount(missingCount)} missing track${missingCount === 1 ? "" : "s"}`);
+        return `<div class="muted">Blocked: ${parts.join(", ")}.</div>`;
+    })();
+    const releaseReadyQueue = queueEntries.filter((item) => item.isReleaseReady);
+    const queueHtml = releaseReadyQueue.length
+        ? releaseReadyQueue.map(({ entry, track }) => {
+            const date = formatDate(entry.releaseAt);
+            const act = track ? getAct(track.actId) : null;
+            const project = track ? (track.projectName || `${track.title} - Single`) : "Unknown";
+            const projectType = track ? normalizeProjectType(track.projectType || "Single") : "Single";
+            const releaseType = track ? resolveTrackReleaseType(track) : "Single";
+            const releaseTypeLabel = releaseType === "Single" ? "Single" : "Project track";
+            const editionLabel = track?.projectEdition === "Deluxe" ? " | Deluxe" : "";
+            const distribution = entry.distribution || entry.note || "Digital";
+            return `
       <div class="list-item">
         <div class="list-row">
           <div class="item-main">
             <div class="content-thumb" aria-hidden="true"></div>
             <div>
               <div class="item-title">${track ? renderTrackTitle(track.title) : "Unknown"}</div>
-              <div class="muted">${date}${statusNote} | ${distribution}</div>
-              <div class="muted">Act: ${track ? renderActName(act || "Unassigned") : "Unknown"} | Project: ${renderProjectName(project)} (${projectType})</div>
+              <div class="muted">${date} | ${distribution}</div>
+              <div class="muted">Act: ${track ? renderActName(act || "Unassigned") : "Unknown"} | Project: ${renderProjectName(project)} (${projectType}${editionLabel})</div>
+              <div class="muted">Release type: ${releaseTypeLabel}</div>
             </div>
           </div>
         </div>
       </div>
     `;
-    });
-    $("releaseQueueList").innerHTML = queue.join("");
+        }).join("")
+        : `<div class="muted">No release-ready scheduled entries.</div>`;
+    releaseQueueList.innerHTML = `${blockedNote}${queueHtml}`;
 }
 function collectProjectChartEntries(entries) {
     const projects = new Map();
@@ -4162,7 +4207,7 @@ function renderCharts() {
             </td>
             <td class="chart-label">${labelTag}</td>
             <td class="chart-act">
-              <div>${entry.actName || "-"}</div>
+              <div>${renderActName(entry.actName || "-")}</div>
               <div class="muted">${genreLine}</div>
             </td>
             <td class="chart-align">${alignTag}</td>
@@ -4180,7 +4225,7 @@ function renderCharts() {
             rows = displayEntries.map((entry) => {
                 const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
                 const alignTag = renderAlignmentTag(entry.alignment);
-                const actName = entry.actName || "-";
+                const actLabel = renderActName(entry.actName || "-");
                 const trackTitle = entry.trackTitle || entry.title || "";
                 const targetLine = trackTitle ? `Track: ${trackTitle}` : "Act push";
                 const projectLine = entry.projectName || (trackTitle ? "Single" : "Act visibility");
@@ -4199,7 +4244,7 @@ function renderCharts() {
             </td>
             <td class="chart-label">${labelTag}</td>
             <td class="chart-act">
-              <div>${actName}</div>
+              <div>${actLabel}</div>
               <div class="muted">${projectLine}</div>
             </td>
             <td class="chart-align">${alignTag}</td>

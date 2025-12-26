@@ -30,6 +30,9 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 - DEC-20251226-002: Vinyl run recommendations use a demand curve (fan base, quality, trend alignment, project type, act size, promo lead time, and price sensitivity) plus baseline physical pricing to estimate unit cost, recommended units, and gross/cost projections for player planning.
 - DEC-20251226-005: Project type track-count constraints follow `game-design-documents/03-Systems/Economy/Pricing/economy-pricing-and-track-limits-by-format.md` (Single 1-4, EP 5-7, Album 8-32) for create/release validation and seeded market projects.
 
+## Eras + projects
+- DEC-20251226-006: Era projects auto-group releases within a 26-week release/promo gap; singles attach to the Era project, albums close at 32 released tracks, Legacy-stage touring opens a 3-track deluxe window, and new releases after closure start a new Era.
+
 ## Competitive balance
 - DEC-20251226-003: Chart scoring applies label competition pressure from recent chart share to prevent runaway dominance, and modern-era seeds reduce dominant label bias.
 - DEC-20251226-005: Chart scoring applies homeland bonuses from Act + Creator origins and uses Gaia nation relationship lore to bias international audience response.

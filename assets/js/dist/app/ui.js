@@ -3178,7 +3178,7 @@ function bindViewHandlers(route, root) {
         readyList.addEventListener("click", handleReleaseAction);
         readyList.addEventListener("click", handleReleaseActRecommendation);
         readyList.addEventListener("focusin", (e) => {
-            const select = e.target.closest("[data-assign-act]");
+            const select = e.target.closest("select[data-assign-act], select[data-release-type]");
             if (!select)
                 return;
             if (!state.ui)
@@ -3186,7 +3186,7 @@ function bindViewHandlers(route, root) {
             state.ui.releaseDeskLock = true;
         });
         readyList.addEventListener("focusout", (e) => {
-            const select = e.target.closest("[data-assign-act]");
+            const select = e.target.closest("select[data-assign-act], select[data-release-type]");
             if (!select)
                 return;
             if (!state.ui)
@@ -3194,18 +3194,32 @@ function bindViewHandlers(route, root) {
             state.ui.releaseDeskLock = false;
         });
         readyList.addEventListener("change", (e) => {
-            const select = e.target.closest("[data-assign-act]");
-            if (!select)
+            const actSelect = e.target.closest("[data-assign-act]");
+            const releaseTypeSelect = e.target.closest("[data-release-type]");
+            if (!actSelect && !releaseTypeSelect)
                 return;
             if (!state.ui)
                 state.ui = {};
             state.ui.releaseDeskLock = false;
-            const trackId = select.dataset.assignAct;
-            const actId = select.value;
-            const assigned = assignTrackAct(trackId, actId);
-            if (assigned) {
-                logUiEvent("action_submit", { action: "assign_act", trackId, actId });
-                renderAll();
+            if (actSelect) {
+                const trackId = actSelect.dataset.assignAct;
+                const actId = actSelect.value;
+                const assigned = assignTrackAct(trackId, actId);
+                if (assigned) {
+                    logUiEvent("action_submit", { action: "assign_act", trackId, actId });
+                    renderAll();
+                    saveToActiveSlot();
+                }
+            }
+            if (releaseTypeSelect) {
+                const trackId = releaseTypeSelect.dataset.releaseType;
+                const track = trackId ? getTrack(trackId) : null;
+                if (!track)
+                    return;
+                const nextReleaseType = releaseTypeSelect.value === "Project" ? "Project" : "Single";
+                track.releaseType = nextReleaseType;
+                logUiEvent("action_submit", { action: "release_type_set", trackId, releaseType: nextReleaseType });
+                renderReleaseDesk();
                 saveToActiveSlot();
             }
         });
