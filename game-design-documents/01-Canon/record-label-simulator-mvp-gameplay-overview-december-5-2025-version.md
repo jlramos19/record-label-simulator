@@ -10,13 +10,13 @@
 
 ## **`Creator Recruitment & Management`**
 
-`Signing Creators: Your label can sign up to 125 Creator IDs (individual artists or personnel) at a time, encompassing Songwriters, Performers, and Producers. These Creators are recruited from the community (the game world’s population of “Community Members”) once they develop the requisite skills. Upon turning professional, they transition from roaming NPCs into assets in your UI – essentially becoming entries in your management interface rather than roaming in the world. Each Creator may have unique preferences or proficiencies (e.g. favored Theme/Mood), and can be placed into available studio slots or training institutions to put them to work.`
+`Signing Creators: Your label can sign up to 125 Creator IDs (individual artists or personnel) at a time, encompassing Songwriters, Recorders, and Producers. These Creators are recruited from the community (the game world’s population of “Community Members”) once they develop the requisite skills. Upon turning professional, they transition from roaming NPCs into assets in your UI – essentially becoming entries in your management interface rather than roaming in the world. Each Creator may have unique preferences or proficiencies (e.g. favored Theme/Mood), and can be placed into available studio slots or training institutions to put them to work.`
 
 `Roles & Functions:`
 
 * `Songwriters – Create Sheet Music (melody/lyrics) that set the Theme of a track. They influence the narrative focus and should align with your target Alignment (Safe, Neutral, Risky) and regional tastes for best results.`
 
-* `Performers – Perform Demo versions adding the Mood (emotional tone) to the track. A performer’s skill can slightly boost quality at this stage, and their style should complement the chosen Theme.`
+* `Recorders – Record Demo versions adding the Mood (emotional tone) to the track. A recorder’s skill can slightly boost quality at this stage, and their style should complement the chosen Theme.`
 
 * `Producers – Handle the final Mastering, merging Theme + Mood into the track’s content Genre and polishing its Quality grade. High-skill producers with sufficient resources can elevate a song to an A-grade finish, crucial for critical acclaim and chart-topping potential.`
 
@@ -30,7 +30,7 @@
 
 1. `Sheet Music (Composition) – Created by a songwriter, establishing the track’s core Theme (e.g. Freedom, Ambition). This stage costs 25,000,000 ticks (≈1 in-game hour) per piece.`
 
-2. `Demo Recording (Draft) – Performed by a Performer ID, layering on a Mood (e.g. Calming, Energizing, Daring) to shape the track’s emotional feel. Takes 50,000,000 ticks (≈2 hours).`
+2. `Demo Recording (Draft) – Recorded by a Recorder ID, layering on a Mood (e.g. Calming, Energizing, Daring) to shape the track’s emotional feel. Takes 50,000,000 ticks (≈2 hours).`
 
 3. `Master Recording (Final Track) – Finalized by a producer who combines the Theme and Mood into the final content Genre classification and applies studio polish. This is the longest step at 75,000,000 ticks (≈3 hours) per track, reflecting the intensive effort to achieve high quality.`
 

@@ -11,7 +11,7 @@
 - Events trigger on cadence (weekly charts, yearly population refresh).
 
 ## Patch Notes (2025-12-25)
-- Creator roster now groups signed Creator IDs into Songwriter, Performer, and Producer columns to match the CCC layout.
+- Creator roster now groups signed Creator IDs into Songwriter, Recorder, and Producer columns to match the CCC layout.
 
 ## Patch Notes (2025-12-24)
 - Charts view now shows a week-range selector with a chart history modal and snapshot export support.
@@ -22,6 +22,6 @@
 - Auto-rollout toggle added (hook/state only; rules pending).
 - Seeding split enforced (2025-2200 deterministic baseline, 2200-2400 seeded) with hidden dominant rival bias.
 - Population updates moved to yearly cadence.
-- Create Content uses stage buttons (Sheet/Demo/Master) and studio slot columns (5 slots per column; 3/2/1 columns for Songwriters/Performers/Producers).
+- Create Content uses stage buttons (Sheet/Demo/Master) and studio slot columns (5 slots per column; 3/2/1 columns for Songwriters/Recorders/Producers).
 - Removed the unused footer row so the main view fills the full height.
 - Panel hide/show now properly removes panels from layout across views.

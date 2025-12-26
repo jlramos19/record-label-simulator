@@ -8,13 +8,13 @@
 
 ## **`Creator Recruitment & Management`**
 
-`Signing Creators: Your label signs Creators from the market roster (Songwriters, Performers, Producers). Signing costs scale with skill and role, and roster size is limited by cash, stamina, and studio capacity rather than a hard cap. Signed Creators become managed UI entries and can be assigned to Acts or production slots.`
+`Signing Creators: Your label signs Creators from the market roster (Songwriters, Recorders, Producers). Signing costs scale with skill and role, and roster size is limited by cash, stamina, and studio capacity rather than a hard cap. Signed Creators become managed UI entries and can be assigned to Acts or production slots.`
 
 `Roles & Functions:`
 
 * `Songwriters - Create Sheet Music, setting the track's Theme. Their skill and theme preference matches contribute to quality potential.`
 
-* `Performers - Perform Demo versions, setting the track's Mood. Their skill and mood preference matches contribute to quality potential.`
+* `Recorders - Record Demo versions, setting the track's Mood. Their skill and mood preference matches contribute to quality potential.`
 
 * `Producers - Master the track, confirming Alignment and finalizing the Theme+Mood genre. Their skill has the largest impact on quality potential.`
 

@@ -52,4 +52,5 @@ The anchor rival is forced into participation even if it is below the budget gat
 
 ## Notes
 - AI promo budgets use a fixed AI percent, independent of player settings.
+- Rival focus themes/moods absorb husk trend tags over time to keep label templates adaptive.
 - New AI metadata is optional and safe for existing saves.

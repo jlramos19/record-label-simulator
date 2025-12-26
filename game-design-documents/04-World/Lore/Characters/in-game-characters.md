@@ -21,7 +21,7 @@ Community members who power the world simulation.
 Creative individuals responsible for producing music content.
 #### Occupations
 - Songwriter: write (Create Sheet Music with selected Themes).
-- Performer: perform (Create Demo Recordings that define Moods).
+- Recorder: record (Create Demo Recordings that define Moods).
 - Producer: produce (Create Masters that set Genre and preliminary Quality).
 
 ## Acts

@@ -6,7 +6,7 @@
 
 ### **`Core Concept: Stamina as Productivity and Readiness`**
 
-`Stamina governs how Creators (Songwriters, Performers, Producers) perform tasks, including writing Sheet Music, creating Demo Recordings, and finalizing Tracks. It also represents a Performer's readiness for promotional activities like live Shows or Broadcasts.`
+`Stamina governs how Creators (Songwriters, Recorders, Producers) perform tasks, including writing Sheet Music, creating Demo Recordings, and finalizing Tracks. It also represents a Recorder's readiness for promotional activities like live Shows or Broadcasts.`
 
 ---
 
@@ -20,13 +20,13 @@
 * **`Example`**`:`  
   * `A Songwriter with 400 stamina can create 16 sheets before requiring recovery.`
 
-#### **`Performers`**
+#### **`Recorders`**
 
 * **`Task`**`: Create Demo Recordings.`  
 * **`Cost`**`: 50 stamina units per demo.`  
 * **`Production Time`**`: 2 hours in-game (8 quarter-hour ticks).`  
 * **`Example`**`:`  
-  * `A Performer with 400 stamina can produce 8 demos before resting.`
+  * `A Recorder with 400 stamina can produce 8 demos before resting.`
 
 #### **`Producers`**
 
@@ -73,11 +73,11 @@
 
 ---
 
-### **`Rehearsals and Readiness for Performers`**
+### **`Rehearsals and Readiness for Recorders`**
 
 #### **`Mechanic:`**
 
-* `Rehearsals at Rehearsal Studios restore stamina and maintain a Performer's readiness for live Shows or Broadcasts.`  
+* `Rehearsals at Rehearsal Studios restore stamina and maintain a Recorder's readiness for live Shows or Broadcasts.`  
 * **`Decay Mechanism`**`:`  
   * `Readiness (tracked via StaminaComponent) decays without regular rehearsals, leading to:`  
     * `Reduced Audience engagement during performances.`  
@@ -127,7 +127,7 @@
 
 #### **`3. Monitoring Readiness`**
 
-* `Regularly rehearse Performers to keep readiness levels high, ensuring effective prime-time Broadcasts.`
+* `Regularly rehearse Recorders to keep readiness levels high, ensuring effective prime-time Broadcasts.`
 
 ---
 

@@ -3,6 +3,9 @@ import { storeChartSnapshot } from "./db.js";
 const workerScope = self;
 const FALLBACK_WEIGHTS = { sales: 0.25, streaming: 0.25, airplay: 0.25, social: 0.25 };
 const AUDIENCE_CHUNK = 1000;
+const ALIGNMENTS = ["Safe", "Neutral", "Risky"];
+const AUDIENCE_ALIGNMENT_SCORE_SCALE = 42;
+const AUDIENCE_TREND_BONUS = 4;
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 function normalizeChartWeights(weights, fallback) {
     const safe = weights || fallback || FALLBACK_WEIGHTS;
@@ -33,15 +36,51 @@ function buildChartMetrics(score, weights, fallback) {
         social: roundToAudienceChunk(base * normalized.social)
     };
 }
-function scoreTrack(track, regionName, profiles, trends) {
+function resolveAudienceProfile(scopeId, profiles, audience) {
+    const nationProfiles = profiles?.nations || {};
+    const regionProfiles = profiles?.regions || {};
+    const fallback = nationProfiles.Annglora || { alignment: "", theme: "", moods: [] };
+    const base = regionProfiles[scopeId] || nationProfiles[scopeId] || fallback;
+    const bias = audience?.regions?.[scopeId] || audience?.nations?.[scopeId] || null;
+    if (bias) {
+        return {
+            alignmentWeights: bias.alignmentWeights || null,
+            themes: Array.isArray(bias.themes) && bias.themes.length ? bias.themes : [base.theme],
+            moods: Array.isArray(bias.moods) && bias.moods.length ? bias.moods : base.moods || [],
+            trendGenres: Array.isArray(bias.trendGenres) ? bias.trendGenres : []
+        };
+    }
+    return {
+        alignment: base.alignment,
+        themes: [base.theme],
+        moods: base.moods || [],
+        trendGenres: []
+    };
+}
+function scoreTrack(track, regionName, profiles, trends, audience) {
     const nationProfiles = profiles?.nations || {};
     const regionProfiles = profiles?.regions || {};
     const fallback = nationProfiles.Annglora || { alignment: "", theme: "", moods: [] };
     const region = regionProfiles[regionName] || nationProfiles[regionName] || fallback;
+    const audienceProfile = resolveAudienceProfile(regionName, profiles, audience);
     let score = track.quality || 0;
-    score += track.alignment === region.alignment ? 12 : -6;
-    score += track.theme === region.theme ? 8 : 0;
-    score += Array.isArray(region.moods) && region.moods.includes(track.mood) ? 6 : 0;
+    if (audienceProfile.alignmentWeights) {
+        const alignment = ALIGNMENTS.includes(track.alignment) ? track.alignment : "Neutral";
+        const alignmentWeight = Number(audienceProfile.alignmentWeights?.[alignment]);
+        const baseline = 1 / ALIGNMENTS.length;
+        const delta = Number.isFinite(alignmentWeight) ? alignmentWeight - baseline : 0;
+        score += Math.round(delta * AUDIENCE_ALIGNMENT_SCORE_SCALE);
+    }
+    else {
+        score += track.alignment === region.alignment ? 12 : -6;
+    }
+    if (Array.isArray(audienceProfile.themes) && audienceProfile.themes.includes(track.theme))
+        score += 8;
+    if (Array.isArray(audienceProfile.moods) && audienceProfile.moods.includes(track.mood))
+        score += 6;
+    if (Array.isArray(audienceProfile.trendGenres) && audienceProfile.trendGenres.includes(track.genre)) {
+        score += AUDIENCE_TREND_BONUS;
+    }
     score += Array.isArray(trends) && trends.includes(track.genre) ? 10 : 0;
     score += track.promoWeeks > 0 ? 10 : 0;
     score += rand(-4, 4);
@@ -57,6 +96,7 @@ function computeCharts(payload) {
     const defaultWeights = payload?.defaultWeights || FALLBACK_WEIGHTS;
     const profiles = payload?.profiles || {};
     const trends = payload?.trends || [];
+    const audience = payload?.audience || {};
     const nationScores = {};
     const regionScores = {};
     nations.forEach((nation) => {
@@ -69,7 +109,7 @@ function computeCharts(payload) {
     tracks.forEach((track) => {
         let sum = 0;
         nations.forEach((nation) => {
-            const score = scoreTrack(track, nation, profiles, trends);
+            const score = scoreTrack(track, nation, profiles, trends, audience);
             const metrics = buildChartMetrics(score, weights?.nations?.[nation], defaultWeights);
             nationScores[nation].push({ key: track.key, score, metrics });
             sum += score;
@@ -81,7 +121,7 @@ function computeCharts(payload) {
             metrics: buildChartMetrics(avg, weights?.global, defaultWeights)
         });
         regionIds.forEach((regionId) => {
-            const score = scoreTrack(track, regionId, profiles, trends);
+            const score = scoreTrack(track, regionId, profiles, trends, audience);
             const metrics = buildChartMetrics(score, weights?.regions?.[regionId], defaultWeights);
             regionScores[regionId].push({ key: track.key, score, metrics });
         });

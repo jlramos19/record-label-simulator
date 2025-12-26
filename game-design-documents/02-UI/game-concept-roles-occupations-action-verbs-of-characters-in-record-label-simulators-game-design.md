@@ -22,8 +22,8 @@ Priorities determine what a new Member chooses to be as needed for the in-game s
 ### Songwriter (Occupation)
 - write (Create Sheet Music with selected Themes).
 
-### Performer (Occupation)
-- perform (Create Demo Recordings that define Moods).
+### Recorder (Occupation)
+- record (Create Demo Recordings that define Moods).
 
 ### Producer (Occupation)
 - produce (Create Masters by combining Theme and Mood to assign content Genre, which also gives a preliminary Quality rating later combined with Critic ratings).

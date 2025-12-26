@@ -517,7 +517,12 @@ function renderSlots() {
       }
     } else if (type === "track") {
       const track = value ? getTrack(value) : null;
-      valueEl.textContent = track ? track.title : unassignedLabel;
+      let trackLabel = track ? track.title : unassignedLabel;
+      if (!track && target === "promo-track" && value) {
+        const marketEntry = state.marketTracks.find((entry) => entry.trackId === value);
+        if (marketEntry?.title) trackLabel = marketEntry.title;
+      }
+      valueEl.textContent = trackLabel;
       if (avatarEl) {
         avatarEl.classList.remove("has-image");
         avatarEl.classList.remove("is-empty");
@@ -1204,15 +1209,17 @@ function renderEconomySummary() {
 function renderActiveCampaigns() {
   const listEl = $("activeCampaignList");
   if (!listEl) return;
-  const active = state.marketTracks.filter((entry) => entry.isPlayer && entry.promoWeeks > 0);
-  if (!active.length) {
+  const activeTracks = state.marketTracks.filter((entry) => entry.isPlayer && entry.promoWeeks > 0);
+  const activeActs = state.acts.filter((act) => act.promoWeeks > 0);
+  if (!activeTracks.length && !activeActs.length) {
     listEl.innerHTML = `<div class="muted">No active promo pushes.</div>`;
     return;
   }
-  listEl.innerHTML = active.map((entry) => {
-    const track = entry.trackId ? getTrack(entry.trackId) : null;
-    const title = track ? track.title : entry.title;
-    return `
+  const items = [
+    ...activeTracks.map((entry) => {
+      const track = entry.trackId ? getTrack(entry.trackId) : null;
+      const title = track ? track.title : entry.title;
+      return `
       <div class="list-item">
         <div class="list-row">
           <div>
@@ -1223,7 +1230,20 @@ function renderActiveCampaigns() {
         </div>
       </div>
     `;
-  }).join("");
+    }),
+    ...activeActs.map((act) => `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${act.name}</div>
+            <div class="muted">Act promo${act.alignment ? ` | ${renderAlignmentTag(act.alignment)}` : ""}</div>
+          </div>
+          <div class="pill">${act.promoWeeks}w</div>
+        </div>
+      </div>
+    `)
+  ];
+  listEl.innerHTML = items.join("");
 }
 
 function renderWallet() {

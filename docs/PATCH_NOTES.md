@@ -1,5 +1,15 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0518Z)
+- Promotions now target Acts directly (act-only or act+track) with a dedicated Act slot and focus-era picker; active promos list includes act pushes.
+- Broadcast facilities now use EyeriS studio profiles + program tiers, including Prime Time Showcase eligibility checks (quality + charting).
+- Creator role copy now labels Performers as Recorders across UI and GDD docs.
+
+## 2025-12-26 (RLS-PATCH-20251226-0517Z)
+- Audience preferences now drift from base regional profiles using recent releases + chart mix, with iconic Risky eras boosting risk appetite.
+- Chart scoring now uses dynamic audience alignment weights and regional trend genres (worker + main thread).
+- Rival focus themes/moods now adapt to husk trend tags as rollout templates evolve.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0456Z)
 - Rival rollout planning now preserves a cash reserve while scaling lease costs, so more labels schedule releases and promo.
 - Era completion now records outcomes (Flop/Mid/Successful/Iconic) from track economy and alignment, surfaced in logs/social.

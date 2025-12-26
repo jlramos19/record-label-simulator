@@ -44,6 +44,15 @@ const TREND_DETAIL_COUNT = 3;
 const TREND_WINDOW_WEEKS = 4;
 const MARKET_TRACK_ACTIVE_LIMIT = 600;
 const MARKET_TRACK_ARCHIVE_LIMIT = 2400;
+const AUDIENCE_TASTE_WINDOW_WEEKS = 8;
+const AUDIENCE_ALIGNMENT_SCORE_SCALE = 42;
+const AUDIENCE_BASE_WEIGHT = 0.45;
+const AUDIENCE_CHART_WEIGHT = 0.35;
+const AUDIENCE_RELEASE_WEIGHT = 0.2;
+const AUDIENCE_PREF_DRIFT = 0.35;
+const AUDIENCE_ICONIC_RISK_BOOST = 0.12;
+const AUDIENCE_TREND_BONUS = 4;
+const AUDIENCE_PREF_LIMIT = 3;
 const WEEKLY_SCHEDULE = {
     releaseProcessing: { day: 5, hour: 0, minute: 0 },
     trendsUpdate: { day: 5, hour: 12, minute: 0 },
@@ -425,6 +434,7 @@ function makeDefaultState() {
         trendRanking: [],
         trendAlignmentScores: {},
         trendLedger: { weeks: [] },
+        audienceBias: { updatedWeek: null, nations: {}, regions: {} },
         genreRanking: [],
         charts: { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} },
         rivals: [],
@@ -5028,12 +5038,248 @@ function processScheduledEvents() {
         markRolloutEventStatusFromSchedule(entry);
     });
 }
+function ensureAudienceBiasStore() {
+    if (!state.audienceBias || typeof state.audienceBias !== "object") {
+        state.audienceBias = { updatedWeek: null, nations: {}, regions: {} };
+    }
+    if (typeof state.audienceBias.updatedWeek !== "number")
+        state.audienceBias.updatedWeek = null;
+    if (!state.audienceBias.nations || typeof state.audienceBias.nations !== "object") {
+        state.audienceBias.nations = {};
+    }
+    if (!state.audienceBias.regions || typeof state.audienceBias.regions !== "object") {
+        state.audienceBias.regions = {};
+    }
+    return state.audienceBias;
+}
+function normalizeAlignmentWeights(weights) {
+    const safe = {};
+    let total = 0;
+    ALIGNMENTS.forEach((alignment) => {
+        const value = Math.max(0, Number(weights?.[alignment] || 0));
+        safe[alignment] = value;
+        total += value;
+    });
+    if (!total) {
+        const even = 1 / ALIGNMENTS.length;
+        ALIGNMENTS.forEach((alignment) => {
+            safe[alignment] = even;
+        });
+        return safe;
+    }
+    ALIGNMENTS.forEach((alignment) => {
+        safe[alignment] = safe[alignment] / total;
+    });
+    return safe;
+}
+function defaultAlignmentWeights(baseAlignment) {
+    const base = ALIGNMENTS.includes(baseAlignment) ? baseAlignment : "Neutral";
+    const baseWeight = 0.55;
+    const otherWeight = (1 - baseWeight) / (ALIGNMENTS.length - 1);
+    const weights = {};
+    ALIGNMENTS.forEach((alignment) => {
+        weights[alignment] = alignment === base ? baseWeight : otherWeight;
+    });
+    return normalizeAlignmentWeights(weights);
+}
+function blendAlignmentWeights(previous, target, drift) {
+    const safePrev = normalizeAlignmentWeights(previous);
+    const safeTarget = normalizeAlignmentWeights(target);
+    const step = clamp(Number(drift) || 0, 0, 1);
+    const blended = {};
+    ALIGNMENTS.forEach((alignment) => {
+        blended[alignment] = safePrev[alignment] * (1 - step) + safeTarget[alignment] * step;
+    });
+    return normalizeAlignmentWeights(blended);
+}
+function alignmentWeightsFromEntries(entries) {
+    const totals = { Safe: 0, Neutral: 0, Risky: 0 };
+    (entries || []).forEach((entry) => {
+        const track = entry?.track || entry;
+        const alignment = ALIGNMENTS.includes(track?.alignment) ? track.alignment : "Neutral";
+        const weight = Number.isFinite(entry?.score) ? Math.max(1, entry.score) : 1;
+        totals[alignment] = (totals[alignment] || 0) + weight;
+    });
+    return normalizeAlignmentWeights(totals);
+}
+function preferenceCountsFromEntries(entries, valueFn) {
+    const counts = {};
+    (entries || []).forEach((entry) => {
+        const track = entry?.track || entry;
+        const value = valueFn(track);
+        if (!value)
+            return;
+        const weight = Number.isFinite(entry?.score) ? Math.max(1, entry.score) : 1;
+        counts[value] = (counts[value] || 0) + weight;
+    });
+    return counts;
+}
+function buildPreferenceListFromEntries(entries, valueFn, fallbackList, limit = AUDIENCE_PREF_LIMIT) {
+    const counts = preferenceCountsFromEntries(entries, valueFn);
+    const ordered = Object.entries(counts).sort((a, b) => b[1] - a[1]).map((entry) => entry[0]);
+    const picks = ordered.slice(0, limit);
+    const fallback = Array.isArray(fallbackList) ? fallbackList : [fallbackList];
+    fallback.filter(Boolean).forEach((value) => {
+        if (picks.length >= limit)
+            return;
+        if (!picks.includes(value))
+            picks.push(value);
+    });
+    return picks.length ? picks : fallback.filter(Boolean).slice(0, limit);
+}
+function baseAudienceProfile(scopeId) {
+    const regionProfile = REGION_PROFILES?.[scopeId];
+    if (regionProfile) {
+        return {
+            alignment: regionProfile.alignment,
+            themes: [regionProfile.theme],
+            moods: Array.isArray(regionProfile.moods) ? regionProfile.moods.slice() : []
+        };
+    }
+    const nationProfile = NATION_PROFILES?.[scopeId] || NATION_PROFILES.Annglora;
+    return {
+        alignment: nationProfile.alignment,
+        themes: [nationProfile.theme],
+        moods: Array.isArray(nationProfile.moods) ? nationProfile.moods.slice() : []
+    };
+}
+function computeIconicRiskBoost(currentWeek) {
+    const history = Array.isArray(state.era?.history) ? state.era.history : [];
+    if (!history.length)
+        return 0;
+    const recent = history.filter((era) => {
+        if (!Number.isFinite(era.completedWeek))
+            return false;
+        const weeksAgo = currentWeek - era.completedWeek;
+        return weeksAgo >= 0 && weeksAgo < AUDIENCE_TASTE_WINDOW_WEEKS;
+    });
+    if (!recent.length)
+        return 0;
+    const iconicCount = recent.filter((era) => era.outcome === "Iconic").length;
+    const share = iconicCount / recent.length;
+    return clamp(share * AUDIENCE_ICONIC_RISK_BOOST, 0, AUDIENCE_ICONIC_RISK_BOOST);
+}
+function buildAudienceBiasEntry({ baseProfile, chartEntries, releaseEntries, previous, riskBoost }) {
+    const baseWeights = defaultAlignmentWeights(baseProfile.alignment);
+    const chartWeights = alignmentWeightsFromEntries(chartEntries);
+    const releaseWeights = alignmentWeightsFromEntries(releaseEntries);
+    let target = normalizeAlignmentWeights({
+        Safe: baseWeights.Safe * AUDIENCE_BASE_WEIGHT
+            + chartWeights.Safe * AUDIENCE_CHART_WEIGHT
+            + releaseWeights.Safe * AUDIENCE_RELEASE_WEIGHT,
+        Neutral: baseWeights.Neutral * AUDIENCE_BASE_WEIGHT
+            + chartWeights.Neutral * AUDIENCE_CHART_WEIGHT
+            + releaseWeights.Neutral * AUDIENCE_RELEASE_WEIGHT,
+        Risky: baseWeights.Risky * AUDIENCE_BASE_WEIGHT
+            + chartWeights.Risky * AUDIENCE_CHART_WEIGHT
+            + releaseWeights.Risky * AUDIENCE_RELEASE_WEIGHT
+    });
+    if (riskBoost > 0) {
+        target.Risky += riskBoost;
+        target.Safe = Math.max(0, target.Safe - riskBoost * 0.6);
+        target.Neutral = Math.max(0, target.Neutral - riskBoost * 0.4);
+        target = normalizeAlignmentWeights(target);
+    }
+    const previousWeights = previous?.alignmentWeights || baseWeights;
+    const alignmentWeights = blendAlignmentWeights(previousWeights, target, AUDIENCE_PREF_DRIFT);
+    const combinedEntries = (chartEntries || []).concat(releaseEntries || []);
+    const themes = buildPreferenceListFromEntries(combinedEntries, (track) => track?.theme, baseProfile.themes);
+    const moods = buildPreferenceListFromEntries(combinedEntries, (track) => track?.mood, baseProfile.moods);
+    const baseGenres = (baseProfile.themes[0] && baseProfile.moods.length)
+        ? baseProfile.moods.map((mood) => makeGenre(baseProfile.themes[0], mood)).filter(Boolean)
+        : [];
+    const trendGenres = buildPreferenceListFromEntries(combinedEntries, (track) => track?.genre, baseGenres);
+    return {
+        alignmentWeights,
+        themes,
+        moods,
+        trendGenres,
+        updatedAt: state.time.epochMs
+    };
+}
+function updateAudienceBiasFromCharts() {
+    const bias = ensureAudienceBiasStore();
+    const currentWeek = weekIndex() + 1;
+    if (bias.updatedWeek === currentWeek)
+        return;
+    const currentWeekIndex = weekIndex();
+    const minWeekIndex = currentWeekIndex - (AUDIENCE_TASTE_WINDOW_WEEKS - 1);
+    const riskBoost = computeIconicRiskBoost(currentWeek);
+    const marketTracks = Array.isArray(state.marketTracks) ? state.marketTracks : [];
+    NATIONS.forEach((nation) => {
+        const baseProfile = baseAudienceProfile(nation);
+        const chartEntries = state.charts?.nations?.[nation] || [];
+        const releaseEntries = marketTracks.filter((entry) => {
+            if (entry.country !== nation)
+                return false;
+            if (!Number.isFinite(entry.releasedAt))
+                return false;
+            return weekIndexForEpochMs(entry.releasedAt) >= minWeekIndex;
+        });
+        bias.nations[nation] = buildAudienceBiasEntry({
+            baseProfile,
+            chartEntries,
+            releaseEntries,
+            previous: bias.nations[nation],
+            riskBoost
+        });
+    });
+    REGION_DEFS.forEach((region) => {
+        const baseProfile = baseAudienceProfile(region.id);
+        const chartEntries = state.charts?.regions?.[region.id] || [];
+        const releaseEntries = marketTracks.filter((entry) => {
+            if (entry.country !== region.nation)
+                return false;
+            if (!Number.isFinite(entry.releasedAt))
+                return false;
+            return weekIndexForEpochMs(entry.releasedAt) >= minWeekIndex;
+        });
+        bias.regions[region.id] = buildAudienceBiasEntry({
+            baseProfile,
+            chartEntries,
+            releaseEntries,
+            previous: bias.regions[region.id],
+            riskBoost
+        });
+    });
+    bias.updatedWeek = currentWeek;
+}
+function getAudienceProfile(scopeId) {
+    const baseProfile = baseAudienceProfile(scopeId);
+    const bias = ensureAudienceBiasStore();
+    const biasEntry = bias.regions?.[scopeId] || bias.nations?.[scopeId] || null;
+    const alignmentWeights = biasEntry?.alignmentWeights
+        ? normalizeAlignmentWeights(biasEntry.alignmentWeights)
+        : defaultAlignmentWeights(baseProfile.alignment);
+    const themes = Array.isArray(biasEntry?.themes) && biasEntry.themes.length
+        ? biasEntry.themes
+        : baseProfile.themes;
+    const moods = Array.isArray(biasEntry?.moods) && biasEntry.moods.length
+        ? biasEntry.moods
+        : baseProfile.moods;
+    const trendGenres = Array.isArray(biasEntry?.trendGenres) ? biasEntry.trendGenres : [];
+    return {
+        alignmentWeights,
+        themes,
+        moods,
+        trendGenres,
+        baseAlignment: baseProfile.alignment
+    };
+}
 function scoreTrack(track, regionName) {
-    const region = REGION_PROFILES[regionName] || NATION_PROFILES[regionName] || NATION_PROFILES.Annglora;
+    const audience = getAudienceProfile(regionName);
     let score = track.quality;
-    score += track.alignment === region.alignment ? 12 : -6;
-    score += track.theme === region.theme ? 8 : 0;
-    score += region.moods.includes(track.mood) ? 6 : 0;
+    const alignment = ALIGNMENTS.includes(track.alignment) ? track.alignment : "Neutral";
+    const alignmentWeight = Number(audience.alignmentWeights?.[alignment]);
+    const baseline = 1 / ALIGNMENTS.length;
+    const delta = Number.isFinite(alignmentWeight) ? alignmentWeight - baseline : 0;
+    score += Math.round(delta * AUDIENCE_ALIGNMENT_SCORE_SCALE);
+    if (audience.themes.includes(track.theme))
+        score += 8;
+    if (audience.moods.includes(track.mood))
+        score += 6;
+    if (audience.trendGenres.includes(track.genre))
+        score += AUDIENCE_TREND_BONUS;
     score += state.trends.includes(track.genre) ? 10 : 0;
     score += track.promoWeeks > 0 ? 10 : 0;
     const actPromoWeeks = track.actId ? (getAct(track.actId)?.promoWeeks || 0) : 0;
@@ -5244,6 +5490,7 @@ function queueChartSnapshotPersistence(snapshots) {
 function buildChartWorkerPayload() {
     const trackMap = new Map();
     const tracks = [];
+    ensureAudienceBiasStore();
     state.marketTracks.forEach((track) => {
         const key = trackKey(track);
         trackMap.set(key, track);
@@ -5266,6 +5513,13 @@ function buildChartWorkerPayload() {
     REGION_DEFS.forEach((region) => {
         regionWeights[region.id] = chartWeightsForRegion(region.id);
     });
+    const audience = { nations: {}, regions: {} };
+    NATIONS.forEach((nation) => {
+        audience.nations[nation] = getAudienceProfile(nation);
+    });
+    REGION_DEFS.forEach((region) => {
+        audience.regions[region.id] = getAudienceProfile(region.id);
+    });
     return {
         payload: {
             tracks,
@@ -5278,6 +5532,7 @@ function buildChartWorkerPayload() {
                 regions: regionWeights
             },
             profiles: { nations: NATION_PROFILES, regions: REGION_PROFILES },
+            audience,
             trends: state.trends,
             defaultWeights: CHART_WEIGHTS
         },
@@ -6441,6 +6696,22 @@ function huskWindowWeeks(husk) {
     const maxOffset = steps.reduce((max, step) => Math.max(max, step.weekOffset || 0), 0);
     return Math.max(1, maxOffset + 1);
 }
+function applyRivalHuskFocus(rival, husk) {
+    if (!rival || !husk)
+        return;
+    const context = normalizeHuskContext(husk);
+    const tags = Array.isArray(context.trendTags) ? context.trendTags : [];
+    if (!tags.length)
+        return;
+    const themes = tags.map((genre) => themeFromGenre(genre)).filter(Boolean);
+    const moods = tags.map((genre) => moodFromGenre(genre)).filter(Boolean);
+    if (!Array.isArray(rival.focusThemes))
+        rival.focusThemes = [];
+    if (!Array.isArray(rival.focusMoods))
+        rival.focusMoods = [];
+    rival.focusThemes = uniqueList([...rival.focusThemes, ...themes]).slice(-4);
+    rival.focusMoods = uniqueList([...rival.focusMoods, ...moods]).slice(-4);
+}
 function selectCompetitiveAnchorRival(rivals) {
     if (!Array.isArray(rivals) || !rivals.length)
         return null;
@@ -6735,6 +7006,7 @@ function generateRivalReleases() {
             rival.aiPlan.lastPlannedAt = state.time.epochMs;
             return;
         }
+        applyRivalHuskFocus(rival, husk);
         const eligible = isRivalCompetitiveEligible(rival, husk);
         if (!eligible && !force) {
             rival.aiPlan.competitive = false;
@@ -7017,6 +7289,7 @@ function weeklyUpdate() {
     recruitRivalCreators();
     generateRivalReleases();
     const { globalScores } = computeChartsLocal();
+    updateAudienceBiasFromCharts();
     const labelScores = computeLabelScoresFromCharts();
     updateCumulativeLabelPoints(labelScores);
     updateRivalMomentum(labelScores);
@@ -8160,6 +8433,7 @@ function normalizeState() {
         state.population.lastUpdateAt = null;
     if (!state.population.campaignSplitStage)
         state.population.campaignSplitStage = null;
+    ensureAudienceBiasStore();
     if (state.label && !state.label.country)
         state.label.country = "Annglora";
     if (state.label) {
