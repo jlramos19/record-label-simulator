@@ -2,17 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "RLS: Edge (Dev)",
+      "name": "RLS: Edge",
       "type": "pwa-msedge",
       "request": "launch",
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}",
-      "runtimeArgs": [
-        "--new-window",
-        "--no-first-run"
-      ],
-      "userDataDir": "${env:TEMP}\\vscode-edge-profile",
-      "preLaunchTask": "RLS: Dev Server + Watch"
+      "userDataDir": "${env:TEMP}\\vscode-edge-profile"
     }
   ]
 }

@@ -5,22 +5,6 @@
       "label": "RLS: Start Server",
       "type": "npm",
       "script": "start",
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "rls-server",
-        "pattern": [
-          {
-            "regexp": "^(RLS_PROBLEM_MATCHER_UNUSED)$",
-            "file": 1,
-            "message": 1
-          }
-        ],
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".*",
-          "endsPattern": "Serving HTTP on .* port 5173"
-        }
-      },
       "presentation": {
         "reveal": "always",
         "panel": "dedicated"
@@ -30,22 +14,6 @@
       "label": "RLS: Watch TypeScript",
       "type": "npm",
       "script": "watch",
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "rls-tsc",
-        "pattern": [
-          {
-            "regexp": "^(RLS_TSC_PROBLEM_MATCHER_UNUSED)$",
-            "file": 1,
-            "message": 1
-          }
-        ],
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".*",
-          "endsPattern": "Watching for file changes"
-        }
-      },
       "presentation": {
         "reveal": "always",
         "panel": "dedicated"
