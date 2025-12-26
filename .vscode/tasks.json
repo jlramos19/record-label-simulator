@@ -7,9 +7,11 @@
       "script": "start",
       "isBackground": true,
       "problemMatcher": {
+        "owner": "rls-server",
         "pattern": [
           {
-            "regexp": ".+"
+            "regexp": "^(.*)$",
+            "message": 1
           }
         ],
         "background": {
