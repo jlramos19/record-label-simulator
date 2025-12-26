@@ -285,7 +285,6 @@
       <div class="tabs" id="calendarModalTabs">
         <button class="tab active" data-calendar-tab="label" type="button">Label</button>
         <button class="tab" data-calendar-tab="public" type="button">Public</button>
-        <button class="tab" data-calendar-tab="eras" type="button">Eras</button>
       </div>
       <div class="filter-row" id="calendarModalFilters">
         <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
@@ -606,20 +605,17 @@
       <div class="panel card panel--scroll" data-panel="charts">
         <div class="card-head">
           <h2>Gameplay Screen: Charts</h2>
-          <div class="tabs" id="chartTabs">
-            <button class="tab active" data-chart="global" type="button">Global</button>
-            <button class="tab" data-chart="Annglora" type="button">Annglora</button>
-            <button class="tab" data-chart="Bytenza" type="button">Bytenza</button>
-            <button class="tab" data-chart="Crowlya" type="button">Crowlya</button>
-            <button class="tab" data-chart="Annglora Capital" type="button">Bloomville Regional</button>
-            <button class="tab" data-chart="Annglora Elsewhere" type="button">Annglora Elsewhere Regional</button>
-            <button class="tab" data-chart="Bytenza Capital" type="button">Belltown Regional</button>
-            <button class="tab" data-chart="Bytenza Elsewhere" type="button">Bytenza Elsewhere Regional</button>
-            <button class="tab" data-chart="Crowlya Capital" type="button">Campana City Regional</button>
-            <button class="tab" data-chart="Crowlya Elsewhere" type="button">Crowlya Elsewhere Regional</button>
-          </div>
         </div>
         <div class="card-body">
+          <div class="chart-scope-controls">
+            <div class="tabs" id="chartTabs">
+              <button class="tab active" data-chart="global" type="button">Global</button>
+              <button class="tab" data-chart="Annglora" type="button">Annglora</button>
+              <button class="tab" data-chart="Bytenza" type="button">Bytenza</button>
+              <button class="tab" data-chart="Crowlya" type="button">Crowlya</button>
+            </div>
+            <div class="tabs chart-region-tabs hidden" id="chartRegionTabs"></div>
+          </div>
           <div class="tabs" id="chartTypeTabs">
             <button class="tab active" data-chart-content="tracks" type="button">Tracks</button>
             <button class="tab" data-chart-content="projects" type="button">Projects</button>
@@ -921,7 +917,7 @@
 </template>
 
 <template id="view-releases">
-  <div class="view view--releases view--single">
+  <div class="view view--releases">
     <section class="view-main">
       <div class="panel card panel--scroll" data-panel="calendar-view">
         <div class="card-head">
@@ -935,7 +931,6 @@
           <div class="tabs" id="calendarTabs">
             <button class="tab active" data-calendar-tab="label" type="button">Label</button>
             <button class="tab" data-calendar-tab="public" type="button">Public</button>
-            <button class="tab" data-calendar-tab="eras" type="button">Eras</button>
           </div>
           <div class="filter-row" id="calendarFilters">
             <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
@@ -944,10 +939,25 @@
             <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
           </div>
           <div id="calendarGrid" class="calendar-grid-wrap"></div>
-          <div id="calendarEraList" class="list hidden"></div>
         </div>
       </div>
     </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="calendar-structures">
+        <div class="card-head">
+          <h2>Structures &amp; Slots</h2>
+        </div>
+        <div class="card-body">
+          <div class="tiny muted">Shows external studio capacity so slot pressure is visible at a glance.</div>
+          <div class="subhead">Recording Studios</div>
+          <div id="calendarRecordingStudios" class="list"></div>
+          <div class="subhead">Broadcast Studios</div>
+          <div id="calendarBroadcastStudios" class="list"></div>
+          <div class="subhead">Filming Studios</div>
+          <div id="calendarFilmingStudios" class="list"></div>
+        </div>
+      </div>
+    </aside>
     <div id="calendarFooterPanel" class="panel card calendar-footer-panel">
       <div class="card-body">
         <div id="calendarList" class="calendar-footer"></div>
@@ -1291,6 +1301,11 @@
               <div class="slot-label">Act ID</div>
               <div id="promoActSlot" class="slot-value">?</div>
               <button type="button" class="ghost mini" data-slot-clear="promo-act">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="promo-project" data-slot-type="project">
+              <div class="slot-label">Project ID (optional)</div>
+              <div id="promoProjectSlot" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="promo-project">Clear</button>
             </div>
             <div class="id-slot" data-slot-target="promo-track" data-slot-type="track">
               <div class="slot-label">Track ID (optional)</div>

@@ -1,5 +1,16 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1706Z)
+- Calendar view now focuses on Label/Public scheduling; Eras lives only in its dedicated tab.
+- Calendar view adds a Structures & Slots sidebar with rival recording studio capacity plus broadcast/filming availability.
+
+## 2025-12-26 (RLS-PATCH-20251226-1705Z)
+- Charts scope tabs now drill down from nation to region so the top row stays uncluttered.
+- Charts content filters (Tracks, Projects, Promotions, Touring) remain reachable while switching scope.
+
+## 2025-12-26 (RLS-PATCH-20251226-1700Z)
+- App backgrounds now use solid grid-safe colors (#663300 dark, #CCFFFF light) instead of gradients.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1651Z)
 - Added rollout strategy templates and a UI picker so labels can seed competitive rollouts.
 - Label competition scoring now aggregates tracks, promo, and tour charts across scopes.

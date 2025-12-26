@@ -6,8 +6,7 @@ import { Tag } from "../components/Tag";
 
 const CALENDAR_TABS = [
   { id: "label", label: "Label" },
-  { id: "public", label: "Public" },
-  { id: "eras", label: "Eras" }
+  { id: "public", label: "Public" }
 ];
 
 const CALENDAR_FILTERS = [
@@ -111,9 +110,16 @@ export function CalendarModalIsland() {
     return <div className="muted">Calendar bridge waiting for state.</div>;
   }
 
-  const tab = state.ui?.calendarTab || "label";
+  const rawTab = state.ui?.calendarTab;
+  const tab = rawTab === "public" ? "public" : "label";
   const filters = state.ui?.calendarFilters || {};
   const projection = buildProjection();
+
+  useEffect(() => {
+    if (rawTab && rawTab !== tab) {
+      applyCalendarTab(tab);
+    }
+  }, [rawTab, tab]);
 
   return (
     <div className="rls-react-calendar">
@@ -130,39 +136,25 @@ export function CalendarModalIsland() {
         ))}
       </div>
 
-      {tab !== "eras" ? (
-        <div className="filter-row">
-          {CALENDAR_FILTERS.map((filter) => {
-            const checked = filters[filter.key] !== false;
-            return (
-              <label key={filter.key} className="check-pill">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={(event) => applyCalendarFilter(filter.key, event.target.checked)}
-                />
-                {filter.label}
-              </label>
-            );
-          })}
-        </div>
-      ) : null}
+      <div className="filter-row">
+        {CALENDAR_FILTERS.map((filter) => {
+          const checked = filters[filter.key] !== false;
+          return (
+            <label key={filter.key} className="check-pill">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(event) => applyCalendarFilter(filter.key, event.target.checked)}
+              />
+              {filter.label}
+            </label>
+          );
+        })}
+      </div>
 
       <div className="list">
         {!projection ? (
           <div className="muted">Calendar data is unavailable.</div>
-        ) : tab === "eras" ? (
-          projection.eras?.length ? (
-            projection.eras.map((era) => (
-              <div key={era.id || `${era.name}-${era.actName}`} className="list-item">
-                <div className="item-title">{era.name || "Unknown Era"}</div>
-                <div className="muted">Act: {era.actName || "Unknown"} | Stage: {era.stageName || "Active"}</div>
-                <div className="muted">Started Week {era.startedWeek || "-"} | Content: {era.content || "-"}</div>
-              </div>
-            ))
-          ) : (
-            <div className="muted">No active eras on the calendar.</div>
-          )
         ) : projection.weeks?.length ? (
           projection.weeks.map((week) => {
             const entries = Array.isArray(week.events) ? week.events.slice().sort((a, b) => a.ts - b.ts) : [];

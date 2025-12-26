@@ -9,7 +9,7 @@ import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistor
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, normalizeCreator, normalizeProjectName, normalizeProjectType, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -222,7 +222,7 @@ function setCalendarAnchorWeek(next) {
 function setCalendarTab(tab) {
     if (!tab)
         return;
-    state.ui.calendarTab = tab;
+    state.ui.calendarTab = tab === "public" ? "public" : "label";
     renderCalendarView();
     if (!UI_REACT_ISLANDS_ENABLED) {
         renderCalendarList("calendarFullList", 12);
@@ -1787,13 +1787,82 @@ function getPromoBudgetsForTypes(typeIds, inflationMultiplier) {
     });
     return { budgets, total };
 }
-function getPromoTargetContext(trackId, actId) {
+function resolvePromoProjectFromTrack(track) {
+    if (!track)
+        return null;
+    const projectName = track.projectName || `${track.title} - Single`;
+    const projectType = normalizeProjectType(track.projectType || "Single");
+    return {
+        projectName,
+        projectType,
+        actId: track.actId || null,
+        eraId: track.eraId || null
+    };
+}
+function listPromoProjectTracks(project) {
+    if (!project?.projectName)
+        return [];
+    const targetName = normalizeProjectName(project.projectName);
+    const targetType = normalizeProjectType(project.projectType || "Single");
+    return state.tracks.filter((track) => {
+        if (project.eraId && track.eraId !== project.eraId)
+            return false;
+        if (project.actId && track.actId !== project.actId)
+            return false;
+        const trackProject = track.projectName || `${track.title} - Single`;
+        if (normalizeProjectName(trackProject) !== targetName)
+            return false;
+        if (normalizeProjectType(track.projectType || "Single") !== targetType)
+            return false;
+        return true;
+    });
+}
+function listPromoEligibleTracks(projectTracks) {
+    if (!Array.isArray(projectTracks) || !projectTracks.length)
+        return [];
+    const scheduledIds = new Set(state.releaseQueue.map((entry) => entry.trackId).filter(Boolean));
+    return projectTracks.filter((track) => {
+        if (!track)
+            return false;
+        if (track.status === "Released")
+            return true;
+        if (track.status === "Scheduled")
+            return true;
+        return scheduledIds.has(track.id);
+    });
+}
+function getPromoTargetContext(trackId, projectId, actId) {
     const track = trackId ? getTrack(trackId) : null;
-    const act = actId ? getAct(actId) : track ? getAct(track.actId) : null;
+    const parsedProject = projectId ? parsePromoProjectKey(projectId) : null;
+    let act = actId ? getAct(actId) : null;
+    let era = null;
+    let project = null;
+    if (track) {
+        if (!act && track.actId)
+            act = getAct(track.actId);
+        era = track.eraId ? getEraById(track.eraId) : null;
+        project = resolvePromoProjectFromTrack(track);
+    }
+    else if (parsedProject) {
+        era = parsedProject.eraId ? getEraById(parsedProject.eraId) : null;
+        if (!act) {
+            const resolvedActId = parsedProject.actId || era?.actId || null;
+            act = resolvedActId ? getAct(resolvedActId) : null;
+        }
+        project = {
+            projectName: parsedProject.projectName,
+            projectType: normalizeProjectType(parsedProject.projectType || "Single"),
+            actId: parsedProject.actId || act?.id || null,
+            eraId: parsedProject.eraId || null
+        };
+    }
+    if (!era && act)
+        era = getLatestActiveEraForAct(act.id);
+    const projectTracks = project ? listPromoProjectTracks(project) : [];
     const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
     const isReleased = Boolean(track && track.status === "Released" && track.marketId);
     const isScheduled = Boolean(scheduled && !isReleased);
-    return { track, act, scheduled, isReleased, isScheduled };
+    return { track, act, era, project, projectTracks, scheduled, isReleased, isScheduled };
 }
 function getPromoTypeLockouts(context) {
     const lockouts = {};
@@ -2049,12 +2118,17 @@ function updateAutoPromoSummary(scope) {
     const scheduleHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
     const scheduleText = formatHourCountdown(scheduleHours);
     const scheduleLabel = scheduleText === "-" ? "-" : `${scheduleText}h`;
-    const targetContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
+    const targetContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.projectId, state.ui?.promoSlots?.actId);
+    const projectLabel = targetContext.project
+        ? `Project "${targetContext.project.projectName}"`
+        : "";
     const targetLabel = targetContext.track
         ? `Track "${targetContext.track.title}"`
-        : targetContext.act
-            ? `Act "${targetContext.act.name}"`
-            : "No promo target";
+        : targetContext.project
+            ? projectLabel
+            : targetContext.act
+                ? `Act "${targetContext.act.name}"`
+                : "No promo target";
     let readiness = "Ready";
     if (!enabled)
         readiness = "Disabled";
@@ -2063,11 +2137,13 @@ function updateAutoPromoSummary(scope) {
     if (targetContext.track && !targetContext.isReleased && !targetContext.isScheduled) {
         readiness = "Track must be scheduled or released";
     }
-    if (targetContext.track?.eraId) {
-        const era = getEraById(targetContext.track.eraId);
-        if (!era || era.status !== "Active")
-            readiness = "No active era";
+    if (!targetContext.track && targetContext.project) {
+        const eligible = listPromoEligibleTracks(targetContext.projectTracks);
+        if (!eligible.length)
+            readiness = "Project needs scheduled or released tracks";
     }
+    if (targetContext.era && targetContext.era.status !== "Active")
+        readiness = "No active era";
     const pctLabel = `${Math.round(pct * 100)}%`;
     const facilityHint = buildPromoFacilityHints(effectiveTypes);
     const facilityLine = facilityHint ? `<div class="muted">${facilityHint}</div>` : "";
@@ -2089,7 +2165,7 @@ function updatePromoTypeHint(root) {
     const scope = root || document;
     const select = scope.querySelector("#promoTypeSelect");
     const hint = scope.querySelector("#promoTypeHint");
-    const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
+    const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.projectId, state.ui?.promoSlots?.actId);
     const lockouts = getPromoTypeLockouts(trackContext);
     const selectedTypes = ensurePromoTypeSelection(scope, select ? select.value : DEFAULT_PROMO_TYPE, lockouts);
     const primaryType = select && selectedTypes.includes(select.value) ? select.value : selectedTypes[0];
@@ -2725,21 +2801,33 @@ function bindViewHandlers(route, root) {
             setViewPanelState(route, key, next);
         }
     });
+    const setActiveChart = (chartKey) => {
+        if (!chartKey || state.ui.activeChart === chartKey)
+            return;
+        state.ui.activeChart = chartKey;
+        if (state.ui.chartHistoryWeek) {
+            applyChartHistoryWeek(state.ui.chartHistoryWeek, state.ui.activeChart);
+        }
+        else {
+            renderCharts();
+        }
+    };
     const chartTabs = root.querySelector("#chartTabs");
     if (chartTabs) {
         chartTabs.addEventListener("click", (e) => {
             const tab = e.target.closest(".tab");
             if (!tab)
                 return;
-            chartTabs.querySelectorAll(".tab").forEach((btn) => btn.classList.remove("active"));
-            tab.classList.add("active");
-            state.ui.activeChart = tab.dataset.chart;
-            if (state.ui.chartHistoryWeek) {
-                applyChartHistoryWeek(state.ui.chartHistoryWeek, state.ui.activeChart);
-            }
-            else {
-                renderCharts();
-            }
+            setActiveChart(tab.dataset.chart);
+        });
+    }
+    const chartRegionTabs = root.querySelector("#chartRegionTabs");
+    if (chartRegionTabs) {
+        chartRegionTabs.addEventListener("click", (e) => {
+            const tab = e.target.closest(".tab");
+            if (!tab)
+                return;
+            setActiveChart(tab.dataset.chart);
         });
     }
     const chartTypeTabs = root.querySelector("#chartTypeTabs");
@@ -3004,7 +3092,7 @@ function bindViewHandlers(route, root) {
         void refreshExternalStorageStatus(root);
         on("promoTypeSelect", "change", (e) => {
             const typeId = e.target.value || DEFAULT_PROMO_TYPE;
-            const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
+            const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.projectId, state.ui?.promoSlots?.actId);
             const lockouts = getPromoTypeLockouts(trackContext);
             syncPromoTypeCards(root, [typeId], lockouts);
             updatePromoTypeHint(root);
@@ -3040,7 +3128,7 @@ function bindViewHandlers(route, root) {
                 if (!typeId)
                     return;
                 const select = root.querySelector("#promoTypeSelect");
-                const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
+                const trackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.projectId, state.ui?.promoSlots?.actId);
                 const lockouts = getPromoTypeLockouts(trackContext);
                 if (lockouts[typeId]) {
                     const message = typeId === "musicVideo" && lockouts[typeId] === "Used"
@@ -3063,7 +3151,7 @@ function bindViewHandlers(route, root) {
             });
         }
         hydratePromoTypeCards(root);
-        const initTrackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.actId);
+        const initTrackContext = getPromoTargetContext(state.ui?.promoSlots?.trackId, state.ui?.promoSlots?.projectId, state.ui?.promoSlots?.actId);
         const initLockouts = getPromoTypeLockouts(initTrackContext);
         if (Array.isArray(state.ui.promoTypes) && state.ui.promoTypes.length) {
             syncPromoTypeCards(root, state.ui.promoTypes, initLockouts);
@@ -3934,6 +4022,37 @@ function ensureSlotDropdowns() {
         slot.appendChild(select);
     });
 }
+function listPromoProjectOptions(actId) {
+    const activeEraIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.id));
+    const scheduledIds = new Set(state.releaseQueue.map((entry) => entry.trackId).filter(Boolean));
+    const projects = new Map();
+    state.tracks.forEach((track) => {
+        if (!track?.eraId || !activeEraIds.has(track.eraId))
+            return;
+        if (actId && track.actId !== actId)
+            return;
+        const isReleased = track.status === "Released";
+        const isScheduled = track.status === "Scheduled" || scheduledIds.has(track.id);
+        if (!isReleased && !isScheduled)
+            return;
+        const projectName = track.projectName || `${track.title} - Single`;
+        const projectType = normalizeProjectType(track.projectType || "Single");
+        const key = buildPromoProjectKey({
+            eraId: track.eraId,
+            actId: track.actId,
+            projectName,
+            projectType
+        });
+        if (!key)
+            return;
+        if (projects.has(key))
+            return;
+        const act = track.actId ? getAct(track.actId) : null;
+        const actLabel = act ? ` | ${act.name}` : "";
+        projects.set(key, { value: key, label: `${projectName} (${projectType})${actLabel}` });
+    });
+    return Array.from(projects.values()).sort((a, b) => a.label.localeCompare(b.label));
+}
 if (typeof window !== "undefined") {
     window.applyDefaultLayout = applyDefaultLayout;
     window.resetViewLayout = resetViewLayout;
@@ -3982,16 +4101,47 @@ function updateSlotDropdowns() {
                 options.push({ value: act.id, label: act.name });
             });
         }
+        else if (type === "project") {
+            const actId = state.ui?.promoSlots?.actId || null;
+            const projects = listPromoProjectOptions(actId);
+            projects.forEach((project) => {
+                options.push({ value: project.value, label: project.label });
+            });
+        }
         else if (type === "track") {
             let tracks = state.tracks;
             if (target === "promo-track") {
                 const activeEraIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.id));
+                const selectedActId = state.ui?.promoSlots?.actId || null;
+                const selectedProject = state.ui?.promoSlots?.projectId
+                    ? parsePromoProjectKey(state.ui.promoSlots.projectId)
+                    : null;
+                const projectName = selectedProject?.projectName || "";
+                const projectType = normalizeProjectType(selectedProject?.projectType || "Single");
+                const projectEraId = selectedProject?.eraId || null;
+                const projectActId = selectedProject?.actId || null;
                 tracks = state.tracks.filter((track) => {
                     if (!track.eraId || !activeEraIds.has(track.eraId))
                         return false;
                     if (track.status === "Released")
                         return true;
                     return state.releaseQueue.some((entry) => entry.trackId === track.id);
+                });
+                tracks = tracks.filter((track) => {
+                    if (selectedActId && track.actId !== selectedActId)
+                        return false;
+                    if (!selectedProject)
+                        return true;
+                    if (projectEraId && track.eraId !== projectEraId)
+                        return false;
+                    if (projectActId && track.actId !== projectActId)
+                        return false;
+                    const trackProject = track.projectName || `${track.title} - Single`;
+                    if (normalizeProjectName(trackProject) !== normalizeProjectName(projectName))
+                        return false;
+                    if (normalizeProjectType(track.projectType || "Single") !== projectType)
+                        return false;
+                    return true;
                 });
             }
             tracks.forEach((track) => {
@@ -4839,10 +4989,27 @@ function pickPromoTargetsFromFocus() {
         return state.releaseQueue.some((entry) => entry.trackId === track.id);
     });
     if (!candidates.length) {
+        const projectId = targetEra.projectName
+            ? buildPromoProjectKey({
+                eraId: targetEra.id,
+                actId: act.id,
+                projectName: targetEra.projectName,
+                projectType: targetEra.projectType || "Single"
+            })
+            : null;
+        const projectLabel = projectId ? parsePromoProjectKey(projectId) : null;
         state.ui.promoSlots.actId = act.id;
+        state.ui.promoSlots.projectId = projectId;
         state.ui.promoSlots.trackId = null;
-        logUiEvent("action_submit", { action: "promo_focus_pick", eraId: targetEra.id, actId: act.id, trackId: null });
-        logEvent(`Promo act set to "${act.name}". No scheduled or released tracks found for this era.`);
+        logUiEvent("action_submit", {
+            action: "promo_focus_pick",
+            eraId: targetEra.id,
+            actId: act.id,
+            projectId,
+            trackId: null
+        });
+        const projectNote = projectLabel ? ` + Project "${projectLabel.projectName}"` : "";
+        logEvent(`Promo targets set to Act "${act.name}"${projectNote}. No scheduled or released tracks found for this era.`);
         renderSlots();
         renderTracks();
         updatePromoTypeHint(document);
@@ -4860,10 +5027,20 @@ function pickPromoTargetsFromFocus() {
         const entryStamp = entrySchedule || 0;
         return entryStamp >= latestStamp ? track : latest;
     }, candidates[0]);
+    const projectId = buildPromoProjectKeyFromTrack(picked);
+    const projectLabel = projectId ? parsePromoProjectKey(projectId) : null;
     state.ui.promoSlots.actId = act.id;
+    state.ui.promoSlots.projectId = projectId;
     state.ui.promoSlots.trackId = picked.id;
-    logUiEvent("action_submit", { action: "promo_focus_pick", eraId: targetEra.id, actId: act.id, trackId: picked.id });
-    logEvent(`Promo targets set to Act "${act.name}" + "${picked.title}".`);
+    logUiEvent("action_submit", {
+        action: "promo_focus_pick",
+        eraId: targetEra.id,
+        actId: act.id,
+        projectId,
+        trackId: picked.id
+    });
+    const projectNote = projectLabel ? ` + Project "${projectLabel.projectName}"` : "";
+    logEvent(`Promo targets set to Act "${act.name}"${projectNote} + "${picked.title}".`);
     renderSlots();
     renderTracks();
     updatePromoTypeHint(document);

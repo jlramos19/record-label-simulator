@@ -6,6 +6,13 @@
 
 * `Do not use values outside this grid.`
 
+## **`App Background Colors`**
+
+| `Mode` | `Hex` | `Usage` |
+| ----- | ----- | ----- |
+| `Light` | `#CCFFFF` | `Default app background (no gradients).` |
+| `Dark` | `#663300` | `Default app background (no gradients).` |
+
 ## **`Alignment Colors`**
 
 | `Name` | `Hex` | `Color` |

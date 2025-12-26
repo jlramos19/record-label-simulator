@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
-  --bg-1: #330000;
-  --bg-2: #333300;
+  --bg-1: #663300;
+  --bg-2: #663300;
   --panel: #663300;
   --panel-2: #333300;
   --accent: #ff9933;
@@ -31,10 +31,10 @@
   --surface-4-muted: rgba(51, 51, 0, 0.5);
   --surface-4-strong: rgba(51, 51, 0, 0.7);
   --overlay: rgba(0, 0, 0, 0.85);
-  --header-bg: linear-gradient(180deg, rgba(102, 51, 0, 0.95), rgba(51, 0, 0, 0.95));
+  --header-bg: var(--bg-1);
   --body-glow-1: rgba(var(--accent-rgb), 0.2);
   --body-glow-2: rgba(var(--accent-2-rgb), 0.18);
-  --body-sheen: linear-gradient(160deg, rgba(51, 51, 0, 0.7), rgba(51, 0, 0, 0.95));
+  --body-sheen: var(--bg-1);
   --country-annglora: #cc99ff;
   --country-bytenza: #3333ff;
   --country-crowlya: #ffff00;
@@ -57,7 +57,7 @@
 :root[data-ui-theme="light"] {
   color-scheme: light;
   --bg-1: #ccffff;
-  --bg-2: #99ccff;
+  --bg-2: #ccffff;
   --panel: #99ccff;
   --panel-2: #6699cc;
   --accent: #3399ff;
@@ -86,10 +86,10 @@
   --surface-4-muted: rgba(102, 153, 204, 0.5);
   --surface-4-strong: rgba(102, 153, 204, 0.7);
   --overlay: rgba(0, 0, 0, 0.65);
-  --header-bg: linear-gradient(180deg, rgba(204, 255, 255, 0.95), rgba(153, 204, 255, 0.95));
+  --header-bg: var(--bg-1);
   --body-glow-1: rgba(var(--accent-rgb), 0.2);
   --body-glow-2: rgba(var(--accent-2-rgb), 0.18);
-  --body-sheen: linear-gradient(160deg, rgba(153, 204, 255, 0.7), rgba(204, 255, 255, 0.95));
+  --body-sheen: var(--bg-1);
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; overflow: hidden; }
@@ -104,10 +104,7 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background:
-    radial-gradient(1000px 500px at 10% -10%, var(--body-glow-1), transparent 60%),
-    radial-gradient(700px 420px at 90% 10%, var(--body-glow-2), transparent 55%),
-    var(--body-sheen);
+  background: var(--bg-1);
   z-index: -1;
 }
 .shell {
@@ -375,6 +372,7 @@ body::before {
   overflow: auto;
 }
 .view--releases .panel[data-panel="calendar-view"],
+.view--releases .panel[data-panel="calendar-structures"],
 .view--release .panel[data-panel="release-desk"],
 .view--release .panel[data-panel="release-projects"] {
   flex: 1 1 auto;
@@ -385,6 +383,18 @@ body::before {
 }
 #chartTypeTabs {
   margin-bottom: 8px;
+}
+.chart-scope-controls {
+  display: grid;
+  gap: 6px;
+}
+.chart-region-tabs {
+  margin-left: 12px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
+}
+.chart-region-tabs .tab {
+  font-size: 12px;
 }
 .chart-pulse-controls {
   display: grid;

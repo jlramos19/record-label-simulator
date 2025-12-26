@@ -4,6 +4,7 @@
 - [ ] RLS-ERA-PERF-001: Replace the Eras side panel with a performance table + chart history, including per-track costs, earnings, and recommended physical runs.
 - [ ] RLS-ECONOMY-PHYSICAL-RUN-001: Define and implement the vinyl run estimator (fan/quality/trend/project-type factors, unit cost conversion) plus surfaced recommendations.
 - [ ] RLS-DOC-CHART-NAMING-001: Document chart scope naming (Gaia/Global, Nation/National, Region/Regional) and update chart/handle labels.
+- [ ] RLS-UI-CHARTS-SCOPE-001: Replace Charts scope tabs with nation -> region drilldown and keep content-type filters accessible in the Charts view.
 - [ ] RLS-CCC-DECLINE-001: Add decline reason logic + player-facing feedback for CCC signing, and update tutorial to split loops vs concepts.
 - [ ] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
 - [ ] RLS-AI-COMPETE-001: Guarantee at least one rival in competitive rollout mode per planning cycle, with deterministic selection and budget gates.

@@ -411,7 +411,7 @@ function makeDefaultState() {
         acc[typeId] = PROMO_TYPE_DETAILS[typeId].cost;
         return acc;
       }, {}),
-      promoSlots: { actId: null, trackId: null },
+      promoSlots: { actId: null, projectId: null, trackId: null },
       tourDraftId: null,
       socialSlots: { trackId: null },
       viewContext: {
@@ -1385,6 +1385,47 @@ function setSlotTarget(targetId) {
   commitSlotChange({ updateStats: true });
 }
 
+const PROMO_PROJECT_KEY_PREFIX = "project";
+
+function buildPromoProjectKey({ eraId, actId, projectName, projectType }) {
+  if (!projectName) return null;
+  const safeName = encodeURIComponent(String(projectName || ""));
+  const safeType = encodeURIComponent(normalizeProjectType(projectType || "Single"));
+  const safeAct = encodeURIComponent(String(actId || ""));
+  const safeEra = encodeURIComponent(String(eraId || ""));
+  return `${PROMO_PROJECT_KEY_PREFIX}:${safeEra}:${safeAct}:${safeName}:${safeType}`;
+}
+
+function buildPromoProjectKeyFromTrack(track) {
+  if (!track) return null;
+  const projectName = track.projectName || `${track.title} - Single`;
+  const projectType = normalizeProjectType(track.projectType || "Single");
+  return buildPromoProjectKey({
+    eraId: track.eraId || null,
+    actId: track.actId || null,
+    projectName,
+    projectType
+  });
+}
+
+function parsePromoProjectKey(value) {
+  if (!value || typeof value !== "string") return null;
+  const parts = value.split(":");
+  if (parts[0] !== PROMO_PROJECT_KEY_PREFIX || parts.length < 5) return null;
+  const [, rawEra, rawAct, rawName, rawType] = parts;
+  const projectName = decodeURIComponent(rawName || "").trim();
+  const projectType = decodeURIComponent(rawType || "").trim();
+  const actId = decodeURIComponent(rawAct || "").trim();
+  const eraId = decodeURIComponent(rawEra || "").trim();
+  if (!projectName) return null;
+  return {
+    eraId: eraId || null,
+    actId: actId || null,
+    projectName,
+    projectType: projectType || "Single"
+  };
+}
+
 function getSlotValue(targetId) {
   if (targetId === "act-lead") return state.ui.actSlots.lead;
   if (targetId === "act-member2") return state.ui.actSlots.member2;
@@ -1392,6 +1433,7 @@ function getSlotValue(targetId) {
   if (targetId === "track-act") return state.ui.trackSlots.actId;
   if (targetId === "era-act") return state.ui.eraSlots.actId;
   if (targetId === "promo-act") return state.ui.promoSlots.actId;
+  if (targetId === "promo-project") return state.ui.promoSlots.projectId;
   if (targetId === "promo-track") return state.ui.promoSlots.trackId;
   if (targetId === "social-track") return state.ui.socialSlots.trackId;
   const trackRole = parseTrackRoleTarget(targetId);
@@ -1410,6 +1452,7 @@ function setSlotValue(targetId, value) {
   if (targetId === "track-act") state.ui.trackSlots.actId = value;
   if (targetId === "era-act") state.ui.eraSlots.actId = value;
   if (targetId === "promo-act") state.ui.promoSlots.actId = value;
+  if (targetId === "promo-project") state.ui.promoSlots.projectId = value;
   if (targetId === "promo-track") state.ui.promoSlots.trackId = value;
   if (targetId === "social-track") state.ui.socialSlots.trackId = value;
   const trackRole = parseTrackRoleTarget(targetId);
@@ -1497,6 +1540,7 @@ function assignToSlot(targetId, entityType, entityId) {
     }
   }
   let promoActId = null;
+  let promoProjectId = null;
   if (entityType === "track" && targetId === "promo-track") {
     const track = getTrack(entityId);
     const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
@@ -1512,14 +1556,46 @@ function assignToSlot(targetId, entityType, entityId) {
       logEvent("Promo slot requires a track from an active era.", "warn");
       return;
     }
-    if (!state.ui.promoSlots.actId) {
-      const candidateActId = track.actId || era?.actId || null;
-      if (candidateActId) {
-        const act = getAct(candidateActId);
-        const activeEra = act ? getLatestActiveEraForAct(act.id) : null;
-        if (act && activeEra && activeEra.status === "Active") {
-          promoActId = act.id;
-        }
+    const candidateActId = track.actId || era?.actId || null;
+    if (candidateActId) {
+      const act = getAct(candidateActId);
+      const activeEra = act ? getLatestActiveEraForAct(act.id) : null;
+      if (act && activeEra && activeEra.status === "Active") {
+        promoActId = act.id;
+      }
+    }
+    promoProjectId = buildPromoProjectKeyFromTrack(track);
+    if (promoProjectId && state.ui.promoSlots.projectId && state.ui.promoSlots.projectId !== promoProjectId) {
+      logEvent("Promo project updated to match the selected track.", "warn");
+    }
+  }
+  if (entityType === "project" && targetId === "promo-project") {
+    const parsed = parsePromoProjectKey(entityId);
+    if (!parsed) {
+      shakeSlot(targetId);
+      logEvent("Promo slot requires a valid Project ID.", "warn");
+      return;
+    }
+    const era = parsed.eraId ? getEraById(parsed.eraId) : null;
+    if (!era || era.status !== "Active") {
+      shakeSlot(targetId);
+      logEvent("Promo slot requires a project from an active era.", "warn");
+      return;
+    }
+    const actId = parsed.actId || era.actId || null;
+    const act = actId ? getAct(actId) : null;
+    if (!act) {
+      shakeSlot(targetId);
+      logEvent("Act not found for promo project.", "warn");
+      return;
+    }
+    promoActId = act.id;
+    if (state.ui.promoSlots.trackId) {
+      const activeTrack = getTrack(state.ui.promoSlots.trackId);
+      const trackProjectId = buildPromoProjectKeyFromTrack(activeTrack);
+      if (trackProjectId && trackProjectId !== entityId) {
+        setSlotValue("promo-track", null);
+        logEvent("Promo track cleared (project mismatch).", "warn");
       }
     }
   }
@@ -1538,6 +1614,7 @@ function assignToSlot(targetId, entityType, entityId) {
     }
   }
   if (promoActId) setSlotValue("promo-act", promoActId);
+  if (promoProjectId) setSlotValue("promo-project", promoProjectId);
   setSlotValue(targetId, entityId);
   commitSlotChange();
 }
@@ -9772,7 +9849,7 @@ function normalizeState() {
       promoType: DEFAULT_PROMO_TYPE,
       promoTypes: [DEFAULT_PROMO_TYPE],
       promoPrimeTime: false,
-      promoSlots: { actId: null, trackId: null },
+      promoSlots: { actId: null, projectId: null, trackId: null },
       tourDraftId: null,
       activeView: "charts"
     };
@@ -9868,8 +9945,11 @@ function normalizeState() {
   if (typeof state.ui.focusEraId === "undefined") state.ui.focusEraId = null;
   if (state.ui.focusEraId !== null && typeof state.ui.focusEraId !== "string") state.ui.focusEraId = null;
   if (!state.ui.eraSlots) state.ui.eraSlots = { actId: null };
-  if (!state.ui.promoSlots) state.ui.promoSlots = { actId: null, trackId: null };
+  if (!state.ui.promoSlots) state.ui.promoSlots = { actId: null, projectId: null, trackId: null };
   if (typeof state.ui.promoSlots.actId !== "string") state.ui.promoSlots.actId = state.ui.promoSlots.actId || null;
+  if (typeof state.ui.promoSlots.projectId !== "string") {
+    state.ui.promoSlots.projectId = state.ui.promoSlots.projectId || null;
+  }
   if (typeof state.ui.tourDraftId !== "string") state.ui.tourDraftId = state.ui.tourDraftId || null;
   if (!state.ui.socialSlots) state.ui.socialSlots = { trackId: null };
   if (typeof state.ui.chartHistoryWeek !== "number") state.ui.chartHistoryWeek = null;
@@ -11441,6 +11521,8 @@ export {
   assignTrackAct,
   attemptSignCreator,
   buildCalendarProjection,
+  buildPromoProjectKey,
+  buildPromoProjectKeyFromTrack,
   buildMarketCreators,
   buildStudioEntries,
   buildTrackHistoryScopes,
@@ -11551,6 +11633,7 @@ export {
   normalizeProjectType,
   normalizeRoleIds,
   PROJECT_TITLE_TRANSLATIONS,
+  parsePromoProjectKey,
   parseTrackRoleTarget,
   pickDistinct,
   postCreatorSigned,

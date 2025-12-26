@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getModifierInventoryCount, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getModifierInventoryCount, getPromoFacilityAvailability, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -472,6 +472,7 @@ function renderSlots() {
     const actMember3 = getCreator(state.ui.actSlots.member3);
     const trackAct = getAct(state.ui.trackSlots.actId);
     const eraAct = getAct(state.ui.eraSlots.actId);
+    const promoProject = state.ui.promoSlots.projectId ? parsePromoProjectKey(state.ui.promoSlots.projectId) : null;
     const promoTrack = state.marketTracks.find((entry) => entry.trackId === state.ui.promoSlots.trackId)
         || getTrack(state.ui.promoSlots.trackId);
     const socialTrack = getTrack(state.ui.socialSlots.trackId);
@@ -487,6 +488,13 @@ function renderSlots() {
         $("trackActSlot").innerHTML = trackAct ? renderActName(trackAct) : unassignedLabel;
     if ($("eraActSlot"))
         $("eraActSlot").innerHTML = eraAct ? renderActName(eraAct) : unassignedLabel;
+    if ($("promoProjectSlot")) {
+        const projectType = promoProject ? normalizeProjectType(promoProject.projectType || "Single") : "Single";
+        const label = promoProject
+            ? `${renderProjectName(promoProject.projectName)} (${projectType})`
+            : unassignedLabel;
+        $("promoProjectSlot").innerHTML = label;
+    }
     if ($("promoTrackSlot"))
         $("promoTrackSlot").innerHTML = promoTrack ? renderTrackTitle(promoTrack.title) : unassignedLabel;
     if ($("socialTrackSlot"))
@@ -545,6 +553,20 @@ function renderSlots() {
                     trackLabel = marketEntry.title;
             }
             valueEl.innerHTML = trackLabel ? renderTrackTitle(trackLabel) : trackLabel;
+            if (avatarEl) {
+                avatarEl.classList.remove("has-image");
+                avatarEl.classList.remove("is-empty");
+                avatarEl.style.backgroundImage = "";
+                avatarEl.textContent = "";
+            }
+        }
+        else if (type === "project") {
+            const project = value ? parsePromoProjectKey(value) : null;
+            const projectType = project ? normalizeProjectType(project.projectType || "Single") : "Single";
+            const label = project
+                ? `${renderProjectName(project.projectName)} (${projectType})`
+                : unassignedLabel;
+            valueEl.innerHTML = label;
             if (avatarEl) {
                 avatarEl.classList.remove("has-image");
                 avatarEl.classList.remove("is-empty");
@@ -2364,36 +2386,27 @@ function renderCalendarEraList(eras) {
     </div>
   `).join("");
 }
+function normalizeCalendarTab() {
+    if (!state.ui)
+        state.ui = {};
+    const tab = state.ui.calendarTab;
+    if (tab !== "label" && tab !== "public") {
+        state.ui.calendarTab = "label";
+    }
+    return state.ui.calendarTab || "label";
+}
 function renderCalendarView() {
+    normalizeCalendarTab();
     const grid = $("calendarGrid");
     const list = $("calendarList");
-    const eraList = $("calendarEraList");
     const footerPanel = $("calendarFooterPanel");
     const rangeLabel = $("calendarRangeLabel");
     const projection = buildCalendarProjection({ pastWeeks: 0, futureWeeks: 3 });
     if (rangeLabel)
         rangeLabel.textContent = projection.rangeLabel || "";
-    if (projection.tab === "eras") {
-        if (grid) {
-            grid.innerHTML = "";
-            grid.classList.add("hidden");
-        }
-        if (list)
-            list.classList.add("hidden");
-        if (footerPanel)
-            footerPanel.classList.add("hidden");
-        if (eraList)
-            eraList.classList.remove("hidden");
-        renderCalendarList("calendarEraList", projection.weeks.length, projection);
-        return;
-    }
     if (grid) {
         grid.classList.remove("hidden");
         grid.innerHTML = CalendarView(projection);
-    }
-    if (eraList) {
-        eraList.classList.add("hidden");
-        eraList.innerHTML = "";
     }
     if (list)
         list.classList.remove("hidden");
@@ -2472,6 +2485,122 @@ function renderCalendarUpcomingFooter(projection, tab) {
     }).join("");
     return `${header}<div class="calendar-upcoming">${cards}</div>`;
 }
+function formatBroadcastScope(scope) {
+    if (!scope)
+        return "Local";
+    if (scope.type === "global")
+        return "Global";
+    if (scope.type === "nation")
+        return `${scope.id} Nation`;
+    if (scope.type === "region")
+        return `${scope.id} Region`;
+    return scope.id || scope.type || "Local";
+}
+function renderCalendarStructuresPanel() {
+    const recordingList = $("calendarRecordingStudios");
+    const broadcastList = $("calendarBroadcastStudios");
+    const filmingList = $("calendarFilmingStudios");
+    if (!recordingList && !broadcastList && !filmingList)
+        return;
+    if (recordingList) {
+        const entries = buildStudioEntries().filter((entry) => entry.ownerType !== "player");
+        const grouped = new Map();
+        entries.forEach((entry) => {
+            const key = entry.ownerId || entry.ownerName || entry.id;
+            if (!grouped.has(key)) {
+                grouped.set(key, { ownerName: entry.ownerName || "Rival", slotCount: entry.slotCount || 0, occupied: 0 });
+            }
+            const group = grouped.get(key);
+            group.slotCount = Math.max(group.slotCount, entry.slotCount || 0);
+            if (entry.occupied)
+                group.occupied += 1;
+        });
+        const list = Array.from(grouped.values()).sort((a, b) => a.ownerName.localeCompare(b.ownerName));
+        if (!list.length) {
+            recordingList.innerHTML = `<div class="muted">No rival recording studios tracked yet.</div>`;
+        }
+        else {
+            recordingList.innerHTML = list.map((entry) => {
+                const available = Math.max(0, entry.slotCount - entry.occupied);
+                const slotLine = `Slots: ${formatCount(entry.occupied)} in use | ${formatCount(available)} open | Cap ${formatCount(entry.slotCount)}`;
+                const status = available > 0 ? `${formatCount(available)} open` : "Full";
+                return `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">${entry.ownerName} Recording Studios</div>
+                <div class="muted">${slotLine}</div>
+              </div>
+              <div class="pill">${status}</div>
+            </div>
+          </div>
+        `;
+            }).join("");
+        }
+    }
+    if (broadcastList) {
+        const studios = Array.isArray(BROADCAST_STUDIOS) ? BROADCAST_STUDIOS : [];
+        if (!studios.length) {
+            broadcastList.innerHTML = `<div class="muted">No broadcast studios available.</div>`;
+        }
+        else {
+            const epochMs = Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now();
+            const dayIndex = new Date(epochMs).getUTCDay();
+            const dayLabel = DAYS?.[dayIndex] || "Day";
+            const bookings = state.promoFacilities?.broadcast?.bookings || [];
+            const activeBookings = bookings.filter((booking) => booking.endsAt > epochMs && booking.startsAt <= epochMs);
+            const defaultStudioId = studios[0]?.id || null;
+            broadcastList.innerHTML = studios.map((studio) => {
+                const capacity = studio.slotSchedule?.[dayIndex] || 0;
+                const inUse = activeBookings.filter((booking) => (booking.studioId || defaultStudioId) === studio.id).length;
+                const available = Math.max(0, capacity - inUse);
+                const scopeLabel = formatBroadcastScope(studio.scope);
+                const meta = `${studio.owner || "Broadcast"} | ${scopeLabel} | ${dayLabel}`;
+                const slotLine = capacity > 0
+                    ? `Slots: ${formatCount(inUse)} in use | ${formatCount(available)} open`
+                    : "Slots: 0 today";
+                const status = capacity > 0 ? `${formatCount(available)} open` : "Closed";
+                return `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">${studio.label}</div>
+                <div class="muted">${meta}</div>
+                <div class="muted">${slotLine}</div>
+              </div>
+              <div class="pill">${status}</div>
+            </div>
+          </div>
+        `;
+            }).join("");
+        }
+    }
+    if (filmingList) {
+        const availability = getPromoFacilityAvailability("filming");
+        if (!availability) {
+            filmingList.innerHTML = `<div class="muted">Filming studio data unavailable.</div>`;
+        }
+        else {
+            const dayLabel = DAYS?.[availability.dayIndex] || "Day";
+            const slotLine = availability.capacity > 0
+                ? `Slots: ${formatCount(availability.inUse)} in use | ${formatCount(availability.available)} open`
+                : "Slots: 0 today";
+            const status = availability.capacity > 0 ? `${formatCount(availability.available)} open` : "Closed";
+            filmingList.innerHTML = `
+        <div class="list-item">
+          <div class="list-row">
+            <div>
+              <div class="item-title">Filming Studio Slots</div>
+              <div class="muted">Market Facilities | ${dayLabel}</div>
+              <div class="muted">${slotLine}</div>
+            </div>
+            <div class="pill">${status}</div>
+          </div>
+        </div>
+      `;
+        }
+    }
+}
 function renderCalendarList(targetId, weeks, projectionOverride) {
     const target = $(targetId);
     if (!target)
@@ -2480,9 +2609,12 @@ function renderCalendarList(targetId, weeks, projectionOverride) {
         target.innerHTML = "";
         return;
     }
+    normalizeCalendarTab();
     const futureWeeks = Math.max(0, (weeks || 1) - 1);
-    const projection = projectionOverride || buildCalendarProjection({ pastWeeks: 0, futureWeeks });
-    const tab = projection.tab || "label";
+    const projection = projectionOverride && (projectionOverride.tab === "label" || projectionOverride.tab === "public")
+        ? projectionOverride
+        : buildCalendarProjection({ pastWeeks: 0, futureWeeks });
+    const tab = projection.tab === "public" ? "public" : "label";
     const filters = projection.filters || {};
     const scope = target.closest("#calendarModal") || target.closest(".view") || document;
     scope.querySelectorAll("[data-calendar-tab]").forEach((btn) => {
@@ -2496,10 +2628,6 @@ function renderCalendarList(targetId, weeks, projectionOverride) {
             return;
         input.checked = filters[key] !== false;
     });
-    if (tab === "eras") {
-        target.innerHTML = renderCalendarEraList(projection.eras || []);
-        return;
-    }
     if (targetId === "calendarList") {
         target.innerHTML = renderCalendarUpcomingFooter(projection, tab);
         return;
@@ -4130,10 +4258,39 @@ function renderCharts() {
     document.querySelectorAll("#chartTypeTabs .tab").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.chartContent === contentType);
     });
+    const regions = Array.isArray(REGION_DEFS) ? REGION_DEFS : [];
+    const regionIds = new Set(regions.map((region) => region.id));
+    let activeChart = state.ui.activeChart || "global";
+    if (activeChart !== "global" && !NATIONS.includes(activeChart) && !regionIds.has(activeChart)) {
+        activeChart = "global";
+        state.ui.activeChart = activeChart;
+        logEvent("Charts scope reset to Global after an invalid selection.", "warn");
+    }
+    const activeRegion = regions.find((region) => region.id === activeChart) || null;
+    const activeNation = activeChart === "global"
+        ? null
+        : NATIONS.includes(activeChart)
+            ? activeChart
+            : activeRegion?.nation || null;
     document.querySelectorAll("#chartTabs .tab").forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.chart === state.ui.activeChart);
+        const chartKey = btn.dataset.chart;
+        const isActive = activeChart === "global"
+            ? chartKey === "global"
+            : chartKey === activeNation;
+        btn.classList.toggle("active", !!isActive);
     });
-    const activeChart = state.ui.activeChart || "global";
+    const regionTabs = document.querySelector("#chartRegionTabs");
+    if (regionTabs) {
+        if (!activeNation) {
+            regionTabs.innerHTML = "";
+            regionTabs.classList.add("hidden");
+        }
+        else {
+            const nationRegions = regions.filter((region) => region.nation === activeNation);
+            regionTabs.classList.toggle("hidden", nationRegions.length === 0);
+            regionTabs.innerHTML = nationRegions.map((region) => (`<button class="tab${region.id === activeChart ? " active" : ""}" data-chart="${region.id}" type="button">${region.label} Regional</button>`)).join("");
+        }
+    }
     const chartSource = contentType === "promotions"
         ? state.promoCharts
         : contentType === "tours"
@@ -4194,7 +4351,7 @@ function renderCharts() {
     const meta = $("chartMeta");
     if (meta) {
         if (contentType === "tracks" || contentType === "projects") {
-            const weights = chartWeightsForScope(state.ui.activeChart || "global");
+            const weights = chartWeightsForScope(activeChart);
             const pct = (value) => Math.round(value * 100);
             const contentLabel = contentType === "projects" ? "Project" : "Track";
             meta.textContent = `Top ${size} | ${scopeLabel} | ${contentLabel} charts | Weights S ${pct(weights.sales)}% / Stream ${pct(weights.streaming)}% / Air ${pct(weights.airplay)}% / Social ${pct(weights.social)}%`;
@@ -5261,6 +5418,7 @@ function renderActiveView(view) {
     }
     else if (active === "releases") {
         renderCalendarView();
+        renderCalendarStructuresPanel();
     }
     else if (active === "eras") {
         renderEraStatus();
