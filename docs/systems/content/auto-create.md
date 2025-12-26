@@ -21,6 +21,7 @@ Auto Create lets the player schedule automatic sheet music creation on a weekly 
   - Solo: assign Songwriter only; Performer/Producer remain unassigned.
   - Collab: fills recommended Performer/Producer when available.
 - Acts are auto-assigned using the recommendation engine when possible.
+- Act recommendations favor theme/mood preference matches, then alignment fit, and filter for catharsis grades within +/-1 letter of the content quality grade when available (stamina-adjusted skill on a 0-100 scale).
 - Project type and modifier follow the recommendation engine; titles auto-generate when empty.
 
 ## Observability

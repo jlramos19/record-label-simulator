@@ -39,3 +39,6 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 
 ## Cheater mode
 - DEC-20251226-004: Cheater mode unlocks economy tuning in the tutorial and disables achievements + quests while active.
+
+## Game start defaults
+- DEC-20251226-007: New games default to Modern Mode (2400), Medium difficulty, Fast speed (1h = 1s), and auto-save enabled every 2 minutes.

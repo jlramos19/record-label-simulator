@@ -19,6 +19,13 @@ const session = {
     lastSlotPayload: null,
     lastLiveSyncAt: 0
 };
+const AUTO_PROMO_SLOT_LIMIT = 4;
+function buildAutoPromoSlotList() {
+    return Array.from({ length: AUTO_PROMO_SLOT_LIMIT }, () => null);
+}
+function buildAutoPromoBudgetSlots(defaultPct = 0) {
+    return Array.from({ length: AUTO_PROMO_SLOT_LIMIT }, (_, index) => (index === 0 ? defaultPct : 0));
+}
 function evaluateProjectTrackConstraints(projectName, projectType) {
     return evaluateProjectTrackConstraintsWithTracks(state.tracks, projectName, projectType);
 }
@@ -195,7 +202,7 @@ function makeDefaultState() {
             startEpochMs: BASE_EPOCH,
             totalHours: 0,
             totalQuarters: 0,
-            speed: "pause",
+            speed: "fast",
             secPerHourPlay: 2.5,
             secPerHourFast: 1,
             secPerQuarterPlay: 2.5 / QUARTERS_PER_HOUR,
@@ -280,6 +287,11 @@ function makeDefaultState() {
                 return acc;
             }, {}),
             promoSlots: { actId: null, projectId: null, trackId: null },
+            autoPromoSlots: {
+                actIds: buildAutoPromoSlotList(),
+                projectIds: buildAutoPromoSlotList(),
+                trackIds: buildAutoPromoSlotList()
+            },
             tourDraftId: null,
             socialSlots: { trackId: null },
             viewContext: {
@@ -389,7 +401,7 @@ function makeDefaultState() {
             endShown: false,
             cheaterMode: false,
             cheaterEconomyOverrides: { baselines: {}, tuning: {}, priceMultipliers: {} },
-            autoSave: { enabled: false, minutes: 5, lastSavedAt: null },
+            autoSave: { enabled: true, minutes: 2, lastSavedAt: null },
             autoCreate: {
                 enabled: false,
                 lastRunAt: null,
@@ -399,7 +411,12 @@ function makeDefaultState() {
                 mode: "solo",
                 lastOutcome: null
             },
-            autoRollout: { enabled: false, lastCheckedAt: null, budgetPct: AUTO_PROMO_BUDGET_PCT },
+            autoRollout: {
+                enabled: false,
+                lastCheckedAt: null,
+                budgetPct: AUTO_PROMO_BUDGET_PCT,
+                budgetPctSlots: buildAutoPromoBudgetSlots(AUTO_PROMO_BUDGET_PCT)
+            },
             keepEraRolloutHusks: true
         }
     };
@@ -1282,6 +1299,79 @@ function parsePromoProjectKey(value) {
         projectType: projectType || "Single"
     };
 }
+const AUTO_PROMO_SLOT_TARGET_PATTERN = /^auto-promo-(act|project|track)-(\d+)$/;
+function normalizeAutoPromoSlotList(list) {
+    const next = Array.isArray(list) ? list.slice(0, AUTO_PROMO_SLOT_LIMIT) : [];
+    while (next.length < AUTO_PROMO_SLOT_LIMIT)
+        next.push(null);
+    return next.map((value) => (typeof value === "string" ? value : null));
+}
+function normalizeAutoPromoBudgetSlots(list) {
+    const next = Array.isArray(list) ? list.slice(0, AUTO_PROMO_SLOT_LIMIT) : [];
+    while (next.length < AUTO_PROMO_SLOT_LIMIT)
+        next.push(0);
+    const normalized = next.map((value) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? clamp(parsed, 0, 1) : 0;
+    });
+    const total = normalized.reduce((sum, value) => sum + value, 0);
+    if (total <= 1)
+        return normalized;
+    const scale = 1 / total;
+    return normalized.map((value) => Math.round(value * scale * 1000) / 1000);
+}
+function ensureAutoPromoSlots() {
+    if (!state.ui.autoPromoSlots) {
+        state.ui.autoPromoSlots = {
+            actIds: buildAutoPromoSlotList(),
+            projectIds: buildAutoPromoSlotList(),
+            trackIds: buildAutoPromoSlotList()
+        };
+    }
+    state.ui.autoPromoSlots.actIds = normalizeAutoPromoSlotList(state.ui.autoPromoSlots.actIds);
+    state.ui.autoPromoSlots.projectIds = normalizeAutoPromoSlotList(state.ui.autoPromoSlots.projectIds);
+    state.ui.autoPromoSlots.trackIds = normalizeAutoPromoSlotList(state.ui.autoPromoSlots.trackIds);
+    return state.ui.autoPromoSlots;
+}
+function ensureAutoPromoBudgetSlots() {
+    if (!state.meta)
+        state.meta = {};
+    if (!state.meta.autoRollout) {
+        state.meta.autoRollout = {
+            enabled: false,
+            lastCheckedAt: null,
+            budgetPct: AUTO_PROMO_BUDGET_PCT,
+            budgetPctSlots: buildAutoPromoBudgetSlots(AUTO_PROMO_BUDGET_PCT)
+        };
+    }
+    state.meta.autoRollout.budgetPctSlots = normalizeAutoPromoBudgetSlots(state.meta.autoRollout.budgetPctSlots);
+    return state.meta.autoRollout.budgetPctSlots;
+}
+function parseAutoPromoSlotTarget(targetId) {
+    if (!targetId || typeof targetId !== "string")
+        return null;
+    const match = AUTO_PROMO_SLOT_TARGET_PATTERN.exec(targetId);
+    if (!match)
+        return null;
+    const index = Number(match[2]) - 1;
+    if (!Number.isFinite(index) || index < 0 || index >= AUTO_PROMO_SLOT_LIMIT)
+        return null;
+    return { kind: match[1], index };
+}
+function getAutoPromoSlotKey(kind) {
+    if (kind === "act")
+        return "actIds";
+    if (kind === "project")
+        return "projectIds";
+    if (kind === "track")
+        return "trackIds";
+    return null;
+}
+function buildPromoSlotTargetId(scope, kind, index) {
+    if (scope === "manual")
+        return `promo-${kind}`;
+    return `auto-promo-${kind}-${index + 1}`;
+}
 function getSlotValue(targetId) {
     if (targetId === "act-lead")
         return state.ui.actSlots.lead;
@@ -1299,6 +1389,12 @@ function getSlotValue(targetId) {
         return state.ui.promoSlots.projectId;
     if (targetId === "promo-track")
         return state.ui.promoSlots.trackId;
+    const autoPromoSlot = parseAutoPromoSlotTarget(targetId);
+    if (autoPromoSlot) {
+        ensureAutoPromoSlots();
+        const key = getAutoPromoSlotKey(autoPromoSlot.kind);
+        return key ? state.ui.autoPromoSlots[key][autoPromoSlot.index] || null : null;
+    }
     if (targetId === "social-track")
         return state.ui.socialSlots.trackId;
     const trackRole = parseTrackRoleTarget(targetId);
@@ -1326,6 +1422,20 @@ function setSlotValue(targetId, value) {
         state.ui.promoSlots.projectId = value;
     if (targetId === "promo-track")
         state.ui.promoSlots.trackId = value;
+    const autoPromoSlot = parseAutoPromoSlotTarget(targetId);
+    if (autoPromoSlot) {
+        ensureAutoPromoSlots();
+        const key = getAutoPromoSlotKey(autoPromoSlot.kind);
+        if (key) {
+            const list = state.ui.autoPromoSlots[key];
+            if (value) {
+                const dupIndex = list.findIndex((id) => id === value);
+                if (dupIndex !== -1 && dupIndex !== autoPromoSlot.index)
+                    list[dupIndex] = null;
+            }
+            list[autoPromoSlot.index] = value || null;
+        }
+    }
     if (targetId === "social-track")
         state.ui.socialSlots.trackId = value;
     const trackRole = parseTrackRoleTarget(targetId);
@@ -1414,9 +1524,39 @@ function assignToSlot(targetId, entityType, entityId) {
             }
         }
     }
+    const manualPromoKind = targetId === "promo-act"
+        ? "act"
+        : targetId === "promo-project"
+            ? "project"
+            : targetId === "promo-track"
+                ? "track"
+                : null;
+    const autoPromoSlot = parseAutoPromoSlotTarget(targetId);
+    const promoScope = manualPromoKind ? "manual" : autoPromoSlot ? "auto" : null;
+    const promoKind = manualPromoKind || autoPromoSlot?.kind || null;
+    const promoIndex = autoPromoSlot?.index ?? 0;
+    const promoRow = promoScope === "manual"
+        ? {
+            actId: state.ui.promoSlots.actId,
+            projectId: state.ui.promoSlots.projectId,
+            trackId: state.ui.promoSlots.trackId
+        }
+        : promoScope === "auto"
+            ? (() => {
+                const slots = ensureAutoPromoSlots();
+                return {
+                    actId: slots.actIds[promoIndex],
+                    projectId: slots.projectIds[promoIndex],
+                    trackId: slots.trackIds[promoIndex]
+                };
+            })()
+            : null;
+    const promoActTargetId = promoScope ? buildPromoSlotTargetId(promoScope, "act", promoIndex) : null;
+    const promoProjectTargetId = promoScope ? buildPromoSlotTargetId(promoScope, "project", promoIndex) : null;
+    const promoTrackTargetId = promoScope ? buildPromoSlotTargetId(promoScope, "track", promoIndex) : null;
     let promoActId = null;
     let promoProjectId = null;
-    if (entityType === "track" && targetId === "promo-track") {
+    if (entityType === "track" && promoKind === "track") {
         const track = getTrack(entityId);
         const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
         const isReleased = Boolean(track && track.status === "Released" && track.marketId);
@@ -1440,11 +1580,11 @@ function assignToSlot(targetId, entityType, entityId) {
             }
         }
         promoProjectId = buildPromoProjectKeyFromTrack(track);
-        if (promoProjectId && state.ui.promoSlots.projectId && state.ui.promoSlots.projectId !== promoProjectId) {
+        if (promoProjectId && promoRow?.projectId && promoRow.projectId !== promoProjectId) {
             logEvent("Promo project updated to match the selected track.", "warn");
         }
     }
-    if (entityType === "project" && targetId === "promo-project") {
+    if (entityType === "project" && promoKind === "project") {
         const parsed = parsePromoProjectKey(entityId);
         if (!parsed) {
             shakeSlot(targetId);
@@ -1465,16 +1605,17 @@ function assignToSlot(targetId, entityType, entityId) {
             return;
         }
         promoActId = act.id;
-        if (state.ui.promoSlots.trackId) {
-            const activeTrack = getTrack(state.ui.promoSlots.trackId);
+        if (promoRow?.trackId) {
+            const activeTrack = getTrack(promoRow.trackId);
             const trackProjectId = buildPromoProjectKeyFromTrack(activeTrack);
             if (trackProjectId && trackProjectId !== entityId) {
-                setSlotValue("promo-track", null);
+                if (promoTrackTargetId)
+                    setSlotValue(promoTrackTargetId, null);
                 logEvent("Promo track cleared (project mismatch).", "warn");
             }
         }
     }
-    if (entityType === "act" && targetId === "promo-act") {
+    if (entityType === "act" && promoKind === "act") {
         const act = getAct(entityId);
         if (!act) {
             shakeSlot(targetId);
@@ -1488,10 +1629,10 @@ function assignToSlot(targetId, entityType, entityId) {
             return;
         }
     }
-    if (promoActId)
-        setSlotValue("promo-act", promoActId);
-    if (promoProjectId)
-        setSlotValue("promo-project", promoProjectId);
+    if (promoActId && promoActTargetId)
+        setSlotValue(promoActTargetId, promoActId);
+    if (promoProjectId && promoProjectTargetId)
+        setSlotValue(promoProjectTargetId, promoProjectId);
     setSlotValue(targetId, entityId);
     commitSlotChange();
 }
@@ -2045,6 +2186,12 @@ function computeAutoCreateBudget(cash, pct = AUTO_CREATE_BUDGET_PCT, minCash = A
     return budget > 0 ? budget : 0;
 }
 function autoPromoBudgetPct() {
+    const slotPcts = state.meta?.autoRollout?.budgetPctSlots;
+    if (Array.isArray(slotPcts) && slotPcts.length) {
+        const total = slotPcts.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+        if (total > 0)
+            return clamp(total, 0, 1);
+    }
     const raw = state.meta?.autoRollout?.budgetPct;
     if (typeof raw !== "number" || Number.isNaN(raw))
         return AUTO_PROMO_BUDGET_PCT;
@@ -9170,16 +9317,19 @@ function runAutoCreateContent() {
 function runAutoPromoForPlayer() {
     if (!state.meta.autoRollout || !state.meta.autoRollout.enabled)
         return;
-    const trackId = state.ui?.promoSlots?.trackId;
-    const projectId = state.ui?.promoSlots?.projectId || null;
-    if (!trackId && !projectId)
+    const slots = ensureAutoPromoSlots();
+    const budgetSlots = ensureAutoPromoBudgetSlots();
+    const targets = [];
+    for (let index = 0; index < AUTO_PROMO_SLOT_LIMIT; index += 1) {
+        const actId = slots.actIds[index] || null;
+        const projectId = slots.projectIds[index] || null;
+        const trackId = slots.trackIds[index] || null;
+        if (!actId && !projectId && !trackId)
+            continue;
+        targets.push({ index, actId, projectId, trackId });
+    }
+    if (!targets.length)
         return;
-    const track = trackId ? getTrack(trackId) : null;
-    const projectSpec = projectId ? parsePromoProjectKey(projectId) : null;
-    let act = null;
-    let era = null;
-    let market = null;
-    let projectTargets = [];
     const findMarketEntry = (entry) => {
         if (!entry)
             return null;
@@ -9188,190 +9338,216 @@ function runAutoPromoForPlayer() {
         }
         return state.marketTracks.find((candidate) => candidate.trackId === entry.id) || null;
     };
-    if (track) {
-        if (track.status !== "Released" || !track.marketId)
-            return;
-        era = track.eraId ? getEraById(track.eraId) : null;
-        if (!era || era.status !== "Active")
-            return;
-        market = state.marketTracks.find((entry) => entry.id === track.marketId);
-        if (!market || (market.promoWeeks || 0) > 0)
-            return;
-        act = track.actId ? getAct(track.actId) : null;
-    }
-    else if (projectSpec) {
-        era = projectSpec.eraId ? getEraById(projectSpec.eraId) : null;
-        act = projectSpec.actId ? getAct(projectSpec.actId) : null;
-        if (!act && era?.actId)
-            act = getAct(era.actId);
-        if (!act)
-            return;
-        if (!era)
-            era = getLatestActiveEraForAct(act.id);
-        if (!era || era.status !== "Active")
-            return;
-        projectTargets = listPromoEligibleTracksForProject(projectSpec);
-        if (!projectTargets.length)
-            return;
-        const boostable = projectTargets.some((entry) => {
-            if (entry.status === "Released") {
-                const entryMarket = findMarketEntry(entry);
-                return entryMarket && (entryMarket.promoWeeks || 0) <= 0;
-            }
-            return Math.max(0, entry.promo?.preReleaseWeeks || 0) <= 0;
-        });
-        if (!boostable)
-            return;
-    }
-    else {
-        return;
-    }
     const rawTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
         ? state.ui.promoTypes
         : [state.ui?.promoType || DEFAULT_PROMO_TYPE];
     const selectedTypes = Array.from(new Set(rawTypes)).filter(Boolean);
     if (!selectedTypes.length)
         return;
-    let usableTypes = selectedTypes.slice();
-    if (track && track.promo?.musicVideoUsed) {
-        usableTypes = usableTypes.filter((typeId) => typeId !== "musicVideo");
-    }
-    if (!track) {
-        usableTypes = usableTypes.filter((typeId) => !PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
-    }
-    if (!usableTypes.length)
-        return;
-    let resolvedTypes = usableTypes.slice();
-    if (state.ui?.promoPrimeTime && resolvedTypes.includes("livePerformance")) {
-        const eligibility = checkPrimeShowcaseEligibility(act?.id || track?.actId || null, track?.id || null);
-        if (!eligibility.ok) {
-            resolvedTypes = resolvedTypes.filter((typeId) => typeId !== "livePerformance");
-            if (!resolvedTypes.length) {
-                logEvent(`Auto promo skipped: ${eligibility.reason || "Prime Time eligibility not met."}`, "warn");
-                return;
-            }
-            logEvent(`Auto promo note: ${eligibility.reason || "Prime Time eligibility not met."} Live performance skipped.`, "warn");
-        }
-        else {
-            resolvedTypes = resolvedTypes.map((typeId) => typeId === "livePerformance" ? "primeShowcase" : typeId);
-        }
-    }
-    if (!resolvedTypes.length)
-        return;
     const walletCash = state.label.wallet?.cash ?? state.label.cash;
-    const budget = computeAutoPromoBudget(walletCash, autoPromoBudgetPct());
-    const totalCost = budget * resolvedTypes.length;
-    if (!budget || walletCash < totalCost || state.label.cash < totalCost)
+    if (!walletCash)
         return;
-    const facilityNeeds = promoFacilityNeeds(resolvedTypes);
-    for (const [facilityId, count] of Object.entries(facilityNeeds)) {
-        const availability = getPromoFacilityAvailability(facilityId);
-        if (availability.available < count)
+    let remainingCash = walletCash;
+    targets.forEach((target) => {
+        const pct = Number.isFinite(budgetSlots[target.index]) ? budgetSlots[target.index] : 0;
+        if (pct <= 0)
             return;
-    }
-    const reservations = [];
-    for (const promoType of resolvedTypes) {
-        const facilityId = getPromoFacilityForType(promoType);
-        if (!facilityId)
-            continue;
-        const reservation = reservePromoFacilitySlot(facilityId, promoType, track.id);
-        if (!reservation.ok)
-            return;
-        if (reservation.booking)
-            reservations.push(reservation.booking);
-    }
-    state.label.cash -= totalCost;
-    if (state.label.wallet)
-        state.label.wallet.cash = state.label.cash;
-    if (track) {
-        recordTrackPromoCost(track, totalCost);
-    }
-    else if (projectTargets.length) {
-        const perTrack = totalCost / projectTargets.length;
-        projectTargets.forEach((entry) => recordTrackPromoCost(entry, perTrack));
-    }
-    const boostWeeks = promoWeeksFromBudget(budget);
-    if (track && market) {
-        market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
-    }
-    else if (projectTargets.length) {
-        projectTargets.forEach((entry) => {
-            if (entry.status === "Released") {
-                const entryMarket = findMarketEntry(entry);
-                if (entryMarket)
-                    entryMarket.promoWeeks = Math.max(entryMarket.promoWeeks || 0, boostWeeks);
-                return;
-            }
-            const promo = entry.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
-            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
-            entry.promo = promo;
-        });
-    }
-    if (act)
-        act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
-    state.meta.promoRuns = (state.meta.promoRuns || 0) + resolvedTypes.length;
-    const promoIds = new Set();
-    if (track) {
-        (track.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
-        (track.creators?.performerIds || []).forEach((id) => promoIds.add(id));
-        (track.creators?.producerIds || []).forEach((id) => promoIds.add(id));
-    }
-    else if (projectTargets.length) {
-        projectTargets.forEach((entry) => {
-            (entry.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
-            (entry.creators?.performerIds || []).forEach((id) => promoIds.add(id));
-            (entry.creators?.producerIds || []).forEach((id) => promoIds.add(id));
-        });
-    }
-    const promoIdList = Array.from(promoIds).filter(Boolean);
-    if (promoIdList.length)
-        markCreatorPromo(promoIdList);
-    const promoStamp = state.time.epochMs;
-    const promoLabel = market?.label || state.label?.name || "";
-    const promoTargetType = track ? "track" : projectSpec ? "project" : "act";
-    const promoProjectName = track?.projectName || projectSpec?.projectName || null;
-    resolvedTypes.forEach((promoType) => {
+        const track = target.trackId ? getTrack(target.trackId) : null;
+        const projectSpec = target.projectId ? parsePromoProjectKey(target.projectId) : null;
+        let act = target.actId ? getAct(target.actId) : null;
+        let era = null;
+        let market = null;
+        let projectTargets = [];
+        let promoTargetType = null;
         if (track) {
-            recordPromoUsage({ track, market, act, promoType, atMs: promoStamp });
+            if (track.status !== "Released" || !track.marketId)
+                return;
+            era = track.eraId ? getEraById(track.eraId) : null;
+            if (!era || era.status !== "Active")
+                return;
+            market = state.marketTracks.find((entry) => entry.id === track.marketId);
+            if (!market || (market.promoWeeks || 0) > 0)
+                return;
+            act = track.actId ? getAct(track.actId) : act;
+            promoTargetType = "track";
+        }
+        else if (projectSpec) {
+            era = projectSpec.eraId ? getEraById(projectSpec.eraId) : null;
+            act = projectSpec.actId ? getAct(projectSpec.actId) : act;
+            if (!act && era?.actId)
+                act = getAct(era.actId);
+            if (!act)
+                return;
+            if (!era)
+                era = getLatestActiveEraForAct(act.id);
+            if (!era || era.status !== "Active")
+                return;
+            projectTargets = listPromoEligibleTracksForProject(projectSpec);
+            if (!projectTargets.length)
+                return;
+            const boostable = projectTargets.some((entry) => {
+                if (entry.status === "Released") {
+                    const entryMarket = findMarketEntry(entry);
+                    return entryMarket && (entryMarket.promoWeeks || 0) <= 0;
+                }
+                return Math.max(0, entry.promo?.preReleaseWeeks || 0) <= 0;
+            });
+            if (!boostable)
+                return;
+            promoTargetType = "project";
+        }
+        else if (act) {
+            era = getLatestActiveEraForAct(act.id);
+            if (!era || era.status !== "Active")
+                return;
+            if ((act.promoWeeks || 0) > 0)
+                return;
+            promoTargetType = "act";
         }
         else {
-            recordPromoUsage({ act, promoType, atMs: promoStamp });
+            return;
         }
-        recordPromoContent({
-            promoType,
-            actId: act?.id || track?.actId || null,
-            actName: act?.name || null,
-            trackId: track?.id || null,
-            marketId: market?.id || null,
-            trackTitle: track ? track.title : projectSpec ? projectSpec.projectName : null,
-            projectName: promoProjectName,
-            label: promoLabel,
-            budget,
-            weeks: boostWeeks,
-            isPlayer: true,
-            targetType: promoTargetType
+        let usableTypes = selectedTypes.slice();
+        if (track && track.promo?.musicVideoUsed) {
+            usableTypes = usableTypes.filter((typeId) => typeId !== "musicVideo");
+        }
+        if (!track) {
+            usableTypes = usableTypes.filter((typeId) => !PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
+        }
+        if (!usableTypes.length)
+            return;
+        let resolvedTypes = usableTypes.slice();
+        if (state.ui?.promoPrimeTime && resolvedTypes.includes("livePerformance")) {
+            const eligibility = checkPrimeShowcaseEligibility(act?.id || track?.actId || null, track?.id || null);
+            if (!eligibility.ok) {
+                resolvedTypes = resolvedTypes.filter((typeId) => typeId !== "livePerformance");
+                if (!resolvedTypes.length) {
+                    logEvent(`Auto promo skipped: ${eligibility.reason || "Prime Time eligibility not met."}`, "warn");
+                    return;
+                }
+                logEvent(`Auto promo note: ${eligibility.reason || "Prime Time eligibility not met."} Live performance skipped.`, "warn");
+            }
+            else {
+                resolvedTypes = resolvedTypes.map((typeId) => typeId === "livePerformance" ? "primeShowcase" : typeId);
+            }
+        }
+        if (!resolvedTypes.length)
+            return;
+        const budget = computeAutoPromoBudget(walletCash, pct);
+        const totalCost = budget * resolvedTypes.length;
+        if (!budget || remainingCash < totalCost || state.label.cash < totalCost)
+            return;
+        const facilityNeeds = promoFacilityNeeds(resolvedTypes);
+        for (const [facilityId, count] of Object.entries(facilityNeeds)) {
+            const availability = getPromoFacilityAvailability(facilityId);
+            if (availability.available < count)
+                return;
+        }
+        const reservations = [];
+        for (const promoType of resolvedTypes) {
+            const facilityId = getPromoFacilityForType(promoType);
+            if (!facilityId)
+                continue;
+            const reservation = reservePromoFacilitySlot(facilityId, promoType, track?.id || null);
+            if (!reservation.ok)
+                return;
+            if (reservation.booking)
+                reservations.push(reservation.booking);
+        }
+        state.label.cash -= totalCost;
+        remainingCash = state.label.cash;
+        if (state.label.wallet)
+            state.label.wallet.cash = state.label.cash;
+        if (track) {
+            recordTrackPromoCost(track, totalCost);
+        }
+        else if (projectTargets.length) {
+            const perTrack = totalCost / projectTargets.length;
+            projectTargets.forEach((entry) => recordTrackPromoCost(entry, perTrack));
+        }
+        const boostWeeks = promoWeeksFromBudget(budget);
+        if (track && market) {
+            market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
+        }
+        else if (projectTargets.length) {
+            projectTargets.forEach((entry) => {
+                if (entry.status === "Released") {
+                    const entryMarket = findMarketEntry(entry);
+                    if (entryMarket)
+                        entryMarket.promoWeeks = Math.max(entryMarket.promoWeeks || 0, boostWeeks);
+                    return;
+                }
+                const promo = entry.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
+                promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+                entry.promo = promo;
+            });
+        }
+        if (act)
+            act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
+        state.meta.promoRuns = (state.meta.promoRuns || 0) + resolvedTypes.length;
+        const promoIds = new Set();
+        if (track) {
+            (track.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
+            (track.creators?.performerIds || []).forEach((id) => promoIds.add(id));
+            (track.creators?.producerIds || []).forEach((id) => promoIds.add(id));
+        }
+        else if (projectTargets.length) {
+            projectTargets.forEach((entry) => {
+                (entry.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
+                (entry.creators?.performerIds || []).forEach((id) => promoIds.add(id));
+                (entry.creators?.producerIds || []).forEach((id) => promoIds.add(id));
+            });
+        }
+        const promoIdList = Array.from(promoIds).filter(Boolean);
+        if (promoIdList.length)
+            markCreatorPromo(promoIdList);
+        const promoStamp = state.time.epochMs;
+        const promoLabel = market?.label || state.label?.name || "";
+        const promoProjectName = track?.projectName || projectSpec?.projectName || null;
+        resolvedTypes.forEach((promoType) => {
+            if (track) {
+                recordPromoUsage({ track, market, act, promoType, atMs: promoStamp });
+            }
+            else {
+                recordPromoUsage({ act, promoType, atMs: promoStamp });
+            }
+            recordPromoContent({
+                promoType,
+                actId: act?.id || track?.actId || null,
+                actName: act?.name || null,
+                trackId: track?.id || null,
+                marketId: market?.id || null,
+                trackTitle: track ? track.title : projectSpec ? projectSpec.projectName : null,
+                projectName: promoProjectName,
+                label: promoLabel,
+                budget,
+                weeks: boostWeeks,
+                isPlayer: true,
+                targetType: promoTargetType
+            });
         });
+        const promoLabels = resolvedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
+        const bookingNotes = reservations.map((booking) => {
+            const facilityLabel = promoFacilityLabel(booking.facility);
+            if (booking.facility !== "broadcast")
+                return facilityLabel;
+            const studio = booking.studioId ? getBroadcastStudioById(booking.studioId) : null;
+            const program = booking.programId ? getBroadcastProgramById(booking.programId) : null;
+            const details = [studio?.label, program?.label].filter(Boolean).join(", ");
+            return details ? `${facilityLabel} (${details})` : facilityLabel;
+        });
+        const spendEach = formatMoney(budget);
+        const totalSpend = formatMoney(totalCost);
+        const scheduleLabel = formatDate(state.time.epochMs);
+        const bookingLine = bookingNotes.length ? ` Booked ${bookingNotes.join(" | ")}.` : "";
+        const targetLabel = track
+            ? `"${track.title}"`
+            : projectSpec
+                ? `Project "${projectSpec.projectName}"`
+                : `Act "${act?.name || "Unknown"}"`;
+        const slotLabel = `Slot ${target.index + 1}`;
+        logEvent(`Auto promo scheduled (${slotLabel}): ${promoLabels} for ${targetLabel} on ${scheduleLabel}. Budget ${spendEach} each (${totalSpend} total).${bookingLine} +${boostWeeks} weeks.`);
     });
-    const promoLabels = resolvedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
-    const bookingNotes = reservations.map((booking) => {
-        const facilityLabel = promoFacilityLabel(booking.facility);
-        if (booking.facility !== "broadcast")
-            return facilityLabel;
-        const studio = booking.studioId ? getBroadcastStudioById(booking.studioId) : null;
-        const program = booking.programId ? getBroadcastProgramById(booking.programId) : null;
-        const details = [studio?.label, program?.label].filter(Boolean).join(", ");
-        return details ? `${facilityLabel} (${details})` : facilityLabel;
-    });
-    const spendEach = formatMoney(budget);
-    const totalSpend = formatMoney(totalCost);
-    const scheduleLabel = formatDate(state.time.epochMs);
-    const bookingLine = bookingNotes.length ? ` Booked ${bookingNotes.join(" | ")}.` : "";
-    const targetLabel = track
-        ? `"${track.title}"`
-        : projectSpec
-            ? `Project "${projectSpec.projectName}"`
-            : `Act "${act?.name || "Unknown"}"`;
-    logEvent(`Auto promo scheduled: ${promoLabels} for ${targetLabel} on ${scheduleLabel}. Budget ${spendEach} each (${totalSpend} total).${bookingLine} +${boostWeeks} weeks.`);
 }
 function pickRivalAutoPromoTrack(rival) {
     if (!rival)
@@ -10047,6 +10223,11 @@ function normalizeState() {
             promoTypes: [DEFAULT_PROMO_TYPE],
             promoPrimeTime: false,
             promoSlots: { actId: null, projectId: null, trackId: null },
+            autoPromoSlots: {
+                actIds: buildAutoPromoSlotList(),
+                projectIds: buildAutoPromoSlotList(),
+                trackIds: buildAutoPromoSlotList()
+            },
             tourDraftId: null,
             activeView: "charts"
         };
@@ -10170,6 +10351,18 @@ function normalizeState() {
         state.ui.promoSlots.actId = state.ui.promoSlots.actId || null;
     if (typeof state.ui.promoSlots.projectId !== "string") {
         state.ui.promoSlots.projectId = state.ui.promoSlots.projectId || null;
+    }
+    const autoPromoSlots = ensureAutoPromoSlots();
+    const hasAutoPromoTargets = autoPromoSlots.actIds.some(Boolean)
+        || autoPromoSlots.projectIds.some(Boolean)
+        || autoPromoSlots.trackIds.some(Boolean);
+    const hasLegacyPromoTargets = Boolean(state.ui.promoSlots.actId
+        || state.ui.promoSlots.projectId
+        || state.ui.promoSlots.trackId);
+    if (!hasAutoPromoTargets && hasLegacyPromoTargets) {
+        autoPromoSlots.actIds[0] = state.ui.promoSlots.actId || null;
+        autoPromoSlots.projectIds[0] = state.ui.promoSlots.projectId || null;
+        autoPromoSlots.trackIds[0] = state.ui.promoSlots.trackId || null;
     }
     if (typeof state.ui.tourDraftId !== "string")
         state.ui.tourDraftId = state.ui.tourDraftId || null;
@@ -10502,11 +10695,11 @@ function normalizeState() {
     if (typeof state.meta.endShown !== "boolean")
         state.meta.endShown = false;
     if (!state.meta.autoSave)
-        state.meta.autoSave = { enabled: false, minutes: 5, lastSavedAt: null };
+        state.meta.autoSave = { enabled: true, minutes: 2, lastSavedAt: null };
     if (typeof state.meta.autoSave.minutes !== "number")
-        state.meta.autoSave.minutes = 5;
+        state.meta.autoSave.minutes = 2;
     if (typeof state.meta.autoSave.enabled !== "boolean")
-        state.meta.autoSave.enabled = false;
+        state.meta.autoSave.enabled = true;
     if (!state.meta.autoCreate) {
         state.meta.autoCreate = {
             enabled: false,
@@ -10559,7 +10752,12 @@ function normalizeState() {
             outcome.budgetCap = 0;
     }
     if (!state.meta.autoRollout) {
-        state.meta.autoRollout = { enabled: false, lastCheckedAt: null, budgetPct: AUTO_PROMO_BUDGET_PCT };
+        state.meta.autoRollout = {
+            enabled: false,
+            lastCheckedAt: null,
+            budgetPct: AUTO_PROMO_BUDGET_PCT,
+            budgetPctSlots: buildAutoPromoBudgetSlots(AUTO_PROMO_BUDGET_PCT)
+        };
     }
     if (typeof state.meta.autoRollout.enabled !== "boolean")
         state.meta.autoRollout.enabled = false;
@@ -10567,6 +10765,11 @@ function normalizeState() {
         state.meta.autoRollout.budgetPct = AUTO_PROMO_BUDGET_PCT;
     }
     state.meta.autoRollout.budgetPct = clamp(state.meta.autoRollout.budgetPct, 0, 1);
+    state.meta.autoRollout.budgetPctSlots = normalizeAutoPromoBudgetSlots(state.meta.autoRollout.budgetPctSlots);
+    const totalAutoBudget = state.meta.autoRollout.budgetPctSlots.reduce((sum, value) => sum + value, 0);
+    if (!totalAutoBudget && state.meta.autoRollout.budgetPct > 0 && hasAutoPromoTargets) {
+        state.meta.autoRollout.budgetPctSlots[0] = state.meta.autoRollout.budgetPct;
+    }
     if (typeof state.meta.keepEraRolloutHusks !== "boolean")
         state.meta.keepEraRolloutHusks = true;
     if (typeof state.meta.cheaterMode !== "boolean")
@@ -11136,7 +11339,31 @@ function pickOveruseSafeCandidate(role) {
     const safe = candidates.filter((creator) => getCreatorStaminaSpentToday(creator) + req <= STAMINA_OVERUSE_LIMIT);
     return safe[0] || null;
 }
-const RECOMMEND_VERSION = 1;
+const RECOMMEND_VERSION = 2;
+const GRADE_ORDER = ["S", "A", "B", "C", "D", "F"];
+function gradeIndex(grade) {
+    const index = GRADE_ORDER.indexOf(grade);
+    return index >= 0 ? index : null;
+}
+function gradeRange(grade, radius = 1) {
+    const index = gradeIndex(grade);
+    if (index === null)
+        return { grades: [], label: "" };
+    const start = Math.max(0, index - radius);
+    const end = Math.min(GRADE_ORDER.length - 1, index + radius);
+    const grades = GRADE_ORDER.slice(start, end + 1);
+    const label = grades.length ? `${grades[0]}-${grades[grades.length - 1]}` : "";
+    return { grades, label };
+}
+function resolveTrackQualityScore(track) {
+    if (!track)
+        return null;
+    if (Number.isFinite(track.quality) && track.quality > 0)
+        return track.quality;
+    if (Number.isFinite(track.qualityPotential) && track.qualityPotential > 0)
+        return track.qualityPotential;
+    return null;
+}
 function getTopTrendGenre() {
     if (Array.isArray(state.trendRanking) && state.trendRanking.length)
         return state.trendRanking[0];
@@ -11161,19 +11388,20 @@ function recommendActId() {
     }
     const scored = state.acts.map((act) => {
         const members = act.memberIds.map((id) => getCreator(id)).filter(Boolean);
-        const avgSkill = members.length
-            ? Math.round(members.reduce((sum, creator) => sum + creator.skill, 0) / members.length)
-            : 0;
-        return { act, avgSkill };
+        const avgCatharsis = members.length ? Math.round(averageSkill(members, { staminaAdjusted: true })) : 0;
+        const avgSkill = members.length ? Math.round(averageSkill(members)) : 0;
+        return { act, avgCatharsis, avgSkill };
     });
     scored.sort((a, b) => {
+        if (b.avgCatharsis !== a.avgCatharsis)
+            return b.avgCatharsis - a.avgCatharsis;
         if (b.avgSkill !== a.avgSkill)
             return b.avgSkill - a.avgSkill;
         return a.act.name.localeCompare(b.act.name);
     });
-    return { actId: scored[0].act.id, reason: `Best average skill (${scored[0].avgSkill}).` };
+    return { actId: scored[0].act.id, reason: `Best average catharsis (${scored[0].avgCatharsis}).` };
 }
-function scoreActGenreMatch(act, theme, mood) {
+function scoreActGenreMatch(act, theme, mood, alignment, targetGrade) {
     const members = act.memberIds.map((id) => getCreator(id)).filter(Boolean);
     const memberCount = members.length;
     if (!memberCount) {
@@ -11181,10 +11409,16 @@ function scoreActGenreMatch(act, theme, mood) {
             act,
             memberCount: 0,
             avgSkill: 0,
+            avgCatharsis: 0,
             matchScore: 0,
             matchRate: 0,
             exactHits: 0,
-            partialHits: 0
+            partialHits: 0,
+            actAlignment: act?.alignment || "",
+            alignmentMatch: false,
+            catharsisGrade: scoreGrade(0),
+            catharsisDistance: null,
+            catharsisInRange: false
         };
     }
     const canExact = Boolean(theme && mood);
@@ -11204,84 +11438,117 @@ function scoreActGenreMatch(act, theme, mood) {
     const maxPerMember = canExact ? 3 : 1;
     const matchScore = canExact ? exactHits * 3 + (partialHits - exactHits) : partialHits;
     const matchRate = matchScore / (memberCount * maxPerMember);
-    const avgSkill = Math.round(members.reduce((sum, creator) => sum + creator.skill, 0) / memberCount);
+    const avgSkill = Math.round(averageSkill(members));
+    // Catharsis reflects stamina-adjusted skill on the 0-100 scale.
+    const avgCatharsis = Math.round(averageSkill(members, { staminaAdjusted: true }));
+    const catharsisGrade = scoreGrade(avgCatharsis);
+    const targetIndex = targetGrade ? gradeIndex(targetGrade) : null;
+    const catharsisIndex = gradeIndex(catharsisGrade);
+    const catharsisDistance = Number.isFinite(targetIndex) && Number.isFinite(catharsisIndex)
+        ? Math.abs(catharsisIndex - targetIndex)
+        : null;
+    const catharsisInRange = Number.isFinite(catharsisDistance) ? catharsisDistance <= 1 : false;
+    const actAlignment = ALIGNMENTS.includes(act?.alignment) ? act.alignment : (state.label?.alignment || "");
+    const alignmentMatch = alignment ? actAlignment === alignment : false;
     return {
         act,
         memberCount,
         avgSkill,
+        avgCatharsis,
         matchScore,
         matchRate,
         exactHits,
-        partialHits
+        partialHits,
+        actAlignment,
+        alignmentMatch,
+        catharsisGrade,
+        catharsisDistance,
+        catharsisInRange
     };
 }
 function recommendActForTrack(track) {
     if (!state.acts.length) {
         return { version: RECOMMEND_VERSION, actId: null, reason: "No acts available yet." };
     }
-    const theme = track.theme || themeFromGenre(track.genre);
-    const mood = track.mood || moodFromGenre(track.genre);
-    if (!theme && !mood) {
-        const fallback = recommendActId();
-        return {
-            version: RECOMMEND_VERSION,
-            actId: fallback.actId,
-            theme: "",
-            mood: "",
-            genre: "",
-            reason: `No genre data to match. ${fallback.reason}`
-        };
-    }
-    const genre = makeGenre(theme, mood);
-    const scored = state.acts.map((act) => scoreActGenreMatch(act, theme, mood));
-    scored.sort((a, b) => {
+    const theme = track?.theme || themeFromGenre(track?.genre);
+    const mood = track?.mood || moodFromGenre(track?.genre);
+    const hasGenreSignal = Boolean(theme || mood);
+    const genre = theme && mood ? makeGenre(theme, mood) : (track?.genre || "");
+    const alignmentRaw = track?.alignment || state.label?.alignment || "";
+    const alignment = ALIGNMENTS.includes(alignmentRaw) ? alignmentRaw : "";
+    const qualityScore = resolveTrackQualityScore(track);
+    const trackGrade = qualityScore ? qualityGrade(qualityScore) : "";
+    const gradeWindow = trackGrade ? gradeRange(trackGrade, 1) : { grades: [], label: "" };
+    const scored = state.acts.map((act) => scoreActGenreMatch(act, theme, mood, alignment, trackGrade));
+    const ranged = gradeWindow.grades.length ? scored.filter((entry) => entry.catharsisInRange) : [];
+    const candidates = ranged.length ? ranged : scored;
+    candidates.sort((a, b) => {
         if (b.matchRate !== a.matchRate)
             return b.matchRate - a.matchRate;
         if (b.matchScore !== a.matchScore)
             return b.matchScore - a.matchScore;
+        if (b.alignmentMatch !== a.alignmentMatch)
+            return b.alignmentMatch ? 1 : -1;
+        if (Number.isFinite(a.catharsisDistance) && Number.isFinite(b.catharsisDistance)
+            && a.catharsisDistance !== b.catharsisDistance) {
+            return a.catharsisDistance - b.catharsisDistance;
+        }
+        if (b.avgCatharsis !== a.avgCatharsis)
+            return b.avgCatharsis - a.avgCatharsis;
         if (b.avgSkill !== a.avgSkill)
             return b.avgSkill - a.avgSkill;
         return a.act.name.localeCompare(b.act.name);
     });
-    const top = scored[0];
-    if (!top || top.matchScore <= 0) {
-        const fallback = recommendActId();
-        const label = genre || theme || mood || "this track";
-        return {
-            version: RECOMMEND_VERSION,
-            actId: fallback.actId,
-            theme,
-            mood,
-            genre,
-            memberCount: top?.memberCount || 0,
-            exactMatches: 0,
-            partialMatches: 0,
-            reason: `No preference matches for ${label}. ${fallback.reason}`
-        };
+    const top = candidates[0];
+    if (!top) {
+        return { version: RECOMMEND_VERSION, actId: null, reason: "No acts available yet." };
     }
     const exactPossible = Boolean(theme && mood);
     const partialOnly = top.partialHits - top.exactHits;
-    let reason = "";
-    if (exactPossible) {
-        const parts = [];
-        if (top.exactHits)
-            parts.push(`${top.exactHits}/${top.memberCount} exact`);
-        if (partialOnly)
-            parts.push(`${partialOnly}/${top.memberCount} partial`);
-        if (!parts.length)
-            parts.push("no member preferences aligned");
-        reason = `Preference match for ${genre}: ${parts.join(", ")}.`;
-    }
-    else if (theme) {
-        reason = top.partialHits
-            ? `Preference match for theme "${theme}": ${top.partialHits}/${top.memberCount} members.`
-            : `No preference matches for theme "${theme}".`;
+    let preferenceReason = "";
+    if (hasGenreSignal) {
+        if (exactPossible) {
+            const parts = [];
+            if (top.exactHits)
+                parts.push(`${top.exactHits}/${top.memberCount} exact`);
+            if (partialOnly)
+                parts.push(`${partialOnly}/${top.memberCount} partial`);
+            if (!parts.length)
+                parts.push("no member preferences aligned");
+            preferenceReason = `Preference match for ${genre || "this track"}: ${parts.join(", ")}.`;
+        }
+        else if (theme) {
+            preferenceReason = top.partialHits
+                ? `Preference match for theme "${theme}": ${top.partialHits}/${top.memberCount} members.`
+                : `No preference matches for theme "${theme}".`;
+        }
+        else {
+            preferenceReason = top.partialHits
+                ? `Preference match for mood "${mood}": ${top.partialHits}/${top.memberCount} members.`
+                : `No preference matches for mood "${mood}".`;
+        }
     }
     else {
-        reason = top.partialHits
-            ? `Preference match for mood "${mood}": ${top.partialHits}/${top.memberCount} members.`
-            : `No preference matches for mood "${mood}".`;
+        preferenceReason = "No theme or mood to match preferences.";
     }
+    const alignmentReason = alignment
+        ? (top.alignmentMatch
+            ? `Alignment match: ${alignment}.`
+            : `Alignment mismatch: Act ${top.actAlignment || "Unknown"} vs ${alignment}.`)
+        : "";
+    const rangeLabel = trackGrade ? `${trackGrade}+/-1 (${gradeWindow.label || trackGrade})` : "";
+    const rangeNote = trackGrade && !ranged.length
+        ? `No acts within ${rangeLabel} catharsis; picked closest fit.`
+        : "";
+    const catharsisReason = trackGrade
+        ? `${top.catharsisInRange ? "Catharsis fit" : "Catharsis gap"}: ${top.catharsisGrade} (${top.avgCatharsis}) vs ${rangeLabel}.`
+        : "Catharsis check skipped (no quality grade).";
+    const reason = [
+        preferenceReason,
+        alignmentReason,
+        rangeNote,
+        catharsisReason
+    ].filter(Boolean).join(" ");
     return {
         version: RECOMMEND_VERSION,
         actId: top.act.id,
@@ -11291,6 +11558,9 @@ function recommendActForTrack(track) {
         memberCount: top.memberCount,
         exactMatches: top.exactHits,
         partialMatches: top.partialHits,
+        catharsisGrade: top.catharsisGrade,
+        catharsisScore: top.avgCatharsis,
+        alignmentMatch: top.alignmentMatch,
         reason
     };
 }

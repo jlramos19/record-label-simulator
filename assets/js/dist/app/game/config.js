@@ -64,20 +64,20 @@ export const UNASSIGNED_CREATOR_EMOJI = "???";
 export const GAME_MODES = {
     founding: {
         id: "founding",
-        label: "Founding Era (2025)",
+        label: "Founding Mode (2025)",
         startYear: 2025,
         seeded: false,
         description: "Start in 2025 and build the industry before modern play."
     },
     modern: {
         id: "modern",
-        label: "Modern Era (2400)",
+        label: "Modern Mode (2400)",
         startYear: 2400,
         seeded: true,
         description: "Start in 2400 with seeded history and a mature market."
     }
 };
-export const DEFAULT_GAME_MODE = "founding";
+export const DEFAULT_GAME_MODE = "modern";
 export const GAME_DIFFICULTIES = {
     easy: {
         id: "easy",

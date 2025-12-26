@@ -133,6 +133,8 @@ const {
   resetState,
   computeAutoCreateBudget,
   computeAutoPromoBudget,
+  ensureAutoPromoBudgetSlots,
+  ensureAutoPromoSlots,
   computeCharts,
   startGameLoop,
   setTimeSpeed,
@@ -1868,6 +1870,7 @@ function resetViewLayout() {
 }
 
 const PROMO_BUDGET_MIN = 100;
+const AUTO_PROMO_SLOT_LIMIT = 4;
 
 function getPromoInflationMultiplier() {
   const currentYear = new Date(state.time?.epochMs || Date.now()).getUTCFullYear();
@@ -2238,61 +2241,119 @@ function updateAutoPromoSummary(scope) {
   const summary = root.querySelector("#autoPromoSummary");
   if (!summary) return;
   const enabled = Boolean(state.meta?.autoRollout?.enabled);
-  const pctRaw = Number(state.meta?.autoRollout?.budgetPct ?? 0);
-  const pct = Number.isFinite(pctRaw) ? clamp(pctRaw, 0, 1) : 0;
+  const slots = ensureAutoPromoSlots();
+  const budgetSlots = ensureAutoPromoBudgetSlots() || [];
   const walletCash = state.label.wallet?.cash ?? state.label.cash ?? 0;
-  const budgetPerType = computeAutoPromoBudget(walletCash, pct);
   const selectedTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
     ? state.ui.promoTypes
     : [state.ui?.promoType || DEFAULT_PROMO_TYPE];
   const effectiveTypes = derivePromoTypesForRun(selectedTypes);
   const typeLabels = selectedTypes.map((typeId) => resolvePromoTypeCardDetails(typeId).label).join(", ");
-  const totalSpend = budgetPerType * selectedTypes.length;
   const scheduleHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
   const scheduleText = formatHourCountdown(scheduleHours);
   const scheduleLabel = scheduleText === "-" ? "-" : `${scheduleText}h`;
-  const targetContext = getPromoTargetContext(
-    state.ui?.promoSlots?.trackId,
-    state.ui?.promoSlots?.projectId,
-    state.ui?.promoSlots?.actId
-  );
-  const projectLabel = targetContext.project
-    ? `Project "${targetContext.project.projectName}"`
-    : "";
-  const targetLabel = targetContext.track
-    ? `Track "${targetContext.track.title}"`
-    : targetContext.project
-      ? projectLabel
-      : targetContext.act
-        ? `Act "${targetContext.act.name}"`
-        : "No promo target";
-  let readiness = "Ready";
-  if (!enabled) readiness = "Disabled";
-  if (!targetContext.act) readiness = "Select an Act";
-  if (targetContext.track && !targetContext.isReleased && !targetContext.isScheduled) {
-    readiness = "Track must be scheduled or released";
+  const totalPct = budgetSlots.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+  const pctLabel = `${Math.round(totalPct * 100)}%`;
+  const rows = [];
+  let totalBudgetPerType = 0;
+  for (let index = 0; index < AUTO_PROMO_SLOT_LIMIT; index += 1) {
+    const actId = slots.actIds[index] || null;
+    const projectId = slots.projectIds[index] || null;
+    const trackId = slots.trackIds[index] || null;
+    const hasTarget = Boolean(actId || projectId || trackId);
+    const pct = Number.isFinite(budgetSlots[index]) ? budgetSlots[index] : 0;
+    if (!hasTarget && pct <= 0) continue;
+    const context = getPromoTargetContext(trackId, projectId, actId);
+    const market = context.track?.marketId
+      ? state.marketTracks.find((entry) => entry.id === context.track.marketId)
+      : context.track
+        ? state.marketTracks.find((entry) => entry.trackId === context.track.id)
+        : null;
+    const projectTargets = context.project ? listPromoEligibleTracks(context.projectTracks) : [];
+    const projectBoostable = projectTargets.some((entry) => {
+      if (entry.status === "Released") {
+        const entryMarket = entry.marketId
+          ? state.marketTracks.find((candidate) => candidate.id === entry.marketId)
+          : state.marketTracks.find((candidate) => candidate.trackId === entry.id);
+        return entryMarket && (entryMarket.promoWeeks || 0) <= 0;
+      }
+      return Math.max(0, entry.promo?.preReleaseWeeks || 0) <= 0;
+    });
+    let targetLabel = "No target";
+    if (context.track) {
+      targetLabel = `Track "${context.track.title}"`;
+    } else if (context.project) {
+      targetLabel = `Project "${context.project.projectName}"`;
+    } else if (context.act) {
+      targetLabel = `Act "${context.act.name}"`;
+    }
+    let readiness = "Ready";
+    if (!enabled) readiness = "Disabled";
+    if (!hasTarget) readiness = "Assign Act/Project/Track";
+    if (hasTarget && !context.act) readiness = "Select an Act";
+    if (context.era && context.era.status !== "Active") readiness = "No active era";
+    if (context.track && !context.isReleased) readiness = "Track must be released";
+    if (context.track && market && (market.promoWeeks || 0) > 0) readiness = "Track already in promo weeks";
+    if (!context.track && context.project && !projectTargets.length) {
+      readiness = "Project needs scheduled or released tracks";
+    }
+    if (!context.track && context.project && projectTargets.length && !projectBoostable) {
+      readiness = "Project already in promo weeks";
+    }
+    if (!context.track && !context.project && context.act && (context.act.promoWeeks || 0) > 0) {
+      readiness = "Act already in promo weeks";
+    }
+    if (pct <= 0) readiness = "Budget 0%";
+    const budget = pct > 0 ? computeAutoPromoBudget(walletCash, pct) : 0;
+    if (hasTarget && pct > 0) totalBudgetPerType += budget;
+    rows.push({
+      label: `Slot ${index + 1}: ${targetLabel}`,
+      pctLabel: `${Math.round(pct * 100)}%`,
+      readiness,
+      budget
+    });
   }
-  if (!targetContext.track && targetContext.project) {
-    const eligible = listPromoEligibleTracks(targetContext.projectTracks);
-    if (!eligible.length) readiness = "Project needs scheduled or released tracks";
-  }
-  if (targetContext.era && targetContext.era.status !== "Active") readiness = "No active era";
-  const pctLabel = `${Math.round(pct * 100)}%`;
+  const totalSpend = totalBudgetPerType * selectedTypes.length;
   const facilityHint = buildPromoFacilityHints(effectiveTypes);
   const facilityLine = facilityHint ? `<div class="muted">${facilityHint}</div>` : "";
-  const budgetLine = budgetPerType
-    ? `${formatMoney(budgetPerType)} each (${formatMoney(totalSpend)} total)`
+  const budgetLine = totalBudgetPerType
+    ? `${formatMoney(totalBudgetPerType)} each (${formatMoney(totalSpend)} total)`
     : `${formatMoney(0)} (auto promo will skip)`;
+  const rowsLine = rows.length
+    ? rows.map((row) => `<div class="muted">${row.label} | ${row.pctLabel} | ${row.readiness}</div>`).join("")
+    : `<div class="muted">No auto promo slots set.</div>`;
   summary.innerHTML = `
     <div class="list-item">
       <div class="item-title">Auto Promo Plan</div>
       <div class="muted">${enabled ? "Enabled" : "Disabled"} | Next check ${scheduleLabel} (chart update)</div>
-      <div class="muted">Target: ${targetLabel} | Status: ${readiness}</div>
-      <div class="muted">Types: ${typeLabels || "None"} | Budget ${pctLabel} = ${budgetLine}</div>
+      <div class="muted">Allocation total: ${pctLabel} | Budget ${budgetLine}</div>
+      <div class="muted">Types: ${typeLabels || "None"}</div>
+      ${rowsLine}
       ${facilityLine}
       <div class="muted">Steps: validate target, reserve facilities, apply promo weeks.</div>
     </div>
   `;
+}
+
+function updateAutoPromoBudgetTotal(scope, budgetSlots) {
+  const root = scope || document;
+  const totalEl = root.querySelector("#autoPromoBudgetTotal");
+  if (!totalEl) return;
+  const slots = Array.isArray(budgetSlots) ? budgetSlots : ensureAutoPromoBudgetSlots() || [];
+  const totalPct = slots.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+  totalEl.textContent = `Total allocation: ${Math.round(totalPct * 100)}% (max 100%)`;
+}
+
+function syncAutoPromoBudgetControls(scope) {
+  const root = scope || document;
+  const slots = ensureAutoPromoBudgetSlots() || [];
+  root.querySelectorAll("[data-auto-promo-pct]").forEach((input) => {
+    const index = Number(input.dataset.autoPromoIndex || 0);
+    if (!Number.isFinite(index) || index < 0) return;
+    const pct = Number.isFinite(slots[index]) ? slots[index] : 0;
+    input.value = String(Math.round(pct * 100));
+  });
+  updateAutoPromoBudgetTotal(root, slots);
 }
 
 function updatePromoTypeHint(root) {
@@ -3417,26 +3478,37 @@ function bindViewHandlers(route, root) {
     updateAutoPromoSummary(root);
     saveToActiveSlot();
   });
-  on("autoRolloutBudgetPct", "change", (e) => {
-    if (!state.meta.autoRollout) {
-      state.meta.autoRollout = { enabled: false, lastCheckedAt: null };
-    }
-    const raw = Number(e.target.value || 0);
-    const pct = clamp(raw / 100, 0, 1);
-    state.meta.autoRollout.budgetPct = pct;
-    e.target.value = String(Math.round(pct * 100));
-    updateAutoPromoSummary(root);
-    saveToActiveSlot();
-  });
+  const autoPromoBudgetGrid = root.querySelector("#autoPromoBudgetGrid");
+  if (autoPromoBudgetGrid) {
+    autoPromoBudgetGrid.addEventListener("input", (e) => {
+      const input = e.target.closest("[data-auto-promo-pct]");
+      if (!input) return;
+      const index = Number(input.dataset.autoPromoIndex || -1);
+      if (!Number.isFinite(index) || index < 0) return;
+      const slots = ensureAutoPromoBudgetSlots() || [];
+      const raw = Number(input.value || 0);
+      let nextPct = clamp(raw / 100, 0, 1);
+      const totalWithout = slots.reduce((sum, value, idx) => {
+        if (idx === index) return sum;
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      if (totalWithout + nextPct > 1) {
+        nextPct = Math.max(0, 1 - totalWithout);
+        logEvent("Auto promo budget allocation cannot exceed 100%.", "warn");
+      }
+      slots[index] = nextPct;
+      input.value = String(Math.round(nextPct * 100));
+      updateAutoPromoBudgetTotal(root, slots);
+      updateAutoPromoSummary(root);
+      saveToActiveSlot();
+    });
+  }
 
   const autoRolloutToggle = root.querySelector("#autoRolloutToggle");
   if (autoRolloutToggle) {
     autoRolloutToggle.checked = Boolean(state.meta.autoRollout?.enabled);
   }
-  const autoRolloutBudget = root.querySelector("#autoRolloutBudgetPct");
-  if (autoRolloutBudget) {
-    autoRolloutBudget.value = String(Math.round((state.meta.autoRollout?.budgetPct ?? 0) * 100));
-  }
+  syncAutoPromoBudgetControls(root);
   updateAutoPromoSummary(root);
 
   on("refreshMarket", "click", () => {

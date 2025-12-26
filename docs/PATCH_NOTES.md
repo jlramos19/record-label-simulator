@@ -1,5 +1,13 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1749Z)
+- New games now default to Modern Mode (2400), Medium difficulty, and Fast time speed (1h = 1s).
+- Auto-save now starts enabled at a 2-minute interval for new games.
+- Game mode labels now use Mode naming (Founding Mode, Modern Mode) to avoid era overlap.
+
+## 2025-12-26 (RLS-PATCH-20251226-1744Z)
+- Act recommendations now weigh theme/mood preference matches, alignment fit, and catharsis-grade proximity to content quality.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1733Z)
 - Track title generation no longer appends content genre labels in parentheses.
 
@@ -181,7 +189,7 @@
 - Release Desk moved into a dedicated Release tab between Create and Calendar; Calendar now focuses solely on scheduling.
 - Added Project Planner guidance in Release plus project track-count constraints (Single 1-4, EP 5-7, Album 8-32) across create/release flows.
 - Charts now include a Projects mode alongside Tracks for project-level rankings.
-- Modern Era (2400) seeding now generates grouped projects (Singles/EPs/Albums) in the market.
+- Modern Mode (2400) seeding now generates grouped projects (Singles/EPs/Albums) in the market.
 
 ## 2025-12-26 (RLS-PATCH-20251226-0927Z)
 - Added a Touring tab placeholder in the primary nav with a stub Touring Desk view.
@@ -223,7 +231,7 @@
 
 ## 2025-12-26 (RLS-PATCH-20251226-0723Z)
 - Chart scoring now applies label-competition pressure from recent chart share, and rival momentum scales with the same pressure to prevent runaway dominance.
-- Modern-era seed bias reduced (dominant label bonus + seed pick chance) to keep early rankings closer.
+- Modern-mode seed bias reduced (dominant label bonus + seed pick chance) to keep early rankings closer.
 
 ## 2025-12-26 (RLS-PATCH-20251226-0709Z)
 - Added per-session usage logging with session IDs, action trail snapshots, and error capture for faster bug triage.
@@ -435,7 +443,7 @@
 - Trends now refresh weekly from a rolling 28-day ledger and feed a unified ranking across non-community surfaces.
 - Top Trends summary now lives in the header as a top-3 list alongside Top Labels.
 - Community tab now offers Top 8/Top 40 toggles for labels and trends, with a "More" action on #1 to open full lists.
-- Modern era starts now seed the trend ledger from kickoff charts so Community trends populate immediately.
+- Modern mode now seeds the trend ledger from kickoff charts so Community trends populate immediately.
 - CCC signing now deducts cash only on success; rejected attempts lock the Sign button until the next 12AM refresh; precondition failures do not lock out; CCC signing docs added.
 - CCC market pool now persists across reloads until the daily/manual refresh; added preferred Theme/Mood filters and sorting by preference or quality (skill).
 - Broadcast Studios now gate interviews and live performances with day-based slot availability (Sunday-heavy).

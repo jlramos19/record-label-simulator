@@ -1,12 +1,13 @@
 # Auto Promo Budgets
 
-Auto promo uses a fixed percentage of the label wallet cash to fund promo pushes.
+Auto promo uses a percentage-based allocation of the label wallet cash to fund promo pushes.
 
 ## Budget rule
-- Budget = wallet cash * auto promo percent (default 5%).
-- Auto promo percent can be adjusted in Promotions; the percent applies per promo type.
-- Auto promo only runs when the computed budget meets the minimum promo spend ($100).
-- When multiple promo types are selected, the auto promo budget applies per type and total spend scales with the number of types.
+- Allocation is split across up to four auto promo slots (Slot 1-4); each slot has its own budget percent.
+- Total allocation across slots must be 100% or less.
+- Budget per slot = wallet cash * slot percent (default 5% on Slot 1).
+- The slot budget applies per promo type; total spend scales with the number of selected promo types.
+- Auto promo only runs a slot when the computed budget meets the minimum promo spend ($100).
 - Promo weeks still scale from budget using the existing 1-4 week rule.
 
 ## Timing
@@ -16,9 +17,9 @@ Auto promo uses a fixed percentage of the label wallet cash to fund promo pushes
 ## Player rules
 - Auto promo is toggled in the Promotions view.
 - Promotions shows the next auto-run window, budget math, and the steps auto promo will take.
-- Auto promo uses the track assigned to the Promo Push slot.
-- Auto promo derives the Act from the selected Track; Act-only promos are manual.
-- Auto promo skips tracks that are not released, not in an active era, or already in promo weeks.
+- Auto promo uses the Auto Promo slots (up to four) with Act / Project / Track targets.
+- Each slot resolves target priority: Track → Project → Act (Act-only promos are allowed for active eras).
+- Auto promo skips slots with zero allocation, invalid targets, inactive eras, or existing promo weeks.
 - Auto promo uses the current promo type selection and respects facility slot limits.
 
 ## AI rules

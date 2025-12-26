@@ -547,7 +547,8 @@ function renderSlots() {
         else if (type === "track") {
             const track = value ? getTrack(value) : null;
             let trackLabel = track ? track.title : unassignedLabel;
-            if (!track && target === "promo-track" && value) {
+            const isPromoTrackSlot = target === "promo-track" || (typeof target === "string" && target.startsWith("auto-promo-track-"));
+            if (!track && isPromoTrackSlot && value) {
                 const marketEntry = state.marketTracks.find((entry) => entry.trackId === value);
                 if (marketEntry?.title)
                     trackLabel = marketEntry.title;
@@ -4857,7 +4858,7 @@ function renderMainMenu() {
             options.push(`<option value="${i}">${i} min</option>`);
         }
         autoSaveMinutes.innerHTML = options.join("");
-        autoSaveMinutes.value = String(state.meta.autoSave.minutes || 5);
+        autoSaveMinutes.value = String(state.meta.autoSave.minutes || 2);
         autoSaveToggle.checked = Boolean(state.meta.autoSave.enabled);
         const disabled = !session.activeSlot;
         autoSaveMinutes.disabled = disabled;

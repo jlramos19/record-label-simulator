@@ -82,7 +82,7 @@
 
 ## **`User Interface & Controls`**
 
-`Time & Pace: The UI features a top bar with the current in-game date/time and controls to adjust time flow. You can pause, run at normal speed, fast-forward, or skip ahead (24h, 7d, or a custom date/time). Game mode determines the start year: Founding Era begins in 2025; Modern Era begins in 2400 with a seeded market. The date is displayed in a format like SAT - JAN 01, 2400 - 12AM (UTC).`
+`Time & Pace: The UI features a top bar with the current in-game date/time and controls to adjust time flow. You can pause, run at normal speed, fast-forward, or skip ahead (24h, 7d, or a custom date/time). Game mode determines the start year: Founding Mode begins in 2025; Modern Mode begins in 2400 with a seeded market. The date is displayed in a format like SAT - JAN 01, 2400 - 12AM (UTC).`
 
 `Main Panels: The interface is divided into panels:`
 
