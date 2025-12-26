@@ -24,6 +24,10 @@
 - [ ] RLS-UI-ACTIONS-004: Wire live action buttons to navigation + focus behavior (CCC sign, Harmony Hub form, slot placement, Release Desk scheduling, Era Desk conduct, Calendar tours) and log UI events.
 - [ ] RLS-UI-ACTIONS-005: Add a "not live yet" modal or toast for simulated/placeholder actions with the current behavior note (ex: negotiate auto-resolves on sign).
 - [ ] RLS-UI-TRACK-HISTORY-001: Add an Eras tracks panel chart history table with DNC for non-charting weeks.
+- [ ] RLS-TOUR-TAB-001: Add Touring tab (right of Promotions) with planner, venue finder, route timeline, and budget panels.
+- [ ] RLS-TOUR-VENUES-001: Implement venue booking slots + availability checks, with warning reasons for conflicts or missing requirements.
+- [ ] RLS-TOUR-CALENDAR-001: Write Calendar integration for tour dates (blocking conflicts, visible warnings, and event log entries).
+- [ ] RLS-TOUR-DATA-001: Define touring data model (tour, tour legs, bookings, attendance projections, revenue estimates).
 - [x] RLS-UI-COMMUNITY-RANKINGS-001: Split Community rankings toggles (Labels: Top 3/Top 8, Trends: Top 3/Top 40), with a full-list "More" action on #1.
 - [ ] Quarter-hour ticks: show stamina depletion + recharge every in-game hour across UI surfaces.
 - [ ] Producer overuse: add observability (why overused; when overuse strikes happen; when/why departure triggers).
