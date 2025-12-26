@@ -1,8 +1,11 @@
 # Patch Notes
 
+<<<<<<< HEAD
 ## 2025-12-26 (RLS-PATCH-20251226-1047Z)
 - Charts view now relies on the header for Top Labels by removing the label rankings sidebar.
 
+=======
+>>>>>>> a6701e101b0d396f50ccc34b43153e47a3d378af
 ## 2025-12-26 (RLS-PATCH-20251226-1037Z)
 - Release tab now shows a Ready-only badge for masters awaiting release.
 

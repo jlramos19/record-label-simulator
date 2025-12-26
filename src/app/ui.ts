@@ -1102,9 +1102,15 @@ async function handleExternalStorageClear(root) {
 }
 
 function chartScopeKey(chartKey) {
-  if (chartKey === "global") return "global";
-  if (NATIONS.includes(chartKey)) return `nation:${chartKey}`;
-  return `region:${chartKey}`;
+  const base = chartKey === "global"
+    ? "global"
+    : NATIONS.includes(chartKey)
+      ? `nation:${chartKey}`
+      : `region:${chartKey}`;
+  const contentType = state.ui?.chartContentType || "tracks";
+  if (contentType === "promotions") return `promo:${base}`;
+  if (contentType === "tours") return `tour:${base}`;
+  return base;
 }
 
 function chartScopeLabel(chartKey) {
@@ -1145,7 +1151,14 @@ async function applyChartHistoryWeek(week, chartKey) {
 async function renderChartHistoryModal() {
   const list = $("chartHistoryList");
   const scopeLabel = chartScopeLabel(state.ui.activeChart || "global");
-  const contentLabel = state.ui.chartContentType === "projects" ? "Projects" : "Tracks";
+  const contentType = state.ui.chartContentType || "tracks";
+  const contentLabel = contentType === "projects"
+    ? "Projects"
+    : contentType === "promotions"
+      ? "Promotions"
+      : contentType === "tours"
+        ? "Touring"
+        : "Tracks";
   const scopeEl = $("chartHistoryScope");
   if (scopeEl) scopeEl.textContent = `Scope: ${scopeLabel} (${contentLabel})`;
   if (!list) return;
@@ -4622,6 +4635,19 @@ function runPromotion() {
     const budget = budgets[promoType];
     const weeks = weeksByType[promoType] || boostWeeks;
     logUiEvent("action_submit", { action: "promotion", actId: act.id, trackId: trackContext.track?.id || null, budget, weeks, promoType, totalCost });
+    game.recordPromoContent({
+      promoType,
+      actId: act.id,
+      actName: act.name,
+      trackId: trackContext.track?.id || null,
+      marketId: market?.id || null,
+      trackTitle: trackContext.track?.title || null,
+      projectName: trackContext.track?.projectName || null,
+      label: state.label?.name || "",
+      budget,
+      weeks,
+      isPlayer: true
+    });
     if (typeof postFromTemplate === "function") {
       postFromTemplate(promoType, {
         trackTitle: trackContext.track ? trackContext.track.title : act.name,

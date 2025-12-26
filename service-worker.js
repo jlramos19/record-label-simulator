@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 let releaseStamp = { patchId: "RLS-PATCH-20251226-1047Z" };
+=======
+let releaseStamp = { patchId: "RLS-PATCH-20251226-1037Z" };
+>>>>>>> a6701e101b0d396f50ccc34b43153e47a3d378af
 try {
   importScripts("assets/js/data/release.js");
   if (self.RLS_RELEASE?.patchId) {
