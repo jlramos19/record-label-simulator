@@ -341,6 +341,17 @@
   </div>
 </div>
 
+<div id="rankingWindow" class="panel floating-window hidden" role="dialog" aria-hidden="true">
+  <div id="rankingWindowHead" class="card-head floating-window-head">
+    <h2 id="rankingWindowTitle">Rankings</h2>
+    <button id="rankingWindowClose" type="button" class="ghost mini">Close</button>
+  </div>
+  <div class="card-body">
+    <div id="rankingWindowMeta" class="tiny muted"></div>
+    <div id="rankingWindowList" class="list"></div>
+  </div>
+</div>
+
 <div class="shell">
   <header class="app-header">
     <div class="hud-left">
@@ -393,10 +404,12 @@
         <div class="world-summary-col">
           <div class="stat-label">Top Labels</div>
           <div id="topLabelsHeaderList" class="top-mini-list"></div>
+          <button id="topLabelsMoreBtn" type="button" class="ghost mini top-mini-action">More</button>
         </div>
         <div class="world-summary-col">
           <div class="stat-label">Top Trends</div>
           <div id="topTrendsHeaderList" class="top-mini-list"></div>
+          <button id="topTrendsMoreBtn" type="button" class="ghost mini top-mini-action">More</button>
         </div>
       </div>
     </div>
@@ -1037,7 +1050,7 @@
 </template>
 
 <template id="view-world">
-  <div class="view view--world">
+  <div class="view view--world view--single">
     <section class="view-main">
       <div class="panel card panel--scroll" data-panel="ccc-market">
         <div class="card-head">
@@ -1081,48 +1094,6 @@
         </div>
       </div>
     </section>
-    <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="top-labels">
-        <h2>Top Labels</h2>
-        <div class="card-body">
-          <div class="ranking-controls">
-            <div class="filter-row">
-              <label class="toggle-pill"><input type="radio" name="labelRankingSize" data-ranking-limit="8" value="8">Top 8</label>
-              <label class="toggle-pill"><input type="radio" name="labelRankingSize" data-ranking-limit="40" value="40">Top 40</label>
-            </div>
-          </div>
-          <div id="labelRankingMeta" class="tiny muted"></div>
-          <div id="topLabelsWorldList" class="list"></div>
-        </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="trends">
-        <h2>Top Trends</h2>
-        <div class="card-body">
-          <div class="ranking-controls">
-            <div class="filter-row">
-              <label class="toggle-pill"><input type="radio" name="trendRankingSize" data-ranking-limit="8" value="8">Top 8</label>
-              <label class="toggle-pill"><input type="radio" name="trendRankingSize" data-ranking-limit="40" value="40">Top 40</label>
-            </div>
-          </div>
-          <div class="trend-filters">
-            <div class="field">
-              <label for="trendScopeSelect">Scope</label>
-              <select id="trendScopeSelect">
-                <option value="global">Global</option>
-                <option value="nation">Nation</option>
-                <option value="region">Region</option>
-              </select>
-            </div>
-            <div class="field">
-              <label id="trendScopeTargetLabel" for="trendScopeTarget">Nation/Region</label>
-              <select id="trendScopeTarget"></select>
-            </div>
-          </div>
-          <div id="trendScopeMeta" class="tiny muted"></div>
-          <div id="trendList" class="list"></div>
-        </div>
-      </div>
-    </aside>
   </div>
 </template>
 

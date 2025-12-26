@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getOwnedStudioSlots, getReleaseAsapAt, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getOwnedStudioSlots, getReleaseAsapAt, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeRoleIds, parseTrackRoleTarget, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendReleasePlan, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { CalendarView } from "../../calendar.js";
 import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
 const ACCESSIBLE_TEXT = { dark: "#0b0f14", light: "#ffffff" };
@@ -677,7 +677,7 @@ function renderCommunityLabels() {
     const listEl = $("topLabelsWorldList");
     if (!listEl)
         return;
-    const limit = getCommunityRankingLimit();
+    const limit = getCommunityLabelRankingLimit();
     const { markup, visibleCount, totalCount } = buildLabelRankingList({ limit, showMore: true });
     listEl.innerHTML = markup;
     const meta = $("labelRankingMeta");
@@ -719,6 +719,17 @@ function renderTopBar() {
     const trendsList = $("topTrendsHeaderList");
     if (trendsList)
         trendsList.innerHTML = trendsMarkup;
+    const labelsMoreBtn = $("topLabelsMoreBtn");
+    if (labelsMoreBtn)
+        labelsMoreBtn.disabled = !ranking.length;
+    const trendsMoreBtn = $("topTrendsMoreBtn");
+    if (trendsMoreBtn)
+        trendsMoreBtn.disabled = !trendRanking.length;
+    const rankingWindow = $("rankingWindow");
+    if (rankingWindow && !rankingWindow.classList.contains("hidden")) {
+        const category = rankingWindow.dataset.category || "labels";
+        renderRankingWindow(category);
+    }
     if ($("topActName")) {
         const topAct = getTopActSnapshot();
         $("topActName").textContent = topAct ? `Top Act: ${topAct.name}` : "Top Act: -";
@@ -2238,7 +2249,7 @@ function renderTrends() {
         targetSelect.disabled = true;
         targetSelect.innerHTML = `<option value="global">Global</option>`;
     }
-    const limit = getCommunityRankingLimit();
+    const limit = getCommunityTrendRankingLimit();
     const { markup, visibleCount, totalCount } = buildTrendRankingList({ limit, showMore: true });
     listEl.innerHTML = markup;
     if (scopeMeta) {
@@ -2284,6 +2295,46 @@ function renderRankingModal(category) {
         }
     }
     openOverlay("rankingModal");
+}
+function renderRankingWindow(category) {
+    const windowEl = $("rankingWindow");
+    const titleEl = $("rankingWindowTitle");
+    const listEl = $("rankingWindowList");
+    const metaEl = $("rankingWindowMeta");
+    if (!windowEl || !titleEl || !listEl)
+        return;
+    const isLabels = category === "labels";
+    if (isLabels) {
+        const { markup, visibleCount, totalCount } = buildLabelRankingList({ limit: 8 });
+        titleEl.textContent = "Top Labels";
+        listEl.innerHTML = markup;
+        if (metaEl) {
+            if (!totalCount) {
+                metaEl.textContent = "No labels ranked yet.";
+            }
+            else if (visibleCount >= totalCount) {
+                metaEl.textContent = `Showing ${formatCount(totalCount)} labels.`;
+            }
+            else {
+                metaEl.textContent = `Showing Top ${formatCount(visibleCount)} of ${formatCount(totalCount)} labels.`;
+            }
+        }
+        return;
+    }
+    const { markup, visibleCount, totalCount } = buildTrendRankingList({ limit: 40 });
+    titleEl.textContent = "Top Trends";
+    listEl.innerHTML = markup;
+    if (metaEl) {
+        if (!totalCount) {
+            metaEl.textContent = "No trends available yet.";
+        }
+        else if (visibleCount >= totalCount) {
+            metaEl.textContent = `Showing ${formatCount(totalCount)} global trends.`;
+        }
+        else {
+            metaEl.textContent = `Showing Global Top ${formatCount(visibleCount)} of ${formatCount(totalCount)} trends.`;
+        }
+    }
 }
 function renderCreateTrends() {
     const listEl = $("createTrendList");
@@ -3305,7 +3356,6 @@ function renderActiveView(view) {
     else if (active === "world") {
         renderMarket();
         renderPopulation();
-        renderCommunityRankings();
         renderGenreIndex();
         renderEconomySummary();
         renderQuests();
@@ -3335,4 +3385,4 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderReleaseDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderSocialFeed, renderMainMenu, renderRankingModal, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };
+export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderReleaseDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };

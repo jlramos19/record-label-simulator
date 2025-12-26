@@ -7,10 +7,10 @@ This doc lists every surface that renders trend data and the display rules for t
 - Trend refresh cadence is defined in `docs/systems/trends/trends-cadence.md`.
 
 ## Surfaces
-- Header (global top bar): Top 3 trends, rendered beside Top Labels.
+- Header (global top bar): Top 3 trends, rendered beside Top Labels, with a "More" button opening the Top 40 window.
 - Dashboard stat card: Top 1 trend (from `trendRanking[0]`).
 - Create view: Uses the header summary (no separate Top Trends side panel).
-- Community (world) view: Top 8/Top 40 toggle and a "More" action on #1 to open the full list (see `docs/ui/community-trends.md`).
+- Floating ranking window: opened from the header "More" button to show the Top 40 list (see `docs/ui/community-trends.md`).
 
 ## Related
 - `docs/systems/time/weekly-timing.md`

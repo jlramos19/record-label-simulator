@@ -1,5 +1,12 @@
 # Patch Notes
 
+## 2025-12-25 (RLS-PATCH-20251226-0206Z)
+- Header Top Labels/Top Trends now include persistent "More" buttons that open a draggable, scrollable rankings window (Top 8 labels, Top 40 trends).
+- Removed Top Labels/Top Trends panels from the Community view.
+
+## 2025-12-25 (RLS-PATCH-20251226-0145Z)
+- Community rankings now use separate size toggles: Labels (Top 3/Top 8) and Trends (Top 3/Top 40).
+
 ## 2025-12-25 (RLS-PATCH-20251225-1717Z)
 - Guarded Creator roster rendering when the roster panel isn't mounted to prevent CCC sign crashes.
 

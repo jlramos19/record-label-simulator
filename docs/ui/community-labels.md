@@ -1,14 +1,14 @@
-# Community Labels (World View)
+# Community Labels (Header Window)
 
-The Community (world) view is the canonical place to browse the global Top Labels list.
+The header Top Labels list is the canonical entry point for global label rankings.
 
 ## Display rules
 - Ranking source: global chart points.
-- Ranking size toggle: Top 8 or Top 40 (shared with trends).
-- "More" on #1 opens the full list (all ranked labels).
+- Header shows the Top 3 labels as a preview.
+- "More" opens a draggable, scrollable floating window with the Top 8 list.
 
 ## Notes
-- Header shows the Top 3 labels as a preview.
+- The world view no longer includes a Top Labels panel.
 
 ## Related
 - `docs/ui/community-trends.md`

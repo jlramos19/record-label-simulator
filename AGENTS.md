@@ -13,3 +13,4 @@
 - References: `docs/DECISIONS.md` and `docs/CONTRADICTIONS.md`.
 - Coordination: Other AI agents may work in this repo; coordinate changes, avoid overlapping edits, and stop to ask when conflicts appear.
 - Coordination addendum: If other agents made local changes that do not conflict with the task, incorporate them into the current pass.
+- Git status handling: If `git status` shows local changes, proceed on top of them and incorporate them when there is no conflict; ask if there is a conflict or ambiguity.

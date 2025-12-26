@@ -1,11 +1,11 @@
-# Community Trends (World View)
+# Community Trends (Header Window)
 
-The Community (world) view is the canonical place to browse the global Top Trends list.
+The header Top Trends list is the canonical entry point for global trend rankings.
 
 ## Display rules
 - Scope: Global only.
-- Ranking size toggle: Top 8 or Top 40 (shared with labels).
-- "More" on #1 opens the full list (all available trends).
+- Header shows the Top 3 trends as a preview.
+- "More" opens a draggable, scrollable floating window with the Top 40 list.
 - Update timing: Friday 12:00 (trend refresh time).
 
 ## Filtering rules
@@ -15,6 +15,7 @@ Trends must satisfy both:
 
 ## Notes
 - This view reflects the same weekly trend ledger defined in `docs/systems/trends/trends-cadence.md`.
+- The world view no longer includes a Top Trends panel.
 
 ## Related
 - `docs/systems/time/weekly-timing.md`

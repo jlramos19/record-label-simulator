@@ -25,7 +25,6 @@ import {
   renderCalendarList,
   renderCalendarView,
   renderCharts,
-  renderCommunityRankings,
   renderCreateStageControls,
   renderCreators,
   renderEraStatus,
@@ -35,7 +34,7 @@ import {
   renderMainMenu,
   renderMarket,
   renderQuickRecipes,
-  renderRankingModal,
+  renderRankingWindow,
   renderReleaseDesk,
   renderRoleActions,
   renderSlots,
@@ -111,7 +110,6 @@ const {
   formatMoney,
   formatDate,
   formatWeekRangeLabel,
-  getCommunityRankingLimit,
   handleFromName,
   setSlotTarget,
   assignToSlot,
@@ -268,6 +266,96 @@ function handleCalendarPointerEnd(e) {
   shiftCalendarAnchorWeek(direction);
 }
 
+const RANKING_WINDOW_MARGIN = 12;
+let rankingWindowDrag = null;
+
+function clampRankingWindowPosition(left, top, width, height) {
+  const maxLeft = Math.max(RANKING_WINDOW_MARGIN, window.innerWidth - width - RANKING_WINDOW_MARGIN);
+  const maxTop = Math.max(RANKING_WINDOW_MARGIN, window.innerHeight - height - RANKING_WINDOW_MARGIN);
+  return {
+    left: clamp(left, RANKING_WINDOW_MARGIN, maxLeft),
+    top: clamp(top, RANKING_WINDOW_MARGIN, maxTop)
+  };
+}
+
+function ensureRankingWindowPosition(windowEl) {
+  if (!windowEl.dataset.positioned) {
+    windowEl.style.top = "140px";
+    windowEl.style.right = "16px";
+    windowEl.dataset.positioned = "true";
+    return;
+  }
+  const rect = windowEl.getBoundingClientRect();
+  const next = clampRankingWindowPosition(rect.left, rect.top, rect.width, rect.height);
+  windowEl.style.left = `${next.left}px`;
+  windowEl.style.top = `${next.top}px`;
+  windowEl.style.right = "auto";
+}
+
+function openRankingWindow(category) {
+  const windowEl = $("rankingWindow");
+  if (!windowEl) return;
+  ensureRankingWindowPosition(windowEl);
+  windowEl.dataset.category = category;
+  windowEl.classList.remove("hidden");
+  windowEl.setAttribute("aria-hidden", "false");
+  renderRankingWindow(category);
+}
+
+function closeRankingWindow() {
+  const windowEl = $("rankingWindow");
+  if (!windowEl) return;
+  windowEl.classList.add("hidden");
+  windowEl.setAttribute("aria-hidden", "true");
+}
+
+function setupRankingWindowDrag() {
+  const windowEl = $("rankingWindow");
+  const head = $("rankingWindowHead");
+  if (!windowEl || !head || head.dataset.dragBound) return;
+  head.dataset.dragBound = "true";
+  head.addEventListener("pointerdown", (event) => {
+    if (event.button && event.button !== 0) return;
+    if (event.target.closest("button")) return;
+    const rect = windowEl.getBoundingClientRect();
+    rankingWindowDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startLeft: rect.left,
+      startTop: rect.top,
+      width: rect.width,
+      height: rect.height
+    };
+    windowEl.style.left = `${rect.left}px`;
+    windowEl.style.top = `${rect.top}px`;
+    windowEl.style.right = "auto";
+    windowEl.setAttribute("data-dragging", "true");
+    head.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+  head.addEventListener("pointermove", (event) => {
+    if (!rankingWindowDrag || event.pointerId !== rankingWindowDrag.pointerId) return;
+    const dx = event.clientX - rankingWindowDrag.startX;
+    const dy = event.clientY - rankingWindowDrag.startY;
+    const nextLeft = rankingWindowDrag.startLeft + dx;
+    const nextTop = rankingWindowDrag.startTop + dy;
+    const next = clampRankingWindowPosition(nextLeft, nextTop, rankingWindowDrag.width, rankingWindowDrag.height);
+    windowEl.style.left = `${next.left}px`;
+    windowEl.style.top = `${next.top}px`;
+  });
+  const endDrag = (event) => {
+    if (!rankingWindowDrag || event.pointerId !== rankingWindowDrag.pointerId) return;
+    rankingWindowDrag = null;
+    windowEl.removeAttribute("data-dragging");
+    if (typeof head.releasePointerCapture === "function") {
+      head.releasePointerCapture(event.pointerId);
+    }
+  };
+  head.addEventListener("pointerup", endDrag);
+  head.addEventListener("pointercancel", endDrag);
+}
+
 function roleLabel(role) {
   return ROLE_LABELS[role] || role;
 }
@@ -418,9 +506,7 @@ const VIEW_DEFAULTS = {
     "label-settings": VIEW_PANEL_STATES.open
   },
   world: {
-    "ccc-market": VIEW_PANEL_STATES.open,
-    "trends": VIEW_PANEL_STATES.open,
-    "top-labels": VIEW_PANEL_STATES.open
+    "ccc-market": VIEW_PANEL_STATES.open
   },
   logs: {
     "eyerisocial": VIEW_PANEL_STATES.open,
@@ -1475,6 +1561,9 @@ function bindGlobalHandlers() {
     updateTimeControlButtons();
     syncTimeControlAria();
   });
+  on("topLabelsMoreBtn", "click", () => openRankingWindow("labels"));
+  on("topTrendsMoreBtn", "click", () => openRankingWindow("trends"));
+  on("rankingWindowClose", "click", () => closeRankingWindow());
   on("tutorialBtn", "click", () => {
     renderRoleActions();
     openOverlay("tutorialModal");
@@ -1934,34 +2023,6 @@ function bindViewHandlers(route, root) {
         renderTracks();
         saveToActiveSlot();
       });
-    });
-  }
-
-  if (route === "world") {
-    const syncRankingControls = () => {
-      const limit = getCommunityRankingLimit();
-      root.querySelectorAll("[data-ranking-limit]").forEach((input) => {
-        const value = Number(input.dataset.rankingLimit || input.value);
-        input.checked = value === limit;
-      });
-    };
-    syncRankingControls();
-    root.addEventListener("change", (e) => {
-      const input = e.target.closest("[data-ranking-limit]");
-      if (!input) return;
-      const next = Number(input.dataset.rankingLimit || input.value);
-      if (!Number.isFinite(next)) return;
-      state.ui.communityRankingLimit = next;
-      syncRankingControls();
-      renderCommunityRankings();
-      saveToActiveSlot();
-    });
-    root.addEventListener("click", (e) => {
-      const moreBtn = e.target.closest("[data-ranking-more]");
-      if (!moreBtn) return;
-      const category = moreBtn.dataset.rankingMore;
-      if (!category) return;
-      renderRankingModal(category);
     });
   }
 
@@ -3754,6 +3815,7 @@ export async function initUI() {
   setupOverlayDismissals();
   window.addEventListener("resize", () => clampAllPanels());
   bindGlobalHandlers();
+  setupRankingWindowDrag();
   updateTimeControlButtons();
   syncTimeControlAria();
   initRouter();

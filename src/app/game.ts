@@ -48,8 +48,11 @@ const STAMINA_OVERUSE_STRIKES = 1;
 const STAMINA_REGEN_PER_HOUR = 50;
 const RESOURCE_TICK_LEDGER_LIMIT = 24;
 const SEED_CALIBRATION_YEAR = 2400;
-const COMMUNITY_RANKING_LIMITS = [8, 40];
-const COMMUNITY_RANKING_DEFAULT = 40;
+const COMMUNITY_LABEL_RANKING_LIMITS = [3, 8];
+const COMMUNITY_LABEL_RANKING_DEFAULT = 8;
+const COMMUNITY_TREND_RANKING_LIMITS = [3, 40];
+const COMMUNITY_TREND_RANKING_DEFAULT = 40;
+const COMMUNITY_LEGACY_RANKING_LIMITS = [8, 40];
 const TREND_DETAIL_COUNT = 3;
 const TREND_WINDOW_WEEKS = 4;
 const MARKET_TRACK_ACTIVE_LIMIT = 600;
@@ -464,6 +467,8 @@ function makeDefaultState() {
       activeChart: "global",
       trendScopeType: "global",
       trendScopeTarget: "Annglora",
+      labelRankingLimit: COMMUNITY_LABEL_RANKING_DEFAULT,
+      trendRankingLimit: COMMUNITY_TREND_RANKING_DEFAULT,
       genreTheme: "All",
       genreMood: "All",
       slotTarget: null,
@@ -6732,6 +6737,8 @@ function normalizeState() {
       activeChart: "global",
       trendScopeType: "global",
       trendScopeTarget: defaultTrendNation(),
+      labelRankingLimit: COMMUNITY_LABEL_RANKING_DEFAULT,
+      trendRankingLimit: COMMUNITY_TREND_RANKING_DEFAULT,
       genreTheme: "All",
       genreMood: "All",
       slotTarget: null,
@@ -6752,7 +6759,13 @@ function normalizeState() {
   if (!state.ui.activeChart) state.ui.activeChart = "global";
   if (!state.ui.trendScopeType) state.ui.trendScopeType = "global";
   if (!state.ui.trendScopeTarget) state.ui.trendScopeTarget = defaultTrendNation();
-  state.ui.communityRankingLimit = normalizeCommunityRankingLimit(state.ui.communityRankingLimit);
+  const legacyRanking = applyLegacyCommunityRankingLimit(state.ui.communityRankingLimit);
+  if (legacyRanking) {
+    if (typeof state.ui.labelRankingLimit === "undefined") state.ui.labelRankingLimit = legacyRanking.label;
+    if (typeof state.ui.trendRankingLimit === "undefined") state.ui.trendRankingLimit = legacyRanking.trend;
+  }
+  state.ui.labelRankingLimit = normalizeCommunityLabelRankingLimit(state.ui.labelRankingLimit);
+  state.ui.trendRankingLimit = normalizeCommunityTrendRankingLimit(state.ui.trendRankingLimit);
   if (!state.ui.promoType) state.ui.promoType = DEFAULT_PROMO_TYPE;
   if (!Array.isArray(state.ui.promoTypes) || !state.ui.promoTypes.length) {
     state.ui.promoTypes = [state.ui.promoType || DEFAULT_PROMO_TYPE];
@@ -7598,15 +7611,36 @@ function getLabelRanking(limit) {
   return typeof limit === "number" ? ranking.slice(0, limit) : ranking;
 }
 
-function normalizeCommunityRankingLimit(value) {
+function normalizeCommunityLabelRankingLimit(value) {
   const parsed = Number(value);
-  return COMMUNITY_RANKING_LIMITS.includes(parsed) ? parsed : COMMUNITY_RANKING_DEFAULT;
+  return COMMUNITY_LABEL_RANKING_LIMITS.includes(parsed) ? parsed : COMMUNITY_LABEL_RANKING_DEFAULT;
 }
 
-function getCommunityRankingLimit() {
+function normalizeCommunityTrendRankingLimit(value) {
+  const parsed = Number(value);
+  return COMMUNITY_TREND_RANKING_LIMITS.includes(parsed) ? parsed : COMMUNITY_TREND_RANKING_DEFAULT;
+}
+
+function applyLegacyCommunityRankingLimit(value) {
+  const legacy = Number(value);
+  if (!COMMUNITY_LEGACY_RANKING_LIMITS.includes(legacy)) return null;
+  return {
+    label: legacy === 8 ? 8 : COMMUNITY_LABEL_RANKING_DEFAULT,
+    trend: legacy === 8 ? 3 : COMMUNITY_TREND_RANKING_DEFAULT
+  };
+}
+
+function getCommunityLabelRankingLimit() {
   if (!state.ui) state.ui = {};
-  const normalized = normalizeCommunityRankingLimit(state.ui.communityRankingLimit);
-  state.ui.communityRankingLimit = normalized;
+  const normalized = normalizeCommunityLabelRankingLimit(state.ui.labelRankingLimit);
+  state.ui.labelRankingLimit = normalized;
+  return normalized;
+}
+
+function getCommunityTrendRankingLimit() {
+  if (!state.ui) state.ui = {};
+  const normalized = normalizeCommunityTrendRankingLimit(state.ui.trendRankingLimit);
+  state.ui.trendRankingLimit = normalized;
   return normalized;
 }
 
@@ -8125,7 +8159,8 @@ export {
   getAdjustedStageHours,
   getAdjustedTotalStageHours,
   getBusyCreatorIds,
-  getCommunityRankingLimit,
+  getCommunityLabelRankingLimit,
+  getCommunityTrendRankingLimit,
   getCreator,
   getCreatorPortraitUrl,
   getCreatorSignLockout,

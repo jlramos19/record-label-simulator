@@ -48,7 +48,8 @@ import {
   getAct,
   getActiveEras,
   getBusyCreatorIds,
-  getCommunityRankingLimit,
+  getCommunityLabelRankingLimit,
+  getCommunityTrendRankingLimit,
   getCreator,
   getCreatorPortraitUrl,
   getCreatorSignLockout,
@@ -762,7 +763,7 @@ function buildLabelRankingList({ limit = null, showMore = false } = {}) {
 function renderCommunityLabels() {
   const listEl = $("topLabelsWorldList");
   if (!listEl) return;
-  const limit = getCommunityRankingLimit();
+  const limit = getCommunityLabelRankingLimit();
   const { markup, visibleCount, totalCount } = buildLabelRankingList({ limit, showMore: true });
   listEl.innerHTML = markup;
   const meta = $("labelRankingMeta");
@@ -801,6 +802,15 @@ function renderTopBar() {
   if (headerList) headerList.innerHTML = labelsMarkup;
   const trendsList = $("topTrendsHeaderList");
   if (trendsList) trendsList.innerHTML = trendsMarkup;
+  const labelsMoreBtn = $("topLabelsMoreBtn");
+  if (labelsMoreBtn) labelsMoreBtn.disabled = !ranking.length;
+  const trendsMoreBtn = $("topTrendsMoreBtn");
+  if (trendsMoreBtn) trendsMoreBtn.disabled = !trendRanking.length;
+  const rankingWindow = $("rankingWindow");
+  if (rankingWindow && !rankingWindow.classList.contains("hidden")) {
+    const category = rankingWindow.dataset.category || "labels";
+    renderRankingWindow(category);
+  }
   if ($("topActName")) {
     const topAct = getTopActSnapshot();
     $("topActName").textContent = topAct ? `Top Act: ${topAct.name}` : "Top Act: -";
@@ -2305,7 +2315,7 @@ function renderTrends() {
     targetSelect.disabled = true;
     targetSelect.innerHTML = `<option value="global">Global</option>`;
   }
-  const limit = getCommunityRankingLimit();
+  const limit = getCommunityTrendRankingLimit();
   const { markup, visibleCount, totalCount } = buildTrendRankingList({ limit, showMore: true });
   listEl.innerHTML = markup;
   if (scopeMeta) {
@@ -2349,6 +2359,42 @@ function renderRankingModal(category) {
     }
   }
   openOverlay("rankingModal");
+}
+
+function renderRankingWindow(category) {
+  const windowEl = $("rankingWindow");
+  const titleEl = $("rankingWindowTitle");
+  const listEl = $("rankingWindowList");
+  const metaEl = $("rankingWindowMeta");
+  if (!windowEl || !titleEl || !listEl) return;
+  const isLabels = category === "labels";
+  if (isLabels) {
+    const { markup, visibleCount, totalCount } = buildLabelRankingList({ limit: 8 });
+    titleEl.textContent = "Top Labels";
+    listEl.innerHTML = markup;
+    if (metaEl) {
+      if (!totalCount) {
+        metaEl.textContent = "No labels ranked yet.";
+      } else if (visibleCount >= totalCount) {
+        metaEl.textContent = `Showing ${formatCount(totalCount)} labels.`;
+      } else {
+        metaEl.textContent = `Showing Top ${formatCount(visibleCount)} of ${formatCount(totalCount)} labels.`;
+      }
+    }
+    return;
+  }
+  const { markup, visibleCount, totalCount } = buildTrendRankingList({ limit: 40 });
+  titleEl.textContent = "Top Trends";
+  listEl.innerHTML = markup;
+  if (metaEl) {
+    if (!totalCount) {
+      metaEl.textContent = "No trends available yet.";
+    } else if (visibleCount >= totalCount) {
+      metaEl.textContent = `Showing ${formatCount(totalCount)} global trends.`;
+    } else {
+      metaEl.textContent = `Showing Global Top ${formatCount(visibleCount)} of ${formatCount(totalCount)} trends.`;
+    }
+  }
 }
 
 function renderCreateTrends() {
@@ -3333,7 +3379,6 @@ function renderActiveView(view) {
   } else if (active === "world") {
     renderMarket();
     renderPopulation();
-    renderCommunityRankings();
     renderGenreIndex();
     renderEconomySummary();
     renderQuests();
@@ -3389,6 +3434,7 @@ export {
   renderSocialFeed,
   renderMainMenu,
   renderRankingModal,
+  renderRankingWindow,
   renderAll,
   renderActiveStudiosSelect,
   renderCreateStageTrackSelect,
