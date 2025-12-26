@@ -2410,7 +2410,7 @@ function bindViewHandlers(route, root) {
         openOverlay("calendarModal");
     });
     on("promoBtn", "click", runPromotion);
-    on("promoFocusPickBtn", "click", pickPromoTrackFromFocus);
+    on("promoFocusPickBtn", "click", pickPromoTargetsFromFocus);
     on("autoRolloutToggle", "change", (e) => {
         if (!state.meta.autoRollout) {
             state.meta.autoRollout = { enabled: false, lastCheckedAt: null };
@@ -3065,7 +3065,12 @@ function updateSlotDropdowns() {
             });
         }
         else if (type === "act") {
-            state.acts.forEach((act) => {
+            let acts = state.acts;
+            if (target === "promo-act") {
+                const activeActIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.actId));
+                acts = state.acts.filter((act) => activeActIds.has(act.id));
+            }
+            acts.forEach((act) => {
                 options.push({ value: act.id, label: act.name });
             });
         }
@@ -3073,7 +3078,13 @@ function updateSlotDropdowns() {
             let tracks = state.tracks;
             if (target === "promo-track") {
                 const activeEraIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.id));
-                tracks = state.tracks.filter((track) => track.status === "Released" && track.eraId && activeEraIds.has(track.eraId));
+                tracks = state.tracks.filter((track) => {
+                    if (!track.eraId || !activeEraIds.has(track.eraId))
+                        return false;
+                    if (track.status === "Released")
+                        return true;
+                    return state.releaseQueue.some((entry) => entry.trackId === track.id);
+                });
             }
             tracks.forEach((track) => {
                 options.push({ value: track.id, label: `${track.title} (${track.status})` });
@@ -3761,13 +3772,18 @@ function renameActById(actId, nextName) {
     renderSlots();
     saveToActiveSlot();
 }
-function pickPromoTrackFromFocus() {
+function pickPromoTargetsFromFocus() {
     const focusEra = getFocusedEra();
     const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
     const fallbackEra = !focusEra && activeEras.length === 1 ? activeEras[0] : null;
     const targetEra = focusEra || fallbackEra;
     if (!targetEra) {
-        logEvent("Select a focus era before picking a promo track.", "warn");
+        logEvent("Select a focus era before picking promo targets.", "warn");
+        return;
+    }
+    const act = targetEra.actId ? getAct(targetEra.actId) : null;
+    if (!act) {
+        logEvent("Act not found for the focused era.", "warn");
         return;
     }
     const candidates = state.tracks.filter((track) => {
@@ -3778,7 +3794,14 @@ function pickPromoTrackFromFocus() {
         return state.releaseQueue.some((entry) => entry.trackId === track.id);
     });
     if (!candidates.length) {
-        logEvent("No released or scheduled tracks found for the focused era.", "warn");
+        state.ui.promoSlots.actId = act.id;
+        state.ui.promoSlots.trackId = null;
+        logUiEvent("action_submit", { action: "promo_focus_pick", eraId: targetEra.id, actId: act.id, trackId: null });
+        logEvent(`Promo act set to "${act.name}". No scheduled or released tracks found for this era.`);
+        renderSlots();
+        renderTracks();
+        updatePromoTypeHint(document);
+        saveToActiveSlot();
         return;
     }
     const picked = candidates.reduce((latest, track) => {
@@ -3792,9 +3815,10 @@ function pickPromoTrackFromFocus() {
         const entryStamp = entrySchedule || 0;
         return entryStamp >= latestStamp ? track : latest;
     }, candidates[0]);
+    state.ui.promoSlots.actId = act.id;
     state.ui.promoSlots.trackId = picked.id;
-    logUiEvent("action_submit", { action: "promo_focus_pick", eraId: targetEra.id, trackId: picked.id });
-    logEvent(`Promo slot set to "${picked.title}".`);
+    logUiEvent("action_submit", { action: "promo_focus_pick", eraId: targetEra.id, actId: act.id, trackId: picked.id });
+    logEvent(`Promo targets set to Act "${act.name}" + "${picked.title}".`);
     renderSlots();
     renderTracks();
     updatePromoTypeHint(document);
