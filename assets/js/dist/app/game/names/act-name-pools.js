@@ -24,7 +24,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "beige", en: "Beige", es: { m: "Beiges", f: "Beiges" }, ko: "베이지" },
         { key: "cream", en: "Cream", es: { m: "Cremas", f: "Cremas" }, ko: "크림" },
         { key: "olive", en: "Olive", es: { m: "Olivas", f: "Olivas" }, ko: "올리브" },
-        { key: "amber", en: "Amber", es: { m: "Ámbares", f: "Ámbares" }, ko: "호박빛" }
+        { key: "amber", en: "Amber", es: { m: "Ámbares", f: "Ámbares" }, ko: "호박빛" },
     ],
     light: [
         { key: "bright", en: "Bright", es: { m: "Brillantes", f: "Brillantes" }, ko: "밝은" },
@@ -51,7 +51,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "moonlit", en: "Moonlit", es: { m: "Lunares", f: "Lunares" }, ko: "달빛받은" },
         { key: "fluorescent", en: "Fluorescent", es: { m: "Fluorescentes", f: "Fluorescentes" }, ko: "형광의" },
         { key: "incandescent", en: "Incandescent", es: { m: "Incandescentes", f: "Incandescentes" }, ko: "백열의" },
-        { key: "lit", en: "Lit", es: { m: "Encendidos", f: "Encendidas" }, ko: "불밝힌" }
+        { key: "lit", en: "Lit", es: { m: "Encendidos", f: "Encendidas" }, ko: "불밝힌" },
     ],
     temperature: [
         { key: "hot", en: "Hot", es: { m: "Calientes", f: "Calientes" }, ko: "뜨거운" },
@@ -78,7 +78,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "tepid", en: "Tepid", es: { m: "Tibios", f: "Tibias" }, ko: "미지근한" },
         { key: "sultry", en: "Sultry", es: { m: "Bochornosos", f: "Bochornosas" }, ko: "후덥지근한" },
         { key: "arctic", en: "Arctic", es: { m: "Árticos", f: "Árticas" }, ko: "극지의" },
-        { key: "tropical", en: "Tropical", es: { m: "Tropicales", f: "Tropicales" }, ko: "열대의" }
+        { key: "tropical", en: "Tropical", es: { m: "Tropicales", f: "Tropicales" }, ko: "열대의" },
     ],
     texture: [
         { key: "soft", en: "Soft", es: { m: "Suaves", f: "Suaves" }, ko: "부드러운" },
@@ -105,7 +105,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "crinkled", en: "Crinkled", es: { m: "Plisados", f: "Plisadas" }, ko: "구겨진" },
         { key: "wrinkled", en: "Wrinkled", es: { m: "Arrugados", f: "Arrugadas" }, ko: "주름진" },
         { key: "brittle", en: "Brittle", es: { m: "Quebradizos", f: "Quebradizas" }, ko: "부서지기쉬운" },
-        { key: "spongy", en: "Spongy", es: { m: "Porosos", f: "Porosas" }, ko: "스펀지같은" }
+        { key: "spongy", en: "Spongy", es: { m: "Porosos", f: "Porosas" }, ko: "스펀지같은" },
     ],
     material: [
         { key: "wooden", en: "Wooden", es: { m: "Maderados", f: "Maderadas" }, ko: "나무의" },
@@ -132,7 +132,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "concrete", en: "Concrete", es: { m: "Concretos", f: "Concretas" }, ko: "콘크리트" },
         { key: "carbon", en: "Carbon", es: { m: "Carbónicos", f: "Carbónicas" }, ko: "탄소의" },
         { key: "crystal", en: "Crystal", es: { m: "Cristalinos", f: "Cristalinas" }, ko: "크리스탈" },
-        { key: "clay", en: "Clay", es: { m: "Arcillosos", f: "Arcillosas" }, ko: "점토의" }
+        { key: "clay", en: "Clay", es: { m: "Arcillosos", f: "Arcillosas" }, ko: "점토의" },
     ],
     size: [
         { key: "big", en: "Big", es: { m: "Grandes", f: "Grandes" }, ko: "큰" },
@@ -159,7 +159,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "oversized", en: "Oversized", es: { m: "Sobredimensionados", f: "Sobredimensionadas" }, ko: "과대한" },
         { key: "miniature", en: "Miniature", es: { m: "Miniaturas", f: "Miniaturas" }, ko: "미니어처" },
         { key: "jumbo", en: "Jumbo", es: { m: "Jumbo", f: "Jumbo" }, ko: "점보" },
-        { key: "micro", en: "Micro", es: { m: "Micro", f: "Micro" }, ko: "마이크로" }
+        { key: "micro", en: "Micro", es: { m: "Micro", f: "Micro" }, ko: "마이크로" },
     ],
     height: [
         { key: "tall", en: "Tall", es: { m: "Altos", f: "Altas" }, ko: "키큰" },
@@ -186,7 +186,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "vertical", en: "Vertical", es: { m: "Verticales", f: "Verticales" }, ko: "수직의" },
         { key: "horizontal", en: "Horizontal", es: { m: "Horizontales", f: "Horizontales" }, ko: "수평의" },
         { key: "overhead", en: "Overhead", es: { m: "Aéreos", f: "Aéreas" }, ko: "머리위의" },
-        { key: "grounded", en: "Grounded", es: { m: "Terrestres", f: "Terrestres" }, ko: "지면의" }
+        { key: "grounded", en: "Grounded", es: { m: "Terrestres", f: "Terrestres" }, ko: "지면의" },
     ],
     shape: [
         { key: "round", en: "Round", es: { m: "Redondos", f: "Redondas" }, ko: "둥근" },
@@ -213,7 +213,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "spherical", en: "Spherical", es: { m: "Esféricos", f: "Esféricas" }, ko: "구형의" },
         { key: "symmetric", en: "Symmetric", es: { m: "Simétricos", f: "Simétricas" }, ko: "대칭의" },
         { key: "asymmetric", en: "Asymmetric", es: { m: "Asimétricos", f: "Asimétricas" }, ko: "비대칭의" },
-        { key: "tapered", en: "Tapered", es: { m: "Ahusados", f: "Ahusadas" }, ko: "점점좁아진" }
+        { key: "tapered", en: "Tapered", es: { m: "Ahusados", f: "Ahusadas" }, ko: "점점좁아진" },
     ],
     speed: [
         { key: "fast", en: "Fast", es: { m: "Rápidos", f: "Rápidas" }, ko: "빠른" },
@@ -240,7 +240,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "gliding", en: "Gliding", es: { m: "Planeadores", f: "Planeadoras" }, ko: "활공하는" },
         { key: "skimming", en: "Skimming", es: { m: "Rozantes", f: "Rozantes" }, ko: "스치는" },
         { key: "charging", en: "Charging", es: { m: "Arremetidos", f: "Arremetidas" }, ko: "돌진하는" },
-        { key: "cruising", en: "Cruising", es: { m: "Navegantes", f: "Navegantes" }, ko: "순항하는" }
+        { key: "cruising", en: "Cruising", es: { m: "Navegantes", f: "Navegantes" }, ko: "순항하는" },
     ],
     strength: [
         { key: "strong", en: "Strong", es: { m: "Fuertes", f: "Fuertes" }, ko: "강한" },
@@ -267,7 +267,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "reinforced", en: "Reinforced", es: { m: "Reforzados", f: "Reforzadas" }, ko: "강화된" },
         { key: "stout", en: "Stout", es: { m: "Fornidos", f: "Fornidas" }, ko: "건장한" },
         { key: "unyielding", en: "Unyielding", es: { m: "Inflexibles", f: "Inflexibles" }, ko: "완강한" },
-        { key: "ironclad", en: "Ironclad", es: { m: "Inquebrantables", f: "Inquebrantables" }, ko: "철통같은" }
+        { key: "ironclad", en: "Ironclad", es: { m: "Inquebrantables", f: "Inquebrantables" }, ko: "철통같은" },
     ],
     calm: [
         { key: "calm", en: "Calm", es: { m: "Calmos", f: "Calmas" }, ko: "차분한" },
@@ -294,7 +294,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "ferocious", en: "Ferocious", es: { m: "Feroces", f: "Feroces" }, ko: "맹렬한" },
         { key: "aggressive", en: "Aggressive", es: { m: "Agresivos", f: "Agresivas" }, ko: "공격적인" },
         { key: "harsh", en: "Harsh", es: { m: "Duros", f: "Duras" }, ko: "거친" },
-        { key: "relentless", en: "Relentless", es: { m: "Implacables", f: "Implacables" }, ko: "집요한" }
+        { key: "relentless", en: "Relentless", es: { m: "Implacables", f: "Implacables" }, ko: "집요한" },
     ],
     weather: [
         { key: "stormy", en: "Stormy", es: { m: "Tormentosos", f: "Tormentosas" }, ko: "폭풍의" },
@@ -311,7 +311,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "thunderous", en: "Thunderous", es: { m: "Tronadores", f: "Tronadoras" }, ko: "천둥치는" },
         { key: "gusty", en: "Gusty", es: { m: "Racheados", f: "Racheadas" }, ko: "돌풍의" },
         { key: "overcast", en: "Overcast", es: { m: "Cubiertos", f: "Cubiertas" }, ko: "잿빛의" },
-        { key: "clear", en: "Clear", es: { m: "Despejados", f: "Despejadas" }, ko: "맑은" },
+        { key: "cloudless", en: "Cloudless", es: { m: "Despejados", f: "Despejadas" }, ko: "구름없는" },
         { key: "blustery", en: "Blustery", es: { m: "Borrascosos", f: "Borrascosas" }, ko: "거센바람의" },
         { key: "turbulent", en: "Turbulent", es: { m: "Turbulentos", f: "Turbulentas" }, ko: "난류의" },
         { key: "monsoon", en: "Monsoon", es: { m: "Monzónicos", f: "Monzónicas" }, ko: "몬순의" },
@@ -321,7 +321,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "autumnal", en: "Autumnal", es: { m: "Otoñales", f: "Otoñales" }, ko: "가을같은" },
         { key: "springlike", en: "Springlike", es: { m: "Primaverales", f: "Primaverales" }, ko: "봄같은" },
         { key: "humid", en: "Humid", es: { m: "Húmedos", f: "Húmedas" }, ko: "습한" },
-        { key: "dry", en: "Dry", es: { m: "Secos", f: "Secas" }, ko: "건조한" }
+        { key: "dry", en: "Dry", es: { m: "Secos", f: "Secas" }, ko: "건조한" },
     ],
     time: [
         { key: "new", en: "New", es: { m: "Nuevos", f: "Nuevas" }, ko: "새로운" },
@@ -348,7 +348,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "fading", en: "Fading", es: { m: "Desvanecidos", f: "Desvanecidas" }, ko: "사라지는" },
         { key: "retro", en: "Retro", es: { m: "Retro", f: "Retro" }, ko: "레트로" },
         { key: "everlasting", en: "Everlasting", es: { m: "Imperecederos", f: "Imperecederas" }, ko: "영속적인" },
-        { key: "seasonal", en: "Seasonal", es: { m: "Estacionales", f: "Estacionales" }, ko: "계절의" }
+        { key: "seasonal", en: "Seasonal", es: { m: "Estacionales", f: "Estacionales" }, ko: "계절의" },
     ],
     nature: [
         { key: "wild", en: "Wild", es: { m: "Salvajes", f: "Salvajes" }, ko: "야생의" },
@@ -375,7 +375,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "valley", en: "Valley", es: { m: "Valleños", f: "Valleñas" }, ko: "계곡의" },
         { key: "canyon", en: "Canyon", es: { m: "Cañoneros", f: "Cañoneras" }, ko: "협곡의" },
         { key: "jungle", en: "Jungle", es: { m: "Selváticos", f: "Selváticas" }, ko: "밀림의" },
-        { key: "desert", en: "Desert", es: { m: "Desérticos", f: "Desérticas" }, ko: "사막의" }
+        { key: "desert", en: "Desert", es: { m: "Desérticos", f: "Desérticas" }, ko: "사막의" },
     ],
     luxury: [
         { key: "royal", en: "Royal", es: { m: "Reales", f: "Reales" }, ko: "왕실의" },
@@ -388,7 +388,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "luxurious", en: "Luxurious", es: { m: "Lujosos", f: "Lujosas" }, ko: "호화로운" },
         { key: "gilded", en: "Gilded", es: { m: "Dorados", f: "Doradas" }, ko: "금박의" },
         { key: "ornate", en: "Ornate", es: { m: "Ornamentados", f: "Ornamentadas" }, ko: "장식적인" },
-        { key: "plush", en: "Plush", es: { m: "Suntuosos", f: "Suntuosas" }, ko: "호사스러운" },
+        { key: "sumptuous", en: "Sumptuous", es: { m: "Suntuosos", f: "Suntuosas" }, ko: "호화로운" },
         { key: "aristocratic", en: "Aristocratic", es: { m: "Aristocráticos", f: "Aristocráticas" }, ko: "귀족적인" },
         { key: "imperial", en: "Imperial", es: { m: "Imperiales", f: "Imperiales" }, ko: "황제의" },
         { key: "sovereign", en: "Sovereign", es: { m: "Soberanos", f: "Soberanas" }, ko: "군주의" },
@@ -402,7 +402,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "stately", en: "Stately", es: { m: "Solemnes", f: "Solemnes" }, ko: "위풍당당한" },
         { key: "crowned", en: "Crowned", es: { m: "Coronados", f: "Coronadas" }, ko: "왕관의" },
         { key: "splendid", en: "Splendid", es: { m: "Espléndidos", f: "Espléndidas" }, ko: "찬란한" },
-        { key: "princely", en: "Princely", es: { m: "Principescos", f: "Principescas" }, ko: "왕자다운" }
+        { key: "princely", en: "Princely", es: { m: "Principescos", f: "Principescas" }, ko: "왕자다운" },
     ],
     tech: [
         { key: "digital", en: "Digital", es: { m: "Digitales", f: "Digitales" }, ko: "디지털" },
@@ -429,7 +429,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "programmable", en: "Programmable", es: { m: "Programables", f: "Programables" }, ko: "프로그래밍가능한" },
         { key: "augmented", en: "Augmented", es: { m: "Aumentados", f: "Aumentadas" }, ko: "증강된" },
         { key: "encoded", en: "Encoded", es: { m: "Cifrados", f: "Cifradas" }, ko: "인코딩된" },
-        { key: "algorithmic", en: "Algorithmic", es: { m: "Algorítmicos", f: "Algorítmicas" }, ko: "알고리즘의" }
+        { key: "algorithmic", en: "Algorithmic", es: { m: "Algorítmicos", f: "Algorítmicas" }, ko: "알고리즘의" },
     ],
     precision: [
         { key: "precise", en: "Precise", es: { m: "Precisos", f: "Precisas" }, ko: "정밀한" },
@@ -456,7 +456,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "standard", en: "Standard", es: { m: "Estándar", f: "Estándar" }, ko: "표준의" },
         { key: "fine", en: "Fine", es: { m: "Finos", f: "Finas" }, ko: "섬세한" },
         { key: "meticulous", en: "Meticulous", es: { m: "Meticulosos", f: "Meticulosas" }, ko: "꼼꼼한" },
-        { key: "systematic", en: "Systematic", es: { m: "Sistemáticos", f: "Sistemáticas" }, ko: "체계적인" }
+        { key: "systematic", en: "Systematic", es: { m: "Sistemáticos", f: "Sistemáticas" }, ko: "체계적인" },
     ],
     mystery: [
         { key: "mystic", en: "Mystic", es: { m: "Místicos", f: "Místicas" }, ko: "신비한" },
@@ -483,7 +483,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "mythic", en: "Mythic", es: { m: "Míticos", f: "Míticas" }, ko: "신화의" },
         { key: "rune", en: "Rune", es: { m: "Rúnicos", f: "Rúnicas" }, ko: "룬의" },
         { key: "dreamlike", en: "Dreamlike", es: { m: "Oníricos", f: "Oníricas" }, ko: "꿈같은" },
-        { key: "otherworldly", en: "Otherworldly", es: { m: "Sobrenaturales", f: "Sobrenaturales" }, ko: "이세계의" }
+        { key: "otherworldly", en: "Otherworldly", es: { m: "Sobrenaturales", f: "Sobrenaturales" }, ko: "이세계의" },
     ],
     urban: [
         { key: "urban", en: "Urban", es: { m: "Urbanos", f: "Urbanas" }, ko: "도시의" },
@@ -510,7 +510,7 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "alley", en: "Alley", es: { m: "Callejoneros", f: "Callejoneras" }, ko: "골목의" },
         { key: "rooftop", en: "Rooftop", es: { m: "Azoteas", f: "Azoteas" }, ko: "옥상의" },
         { key: "waterfront", en: "Waterfront", es: { m: "Costaneros", f: "Costaneras" }, ko: "수변의" },
-        { key: "skyline", en: "Skyline", es: { m: "Horizontales", f: "Horizontales" }, ko: "스카이라인의" }
+        { key: "skyline", en: "Skyline", es: { m: "Horizontales", f: "Horizontales" }, ko: "스카이라인의" },
     ],
     rarity: [
         { key: "rare", en: "Rare", es: { m: "Raros", f: "Raras" }, ko: "희귀한" },
@@ -532,12 +532,12 @@ const ADJECTIVE_CATEGORY_DEFS = {
         { key: "choice", en: "Choice", es: { m: "Elegidos", f: "Elegidas" }, ko: "선택된" },
         { key: "special", en: "Special", es: { m: "Especiales", f: "Especiales" }, ko: "특별한" },
         { key: "elite", en: "Elite", es: { m: "Elite", f: "Elite" }, ko: "엘리트" },
-        { key: "standard", en: "Standard", es: { m: "Estándar", f: "Estándar" }, ko: "표준의" },
+        { key: "regular", en: "Regular", es: { m: "Regulares", f: "Regulares" }, ko: "보통의" },
         { key: "ordinary", en: "Ordinary", es: { m: "Ordinarios", f: "Ordinarias" }, ko: "평범한" },
         { key: "modest", en: "Modest", es: { m: "Modestos", f: "Modestas" }, ko: "소박한" },
         { key: "basic", en: "Basic", es: { m: "Básicos", f: "Básicas" }, ko: "기본의" },
         { key: "budget", en: "Budget", es: { m: "Económicos", f: "Económicas" }, ko: "예산형" },
-        { key: "everyday", en: "Everyday", es: { m: "Cotidianos", f: "Cotidianas" }, ko: "일상의" }
+        { key: "everyday", en: "Everyday", es: { m: "Cotidianos", f: "Cotidianas" }, ko: "일상의" },
     ]
 };
 const NOUN_CATEGORY_DEFS = {
@@ -568,7 +568,12 @@ const NOUN_CATEGORY_DEFS = {
             { key: "jaguars", en: "Jaguars", es: { gender: "m", plural: "Jaguares" }, ko: "재규어" },
             { key: "rhinos", en: "Rhinos", es: { gender: "m", plural: "Rinocerontes" }, ko: "코뿔소" },
             { key: "hippos", en: "Hippos", es: { gender: "m", plural: "Hipopótamos" }, ko: "하마" },
-            { key: "camels", en: "Camels", es: { gender: "m", plural: "Camellos" }, ko: "낙타" }
+            { key: "camels", en: "Camels", es: { gender: "m", plural: "Camellos" }, ko: "낙타" },
+            { key: "pandas", en: "Pandas", es: { gender: "m", plural: "Pandas" }, ko: "판다" },
+            { key: "otters", en: "Otters", es: { gender: "f", plural: "Nutrias" }, ko: "수달" },
+            { key: "badgers", en: "Badgers", es: { gender: "m", plural: "Tejones" }, ko: "오소리" },
+            { key: "gazelles", en: "Gazelles", es: { gender: "f", plural: "Gacelas" }, ko: "가젤" },
+            { key: "lemurs", en: "Lemurs", es: { gender: "m", plural: "Lémures" }, ko: "여우원숭이" }
         ]
     },
     birds: {
@@ -1092,7 +1097,7 @@ const NOUN_CATEGORY_DEFS = {
             { key: "rings", en: "Rings", es: { gender: "m", plural: "Anillos" }, ko: "반지" },
             { key: "masks", en: "Masks", es: { gender: "f", plural: "Máscaras" }, ko: "가면" },
             { key: "banners", en: "Banners", es: { gender: "m", plural: "Estandartes" }, ko: "깃발" },
-            { key: "seals", en: "Seals", es: { gender: "m", plural: "Sellos" }, ko: "인장" },
+            { key: "badges", en: "Badges", es: { gender: "m", plural: "Distintivos" }, ko: "배지" },
             { key: "relics", en: "Relics", es: { gender: "f", plural: "Reliquias" }, ko: "유물" },
             { key: "talismans", en: "Talismans", es: { gender: "m", plural: "Talismanes" }, ko: "탈리스만" },
             { key: "amulets", en: "Amulets", es: { gender: "m", plural: "Amuletos" }, ko: "부적" },

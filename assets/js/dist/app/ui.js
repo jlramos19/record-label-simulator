@@ -7,9 +7,9 @@ import { setUiHooks } from "./game/ui-hooks.js";
 import { getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
 import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistoryFromExternal, importSavesFromExternal, isExternalStorageSupported, requestExternalStorageHandle, syncExternalStorageNow } from "./file-storage.js";
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
-import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
+import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -3251,6 +3251,243 @@ function bindViewHandlers(route, root) {
                 select.value = state.ui.promoType;
         }
         updatePromoTypeHint(root);
+    }
+    if (route === "tour") {
+        const setTourNotice = (message, tone = "info") => {
+            if (!state.ui)
+                state.ui = {};
+            state.ui.tourNotice = { message, tone };
+        };
+        const clearTourNotice = () => {
+            if (!state.ui)
+                state.ui = {};
+            state.ui.tourNotice = null;
+        };
+        const getDraft = () => {
+            const draft = getSelectedTourDraft();
+            if (!draft) {
+                setTourNotice("Select a tour draft first.", "warn");
+                return null;
+            }
+            return draft;
+        };
+        root.addEventListener("focusin", (e) => {
+            if (!e.target.closest("[data-tour-lock]"))
+                return;
+            if (!state.ui)
+                state.ui = {};
+            state.ui.tourDeskLock = true;
+        });
+        root.addEventListener("focusout", (e) => {
+            if (!e.target.closest("[data-tour-lock]"))
+                return;
+            if (!state.ui)
+                state.ui = {};
+            state.ui.tourDeskLock = false;
+        });
+        on("tourDraftSelect", "change", (e) => {
+            const draftId = e.target.value || null;
+            selectTourDraft(draftId);
+            clearTourNotice();
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourDraftCreateBtn", "click", () => {
+            const actId = root.querySelector("#tourActSelect")?.value || null;
+            const goal = root.querySelector("#tourGoalSelect")?.value || "visibility";
+            const era = actId ? getLatestActiveEraForAct(actId) : null;
+            const draft = createTourDraft({ actId, eraId: era?.id || null, goal });
+            setTourNotice(`Tour draft created: ${draft.name}.`, "info");
+            logUiEvent("action_submit", { action: "tour_create", tourId: draft.id, actId, eraId: draft.eraId });
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourDraftDeleteBtn", "click", () => {
+            const draft = getDraft();
+            if (!draft) {
+                renderTouringDesk();
+                return;
+            }
+            const removed = deleteTourDraft(draft.id);
+            setTourNotice(removed ? `Tour draft deleted: ${draft.name}.` : "Unable to delete tour draft.", removed ? "info" : "warn");
+            logUiEvent("action_submit", { action: "tour_delete", tourId: draft.id });
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourNameInput", "change", (e) => {
+            const draft = getDraft();
+            if (!draft)
+                return;
+            updateTourDraft(draft.id, { name: e.target.value });
+            clearTourNotice();
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourGoalSelect", "change", (e) => {
+            const draft = getDraft();
+            if (!draft)
+                return;
+            updateTourDraft(draft.id, { goal: e.target.value });
+            clearTourNotice();
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourActSelect", "change", (e) => {
+            const draft = getDraft();
+            if (!draft)
+                return;
+            const actId = e.target.value || null;
+            const era = actId ? getLatestActiveEraForAct(actId) : null;
+            updateTourDraft(draft.id, {
+                actId,
+                eraId: era?.id || null,
+                anchorTrackIds: [],
+                anchorProjectId: null
+            });
+            clearTourNotice();
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourEraSelect", "change", (e) => {
+            const draft = getDraft();
+            if (!draft)
+                return;
+            const eraId = e.target.value || null;
+            updateTourDraft(draft.id, { eraId });
+            clearTourNotice();
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourAnchorSelect", "change", (e) => {
+            const draft = getDraft();
+            if (!draft)
+                return;
+            const value = e.target.value || "auto";
+            const updates = { anchorTrackIds: [], anchorProjectId: null };
+            if (value === "auto") {
+                updates.anchorTrackIds = [];
+                updates.anchorProjectId = null;
+            }
+            else if (value.startsWith("track:")) {
+                updates.anchorTrackIds = [value.slice(6)];
+            }
+            else {
+                updates.anchorProjectId = value;
+            }
+            updateTourDraft(draft.id, updates);
+            clearTourNotice();
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourWindowStart", "change", (e) => {
+            const draft = getDraft();
+            if (!draft)
+                return;
+            const raw = String(e.target.value || "").trim();
+            const week = raw ? Math.max(1, Math.round(Number(raw))) : null;
+            updateTourDraft(draft.id, { window: { startWeek: week } });
+            clearTourNotice();
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourWindowEnd", "change", (e) => {
+            const draft = getDraft();
+            if (!draft)
+                return;
+            const raw = String(e.target.value || "").trim();
+            const week = raw ? Math.max(1, Math.round(Number(raw))) : null;
+            updateTourDraft(draft.id, { window: { endWeek: week } });
+            clearTourNotice();
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourNotes", "change", (e) => {
+            const draft = getDraft();
+            if (!draft)
+                return;
+            updateTourDraft(draft.id, { notes: e.target.value });
+            clearTourNotice();
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourBalanceToggle", "change", (e) => {
+            const enabled = Boolean(e.target.checked);
+            setTouringBalanceEnabled(enabled);
+            setTourNotice(`Touring balance ${enabled ? "enabled" : "disabled"}.`, "info");
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourBookingWeek", "change", (e) => {
+            if (!state.ui)
+                state.ui = {};
+            const raw = Math.round(Number(e.target.value || 0));
+            state.ui.tourBookingWeek = Math.max(1, raw || weekIndex() + 1);
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourBookingDay", "change", (e) => {
+            if (!state.ui)
+                state.ui = {};
+            state.ui.tourBookingDay = clamp(Math.round(Number(e.target.value || 0)), 0, 6);
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourVenueNation", "change", (e) => {
+            if (!state.ui.tourVenueFilters)
+                state.ui.tourVenueFilters = {};
+            state.ui.tourVenueFilters.nation = e.target.value || "All";
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourVenueRegion", "change", (e) => {
+            if (!state.ui.tourVenueFilters)
+                state.ui.tourVenueFilters = {};
+            state.ui.tourVenueFilters.regionId = e.target.value || "All";
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        on("tourVenueTier", "change", (e) => {
+            if (!state.ui.tourVenueFilters)
+                state.ui.tourVenueFilters = {};
+            state.ui.tourVenueFilters.tier = e.target.value || "All";
+            renderTouringDesk();
+            saveToActiveSlot();
+        });
+        root.addEventListener("click", (e) => {
+            const bookBtn = e.target.closest("[data-tour-book]");
+            if (bookBtn) {
+                const draft = getDraft();
+                if (!draft) {
+                    renderTouringDesk();
+                    return;
+                }
+                const venueId = bookBtn.dataset.tourBook;
+                const weekNumber = state.ui?.tourBookingWeek || weekIndex() + 1;
+                const dayIndex = Number.isFinite(state.ui?.tourBookingDay) ? state.ui.tourBookingDay : 5;
+                const result = bookTourDate({ draftId: draft.id, venueId, weekNumber, dayIndex });
+                if (!result.ok) {
+                    setTourNotice(result.reason || "Tour booking blocked.", "warn");
+                    logUiEvent("action_submit", { action: "tour_book_fail", tourId: draft.id, venueId, code: result.code });
+                }
+                else {
+                    setTourNotice(`Tour date booked: ${result.booking.venueLabel}.`, "info");
+                    logUiEvent("action_submit", { action: "tour_book", tourId: draft.id, venueId, weekNumber, dayIndex });
+                }
+                renderTouringDesk();
+                saveToActiveSlot();
+                emitStateChanged();
+            }
+            const removeBtn = e.target.closest("[data-tour-remove]");
+            if (removeBtn) {
+                const bookingId = removeBtn.dataset.tourRemove;
+                const removed = removeTourBooking(bookingId);
+                setTourNotice(removed ? "Tour date removed." : "Tour date not found.", removed ? "info" : "warn");
+                logUiEvent("action_submit", { action: "tour_remove", bookingId, removed });
+                renderTouringDesk();
+                saveToActiveSlot();
+                emitStateChanged();
+            }
+        });
     }
     on("chartWeekBtn", "click", () => {
         renderChartHistoryModal();

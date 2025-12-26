@@ -1,5 +1,13 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-2141Z)
+- Touring Desk now supports draft planning, venue filtering, booking dates, and route timelines with projection summaries + warnings.
+- Tour bookings now render on the Calendar with warning styling, and touring charts rank acts by booked attendance so CEO Requests can progress.
+- Touring balance toggle gates wallet/fan impact; weekly economy reports now include touring net when enabled.
+
+## 2025-12-26 (RLS-PATCH-20251226-2105Z)
+- Charts view scope tabs now stay on one row with content-type filters docked to the right.
+
 ## 2025-12-26 (RLS-PATCH-20251226-2047Z)
 - Critics Councils now score releases by scope and adjust final quality, storing critic grades and deltas for awards and charts.
 - CEO Requests now resolve yearly award winners for tracks, projects, promotions, and tours with the documented tie-break ladder.

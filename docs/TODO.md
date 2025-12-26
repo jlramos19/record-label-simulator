@@ -30,17 +30,17 @@
 - [ ] RLS-UI-ACTIONS-004: Wire live action buttons to navigation + focus behavior (CCC sign, Harmony Hub form, slot placement, Release Desk scheduling, Era Desk conduct, Calendar tours) and log UI events.
 - [ ] RLS-UI-ACTIONS-005: Add a "not live yet" modal or toast for simulated/placeholder actions with the current behavior note (ex: negotiate auto-resolves on sign).
 - [ ] RLS-UI-TRACK-HISTORY-001: Add an Eras tracks panel chart history table with DNC for non-charting weeks.
-- [ ] RLS-TOUR-NAV-001: Add Touring tab in nav (right of Promotions) with route stub and empty state.
-- [ ] RLS-TOUR-UI-001: Build Touring layout shell (planner, venue finder, route timeline, budget panels) with placeholders.
-- [ ] RLS-TOUR-STATE-001: Add touring draft state + persistence in save slots (no gameplay impact).
-- [ ] RLS-TOUR-DATA-001: Define touring data model (tour, tour leg, booking, venue ref, projections) with zero-impact defaults.
-- [ ] RLS-TOUR-VENUE-CATALOG-001: Add venue catalog data (tier, capacity, region, owner, booking slots).
-- [ ] RLS-TOUR-AVAIL-001: Implement booking availability + conflict checks with reason codes.
-- [ ] RLS-TOUR-GATE-001: Gate booking by active Era + released project/track; prevent double-booking for Acts.
-- [ ] RLS-TOUR-CALENDAR-001: Render tour bookings in Calendar with conflict blocking and event log entries.
-- [ ] RLS-TOUR-PROJECT-001: Add attendance + revenue projections as read-only (no wallet/chart impact yet).
-- [ ] RLS-TOUR-BALANCE-001: Add feature flag to keep touring effects disabled until tuning is approved.
-- [ ] RLS-TOUR-OBS-001: Surface warnings in Touring tab + Calendar for missing requirements or capacity mismatch.
+- [x] RLS-TOUR-NAV-001: Add Touring tab in nav (right of Promotions) with route stub and empty state. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-UI-001: Build Touring layout shell (planner, venue finder, route timeline, budget panels) with placeholders. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-STATE-001: Add touring draft state + persistence in save slots (no gameplay impact). (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-DATA-001: Define touring data model (tour, tour leg, booking, venue ref, projections) with zero-impact defaults. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-VENUE-CATALOG-001: Add venue catalog data (tier, capacity, region, owner, booking slots). (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-AVAIL-001: Implement booking availability + conflict checks with reason codes. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-GATE-001: Gate booking by active Era + released project/track; prevent double-booking for Acts. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-CALENDAR-001: Render tour bookings in Calendar with conflict blocking and event log entries. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-PROJECT-001: Add attendance + revenue projections as read-only (no wallet/chart impact yet). (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-BALANCE-001: Add feature flag to keep touring effects disabled until tuning is approved. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
+- [x] RLS-TOUR-OBS-001: Surface warnings in Touring tab + Calendar for missing requirements or capacity mismatch. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
 - [x] RLS-TOUR-TEST-001: Add manual testing checklist for tour planning, booking, and conflict warnings. (Agent Codex, started 2025-12-26 16:07:05 -04:00, completed 2025-12-26 16:07:51 -04:00)
 - [x] RLS-UI-COMMUNITY-RANKINGS-001: Split Community rankings toggles (Labels: Top 3/Top 8, Trends: Top 3/Top 40), with a full-list "More" action on #1.
 - [ ] Quarter-hour ticks: show stamina depletion + recharge every in-game hour across UI surfaces.

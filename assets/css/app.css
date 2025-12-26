@@ -383,15 +383,35 @@ body::before {
   flex: 1 1 auto;
   min-height: 0;
 }
+.view--tour .panel[data-panel="tour-planner"],
+.view--tour .panel[data-panel="tour-timeline"],
+.view--tour .panel[data-panel="tour-venues"],
+.view--tour .panel[data-panel="tour-summary"] {
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .view--release #releaseProjectList {
   min-height: 120px;
 }
-#chartTypeTabs {
+.chart-controls-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 8px;
 }
+#chartTypeTabs {
+  margin-bottom: 0;
+}
 .chart-scope-controls {
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.chart-scope-controls > .tabs {
+  min-width: 0;
 }
 .chart-region-tabs {
   margin-left: 12px;
@@ -1613,6 +1633,13 @@ select.theme-select {
   color: var(--text);
   font-size: 12px;
 }
+.callout.callout--warn {
+  border-color: rgba(var(--danger-rgb), 0.45);
+  background: rgba(var(--danger-rgb), 0.12);
+}
+.tour-warning-line {
+  color: var(--accent);
+}
 .advanced-options {
   padding: 8px;
   border-radius: 10px;
@@ -2380,6 +2407,14 @@ select.theme-select {
 .calendar-event--rival-released {
   border-color: rgba(var(--danger-rgb), 0.4);
   background: rgba(var(--danger-rgb), 0.12);
+}
+.calendar-event--tour-scheduled {
+  border-color: rgba(var(--accent-2-rgb), 0.45);
+  background: rgba(var(--accent-2-rgb), 0.12);
+}
+.calendar-event--tour-warning {
+  border-color: rgba(var(--danger-rgb), 0.45);
+  background: rgba(var(--danger-rgb), 0.14);
 }
 .calendar-event--more {
   border-style: dashed;

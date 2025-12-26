@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getModifierInventoryCount, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -4129,6 +4129,363 @@ function renderReleaseDesk() {
         : `<div class="muted">No release-ready scheduled entries.</div>`;
     releaseQueueList.innerHTML = `${blockedNote}${queueHtml}`;
 }
+function renderTouringDesk() {
+    const draftSelect = $("tourDraftSelect");
+    if (!draftSelect)
+        return;
+    if (!state.ui)
+        state.ui = {};
+    if (typeof document !== "undefined") {
+        const active = document.activeElement;
+        const isTourField = active && typeof active.closest === "function" && active.closest("[data-tour-lock]");
+        if (state.ui.tourDeskLock && !isTourField)
+            state.ui.tourDeskLock = false;
+        if (state.ui.tourDeskLock)
+            return;
+    }
+    else if (state.ui.tourDeskLock) {
+        state.ui.tourDeskLock = false;
+    }
+    if (!state.ui.tourVenueFilters || typeof state.ui.tourVenueFilters !== "object") {
+        state.ui.tourVenueFilters = { nation: "All", regionId: "All", tier: "All" };
+    }
+    if (!Number.isFinite(state.ui.tourBookingWeek))
+        state.ui.tourBookingWeek = weekIndex() + 1;
+    if (!Number.isFinite(state.ui.tourBookingDay))
+        state.ui.tourBookingDay = 5;
+    state.ui.tourBookingWeek = Math.max(1, Math.round(state.ui.tourBookingWeek));
+    state.ui.tourBookingDay = clamp(Math.round(state.ui.tourBookingDay), 0, 6);
+    const drafts = listTourDrafts();
+    let draft = getSelectedTourDraft();
+    if (!draft && drafts.length)
+        draft = selectTourDraft(drafts[0].id);
+    const noticeEl = $("tourNotice");
+    const nameInput = $("tourNameInput");
+    const goalSelect = $("tourGoalSelect");
+    const actSelect = $("tourActSelect");
+    const eraSelect = $("tourEraSelect");
+    const anchorSelect = $("tourAnchorSelect");
+    const windowStartInput = $("tourWindowStart");
+    const windowEndInput = $("tourWindowEnd");
+    const notesInput = $("tourNotes");
+    const plannerMeta = $("tourPlannerMeta");
+    const act = draft?.actId ? getAct(draft.actId) : null;
+    const era = draft?.eraId ? getEraById(draft.eraId) : (act ? getLatestActiveEraForAct(act.id) : null);
+    const marketPool = Array.isArray(state.marketTracks) ? state.marketTracks : [];
+    const marketTracks = marketPool.filter((track) => {
+        if (!track || !track.isPlayer)
+            return false;
+        if (!draft?.actId)
+            return false;
+        if (track.actId !== draft.actId)
+            return false;
+        if (draft?.eraId && track.eraId !== draft.eraId)
+            return false;
+        return true;
+    });
+    const defaultNotice = (() => {
+        if (!draft)
+            return { message: "Create a tour draft to begin planning.", tone: "warn" };
+        if (!draft.actId)
+            return { message: "Assign an Act to unlock venues and projections.", tone: "warn" };
+        if (!era || era.status !== "Active")
+            return { message: "Touring requires an active Era for the selected Act.", tone: "warn" };
+        if (!marketTracks.length)
+            return { message: "Touring requires released Project or Track content.", tone: "warn" };
+        return { message: "Plan the window, pick an anchor release, then book venues to build the route.", tone: "info" };
+    })();
+    const notice = state.ui.tourNotice || defaultNotice;
+    if (noticeEl) {
+        noticeEl.textContent = notice.message || defaultNotice.message;
+        noticeEl.className = `callout${notice.tone === "warn" ? " callout--warn" : ""}`;
+    }
+    if (draftSelect) {
+        if (!drafts.length) {
+            draftSelect.innerHTML = `<option value="">No drafts yet</option>`;
+        }
+        else {
+            draftSelect.innerHTML = drafts.map((entry) => (`<option value="${entry.id}"${draft?.id === entry.id ? " selected" : ""}>${entry.name || entry.id}</option>`)).join("");
+        }
+        draftSelect.value = draft?.id || "";
+    }
+    if (nameInput) {
+        nameInput.value = draft?.name || "";
+        nameInput.disabled = !draft;
+    }
+    if (goalSelect) {
+        goalSelect.value = draft?.goal || "visibility";
+        goalSelect.disabled = !draft;
+    }
+    if (actSelect) {
+        const acts = Array.isArray(state.acts) ? state.acts : [];
+        const options = acts.map((entry) => `<option value="${entry.id}">${entry.name}</option>`).join("");
+        actSelect.innerHTML = `<option value="">Select Act</option>${options}`;
+        actSelect.value = draft?.actId || "";
+        actSelect.disabled = !draft || !acts.length;
+    }
+    if (eraSelect) {
+        const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
+        const options = activeEras
+            .filter((entry) => !draft?.actId || entry.actId === draft.actId)
+            .map((entry) => {
+            const eraAct = getAct(entry.actId);
+            const actLabel = eraAct ? ` (${eraAct.name})` : "";
+            return `<option value="${entry.id}">${entry.name}${actLabel}</option>`;
+        }).join("");
+        eraSelect.innerHTML = `<option value="">Auto (latest active)</option>${options}`;
+        eraSelect.value = draft?.eraId || "";
+        eraSelect.disabled = !draft;
+    }
+    if (anchorSelect) {
+        let anchorValue = "auto";
+        if (draft?.anchorTrackIds?.length) {
+            anchorValue = `track:${draft.anchorTrackIds[0]}`;
+        }
+        else if (draft?.anchorProjectId) {
+            anchorValue = draft.anchorProjectId;
+        }
+        const sortedTracks = marketTracks.slice().sort((a, b) => (b.releasedAt || 0) - (a.releasedAt || 0));
+        const projectMap = new Map();
+        sortedTracks.forEach((track) => {
+            const projectName = track.projectName || `${track.title} - Single`;
+            const projectType = normalizeProjectType(track.projectType || "Single");
+            const key = `${normalizeProjectName(projectName)}::${projectType}`;
+            if (!projectMap.has(key))
+                projectMap.set(key, track);
+        });
+        const projectOptions = Array.from(projectMap.values()).map((track) => {
+            const key = buildPromoProjectKeyFromTrack(track);
+            if (!key)
+                return "";
+            const projectName = track.projectName || `${track.title} - Single`;
+            const projectType = normalizeProjectType(track.projectType || "Single");
+            const label = `${projectName} (${projectType})`;
+            return `<option value="${key}">${label}</option>`;
+        }).filter(Boolean).join("");
+        const trackOptions = sortedTracks.map((track) => {
+            const trackId = track.trackId || track.id;
+            if (!trackId)
+                return "";
+            const projectName = track.projectName || `${track.title} - Single`;
+            const projectType = normalizeProjectType(track.projectType || "Single");
+            const suffix = projectType === "Single" ? "Single" : projectType;
+            return `<option value="track:${trackId}">${track.title} (${suffix} | ${projectName})</option>`;
+        }).filter(Boolean).join("");
+        anchorSelect.innerHTML = `
+      <option value="auto">Auto (latest release)</option>
+      ${projectOptions ? `<optgroup label="Projects">${projectOptions}</optgroup>` : ""}
+      ${trackOptions ? `<optgroup label="Tracks">${trackOptions}</optgroup>` : ""}
+    `;
+        anchorSelect.value = anchorValue;
+        anchorSelect.disabled = !draft || !draft.actId || !marketTracks.length;
+    }
+    if (windowStartInput) {
+        windowStartInput.value = Number.isFinite(draft?.window?.startWeek) ? String(draft.window.startWeek) : "";
+        windowStartInput.disabled = !draft;
+    }
+    if (windowEndInput) {
+        windowEndInput.value = Number.isFinite(draft?.window?.endWeek) ? String(draft.window.endWeek) : "";
+        windowEndInput.disabled = !draft;
+    }
+    if (notesInput) {
+        notesInput.value = draft?.notes || "";
+        notesInput.disabled = !draft;
+    }
+    if (plannerMeta) {
+        const actLabel = act ? renderActName(act.name) : "No Act";
+        const eraLabel = era ? era.name : "No active Era";
+        plannerMeta.textContent = `Status: ${draft?.status || "Draft"} | Act: ${actLabel} | Era: ${eraLabel}`;
+    }
+    const timelineList = $("tourTimelineList");
+    if (timelineList) {
+        const bookings = draft ? listTourBookings({ tourId: draft.id }) : [];
+        const ordered = bookings.slice().sort((a, b) => (a.scheduledAt || 0) - (b.scheduledAt || 0));
+        if (!draft) {
+            timelineList.innerHTML = `<div class="muted">No tour draft selected yet.</div>`;
+        }
+        else if (!ordered.length) {
+            timelineList.innerHTML = `<div class="muted">No tour dates booked yet.</div>`;
+        }
+        else {
+            timelineList.innerHTML = ordered.map((booking) => {
+                const isCompleted = booking.status === "Completed";
+                const projection = booking.projection || {};
+                const attendance = Number(isCompleted ? booking.attendance : projection.attendance || 0);
+                const revenue = Number(isCompleted ? booking.revenue : projection.revenue || 0);
+                const costs = Number(isCompleted ? booking.costs : projection.costs || 0);
+                const profit = Number(isCompleted ? booking.profit : projection.profit || 0);
+                const warnings = Array.isArray(booking.warnings) ? booking.warnings : [];
+                const warningLine = warnings.length
+                    ? `<div class="muted tour-warning-line">${warnings.map((warn) => warn.message || warn.code || "Warning").join(" | ")}</div>`
+                    : "";
+                const statusBadge = isCompleted ? "badge" : "badge warn";
+                const canRemove = !isCompleted;
+                return `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">${booking.venueLabel || "Venue"} | ${formatDate(booking.scheduledAt)}</div>
+                <div class="muted">Week ${booking.weekNumber || "-"} | ${DAYS?.[booking.dayIndex] || "Day"} | ${booking.regionId || "Region"} (${booking.tier || "Tier"})</div>
+                <div class="muted">${isCompleted ? "Actual" : "Projected"} attendance ${formatCount(attendance)} | Revenue ${formatMoney(revenue)} | Costs ${formatMoney(costs)} | Profit ${formatMoney(profit)}</div>
+                ${warningLine}
+              </div>
+              <div class="${statusBadge}">${isCompleted ? "Completed" : "Booked"}</div>
+            </div>
+            <div class="actions">
+              <button type="button" class="ghost mini" data-tour-remove="${booking.id}"${canRemove ? "" : " disabled"}>Remove</button>
+            </div>
+          </div>
+        `;
+            }).join("");
+        }
+    }
+    const bookingWeekInput = $("tourBookingWeek");
+    const bookingDaySelect = $("tourBookingDay");
+    if (bookingWeekInput) {
+        bookingWeekInput.value = String(state.ui.tourBookingWeek || weekIndex() + 1);
+        bookingWeekInput.disabled = !draft;
+    }
+    if (bookingDaySelect) {
+        bookingDaySelect.value = String(state.ui.tourBookingDay ?? 5);
+        bookingDaySelect.disabled = !draft;
+    }
+    const venueNation = $("tourVenueNation");
+    const venueRegion = $("tourVenueRegion");
+    const venueTier = $("tourVenueTier");
+    if (venueNation) {
+        const options = NATIONS.map((nation) => `<option value="${nation}">${nation}</option>`).join("");
+        venueNation.innerHTML = `<option value="All">All Nations</option>${options}`;
+        venueNation.value = state.ui.tourVenueFilters.nation || "All";
+        venueNation.disabled = !draft;
+    }
+    if (venueRegion) {
+        const options = REGION_DEFS.map((region) => `<option value="${region.id}">${region.label}</option>`).join("");
+        venueRegion.innerHTML = `<option value="All">All Regions</option>${options}`;
+        venueRegion.value = state.ui.tourVenueFilters.regionId || "All";
+        venueRegion.disabled = !draft;
+    }
+    if (venueTier) {
+        const tiers = listTourTiers();
+        const options = tiers.map((tier) => `<option value="${tier}">${tier}</option>`).join("");
+        venueTier.innerHTML = `<option value="All">All Tiers</option>${options}`;
+        venueTier.value = state.ui.tourVenueFilters.tier || "All";
+        venueTier.disabled = !draft;
+    }
+    const venueList = $("tourVenueList");
+    if (venueList) {
+        if (!draft) {
+            venueList.innerHTML = `<div class="muted">Create a tour draft to browse venues.</div>`;
+        }
+        else {
+            const filters = state.ui.tourVenueFilters || {};
+            const filterNation = filters.nation !== "All" ? filters.nation : null;
+            const filterRegion = filters.regionId !== "All" ? filters.regionId : null;
+            const filterTier = filters.tier !== "All" ? filters.tier : null;
+            const venues = listTourVenues({ nation: filterNation, regionId: filterRegion, tier: filterTier });
+            const tierOrder = listTourTiers();
+            const tierIndex = (tier) => {
+                const index = tierOrder.indexOf(tier);
+                return index >= 0 ? index : tierOrder.length;
+            };
+            venues.sort((a, b) => {
+                const tierDelta = tierIndex(a.tier) - tierIndex(b.tier);
+                if (tierDelta !== 0)
+                    return tierDelta;
+                return (a.capacity || 0) - (b.capacity || 0);
+            });
+            const week = state.ui.tourBookingWeek || weekIndex() + 1;
+            const dayIndex = state.ui.tourBookingDay ?? 5;
+            const scheduledAt = weekStartEpochMs(week) + dayIndex * DAY_MS;
+            const anchor = draft && act ? resolveTourAnchor(draft, act.id, era?.id) : { primary: null };
+            const projectionsReady = !!(draft && act && era && marketTracks.length);
+            if (!venues.length) {
+                venueList.innerHTML = `<div class="muted">No venues match the current filters.</div>`;
+            }
+            else {
+                venueList.innerHTML = venues.map((venue) => {
+                    const availability = getTourVenueAvailability(venue.id, scheduledAt);
+                    const projection = projectionsReady
+                        ? computeTourProjection({ draft, act, era, venue, scheduledAt, anchor: anchor.primary })
+                        : null;
+                    const slotsLabel = `${availability.available}/${availability.capacity} slots`;
+                    const projectionLine = projection
+                        ? `Projected attendance ${formatCount(projection.attendance)} | Profit ${formatMoney(projection.profit)}`
+                        : "Projection unavailable (needs Act + Era + released content).";
+                    const canBook = projectionsReady && availability.available > 0 && scheduledAt > state.time.epochMs;
+                    return `
+            <div class="list-item">
+              <div class="list-row">
+                <div>
+                  <div class="item-title">${venue.label}</div>
+                  <div class="muted">${venue.tier} | ${venue.regionId} | Capacity ${formatCount(venue.capacity)}</div>
+                  <div class="muted">Availability ${slotsLabel} | ${formatDate(scheduledAt)}</div>
+                  <div class="muted">${projectionLine}</div>
+                </div>
+                <div class="actions">
+                  <button type="button" data-tour-book="${venue.id}"${canBook ? "" : " disabled"}>Book</button>
+                </div>
+              </div>
+            </div>
+          `;
+                }).join("");
+            }
+        }
+    }
+    const summaryList = $("tourBudgetSummary");
+    const warningList = $("tourWarningList");
+    if (summaryList) {
+        if (!draft) {
+            summaryList.innerHTML = `<div class="muted">Select a tour draft to see projections.</div>`;
+        }
+        else {
+            const summary = computeTourDraftSummary(draft.id);
+            if (!summary.count) {
+                summaryList.innerHTML = `<div class="muted">No tour dates booked yet.</div>`;
+            }
+            else {
+                summaryList.innerHTML = `
+          <div class="list-item">
+            <div class="item-title">Tour summary</div>
+            <div class="muted">Dates ${formatCount(summary.count)} | Attendance ${formatCount(summary.attendance)}</div>
+            <div class="muted">Revenue ${formatMoney(summary.revenue)} | Costs ${formatMoney(summary.costs)} | Profit ${formatMoney(summary.profit)}</div>
+          </div>
+        `;
+            }
+        }
+    }
+    if (warningList) {
+        if (!draft) {
+            warningList.innerHTML = `<div class="muted">No tour warnings yet.</div>`;
+        }
+        else {
+            const summary = computeTourDraftSummary(draft.id);
+            const seen = new Set();
+            const warnings = (summary.warnings || [])
+                .filter((warn) => {
+                const code = warn?.code || warn?.message || "warning";
+                if (seen.has(code))
+                    return false;
+                seen.add(code);
+                return true;
+            })
+                .map((warn) => warn?.message || warn?.code || "Warning");
+            warningList.innerHTML = warnings.length
+                ? warnings.map((message) => `
+          <div class="list-item">
+            <div class="list-row">
+              <div class="muted">${message}</div>
+              <div class="badge warn">Warning</div>
+            </div>
+          </div>
+        `).join("")
+                : `<div class="muted">No tour warnings yet.</div>`;
+        }
+    }
+    const balanceToggle = $("tourBalanceToggle");
+    if (balanceToggle) {
+        balanceToggle.checked = touringBalanceEnabled();
+    }
+}
 function collectProjectChartEntries(entries) {
     const projects = new Map();
     (entries || []).forEach((entry) => {
@@ -4730,7 +5087,7 @@ function renderCharts() {
             rows = displayEntries.map((entry) => {
                 const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
                 const alignTag = renderAlignmentTag(entry.alignment);
-                const trackCount = entry.trackCount || 0;
+                const dateCount = Number.isFinite(entry.dateCount) ? entry.dateCount : (entry.trackCount || 0);
                 const primaryTrack = entry.primaryTrack || {
                     title: entry.primaryTrackTitle || entry.title || "-",
                     theme: entry.primaryTrackTheme || entry.theme || "",
@@ -4742,12 +5099,18 @@ function renderCharts() {
                 const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
                 const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
                 const metrics = entry.metrics || {};
+                const grossTicket = formatMoney(metrics.grossTicket || 0);
+                const merch = formatMoney(metrics.merch || 0);
+                const sponsorship = formatMoney(metrics.sponsorship || 0);
+                const revenue = formatMoney(metrics.revenue || 0);
+                const costs = formatMoney(metrics.costs || 0);
+                const profit = formatMoney(metrics.profit || 0);
                 return `
           <tr>
             <td class="chart-rank">#${entry.rank}</td>
             <td class="chart-title">
               <div class="item-title">${renderActName(entry.actName || "-")}</div>
-              <div class="muted">Charting tracks ${formatCount(trackCount)}</div>
+              <div class="muted">Tour dates ${formatCount(dateCount)}</div>
             </td>
             <td class="chart-label">${labelTag}</td>
             <td class="chart-act">
@@ -4758,8 +5121,8 @@ function renderCharts() {
             <td class="chart-metrics">
               <div class="muted">${lastRank} | ${peak} | ${woc}</div>
               <div class="muted">Attendance ${formatCount(metrics.attendance || 0)}</div>
-              <div class="muted">Sales ${formatCount(metrics.sales || 0)} | Stream ${formatCount(metrics.streaming || 0)}</div>
-              <div class="muted">Air ${formatCount(metrics.airplay || 0)} | Social ${formatCount(metrics.social || 0)}</div>
+              <div class="muted">Ticket ${grossTicket} | Merch ${merch} | Sponsor ${sponsorship}</div>
+              <div class="muted">Revenue ${revenue} | Costs ${costs} | Profit ${profit}</div>
             </td>
             <td class="chart-score">${formatCount(entry.score || 0)}</td>
           </tr>
@@ -4825,8 +5188,8 @@ function renderCharts() {
                     statsMarkup = `
             <div class="muted">LW -- | Peak -- | WOC 0</div>
             <div class="muted">Attendance N/A</div>
-            <div class="muted">Sales N/A | Stream N/A</div>
-            <div class="muted">Air N/A | Social N/A</div>
+            <div class="muted">Ticket N/A | Merch N/A | Sponsor N/A</div>
+            <div class="muted">Revenue N/A | Costs N/A | Profit N/A</div>
           `;
                 }
                 rows.push(`
@@ -5738,6 +6101,9 @@ function renderActiveView(view) {
         renderQuests();
         renderTopBar();
     }
+    else if (active === "tour") {
+        renderTouringDesk();
+    }
     else if (active === "logs") {
         renderSlots();
         renderEventLog();
@@ -5783,5 +6149,5 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderModifierInventory, renderReleaseDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderTutorialEconomy, renderModifierTools, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };
+export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderModifierInventory, renderReleaseDesk, renderTouringDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderTutorialEconomy, renderModifierTools, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };
 //# sourceMappingURL=index.js.map

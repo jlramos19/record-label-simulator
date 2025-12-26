@@ -24,6 +24,7 @@ type CalendarEraEntry = {
 type CalendarSources = {
   labelScheduled?: CalendarEvent[];
   labelReleased?: CalendarEvent[];
+  tourScheduled?: CalendarEvent[];
   rivalScheduled?: CalendarEvent[];
   rivalReleased?: CalendarEvent[];
   eras?: CalendarEraEntry[];
@@ -32,6 +33,7 @@ type CalendarSources = {
 type CalendarFilters = {
   labelScheduled?: boolean;
   labelReleased?: boolean;
+  tourScheduled?: boolean;
   rivalScheduled?: boolean;
   rivalReleased?: boolean;
 };
@@ -96,6 +98,7 @@ export function useCalendarProjection({
 }: CalendarProjectionConfig) {
   const labelScheduled = Array.isArray(sources.labelScheduled) ? sources.labelScheduled : [];
   const labelReleased = Array.isArray(sources.labelReleased) ? sources.labelReleased : [];
+  const tourScheduled = Array.isArray(sources.tourScheduled) ? sources.tourScheduled : [];
   const rivalScheduled = Array.isArray(sources.rivalScheduled) ? sources.rivalScheduled : [];
   const rivalReleased = Array.isArray(sources.rivalReleased) ? sources.rivalReleased : [];
   const eras = Array.isArray(sources.eras) ? sources.eras : [];
@@ -106,6 +109,7 @@ export function useCalendarProjection({
 
   if (showLabel && filters.labelScheduled !== false) activeEvents.push(...labelScheduled);
   if (showLabel && filters.labelReleased !== false) activeEvents.push(...labelReleased);
+  if (showLabel && filters.tourScheduled !== false) activeEvents.push(...tourScheduled);
   if (showRivals && filters.rivalScheduled !== false) activeEvents.push(...rivalScheduled);
   if (showRivals && filters.rivalReleased !== false) activeEvents.push(...rivalReleased);
 

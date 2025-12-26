@@ -32,6 +32,7 @@ function toKebabCase(value) {
 export function useCalendarProjection({ startEpochMs, anchorWeekIndex, pastWeeks = 0, futureWeeks = 3, activeWeeks = 4, tab = "label", filters = {}, sources = {} }) {
     const labelScheduled = Array.isArray(sources.labelScheduled) ? sources.labelScheduled : [];
     const labelReleased = Array.isArray(sources.labelReleased) ? sources.labelReleased : [];
+    const tourScheduled = Array.isArray(sources.tourScheduled) ? sources.tourScheduled : [];
     const rivalScheduled = Array.isArray(sources.rivalScheduled) ? sources.rivalScheduled : [];
     const rivalReleased = Array.isArray(sources.rivalReleased) ? sources.rivalReleased : [];
     const eras = Array.isArray(sources.eras) ? sources.eras : [];
@@ -42,6 +43,8 @@ export function useCalendarProjection({ startEpochMs, anchorWeekIndex, pastWeeks
         activeEvents.push(...labelScheduled);
     if (showLabel && filters.labelReleased !== false)
         activeEvents.push(...labelReleased);
+    if (showLabel && filters.tourScheduled !== false)
+        activeEvents.push(...tourScheduled);
     if (showRivals && filters.rivalScheduled !== false)
         activeEvents.push(...rivalScheduled);
     if (showRivals && filters.rivalReleased !== false)

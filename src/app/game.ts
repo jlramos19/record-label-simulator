@@ -430,6 +430,10 @@ function makeDefaultState() {
         trackIds: buildAutoPromoSlotList()
       },
       tourDraftId: null,
+      tourVenueFilters: { nation: "All", regionId: "All", tier: "All" },
+      tourBookingWeek: null,
+      tourBookingDay: null,
+      tourNotice: null,
       socialSlots: { trackId: null },
       viewContext: {
         actId: null,
@@ -485,6 +489,7 @@ function makeDefaultState() {
       calendarFilters: {
         labelScheduled: true,
         labelReleased: true,
+        tourScheduled: true,
         rivalScheduled: true,
         rivalReleased: true
       },
@@ -500,6 +505,8 @@ function makeDefaultState() {
       lastUpkeep: 0,
       lastWeek: 0,
       leaseFeesWeek: 0,
+      pendingTouring: { revenue: 0, costs: 0, profit: 0, attendance: 0, fanGain: 0, count: 0 },
+      lastTouring: null,
       creatorMarketHeat: { Songwriter: 0, Performer: 0, Producer: 0 }
     },
     lastWeekIndex: 0,
@@ -540,6 +547,7 @@ function makeDefaultState() {
       endShown: false,
       cheaterMode: false,
       cheaterEconomyOverrides: { baselines: {}, tuning: {}, priceMultipliers: {} },
+      touringBalanceEnabled: false,
       autoSave: { enabled: true, minutes: 2, lastSavedAt: null },
       autoCreate: {
         enabled: false,
@@ -7412,7 +7420,7 @@ function ensureTouringStore() {
 function touringBalanceEnabled() {
   if (!state.meta) state.meta = makeDefaultState().meta;
   if (typeof state.meta.touringBalanceEnabled !== "boolean") {
-    state.meta.touringBalanceEnabled = true;
+    state.meta.touringBalanceEnabled = false;
   }
   return state.meta.touringBalanceEnabled;
 }
@@ -7481,7 +7489,9 @@ function updateTourDraft(draftId, updates = {}) {
   if (Array.isArray(updates.anchorTrackIds)) draft.anchorTrackIds = updates.anchorTrackIds.filter(Boolean);
   if (typeof updates.anchorProjectId === "string" || updates.anchorProjectId === null) draft.anchorProjectId = updates.anchorProjectId;
   if (updates.window && typeof updates.window === "object") {
+    if (updates.window.startWeek === null) draft.window.startWeek = null;
     if (Number.isFinite(updates.window.startWeek)) draft.window.startWeek = Math.round(updates.window.startWeek);
+    if (updates.window.endWeek === null) draft.window.endWeek = null;
     if (Number.isFinite(updates.window.endWeek)) draft.window.endWeek = Math.round(updates.window.endWeek);
   }
   if (typeof updates.notes === "string") draft.notes = updates.notes;
@@ -7715,7 +7725,11 @@ function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
   if (!week) return { ok: false, reason: "Select a valid tour week.", code: "TOUR_INVALID_WEEK" };
   const scheduledAt = weekStartEpochMs(week) + day * DAY_MS;
   const validation = validateTourBooking({ draft, venue, scheduledAt });
-  if (!validation.ok) return validation;
+  if (!validation.ok) {
+    const draftName = draft?.name || "Tour";
+    logEvent(`Tour booking blocked (${draftName}): ${validation.reason} (${validation.code}).`, "warn");
+    return validation;
+  }
   const { act, era } = validation;
   const anchor = resolveTourAnchor(draft, act.id, era.id);
   const projection = computeTourProjection({
@@ -7765,8 +7779,19 @@ function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
 function removeTourBooking(bookingId) {
   const touring = ensureTouringStore();
   const before = touring.bookings.length;
+  const removed = touring.bookings.find((booking) => booking.id === bookingId) || null;
   touring.bookings = touring.bookings.filter((booking) => booking.id !== bookingId);
-  return touring.bookings.length !== before;
+  const changed = touring.bookings.length !== before;
+  if (changed && removed) {
+    if (removed.tourId) {
+      const draft = getTourDraftById(removed.tourId);
+      if (draft && !listTourBookings({ tourId: removed.tourId }).length) {
+        draft.status = "Draft";
+      }
+    }
+    logEvent(`Tour date removed: ${removed.actName || "Act"} at ${removed.venueLabel || "venue"}.`, "info");
+  }
+  return changed;
 }
 
 function applyTourVisibilityBoost(booking) {
@@ -7802,6 +7827,7 @@ function applyTourVisibilityBoost(booking) {
 
 function resolveTourBookings(now = state.time.epochMs) {
   const touring = ensureTouringStore();
+  const balanceEnabled = touringBalanceEnabled();
   const pending = {
     revenue: 0,
     costs: 0,
@@ -7830,7 +7856,7 @@ function resolveTourBookings(now = state.time.epochMs) {
     pending.profit += profit;
     pending.count += 1;
     logEvent(`Tour completed: ${booking.actName} at ${booking.venueLabel} (${formatMoney(profit)} net).`);
-    if (touringBalanceEnabled()) {
+    if (balanceEnabled) {
       const gainRate = booking.goal === "visibility" ? TOUR_FAN_GAIN_VISIBILITY : TOUR_FAN_GAIN_REVENUE;
       const gain = Math.round(attendance * gainRate);
       pending.fanGain += gain;
@@ -7841,16 +7867,21 @@ function resolveTourBookings(now = state.time.epochMs) {
   });
   if (pending.count) {
     if (!state.economy) state.economy = {};
-    if (!state.economy.pendingTouring || typeof state.economy.pendingTouring !== "object") {
-      state.economy.pendingTouring = { revenue: 0, costs: 0, profit: 0, attendance: 0, fanGain: 0, count: 0 };
+    if (balanceEnabled) {
+      if (!state.economy.pendingTouring || typeof state.economy.pendingTouring !== "object") {
+        state.economy.pendingTouring = { revenue: 0, costs: 0, profit: 0, attendance: 0, fanGain: 0, count: 0 };
+      }
+      state.economy.pendingTouring.revenue += pending.revenue;
+      state.economy.pendingTouring.costs += pending.costs;
+      state.economy.pendingTouring.profit += pending.profit;
+      state.economy.pendingTouring.attendance += pending.attendance;
+      state.economy.pendingTouring.fanGain += pending.fanGain;
+      state.economy.pendingTouring.count += pending.count;
     }
-    state.economy.pendingTouring.revenue += pending.revenue;
-    state.economy.pendingTouring.costs += pending.costs;
-    state.economy.pendingTouring.profit += pending.profit;
-    state.economy.pendingTouring.attendance += pending.attendance;
-    state.economy.pendingTouring.fanGain += pending.fanGain;
-    state.economy.pendingTouring.count += pending.count;
-    state.economy.lastTouring = { ...pending, week: weekIndex() + 1 };
+    state.economy.lastTouring = { ...pending, week: weekIndex() + 1, balanceApplied: balanceEnabled };
+    if (!balanceEnabled) {
+      logEvent(`Touring balance is disabled; ${pending.count} date${pending.count === 1 ? "" : "s"} resolved without wallet impact.`, "info");
+    }
   }
   return pending;
 }
@@ -8244,62 +8275,155 @@ function ensureTourHistoryEntry(entry) {
   return history[key];
 }
 
+function resolveTourBookingAnchorTrack(booking) {
+  if (!booking) return null;
+  if (booking.anchorTrackId) {
+    return resolveMarketEntryByTrackId(booking.anchorTrackId) || getTrack(booking.anchorTrackId) || null;
+  }
+  if (!booking.anchorProjectName) return null;
+  const normalized = normalizeProjectName(booking.anchorProjectName);
+  const marketTracks = Array.isArray(state.marketTracks) ? state.marketTracks : [];
+  const matches = [];
+  const addIfMatch = (entry) => {
+    if (!entry) return;
+    if (normalizeProjectName(entry.projectName || "") !== normalized) return;
+    if (booking.actId && entry.actId && entry.actId !== booking.actId) return;
+    matches.push(entry);
+  };
+  marketTracks.forEach(addIfMatch);
+  if (Array.isArray(state.meta?.marketTrackArchive)) {
+    state.meta.marketTrackArchive.forEach(addIfMatch);
+  }
+  if (!matches.length && booking.actId) {
+    const fallback = [];
+    const addAny = (entry) => {
+      if (!entry) return;
+      if (normalizeProjectName(entry.projectName || "") !== normalized) return;
+      fallback.push(entry);
+    };
+    marketTracks.forEach(addAny);
+    if (Array.isArray(state.meta?.marketTrackArchive)) {
+      state.meta.marketTrackArchive.forEach(addAny);
+    }
+    matches.push(...fallback);
+  }
+  if (!matches.length) return null;
+  return matches.reduce((latest, entry) => {
+    const latestStamp = latest?.releasedAt || latest?.completedAt || 0;
+    const nextStamp = entry?.releasedAt || entry?.completedAt || 0;
+    return nextStamp >= latestStamp ? entry : latest;
+  }, matches[0]);
+}
+
+function buildTourChartEntry(booking, now) {
+  if (!booking || !Number.isFinite(booking.scheduledAt)) return null;
+  if (booking.status !== "Completed" && booking.scheduledAt > now) return null;
+  const projection = booking.projection || {};
+  const attendance = Number(booking.attendance || projection.attendance || 0);
+  const revenue = Number(booking.revenue || projection.revenue || 0);
+  const costs = Number(booking.costs || projection.costs || 0);
+  const profit = Number(booking.profit || projection.profit || 0);
+  const grossTicket = Number(projection.grossTicket || 0);
+  const merch = Number(projection.merch || 0);
+  const sponsorship = Number(projection.sponsorship || 0);
+  const primaryTrack = resolveTourBookingAnchorTrack(booking);
+  const label = booking.label || primaryTrack?.label || state.label?.name || "Unknown Label";
+  const alignment = booking.alignment || primaryTrack?.alignment || state.label?.alignment || "Neutral";
+  const country = booking.country || primaryTrack?.country || state.label?.country || "Annglora";
+  const trackId = primaryTrack?.trackId || null;
+  const marketId = primaryTrack?.id || null;
+  return {
+    actId: booking.actId || primaryTrack?.actId || null,
+    actName: booking.actName || primaryTrack?.actName || "Unknown",
+    label,
+    alignment,
+    country,
+    nation: booking.nation || primaryTrack?.country || country,
+    regionId: booking.regionId || null,
+    isPlayer: label === state.label?.name,
+    primaryTrack,
+    primaryTrackId: trackId,
+    trackId,
+    marketId,
+    score: attendance,
+    metrics: {
+      attendance,
+      revenue,
+      costs,
+      profit,
+      grossTicket,
+      merch,
+      sponsorship
+    }
+  };
+}
+
+function listTourChartEntries(weekNumber, now = state.time.epochMs) {
+  const targetWeek = Number.isFinite(weekNumber) ? weekNumber : weekIndex() + 1;
+  return listTourBookings().filter((booking) => {
+    if (!booking || !Number.isFinite(booking.scheduledAt)) return false;
+    const bookingWeek = weekIndexForEpochMs(booking.scheduledAt) + 1;
+    if (bookingWeek !== targetWeek) return false;
+    if (booking.status === "Completed") return true;
+    return booking.status === "Booked" && booking.scheduledAt <= now;
+  }).map((booking) => buildTourChartEntry(booking, now)).filter(Boolean);
+}
+
 function buildTourChartList(entries, scopeKey, size, prevEntries) {
   if (!entries.length) return [];
   const grouped = new Map();
   entries.forEach((entry) => {
-    const track = entry.track || entry;
-    if (!track) return;
-    const actId = track.actId || null;
-    const actName = track.actName || "Unknown";
-    const label = track.label || "Unknown";
+    const track = entry.primaryTrack || entry.track || entry;
+    if (!entry) return;
+    const actId = entry.actId || track?.actId || null;
+    const actName = entry.actName || track?.actName || "Unknown";
+    const label = entry.label || track?.label || "Unknown";
     const key = tourActKey({ actId, actName, label });
     const metrics = entry.metrics || {};
-    const score = Number(entry.score || 0);
+    const score = Number(entry.score || metrics.attendance || 0);
     const existing = grouped.get(key) || {
       actKey: key,
       actId,
       actName,
       label,
-      alignment: track.alignment,
-      country: track.country || "Annglora",
-      trackCount: 0,
-      primaryTrack: track,
+      alignment: entry.alignment || track?.alignment || state.label?.alignment || "Neutral",
+      country: entry.country || track?.country || "Annglora",
+      dateCount: 0,
+      primaryTrack: track || null,
       primaryScore: score,
-      metrics: { sales: 0, streaming: 0, airplay: 0, social: 0 },
-      score: 0
+      metrics: { attendance: 0, revenue: 0, costs: 0, profit: 0, grossTicket: 0, merch: 0, sponsorship: 0 },
+      score: 0,
+      primaryTrackId: entry.primaryTrackId || null,
+      marketId: entry.marketId || null
     };
-    existing.trackCount += 1;
+    existing.dateCount += 1;
     if (Number.isFinite(score)) {
       existing.score += score;
       if (!existing.primaryTrack || score > existing.primaryScore) {
         existing.primaryTrack = track;
         existing.primaryScore = score;
+        existing.primaryTrackId = entry.primaryTrackId || existing.primaryTrackId;
+        existing.marketId = entry.marketId || existing.marketId;
       }
     }
-    existing.metrics.sales += Number(metrics.sales || 0);
-    existing.metrics.streaming += Number(metrics.streaming || 0);
-    existing.metrics.airplay += Number(metrics.airplay || 0);
-    existing.metrics.social += Number(metrics.social || 0);
+    existing.metrics.attendance += Number(metrics.attendance || 0);
+    existing.metrics.revenue += Number(metrics.revenue || 0);
+    existing.metrics.costs += Number(metrics.costs || 0);
+    existing.metrics.profit += Number(metrics.profit || 0);
+    existing.metrics.grossTicket += Number(metrics.grossTicket || 0);
+    existing.metrics.merch += Number(metrics.merch || 0);
+    existing.metrics.sponsorship += Number(metrics.sponsorship || 0);
     grouped.set(key, existing);
   });
-  const aggregated = Array.from(grouped.values()).map((entry) => {
-    const attendance = roundToAudienceChunk(
-      Number(entry.metrics.streaming || 0) * 0.5
-      + Number(entry.metrics.sales || 0) * 0.25
-      + Number(entry.metrics.airplay || 0) * 0.15
-      + Number(entry.metrics.social || 0) * 0.1
-    );
-    return {
-      ...entry,
-      metrics: { ...entry.metrics, attendance },
-      score: attendance,
-      primaryTrackTitle: entry.primaryTrack?.title || "",
-      primaryTrackTheme: entry.primaryTrack?.theme || "",
-      primaryTrackMood: entry.primaryTrack?.mood || "",
-      primaryTrackGenre: entry.primaryTrack?.genre || ""
-    };
-  });
+  const aggregated = Array.from(grouped.values()).map((entry) => ({
+    ...entry,
+    metrics: { ...entry.metrics },
+    score: Number(entry.score || 0),
+    primaryTrackTitle: entry.primaryTrack?.title || "",
+    primaryTrackTheme: entry.primaryTrack?.theme || "",
+    primaryTrackMood: entry.primaryTrack?.mood || "",
+    primaryTrackGenre: entry.primaryTrack?.genre || ""
+  }));
   const ordered = aggregated.sort((a, b) => b.score - a.score).slice(0, size);
   return ordered.map((entry, index) => {
     const prevEntry = prevEntries.find((prev) => prev.actKey === entry.actKey);
@@ -8317,6 +8441,8 @@ function buildTourChartList(entries, scopeKey, size, prevEntries) {
 }
 
 function computeTourCharts() {
+  const week = weekIndex() + 1;
+  const entries = listTourChartEntries(week);
   const prevCharts = state.tourCharts || buildEmptyChartStore();
   const prevGlobal = Array.isArray(prevCharts.global) ? prevCharts.global.slice() : [];
   const prevNations = {};
@@ -8328,14 +8454,14 @@ function computeTourCharts() {
     prevRegions[region.id] = Array.isArray(prevCharts.regions?.[region.id]) ? prevCharts.regions[region.id].slice() : [];
   });
   const charts = ensureTourChartsStore();
-  charts.global = buildTourChartList(state.charts.global || [], "tour:global", CHART_SIZES.global, prevGlobal);
+  charts.global = buildTourChartList(entries, "tour:global", CHART_SIZES.global, prevGlobal);
   NATIONS.forEach((nation) => {
-    const entries = state.charts.nations[nation] || [];
-    charts.nations[nation] = buildTourChartList(entries, `tour:nation:${nation}`, CHART_SIZES.nation, prevNations[nation]);
+    const scoped = entries.filter((entry) => entry.nation === nation);
+    charts.nations[nation] = buildTourChartList(scoped, `tour:nation:${nation}`, CHART_SIZES.nation, prevNations[nation]);
   });
   REGION_DEFS.forEach((region) => {
-    const entries = state.charts.regions[region.id] || [];
-    charts.regions[region.id] = buildTourChartList(entries, `tour:region:${region.id}`, CHART_SIZES.region, prevRegions[region.id]);
+    const scoped = entries.filter((entry) => entry.regionId === region.id);
+    charts.regions[region.id] = buildTourChartList(scoped, `tour:region:${region.id}`, CHART_SIZES.region, prevRegions[region.id]);
   });
 }
 
@@ -9211,19 +9337,51 @@ function updateEconomy(globalScores) {
     : 600;
   const upkeepBase = state.creators.length * upkeepPerCreator + ownedSlots * upkeepPerStudio + leaseFees;
   const upkeep = Math.round(upkeepBase * difficulty.upkeepMult);
-  state.label.cash = Math.round(state.label.cash + revenue - upkeep);
+  const touringPending = state.economy?.pendingTouring || {};
+  const touringRevenue = Math.round(Number(touringPending.revenue || 0));
+  const touringCosts = Math.round(Number(touringPending.costs || 0));
+  const touringProfit = Math.round(Number(touringPending.profit || touringRevenue - touringCosts));
+  const touringCount = Math.max(0, Math.round(Number(touringPending.count || 0)));
+  const applyTouring = touringBalanceEnabled() && touringCount > 0;
+  const totalRevenue = revenue + (applyTouring ? touringRevenue : 0);
+  const totalUpkeep = upkeep + (applyTouring ? touringCosts : 0);
+  state.label.cash = Math.round(state.label.cash + totalRevenue - totalUpkeep);
   state.economy.lastRevenue = revenue;
   state.economy.lastUpkeep = upkeep;
   state.economy.lastWeek = weekIndex() + 1;
   state.economy.leaseFeesWeek = 0;
-  logEvent(`Week ${weekIndex() + 1} report: +${formatMoney(revenue)} revenue, -${formatMoney(upkeep)} upkeep.`);
+  if (!state.economy.pendingTouring || typeof state.economy.pendingTouring !== "object") {
+    state.economy.pendingTouring = { revenue: 0, costs: 0, profit: 0, attendance: 0, fanGain: 0, count: 0 };
+  } else {
+    state.economy.pendingTouring.revenue = 0;
+    state.economy.pendingTouring.costs = 0;
+    state.economy.pendingTouring.profit = 0;
+    state.economy.pendingTouring.attendance = 0;
+    state.economy.pendingTouring.fanGain = 0;
+    state.economy.pendingTouring.count = 0;
+  }
+  let report = `Week ${weekIndex() + 1} report: +${formatMoney(revenue)} revenue, -${formatMoney(upkeep)} upkeep.`;
+  if (touringCount) {
+    report += applyTouring
+      ? ` Touring net ${formatMoney(touringProfit)} from ${touringCount} date${touringCount === 1 ? "" : "s"}.`
+      : ` Touring balance disabled; ${touringCount} date${touringCount === 1 ? "" : "s"} netted ${formatMoney(touringProfit)} (no wallet impact).`;
+  }
+  logEvent(report);
+  const reportLines = [
+    `Revenue ${formatMoney(revenue)} | Upkeep ${formatMoney(upkeep)}`,
+    `Net ${formatMoney(totalRevenue - totalUpkeep)}`
+  ];
+  if (touringCount) {
+    reportLines.push(
+      applyTouring
+        ? `Touring ${formatMoney(touringRevenue)} | Costs ${formatMoney(touringCosts)} | Net ${formatMoney(touringProfit)}`
+        : `Touring net ${formatMoney(touringProfit)} (balance off)`
+    );
+  }
   postSocial({
     handle: "@eyeriStats",
     title: `Week ${weekIndex() + 1} Market Report`,
-    lines: [
-      `Revenue ${formatMoney(revenue)} | Upkeep ${formatMoney(upkeep)}`,
-      `Net ${formatMoney(revenue - upkeep)}`
-    ],
+    lines: reportLines,
     type: "economy",
     order: 2
   });
@@ -11373,6 +11531,7 @@ function weeklyUpdate() {
   ensureRivalCashFloor();
   recruitRivalCreators();
   generateRivalReleases();
+  resolveTourBookings();
   const { globalScores } = computeChartsLocal();
   updateAudienceBiasFromCharts();
   const labelScores = computeLabelScoresFromCharts();
@@ -12631,6 +12790,7 @@ function normalizeState() {
     state.ui.calendarFilters = {
       labelScheduled: true,
       labelReleased: true,
+      tourScheduled: true,
       rivalScheduled: true,
       rivalReleased: true
     };
@@ -12638,6 +12798,7 @@ function normalizeState() {
     const defaults = {
       labelScheduled: true,
       labelReleased: true,
+      tourScheduled: true,
       rivalScheduled: true,
       rivalReleased: true
     };
@@ -12646,6 +12807,16 @@ function normalizeState() {
     });
   }
   if (!Number.isFinite(state.ui.calendarWeekIndex)) state.ui.calendarWeekIndex = null;
+  if (!state.ui.tourVenueFilters || typeof state.ui.tourVenueFilters !== "object") {
+    state.ui.tourVenueFilters = { nation: "All", regionId: "All", tier: "All" };
+  } else {
+    if (typeof state.ui.tourVenueFilters.nation !== "string") state.ui.tourVenueFilters.nation = "All";
+    if (typeof state.ui.tourVenueFilters.regionId !== "string") state.ui.tourVenueFilters.regionId = "All";
+    if (typeof state.ui.tourVenueFilters.tier !== "string") state.ui.tourVenueFilters.tier = "All";
+  }
+  if (!Number.isFinite(state.ui.tourBookingWeek)) state.ui.tourBookingWeek = null;
+  if (!Number.isFinite(state.ui.tourBookingDay)) state.ui.tourBookingDay = null;
+  if (state.ui.tourNotice && typeof state.ui.tourNotice !== "object") state.ui.tourNotice = null;
   if (typeof state.ui.slotTarget === "undefined") state.ui.slotTarget = null;
   if (!state.ui.createStage || !["sheet", "demo", "master"].includes(state.ui.createStage)) {
     state.ui.createStage = "sheet";
@@ -12871,6 +13042,7 @@ function normalizeState() {
     state.meta.autoRollout.budgetPctSlots[0] = state.meta.autoRollout.budgetPct;
   }
   if (typeof state.meta.keepEraRolloutHusks !== "boolean") state.meta.keepEraRolloutHusks = true;
+  if (typeof state.meta.touringBalanceEnabled !== "boolean") state.meta.touringBalanceEnabled = false;
   if (typeof state.meta.cheaterMode !== "boolean") state.meta.cheaterMode = false;
   ensureCheaterEconomyOverrides();
   applyCheaterEconomyOverrides();
@@ -12917,7 +13089,51 @@ function normalizeState() {
     return next;
   });
   touring.lastDraftId = Math.max(0, Math.round(Number(touring.lastDraftId) || 0));
-  touring.bookings = touring.bookings.filter(Boolean);
+  touring.bookings = touring.bookings.filter(Boolean).map((booking) => {
+    const next = booking || {};
+    if (!next.id) next.id = uid("TB");
+    if (typeof next.tourId !== "string") next.tourId = next.tourId || null;
+    if (typeof next.tourName !== "string") next.tourName = next.tourName || "";
+    if (next.goal !== "visibility" && next.goal !== "revenue") next.goal = "visibility";
+    if (typeof next.actId !== "string") next.actId = next.actId || null;
+    if (typeof next.actName !== "string") next.actName = next.actName || "";
+    if (typeof next.eraId !== "string") next.eraId = next.eraId || null;
+    if (typeof next.eraName !== "string") next.eraName = next.eraName || "";
+    if (typeof next.anchorTrackId !== "string") next.anchorTrackId = next.anchorTrackId || null;
+    if (typeof next.anchorProjectName !== "string") next.anchorProjectName = next.anchorProjectName || null;
+    if (typeof next.venueId !== "string") next.venueId = next.venueId || null;
+    if (typeof next.venueLabel !== "string") next.venueLabel = next.venueLabel || "";
+    if (typeof next.tier !== "string") next.tier = next.tier || null;
+    if (!Number.isFinite(next.capacity)) next.capacity = 0;
+    if (typeof next.regionId !== "string") next.regionId = next.regionId || null;
+    if (typeof next.nation !== "string") next.nation = next.nation || null;
+    if (!Number.isFinite(next.scheduledAt)) next.scheduledAt = null;
+    if (!Number.isFinite(next.weekNumber)) next.weekNumber = null;
+    if (!Number.isFinite(next.dayIndex)) next.dayIndex = null;
+    if (typeof next.status !== "string") next.status = "Booked";
+    if (next.status !== "Booked" && next.status !== "Completed") next.status = "Booked";
+    if (!next.projection || typeof next.projection !== "object") next.projection = {};
+    const projection = next.projection;
+    projection.attendance = Math.round(Number(projection.attendance || 0));
+    projection.revenue = Math.round(Number(projection.revenue || 0));
+    projection.costs = Math.round(Number(projection.costs || 0));
+    projection.profit = Math.round(Number(projection.profit || 0));
+    projection.grossTicket = Math.round(Number(projection.grossTicket || 0));
+    projection.merch = Math.round(Number(projection.merch || 0));
+    projection.sponsorship = Math.round(Number(projection.sponsorship || 0));
+    if (!Array.isArray(next.warnings)) next.warnings = [];
+    if (!Number.isFinite(next.attendance)) next.attendance = null;
+    if (!Number.isFinite(next.revenue)) next.revenue = null;
+    if (!Number.isFinite(next.costs)) next.costs = null;
+    if (!Number.isFinite(next.profit)) next.profit = null;
+    if (typeof next.createdAt !== "number") next.createdAt = state.time?.epochMs || Date.now();
+    if (typeof next.updatedAt !== "number") next.updatedAt = next.createdAt;
+    if (typeof next.label !== "string") next.label = next.label || "";
+    if (typeof next.alignment !== "string") next.alignment = next.alignment || "";
+    if (typeof next.country !== "string") next.country = next.country || "";
+    if (!Number.isFinite(next.resolvedAt)) next.resolvedAt = null;
+    return next;
+  });
   state.promoCharts = ensureChartStoreStructure(state.promoCharts);
   state.tourCharts = ensureChartStoreStructure(state.tourCharts);
   if (!state.tourChartHistory || typeof state.tourChartHistory !== "object") state.tourChartHistory = {};
@@ -12931,10 +13147,37 @@ function normalizeState() {
       lastUpkeep: 0,
       lastWeek: 0,
       leaseFeesWeek: 0,
+      pendingTouring: { revenue: 0, costs: 0, profit: 0, attendance: 0, fanGain: 0, count: 0 },
+      lastTouring: null,
       creatorMarketHeat: { Songwriter: 0, Performer: 0, Producer: 0 }
     };
   }
   if (typeof state.economy.leaseFeesWeek !== "number") state.economy.leaseFeesWeek = 0;
+  if (!state.economy.pendingTouring || typeof state.economy.pendingTouring !== "object") {
+    state.economy.pendingTouring = { revenue: 0, costs: 0, profit: 0, attendance: 0, fanGain: 0, count: 0 };
+  } else {
+    const pending = state.economy.pendingTouring;
+    pending.revenue = Math.round(Number(pending.revenue || 0));
+    pending.costs = Math.round(Number(pending.costs || 0));
+    pending.profit = Math.round(Number(pending.profit || 0));
+    pending.attendance = Math.round(Number(pending.attendance || 0));
+    pending.fanGain = Math.round(Number(pending.fanGain || 0));
+    pending.count = Math.max(0, Math.round(Number(pending.count || 0)));
+  }
+  if (state.economy.lastTouring && typeof state.economy.lastTouring !== "object") {
+    state.economy.lastTouring = null;
+  }
+  if (state.economy.lastTouring) {
+    const last = state.economy.lastTouring;
+    last.revenue = Math.round(Number(last.revenue || 0));
+    last.costs = Math.round(Number(last.costs || 0));
+    last.profit = Math.round(Number(last.profit || 0));
+    last.attendance = Math.round(Number(last.attendance || 0));
+    last.fanGain = Math.round(Number(last.fanGain || 0));
+    last.count = Math.max(0, Math.round(Number(last.count || 0)));
+    if (!Number.isFinite(last.week)) last.week = null;
+    if (typeof last.balanceApplied !== "boolean") last.balanceApplied = false;
+  }
   ensureCreatorMarketHeat();
   if (!state.era) state.era = { active: [], history: [] };
   if (!Array.isArray(state.era.active)) {
@@ -13965,6 +14208,23 @@ function buildCalendarSources() {
       typeLabel: "Released",
       distribution: entry.distribution || "Digital"
     }));
+  const tourScheduled = listTourBookings()
+    .filter((booking) => booking && Number.isFinite(booking.scheduledAt))
+    .map((booking) => {
+      const warningCount = Array.isArray(booking.warnings) ? booking.warnings.length : 0;
+      const isWarning = warningCount > 0;
+      return {
+        id: booking.id,
+        ts: booking.scheduledAt,
+        title: booking.tourName || `${booking.actName || "Act"} Tour`,
+        actName: booking.actName || "Unknown",
+        label: booking.label || labelName,
+        kind: isWarning ? "tourWarning" : "tourScheduled",
+        className: isWarning ? "tour-warning" : "tour-scheduled",
+        typeLabel: isWarning ? "Tour Warning" : "Tour",
+        distribution: booking.venueLabel || "Venue"
+      };
+    });
   const rivalScheduled = state.rivalReleaseQueue.map((entry) => {
     const queueType = entry.queueType || "release";
     const isPromo = queueType === "promo";
@@ -14020,7 +14280,7 @@ function buildCalendarSources() {
         content
       };
     });
-  return { labelScheduled, labelReleased, rivalScheduled, rivalReleased, eras };
+  return { labelScheduled, labelReleased, tourScheduled, rivalScheduled, rivalReleased, eras };
 }
 
 function buildCalendarProjection({ pastWeeks = 1, futureWeeks = 4, anchorWeekIndex = null } = {}) {
@@ -14249,6 +14509,7 @@ export {
   assignTrackAct,
   attemptSignCreator,
   buildCalendarProjection,
+  bookTourDate,
   buildPromoProjectKey,
   buildPromoProjectKeyFromTrack,
   buildMarketCreators,
@@ -14268,16 +14529,20 @@ export {
   computeChartProjectionForScope,
   computeCharts,
   computePopulationSnapshot,
+  computeTourDraftSummary,
+  computeTourProjection,
   countryColor,
   countryDemonym,
   createRolloutStrategyFromTemplate,
   createRolloutStrategyForEra,
   createTrack,
+  createTourDraft,
   evaluateProjectTrackConstraints,
   creatorInitials,
   currentYear,
   declineBailout,
   deleteSlot,
+  deleteTourDraft,
   endEraById,
   ensureMarketCreators,
   ensureTrackSlotArrays,
@@ -14337,11 +14602,20 @@ export {
   getTrack,
   getTrackRoleIds,
   getTrackRoleIdsFromSlots,
+  getSelectedTourDraft,
+  getTourDraftById,
+  getTourTierConfig,
+  getTourVenueAvailability,
+  getTourVenueById,
   getWorkOrderCreatorIds,
   handleFromName,
   hoursUntilNextScheduledTime,
   isMasteringTrack,
   listFromIds,
+  listTourBookings,
+  listTourDrafts,
+  listTourTiers,
+  listTourVenues,
   listGameDifficulties,
   listGameModes,
   loadLossArchives,
@@ -14381,6 +14655,8 @@ export {
   releaseTrack,
   releasedTracks,
   resolveTrackReleaseType,
+  resolveTourAnchor,
+  removeTourBooking,
   reservePromoFacilitySlot,
   resetState,
   roleLabel,
@@ -14393,7 +14669,9 @@ export {
   setCheaterMode,
   setFocusEraById,
   setSelectedRolloutStrategyId,
+  selectTourDraft,
   setSlotTarget,
+  setTouringBalanceEnabled,
   setTimeSpeed,
   shortGameModeLabel,
   slugify,
@@ -14407,8 +14685,11 @@ export {
   themeFromGenre,
   trackKey,
   trackRoleLimit,
+  touringBalanceEnabled,
   trendAlignmentLeader,
+  updateTourDraft,
   uid,
+  weekStartEpochMs,
   weekIndex,
   weekNumberFromEpochMs,
 };

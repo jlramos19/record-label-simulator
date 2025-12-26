@@ -293,6 +293,7 @@
       <div class="filter-row" id="calendarModalFilters">
         <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
         <label class="check-pill"><input type="checkbox" data-calendar-filter="labelReleased">Label Released</label>
+        <label class="check-pill"><input type="checkbox" data-calendar-filter="tourScheduled">Tour Dates</label>
         <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalScheduled">Rival Scheduled</label>
         <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
       </div>
@@ -620,21 +621,23 @@
           <h2>Gameplay Screen: Charts</h2>
         </div>
         <div class="card-body">
-          <div class="chart-scope-controls">
-            <div class="tabs" id="chartTabs">
-              <button class="tab active" data-chart="global" type="button">Global</button>
-              <button class="tab" data-chart="Annglora" type="button">Annglora</button>
-              <button class="tab" data-chart="Bytenza" type="button">Bytenza</button>
-              <button class="tab" data-chart="Crowlya" type="button">Crowlya</button>
+          <div class="chart-controls-row">
+            <div class="chart-scope-controls">
+              <div class="tabs" id="chartTabs">
+                <button class="tab active" data-chart="global" type="button">Global</button>
+                <button class="tab" data-chart="Annglora" type="button">Annglora</button>
+                <button class="tab" data-chart="Bytenza" type="button">Bytenza</button>
+                <button class="tab" data-chart="Crowlya" type="button">Crowlya</button>
+              </div>
+              <div class="tabs chart-region-tabs hidden" id="chartRegionTabs"></div>
             </div>
-            <div class="tabs chart-region-tabs hidden" id="chartRegionTabs"></div>
-          </div>
-          <div class="tabs" id="chartTypeTabs">
-            <button class="tab active" data-chart-content="tracks" type="button">Tracks</button>
-            <button class="tab" data-chart-content="projects" type="button">Projects</button>
-            <button class="tab" data-chart-content="promotions" type="button">Promotions</button>
-            <button class="tab" data-chart-content="tours" type="button">Touring</button>
-            <button class="tab" data-chart-content="acts" type="button">Acts</button>
+            <div class="tabs" id="chartTypeTabs">
+              <button class="tab active" data-chart-content="tracks" type="button">Tracks</button>
+              <button class="tab" data-chart-content="projects" type="button">Projects</button>
+              <button class="tab" data-chart-content="promotions" type="button">Promotions</button>
+              <button class="tab" data-chart-content="tours" type="button">Touring</button>
+              <button class="tab" data-chart-content="acts" type="button">Acts</button>
+            </div>
           </div>
           <div class="callout">
             Charts update weekly (Saturday 00:00 UTC). Trends refresh Friday 12:00.
@@ -949,6 +952,7 @@
           <div class="filter-row" id="calendarFilters">
             <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
             <label class="check-pill"><input type="checkbox" data-calendar-filter="labelReleased">Label Released</label>
+            <label class="check-pill"><input type="checkbox" data-calendar-filter="tourScheduled">Tour Dates</label>
             <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalScheduled">Rival Scheduled</label>
             <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
           </div>
@@ -1571,45 +1575,132 @@
 </template>
 
 <template id="view-tour">
-  <div class="view view--tour view--single">
+  <div class="view view--tour">
     <section class="view-main">
-      <div class="panel card panel--scroll" data-panel="touring-desk">
+      <div class="panel card panel--scroll" data-panel="tour-planner">
         <div class="card-head">
-          <h2>Touring Desk</h2>
+          <h2>Tour Planner</h2>
+          <div class="panel-tools">
+            <button id="tourDraftCreateBtn" type="button" class="ghost mini">New Draft</button>
+            <button id="tourDraftDeleteBtn" type="button" class="ghost mini">Delete</button>
+          </div>
         </div>
         <div class="card-body">
-          <div class="callout">
-            Touring is planned. This desk will manage act tours, venue bookings, and routing once enabled.
+          <div id="tourNotice" class="callout">Plan the window, pick an anchor release, then book venues to build the route.</div>
+          <div class="field">
+            <label for="tourDraftSelect">Tour Draft</label>
+            <select id="tourDraftSelect" data-tour-lock></select>
           </div>
-          <div class="subhead">Planned tools</div>
-          <div class="list">
-            <div class="list-item">
-              <div class="item-title">Tour Planner</div>
-              <div class="muted">Pick an act, era, and tour goal, then set the date window.</div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="tourNameInput">Tour Name</label>
+              <input id="tourNameInput" type="text" data-tour-lock>
             </div>
-            <div class="list-item">
-              <div class="item-title">Venue Finder</div>
-              <div class="muted">Filter venues by region, capacity tier, and availability.</div>
+            <div class="field">
+              <label for="tourGoalSelect">Goal</label>
+              <select id="tourGoalSelect" data-tour-lock>
+                <option value="visibility">Visibility</option>
+                <option value="revenue">Revenue</option>
+              </select>
             </div>
-            <div class="list-item">
-              <div class="item-title">Route Timeline</div>
-              <div class="muted">Lay out stops, travel buffers, and conflicts.</div>
+            <div class="field">
+              <label for="tourActSelect">Act</label>
+              <select id="tourActSelect" data-tour-lock></select>
             </div>
-            <div class="list-item">
-              <div class="item-title">Budget + Staffing</div>
-              <div class="muted">Estimate fees, staffing, and projected profit.</div>
-            </div>
-          </div>
-          <div class="subhead">Observability</div>
-          <div class="list">
-            <div class="list-item">
-              <div class="item-title">Conflict warnings</div>
-              <div class="muted">Slot conflicts and capacity mismatches will surface here and on the Calendar.</div>
+            <div class="field">
+              <label for="tourEraSelect">Era</label>
+              <select id="tourEraSelect" data-tour-lock></select>
             </div>
           </div>
+          <div class="field">
+            <label for="tourAnchorSelect">Anchor Release</label>
+            <select id="tourAnchorSelect" data-tour-lock></select>
+            <div class="tiny muted">Anchors projections to a project or track.</div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="tourWindowStart">Start Week</label>
+              <input id="tourWindowStart" type="number" min="1" step="1" data-tour-lock>
+            </div>
+            <div class="field">
+              <label for="tourWindowEnd">End Week</label>
+              <input id="tourWindowEnd" type="number" min="1" step="1" data-tour-lock>
+            </div>
+          </div>
+          <div class="field">
+            <label for="tourNotes">Notes</label>
+            <textarea id="tourNotes" rows="3" data-tour-lock></textarea>
+          </div>
+          <div id="tourPlannerMeta" class="tiny muted"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="tour-timeline">
+        <div class="card-head">
+          <h2>Route Timeline</h2>
+        </div>
+        <div class="card-body">
+          <div id="tourTimelineList" class="list"></div>
         </div>
       </div>
     </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="tour-venues">
+        <div class="card-head">
+          <h2>Venue Finder</h2>
+        </div>
+        <div class="card-body">
+          <div class="callout">Choose a week/day, then book a venue from the list.</div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="tourBookingWeek">Week</label>
+              <input id="tourBookingWeek" type="number" min="1" step="1" data-tour-lock>
+            </div>
+            <div class="field">
+              <label for="tourBookingDay">Day</label>
+              <select id="tourBookingDay" data-tour-lock>
+                <option value="0">Sun</option>
+                <option value="1">Mon</option>
+                <option value="2">Tue</option>
+                <option value="3">Wed</option>
+                <option value="4">Thu</option>
+                <option value="5">Fri</option>
+                <option value="6">Sat</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid tour-filters">
+            <div class="field">
+              <label for="tourVenueNation">Nation</label>
+              <select id="tourVenueNation" data-tour-lock></select>
+            </div>
+            <div class="field">
+              <label for="tourVenueRegion">Region</label>
+              <select id="tourVenueRegion" data-tour-lock></select>
+            </div>
+            <div class="field">
+              <label for="tourVenueTier">Tier</label>
+              <select id="tourVenueTier" data-tour-lock></select>
+            </div>
+          </div>
+          <div id="tourVenueList" class="list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="tour-summary">
+        <div class="card-head">
+          <h2>Budget + Staffing</h2>
+          <label class="toggle-pill">
+            <input id="tourBalanceToggle" type="checkbox">
+            <span>Balance Effects</span>
+          </label>
+        </div>
+        <div class="card-body">
+          <div class="tiny muted">Balance effects apply wallet/fan impact only when enabled.</div>
+          <div id="tourBudgetSummary" class="list"></div>
+          <div class="subhead">Warnings</div>
+          <div id="tourWarningList" class="list"></div>
+        </div>
+      </div>
+    </aside>
   </div>
 </template>
 
