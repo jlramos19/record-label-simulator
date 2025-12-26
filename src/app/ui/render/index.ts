@@ -3218,6 +3218,9 @@ function renderRolloutStrategyPlanner() {
   const addDropBtn = $("rolloutStrategyAddDrop");
   const addEventBtn = $("rolloutStrategyAddEvent");
   const createBtn = $("rolloutStrategyCreate");
+  const templateSelect = $("rolloutStrategyTemplateSelect");
+  const templateCreateBtn = $("rolloutStrategyTemplateCreate");
+  const templates = Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) ? ROLLOUT_STRATEGY_TEMPLATES : [];
   if (!select || !summary) return;
 
   const era = getRolloutPlanningEra();
@@ -3233,7 +3236,32 @@ function renderRolloutStrategyPlanner() {
     if (addDropBtn) addDropBtn.disabled = true;
     if (addEventBtn) addEventBtn.disabled = true;
     if (createBtn) createBtn.disabled = true;
+    if (templateSelect) {
+      templateSelect.innerHTML = `<option value="">No active era</option>`;
+      templateSelect.disabled = true;
+    }
+    if (templateCreateBtn) templateCreateBtn.disabled = true;
     return;
+  }
+
+  if (templateSelect) {
+    if (!templates.length) {
+      templateSelect.innerHTML = `<option value="">No templates</option>`;
+      templateSelect.disabled = true;
+      if (templateCreateBtn) templateCreateBtn.disabled = true;
+    } else {
+      templateSelect.innerHTML = templates.map((template) => (
+        `<option value="${template.id}">${template.label}</option>`
+      )).join("");
+      const stored = state.ui?.viewContext?.selectedRolloutTemplateId;
+      const desired = templates.some((template) => template.id === stored)
+        ? stored
+        : templates[0].id;
+      templateSelect.value = desired;
+      if (state.ui?.viewContext) state.ui.viewContext.selectedRolloutTemplateId = desired;
+      templateSelect.disabled = false;
+      if (templateCreateBtn) templateCreateBtn.disabled = false;
+    }
   }
 
   const strategies = getRolloutStrategiesForEra(era.id);

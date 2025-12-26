@@ -35,6 +35,14 @@ declare const QUALITY_MIN: number;
 declare const QUALITY_MAX: number;
 declare const ERA_STAGES: string[];
 declare const ROLLOUT_PRESETS: { id: string; label: string; weeks: number[] }[];
+declare const ROLLOUT_STRATEGY_TEMPLATES: {
+  id: string;
+  label: string;
+  source?: string;
+  cadence: { kind: string; weekOffset: number; day?: number; hour?: number; promoType?: string }[];
+  eligibleCategories?: { releases?: string[]; promos?: string[] };
+  context?: { alignmentTags?: string[]; trendTags?: string[]; outcomeScore?: number };
+}[];
 declare const CHART_SIZES: { global: number; nation: number; region: number };
 declare const CHART_WEIGHTS: { sales: number; streaming: number; airplay: number; social: number };
 declare const REGION_CONSUMPTION_WEIGHTS: Record<string, { sales: number; streaming: number; airplay: number; social: number }>;

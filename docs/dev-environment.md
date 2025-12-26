@@ -7,9 +7,10 @@
 - Markdownlint (`davidanson.vscode-markdownlint`): lint docs against repo Markdown rules.
 
 ## Run/Debug (Edge)
-- Use the `RLS: Edge (Dev)` Run/Debug config to launch Edge with the game.
-- Prelaunch tasks start `npm run start` + `npm run watch` so the game boots and TypeScript stays hot.
-- The game server listens on `http://localhost:5173`. The React islands dev server uses `http://localhost:5174` to avoid conflicts.
+- Terminal A: `npm run start`
+- Terminal B: `npm run watch`
+- Launch the `RLS: Edge` Run/Debug config to open `http://localhost:5173` (keep both terminals running for live TS updates).
+- The React islands dev server uses `http://localhost:5174` to avoid conflicts.
 
 ## Observability
 - Use Edge DevTools console (in the browser) for runtime errors and `npm run dev:logs` for session logs in `usage-logs/`.

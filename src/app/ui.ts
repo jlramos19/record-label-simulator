@@ -107,6 +107,7 @@ const {
   startEraForAct,
   endEraById,
   createRolloutStrategyForEra,
+  createRolloutStrategyFromTemplate,
   getRolloutStrategyById,
   setSelectedRolloutStrategyId,
   addRolloutStrategyDrop,
@@ -470,6 +471,7 @@ function handleCalendarPointerEnd(e) {
 
 const RANKING_WINDOW_MARGIN = 12;
 let rankingWindowDrag = null;
+let rankingWindowDismissalBound = false;
 
 function clampRankingWindowPosition(left, top, width, height) {
   const maxLeft = Math.max(RANKING_WINDOW_MARGIN, window.innerWidth - width - RANKING_WINDOW_MARGIN);
@@ -556,6 +558,18 @@ function setupRankingWindowDrag() {
   };
   head.addEventListener("pointerup", endDrag);
   head.addEventListener("pointercancel", endDrag);
+}
+
+function setupRankingWindowDismissal() {
+  if (rankingWindowDismissalBound || typeof document === "undefined") return;
+  rankingWindowDismissalBound = true;
+  document.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const windowEl = $("rankingWindow");
+    if (!windowEl || windowEl.classList.contains("hidden")) return;
+    if (windowEl.contains(event.target)) return;
+    closeRankingWindow();
+  }, { capture: true });
 }
 
 function roleLabel(role) {
@@ -3470,6 +3484,8 @@ function bindViewHandlers(route, root) {
   on("endEraBtn", "click", endEraFromUI);
   on("rolloutStrategyCreate", "click", createRolloutStrategyFromUI);
   on("rolloutStrategySelect", "change", selectRolloutStrategyFromUI);
+  on("rolloutStrategyTemplateCreate", "click", createRolloutStrategyFromTemplateFromUI);
+  on("rolloutStrategyTemplateSelect", "change", selectRolloutTemplateFromUI);
   on("rolloutStrategyAddDrop", "click", addRolloutDropFromUI);
   on("rolloutStrategyAddEvent", "click", addRolloutEventFromUI);
   on("rolloutStrategyAutoRun", "change", toggleRolloutStrategyAutoRunFromUI);
@@ -4533,6 +4549,26 @@ function startTrackFromUI() {
   startSheetFromUI();
 }
 
+const CREATOR_ACT_LIMIT = 4;
+
+function buildCreatorActCounts() {
+  const counts = {};
+  state.acts.forEach((act) => {
+    if (!Array.isArray(act.memberIds)) return;
+    act.memberIds.forEach((id) => {
+      if (!id) return;
+      counts[id] = (counts[id] || 0) + 1;
+    });
+  });
+  return counts;
+}
+
+function getCreatorsOverActLimit(memberIds, actCounts) {
+  return memberIds
+    .map((id) => getCreator(id))
+    .filter((creator) => creator && (actCounts[creator.id] || 0) >= CREATOR_ACT_LIMIT);
+}
+
 function createActFromUI() {
   const name = $("actName").value.trim() || makeActName();
   const type = $("actTypeSelect").value;
@@ -4554,6 +4590,14 @@ function createActFromUI() {
       return;
     }
   }
+  const actCounts = buildCreatorActCounts();
+  const blockedCreators = getCreatorsOverActLimit(members, actCounts);
+  if (blockedCreators.length) {
+    const names = blockedCreators.map((creator) => creator.name).join(", ");
+    const verb = blockedCreators.length === 1 ? "is" : "are";
+    logEvent(`Cannot create act: ${names} ${verb} already in ${CREATOR_ACT_LIMIT} acts.`, "warn");
+    return;
+  }
   const act = makeAct({ name, type, alignment, memberIds: members });
   state.acts.push(act);
   logUiEvent("action_submit", { action: "create_act", actId: act.id, type });
@@ -4571,7 +4615,17 @@ function createQuickAct() {
     logEvent("No creators available to form an act.", "warn");
     return;
   }
-  const memberIds = pickDistinct(state.creators.map((creator) => creator.id), Math.min(2, state.creators.length));
+  const actCounts = buildCreatorActCounts();
+  const eligibleCreators = state.creators.filter((creator) => (actCounts[creator.id] || 0) < CREATOR_ACT_LIMIT);
+  if (!eligibleCreators.length) {
+    logEvent(`No creators available to form an act (all creators are in ${CREATOR_ACT_LIMIT} acts).`, "warn");
+    return;
+  }
+  const canGroup = eligibleCreators.length >= 2;
+  const chooseGroup = canGroup && Math.random() < 0.5;
+  const pool = eligibleCreators.map((creator) => creator.id);
+  const groupSize = chooseGroup && pool.length >= 3 && Math.random() < 0.5 ? 3 : 2;
+  const memberIds = pickDistinct(pool, chooseGroup ? groupSize : 1);
   const type = memberIds.length > 1 ? "Group Act" : "Solo Act";
   const act = makeAct({
     name: makeActName(),
@@ -4635,6 +4689,36 @@ function getSelectedRolloutStrategyIdFromUI() {
   return state.ui?.viewContext?.rolloutStrategyId || null;
 }
 
+function getSelectedRolloutTemplateIdFromUI() {
+  const select = $("rolloutStrategyTemplateSelect");
+  if (select && select.value) return select.value;
+  return state.ui?.viewContext?.selectedRolloutTemplateId || null;
+}
+
+function resolveRolloutTemplateLabel(templateId) {
+  if (!templateId) return "Template";
+  const templates = Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) ? ROLLOUT_STRATEGY_TEMPLATES : [];
+  const match = templates.find((template) => template.id === templateId);
+  return match?.label || templateId;
+}
+
+function selectRolloutTemplateFromUI(e) {
+  const templateId = e.target.value || null;
+  if (!state.ui.viewContext) {
+    state.ui.viewContext = {
+      actId: null,
+      eraId: null,
+      releaseId: null,
+      projectId: null,
+      plannedReleaseIds: [],
+      selectedRolloutTemplateId: null,
+      rolloutStrategyId: null
+    };
+  }
+  state.ui.viewContext.selectedRolloutTemplateId = templateId;
+  saveToActiveSlot();
+}
+
 function getRolloutWeekFromUI() {
   const input = $("rolloutStrategyWeek");
   if (!input) return null;
@@ -4652,6 +4736,35 @@ function createRolloutStrategyFromUI() {
   if (!strategy) return;
   setSelectedRolloutStrategyId(strategy.id);
   logUiEvent("action_submit", { action: "rollout_strategy_create", eraId: era.id, strategyId: strategy.id });
+  renderEraStatus();
+  saveToActiveSlot();
+}
+
+function createRolloutStrategyFromTemplateFromUI() {
+  const era = getRolloutPlanningEra();
+  if (!era) {
+    logEvent("Focus an active era to apply a rollout template.", "warn");
+    return;
+  }
+  const templateId = getSelectedRolloutTemplateIdFromUI();
+  if (!templateId) {
+    logEvent("Select a rollout template first.", "warn");
+    return;
+  }
+  const strategy = createRolloutStrategyFromTemplate(era, templateId);
+  if (!strategy) {
+    logEvent("Rollout template could not be applied.", "warn");
+    return;
+  }
+  setSelectedRolloutStrategyId(strategy.id);
+  const templateLabel = resolveRolloutTemplateLabel(templateId);
+  logEvent(`Rollout template applied: ${templateLabel}. Add Track IDs before expanding.`);
+  logUiEvent("action_submit", {
+    action: "rollout_strategy_template",
+    eraId: era.id,
+    strategyId: strategy.id,
+    templateId
+  });
   renderEraStatus();
   saveToActiveSlot();
 }
@@ -5140,6 +5253,7 @@ export async function initUI() {
   window.addEventListener("resize", () => clampAllPanels());
   bindGlobalHandlers();
   setupRankingWindowDrag();
+  setupRankingWindowDismissal();
   updateTimeControlButtons();
   syncTimeControlAria();
   initRouter();

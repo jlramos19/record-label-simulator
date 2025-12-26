@@ -27,6 +27,7 @@ Per-item metadata (additive for scheduling + audits):
 ## Planning (Eras Surface)
 - Create a strategy for an active Era; length is derived from the Era rollout weeks.
 - Add drops/events into weekly slots; content must exist before it can be scheduled.
+- Optional: seed a strategy from a rollout template (shared with rival husks) to prefill weekly drop/event slots.
 - Select a strategy and expand it to populate Calendar scheduling stores.
 - Optional: enable auto-run per strategy.
 

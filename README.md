@@ -2,14 +2,14 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-26 11:17:23 -04:00
+Last updated: 2025-12-26 12:54:58 -04:00
 
 ## Quick start
 
 ### Prereqs
 - Node.js (current LTS recommended)
 - Python 3 (static file server for `npm run start`)
-- Microsoft Edge (only required for `npm run dev:logs`)
+- Microsoft Edge (VS Code Run/Debug target; optional otherwise)
 
 ### Install
 ```bash
@@ -37,7 +37,9 @@ npm run dev:logs
 ```
 
 ### VS Code Run/Debug (Edge)
-Use the `RLS: Edge (Dev)` Run/Debug config to launch Edge with `npm run start` + `npm run watch` prelaunch tasks.
+- Terminal A: `npm run start`
+- Terminal B: `npm run watch`
+- Then launch the `RLS: Edge` Run/Debug config to open the game at `http://localhost:5173`.
 
 ### React UI islands (optional)
 ```bash

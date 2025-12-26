@@ -7,6 +7,13 @@ Rival labels plan releases and promos from a shared husk library rather than tar
 - Starter husks: baseline rollout templates for early game or fallback.
 - Era husks: generated from completed eras (status `Complete`) regardless of owner.
 
+Starter husks (shared rollout templates):
+- Single Drip: 1 release + eyeriSocial post in week 0.
+- Pulse Loop: 2 weekly single drops with matching social promo.
+- Project Ladder: 3 spaced drops with interview support to build project momentum.
+- Video Blitz: 2 drops with music video promo spikes.
+- Tour Warmup: early drop, interview, then a live performance follow-up.
+
 Each husk exposes:
 - Cadence: a week-pattern of drops/events (release + promo steps with day/hour offsets).
 - Eligible categories: expected release types and promo types.

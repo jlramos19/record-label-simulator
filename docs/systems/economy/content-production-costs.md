@@ -31,6 +31,7 @@ Stamina reduces effective skill even if the stage can start, so low stamina lowe
 ## Modifier Tools Pricing
 - Modifiers are purchased as tools from the Community tab before they appear in Create.
 - Each modifier has a base price; the buy cost is inflation-adjusted (2% annually) from the label start year.
+- Current base price tiers (pre-inflation): Sensory Sage 2400, Dispatch Dust 1800, mood focus 1200, theme focus 1100, alignment focus 900.
 - Modifier quality boosts apply only when the tool focus matches the track mood/theme/alignment (if specified).
 - Modifiers are consumable; each track consumes one charge when sheet music starts.
 

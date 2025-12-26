@@ -1,5 +1,24 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1651Z)
+- Added rollout strategy templates and a UI picker so labels can seed competitive rollouts.
+- Label competition scoring now aggregates tracks, promo, and tour charts across scopes.
+- Monopoly rule now triggers an immediate loss when any label fills an entire chart.
+
+## 2025-12-26 (RLS-PATCH-20251226-1251Z)
+- Quick Act now randomly creates solo or group acts and only uses creators under the act membership cap.
+- Act creation now blocks creators who already belong to 4 acts, with warning messaging.
+
+## 2025-12-26 (RLS-PATCH-20251226-1649Z)
+- Modifier tool base prices reduced to 20% of their previous values for one-use balancing.
+
+## 2025-12-26 (RLS-PATCH-20251226-1640Z)
+- Documented the working Run/Debug flow: manual `npm run start` + `npm run watch`, then launch `RLS: Edge`.
+
+## 2025-12-26 (RLS-PATCH-20251226-1639Z)
+- Act name pools now generate adjective + plural-noun group names in Annglora, Crowlya, and Bytenza with grammar-correct ordering.
+- Expanded act adjective categories (size, temperature, speed, weight) plus noun sets (animals, plants, objects, instruments, celestial) for broader variety.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1517Z)
 - Simplified Run/Debug to only the `RLS: Edge (Dev)` config after removing Edge Tools, while keeping prelaunch watch + server tasks.
 - Fixed the dev server task problem matcher so VS Code can treat the server as a background task.

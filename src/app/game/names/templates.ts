@@ -1,38 +1,159 @@
+const ACT_ADJECTIVES_EN = [
+  "Blue",
+  "Red",
+  "Green",
+  "Black",
+  "White",
+  "Golden",
+  "Silver",
+  "Tall",
+  "Long",
+  "Short",
+  "Soft",
+  "Rough",
+  "Big",
+  "Small",
+  "Warm",
+  "Cold",
+  "Fast",
+  "Heavy",
+];
+
+const ACT_NOUNS_EN = [
+  "Pencils",
+  "Roses",
+  "Lilies",
+  "Pines",
+  "Wolves",
+  "Foxes",
+  "Owls",
+  "Lions",
+  "Drums",
+  "Lanterns",
+  "Keys",
+  "Comets",
+];
+
+const ACT_ADJECTIVES_ES = [
+  "Azules",
+  "Rojos",
+  "Verdes",
+  "Negros",
+  "Blancos",
+  "Dorados",
+  "Plateados",
+  "Altos",
+  "Largos",
+  "Cortos",
+  "Suaves",
+  "Rugosos",
+  "Grandes",
+  "Pequeños",
+  "Cálidos",
+  "Fríos",
+  "Rápidos",
+  "Pesados",
+];
+
+const ACT_NOUNS_ES = [
+  "Lápices",
+  "Lirios",
+  "Pinos",
+  "Lobos",
+  "Zorros",
+  "Halcones",
+  "Leones",
+  "Tambores",
+  "Faroles",
+  "Relojes",
+  "Puentes",
+  "Cometas",
+];
+
+const ACT_ADJECTIVES_KR = [
+  { hangul: "파란", english: "Blue" },
+  { hangul: "빨간", english: "Red" },
+  { hangul: "초록", english: "Green" },
+  { hangul: "검은", english: "Black" },
+  { hangul: "하얀", english: "White" },
+  { hangul: "황금", english: "Golden" },
+  { hangul: "은빛", english: "Silver" },
+  { hangul: "키 큰", english: "Tall" },
+  { hangul: "긴", english: "Long" },
+  { hangul: "짧은", english: "Short" },
+  { hangul: "부드러운", english: "Soft" },
+  { hangul: "거친", english: "Rough" },
+  { hangul: "큰", english: "Big" },
+  { hangul: "작은", english: "Small" },
+  { hangul: "따뜻한", english: "Warm" },
+  { hangul: "차가운", english: "Cold" },
+  { hangul: "빠른", english: "Fast" },
+  { hangul: "무거운", english: "Heavy" },
+];
+
+const ACT_NOUNS_KR = [
+  { hangul: "연필들", english: "Pencils" },
+  { hangul: "장미들", english: "Roses" },
+  { hangul: "백합들", english: "Lilies" },
+  { hangul: "소나무들", english: "Pines" },
+  { hangul: "늑대들", english: "Wolves" },
+  { hangul: "여우들", english: "Foxes" },
+  { hangul: "올빼미들", english: "Owls" },
+  { hangul: "사자들", english: "Lions" },
+  { hangul: "북들", english: "Drums" },
+  { hangul: "등불들", english: "Lanterns" },
+  { hangul: "열쇠들", english: "Keys" },
+  { hangul: "혜성들", english: "Comets" },
+];
+
+const buildActNamePairs = (adjectives, nouns, order = "adj-noun") => {
+  const names = [];
+  adjectives.forEach((adjective) => {
+    nouns.forEach((noun) => {
+      const left = order === "noun-adj" ? noun : adjective;
+      const right = order === "noun-adj" ? adjective : noun;
+      names.push(`${left} ${right}`.replace(/\s+/g, " ").trim());
+    });
+  });
+  return names;
+};
+
+const buildTranslatedActNamePairs = (adjectives, nouns, order = "adj-noun") => {
+  const names = [];
+  const translations = {};
+  adjectives.forEach((adjective) => {
+    nouns.forEach((noun) => {
+      const left = order === "noun-adj" ? noun : adjective;
+      const right = order === "noun-adj" ? adjective : noun;
+      const name = `${left.hangul} ${right.hangul}`.replace(/\s+/g, " ").trim();
+      const translation = `${left.english} ${right.english}`.replace(/\s+/g, " ").trim();
+      names.push(name);
+      translations[name] = translation;
+    });
+  });
+  return { names, translations };
+};
+
+const ACT_NAMES_EN = buildActNamePairs(ACT_ADJECTIVES_EN, ACT_NOUNS_EN);
+const ACT_NAMES_ES = buildActNamePairs(ACT_ADJECTIVES_ES, ACT_NOUNS_ES, "noun-adj");
+const { names: ACT_NAMES_KR, translations: ACT_NAME_TRANSLATIONS_KR } = buildTranslatedActNamePairs(
+  ACT_ADJECTIVES_KR,
+  ACT_NOUNS_KR
+);
+
+const LEGACY_ACT_NAME_TRANSLATIONS = {
+  "청룡단": "Cobalt Vanguard",
+  "푸른 송곳니": "Azure Fang",
+  "백호전선": "Ivory Front",
+  "은빛 늑대": "Silver Wolf",
+  "강철 매": "Steel Hawk",
+  "사자 군단": "Lion Legion",
+};
+
 export const ACT_NAMES = [
-  "Neon Signal",
-  "Velvet Atlas",
-  "Opal Circuit",
-  "Midnight Pulse",
-  "Silver District",
-  "Amber Ritual",
-  "Cielo Roto",
-  "Luz de Mar",
-  "Fuego Azul",
-  "Sombra Clara",
-  "Rio Lunar",
-  "Viento Dorado",
-  "Glass Harbor",
-  "Cinder Path",
-  "Drift Temple",
-  "City Halo",
-  "Gold Crown",
-  "Nova Tide",
-  "RAW VOW",
-  "Bloomville Choir",
-  "Lilypad Echo",
-  "Serenade Grove",
-  "Cobalt Talon",
-  "Belltown Order",
-  "Azure Dominion",
-  "Regal Voltage",
-  "Crimson Circuit",
-  "Gold Wave",
-  "청룡단",
-  "푸른 송곳니",
-  "백호전선",
-  "은빛 늑대",
-  "강철 매",
-  "사자 군단",
+  ...ACT_NAMES_EN,
+  ...ACT_NAMES_ES,
+  ...ACT_NAMES_KR,
 ];
 
 export const LABEL_NAMES = [
@@ -49,8 +170,8 @@ export const LABEL_NAMES = [
 export const NAME_PARTS = {
   labelPrefix: ["Aurora", "Crown", "Cinder", "Opal", "Signal", "Harbor", "Velvet", "Sunline", "Glass", "North", "Echo", "Nova", "Gold", "Silver", "Amber", "Drift"],
   labelSuffix: ["Records", "Record Label", "Audio", "Sound", "Works", "Collective", "Press", "Division", "Wave", "Guild", "District"],
-  actPrefix: ["Neon", "Velvet", "Opal", "Midnight", "Silver", "Amber", "Cielo", "Luna", "Rio", "Sombra", "Nova", "Drift", "Glass", "Cinder", "Pulse", "Signal", "Haneul", "Saebyeok"],
-  actSuffix: ["Signal", "Atlas", "Circuit", "Pulse", "District", "Ritual", "Harbor", "Tide", "Union", "Temple", "Garden", "Crown", "Echo", "Halo", "Parade", "Line"],
+  actPrefix: ACT_ADJECTIVES_EN,
+  actSuffix: ACT_NOUNS_EN,
   projectPrefix: ["City", "Garden", "Atlas", "Map", "Lighthouse", "Chamber", "Signal", "Crown", "Glass", "Neon", "Shadow", "River", "Dawn", "Velvet", "Opal", "Cinder"],
   projectSuffix: ["of Glass", "of Noise", "of Ember", "of Dawn", "of Dust", "of Echoes", "Phase", "Archive", "Season", "Drift", "Route", "Bloom", "Ritual", "Circuit", "Harbor", "Tide"],
   trackVerb: ["Fading", "Hollow", "Paper", "Signal", "Orbit", "Chasing", "Breaking", "Calling", "Falling", "Rising", "Holding", "Running", "Tracing", "Counting", "Turning", "Shifting"],
@@ -107,12 +228,8 @@ export const PROJECT_TITLES = [
 ];
 
 export const ACT_NAME_TRANSLATIONS = {
-  "청룡단": "Cobalt Vanguard",
-  "푸른 송곳니": "Azure Fang",
-  "백호전선": "Ivory Front",
-  "은빛 늑대": "Silver Wolf",
-  "강철 매": "Steel Hawk",
-  "사자 군단": "Lion Legion",
+  ...LEGACY_ACT_NAME_TRANSLATIONS,
+  ...ACT_NAME_TRANSLATIONS_KR,
 };
 
 export const PROJECT_TITLE_TRANSLATIONS = {

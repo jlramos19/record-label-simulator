@@ -5,12 +5,14 @@ import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./p
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
 import {
+  ACT_NAME_TRANSLATIONS,
   ACT_NAMES,
   CREATOR_NAME_PARTS,
   ERA_NAME_TEMPLATES,
   LABEL_NAMES,
   NAME_PARTS,
   PROJECT_TITLE_TEMPLATES,
+  PROJECT_TITLE_TRANSLATIONS,
   PROJECT_TITLES
 } from "./game/names.js";
 import {
@@ -3127,7 +3129,7 @@ function creatorPreferredGenres(creator) {
 
 function makeActName() {
   const existing = state.acts.map((act) => act.name);
-  return buildCompositeName(NAME_PARTS.actPrefix, NAME_PARTS.actSuffix, existing, ACT_NAMES, "Collective");
+  return pickUniqueName(ACT_NAMES, existing, "Collective");
 }
 
 function makeLabelName() {
@@ -3452,12 +3454,12 @@ function makeTrackTitleByCountrySeeded(theme, mood, country, rng) {
 
 function makeRivalActName() {
   const existing = state.marketTracks.map((track) => track.actName);
-  return buildCompositeName(NAME_PARTS.actPrefix, NAME_PARTS.actSuffix, existing, ACT_NAMES, "Unit");
+  return pickUniqueName(ACT_NAMES, existing, "Unit");
 }
 
 function makeRivalActNameSeeded(rng) {
   const existing = state.marketTracks.map((track) => track.actName);
-  return buildCompositeNameSeeded(NAME_PARTS.actPrefix, NAME_PARTS.actSuffix, existing, ACT_NAMES, "Unit", rng);
+  return seededPickUniqueName(ACT_NAMES, existing, "Unit", rng);
 }
 
 function makeProjectTitle() {
@@ -3891,6 +3893,49 @@ function createRolloutStrategyForEra(era, { source = "PlayerPlanned", status = "
   };
   ensureRolloutStrategies().push(strategy);
   era.rolloutStrategyId = strategy.id;
+  return strategy;
+}
+
+function listRolloutStrategyTemplates() {
+  return Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) ? ROLLOUT_STRATEGY_TEMPLATES : [];
+}
+
+function getRolloutStrategyTemplateById(templateId) {
+  if (!templateId) return null;
+  return listRolloutStrategyTemplates().find((template) => template.id === templateId) || null;
+}
+
+function applyRolloutTemplateToStrategy(strategy, template) {
+  if (!strategy || !template) return false;
+  const steps = normalizeHuskCadence(template.cadence);
+  if (!steps.length) return false;
+  const maxOffset = steps.reduce((max, step) => Math.max(max, step.weekOffset || 0), 0);
+  const neededWeeks = Math.max(1, maxOffset + 1);
+  if (!Array.isArray(strategy.weeks) || strategy.weeks.length < neededWeeks) {
+    strategy.weeks = buildRolloutWeeks(neededWeeks);
+  }
+  steps.forEach((step) => {
+    const weekIndex = Number.isFinite(step.weekOffset) ? step.weekOffset : 0;
+    const week = strategy.weeks[weekIndex];
+    if (!week) return;
+    if (step.kind === "release") {
+      week.drops.push(makeRolloutDrop(null));
+      return;
+    }
+    week.events.push(makeRolloutEvent(step.promoType || HUSK_PROMO_DEFAULT_TYPE, null));
+  });
+  if (template.id) {
+    strategy.source = `Template:${template.id}`;
+  }
+  return true;
+}
+
+function createRolloutStrategyFromTemplate(era, templateId) {
+  const template = getRolloutStrategyTemplateById(templateId);
+  if (!template || !era) return null;
+  const strategy = createRolloutStrategyForEra(era, { source: `Template:${template.id}` });
+  if (!strategy) return null;
+  applyRolloutTemplateToStrategy(strategy, template);
   return strategy;
 }
 
@@ -5418,6 +5463,10 @@ function scheduleRolloutDrop(strategy, era, weekIndex, drop, mode) {
   if (drop.status === "Scheduled") return { ok: true, alreadyScheduled: true };
   if (!era || era.status !== "Active") {
     recordRolloutBlock(drop, "Era is not active.", mode, "Rollout drop");
+    return { ok: false, blocked: true };
+  }
+  if (!drop.contentId) {
+    recordRolloutBlock(drop, "Drop requires a Track ID.", mode, "Rollout drop");
     return { ok: false, blocked: true };
   }
   const track = getTrack(drop.contentId);
@@ -7608,11 +7657,53 @@ function updateLabelReach() {
   state.label.fans = clamp(state.label.fans + gain, 0, snapshot.total);
 }
 
+const LABEL_SCORE_WEIGHTS = {
+  tracks: { global: 1, nation: 0.55, region: 0.35 },
+  promos: { global: 0.4, nation: 0.3, region: 0.2 },
+  tours: { global: 0.4, nation: 0.3, region: 0.2 }
+};
+
+function resolveChartEntryLabel(entry) {
+  if (!entry) return "";
+  if (entry.label) return entry.label;
+  if (entry.track?.label) return entry.track.label;
+  return "";
+}
+
+function addLabelScores(scores, entries, size, weight) {
+  if (!Array.isArray(entries) || !entries.length || !weight) return;
+  entries.forEach((entry, index) => {
+    if (!entry) return;
+    const label = resolveChartEntryLabel(entry);
+    if (!label) return;
+    const rank = Number.isFinite(entry.rank) ? entry.rank : index + 1;
+    const points = Math.max(1, size + 1 - rank) * weight;
+    scores[label] = (scores[label] || 0) + points;
+  });
+}
+
 function computeLabelScoresFromCharts() {
   const scores = {};
-  (state.charts.global || []).forEach((entry) => {
-    const points = Math.max(1, CHART_SIZES.global + 1 - entry.rank);
-    scores[entry.track.label] = (scores[entry.track.label] || 0) + points;
+  addLabelScores(scores, state.charts.global || [], CHART_SIZES.global, LABEL_SCORE_WEIGHTS.tracks.global);
+  NATIONS.forEach((nation) => {
+    addLabelScores(scores, state.charts.nations?.[nation] || [], CHART_SIZES.nation, LABEL_SCORE_WEIGHTS.tracks.nation);
+  });
+  REGION_DEFS.forEach((region) => {
+    addLabelScores(scores, state.charts.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.tracks.region);
+  });
+  addLabelScores(scores, state.promoCharts?.global || [], CHART_SIZES.global, LABEL_SCORE_WEIGHTS.promos.global);
+  NATIONS.forEach((nation) => {
+    addLabelScores(scores, state.promoCharts?.nations?.[nation] || [], CHART_SIZES.nation, LABEL_SCORE_WEIGHTS.promos.nation);
+  });
+  REGION_DEFS.forEach((region) => {
+    addLabelScores(scores, state.promoCharts?.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.promos.region);
+  });
+  addLabelScores(scores, state.tourCharts?.global || [], CHART_SIZES.global, LABEL_SCORE_WEIGHTS.tours.global);
+  NATIONS.forEach((nation) => {
+    addLabelScores(scores, state.tourCharts?.nations?.[nation] || [], CHART_SIZES.nation, LABEL_SCORE_WEIGHTS.tours.nation);
+  });
+  REGION_DEFS.forEach((region) => {
+    addLabelScores(scores, state.tourCharts?.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.tours.region);
   });
   return scores;
 }
@@ -7673,14 +7764,58 @@ function topCumulativeLabel() {
   return { label: ordered[0][0], points: ordered[0][1] };
 }
 
-function isMonopoly(scores) {
-  const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) return false;
-  const total = entries.reduce((sum, entry) => sum + entry[1], 0);
-  const [topLabel, topScore] = entries[0];
-  const runnerUp = entries[1]?.[1] || 0;
-  const share = total ? topScore / total : 0;
-  return topLabel === state.label.name && share >= MONOPOLY_SHARE && topScore >= runnerUp * 1.4;
+function monopolyChartLabel(scopeKey, contentType) {
+  const scopeLabel = chartScopeLabel(scopeKey);
+  const typeLabel = contentType === "promotions" ? "Promotions" : contentType === "tours" ? "Tours" : "Tracks";
+  return `${scopeLabel} ${typeLabel} chart`;
+}
+
+function detectChartMonopoly(entries, size) {
+  if (!Array.isArray(entries) || entries.length < size) return null;
+  let label = "";
+  for (let i = 0; i < entries.length; i += 1) {
+    const entryLabel = resolveChartEntryLabel(entries[i]);
+    if (!entryLabel) return null;
+    if (!label) {
+      label = entryLabel;
+      continue;
+    }
+    if (entryLabel !== label) return null;
+  }
+  return label || null;
+}
+
+function findChartMonopoly() {
+  const checks = [];
+  checks.push({ entries: state.charts.global, size: CHART_SIZES.global, scope: "global", type: "tracks" });
+  NATIONS.forEach((nation) => {
+    checks.push({ entries: state.charts.nations?.[nation] || [], size: CHART_SIZES.nation, scope: nation, type: "tracks" });
+  });
+  REGION_DEFS.forEach((region) => {
+    checks.push({ entries: state.charts.regions?.[region.id] || [], size: CHART_SIZES.region, scope: region.id, type: "tracks" });
+  });
+  checks.push({ entries: state.promoCharts?.global || [], size: CHART_SIZES.global, scope: "global", type: "promotions" });
+  NATIONS.forEach((nation) => {
+    checks.push({ entries: state.promoCharts?.nations?.[nation] || [], size: CHART_SIZES.nation, scope: nation, type: "promotions" });
+  });
+  REGION_DEFS.forEach((region) => {
+    checks.push({ entries: state.promoCharts?.regions?.[region.id] || [], size: CHART_SIZES.region, scope: region.id, type: "promotions" });
+  });
+  checks.push({ entries: state.tourCharts?.global || [], size: CHART_SIZES.global, scope: "global", type: "tours" });
+  NATIONS.forEach((nation) => {
+    checks.push({ entries: state.tourCharts?.nations?.[nation] || [], size: CHART_SIZES.nation, scope: nation, type: "tours" });
+  });
+  REGION_DEFS.forEach((region) => {
+    checks.push({ entries: state.tourCharts?.regions?.[region.id] || [], size: CHART_SIZES.region, scope: region.id, type: "tours" });
+  });
+  for (let i = 0; i < checks.length; i += 1) {
+    const check = checks[i];
+    const label = detectChartMonopoly(check.entries, check.size);
+    if (label) {
+      return { label, chart: monopolyChartLabel(check.scope, check.type) };
+    }
+  }
+  return null;
 }
 
 function announceWin(reason) {
@@ -7795,22 +7930,27 @@ function checkWinLoss(scores) {
   if (state.meta.gameOver) return;
   const year = currentYear();
   const achievements = Math.max(state.meta.achievementsUnlocked.length, state.meta.achievements || 0);
-  const monopoly = isMonopoly(scores);
+  const monopoly = findChartMonopoly();
+  if (monopoly) {
+    logEvent(`Monopoly rule triggered: ${monopoly.label} occupies the ${monopoly.chart}.`, "warn");
+    finalizeGame("loss", `Monopoly rule: ${monopoly.label} occupies the ${monopoly.chart}.`);
+    return;
+  }
 
   if (year < 3000) {
-    if (!state.meta.winState && achievements >= ACHIEVEMENT_TARGET && !monopoly) {
+    if (!state.meta.winState && achievements >= ACHIEVEMENT_TARGET) {
       announceWin("Completed 12 CEO Requests without monopoly.");
     }
   } else if (year < 4000) {
-    if (!state.meta.winState && (achievements >= ACHIEVEMENT_TARGET || monopoly)) {
-      announceWin(monopoly ? "Reached monopoly status." : "Completed 12 CEO Requests.");
+    if (!state.meta.winState && achievements >= ACHIEVEMENT_TARGET) {
+      announceWin("Completed 12 CEO Requests.");
     }
   }
 
   if (year >= 4000) {
     const currentTop = topLabelFromScores(scores).label;
     const cumulativeTop = topCumulativeLabel().label;
-    const victory = Boolean(state.meta.winState) || monopoly
+    const victory = Boolean(state.meta.winState)
       || currentTop === state.label.name || cumulativeTop === state.label.name;
     finalizeGame(victory ? "win" : "loss", victory ? "Final Year 4000 verdict." : "Not #1 at Year 4000.");
   }
@@ -7973,7 +8113,7 @@ function ageMarketTracks() {
   paginateMarketTracks();
 }
 
-const HUSK_STARTERS = [
+const DEFAULT_HUSK_STARTERS = [
   {
     id: "starter-lite",
     label: "Starter Lite",
@@ -8012,6 +8152,12 @@ const HUSK_STARTERS = [
     context: { alignmentTags: ALIGNMENTS.slice(), trendTags: [], outcomeScore: 52 }
   }
 ];
+const HUSK_STARTERS = Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) && ROLLOUT_STRATEGY_TEMPLATES.length
+  ? ROLLOUT_STRATEGY_TEMPLATES.map((template) => ({
+    ...template,
+    source: template?.source || "starter"
+  }))
+  : DEFAULT_HUSK_STARTERS;
 
 function normalizeHuskContext(husk) {
   const context = husk?.context || {};
@@ -10734,17 +10880,10 @@ function collectKnownLabelNames() {
 }
 
 function computeLabelScores() {
-  const labelScores = {};
+  const labelScores = computeLabelScoresFromCharts();
   const knownLabels = collectKnownLabelNames();
-  (state.charts.global || []).forEach((entry) => {
-    const label = entry.track?.label;
-    if (!label) return;
-    const points = Math.max(1, CHART_SIZES.global + 1 - entry.rank);
-    labelScores[label] = (labelScores[label] || 0) + points;
-    knownLabels.add(label);
-  });
   knownLabels.forEach((label) => {
-    if (typeof labelScores[label] !== "number") labelScores[label] = 0;
+    if (!Number.isFinite(labelScores[label])) labelScores[label] = 0;
   });
   return labelScores;
 }
@@ -11267,6 +11406,7 @@ function startGameLoop() {
 
 
 export {
+  ACT_NAME_TRANSLATIONS,
   ACT_PROMO_WARNING_WEEKS,
   ACHIEVEMENTS,
   ACHIEVEMENT_TARGET,
@@ -11318,6 +11458,7 @@ export {
   computePopulationSnapshot,
   countryColor,
   countryDemonym,
+  createRolloutStrategyFromTemplate,
   createRolloutStrategyForEra,
   createTrack,
   evaluateProjectTrackConstraints,
@@ -11409,6 +11550,7 @@ export {
   normalizeProjectName,
   normalizeProjectType,
   normalizeRoleIds,
+  PROJECT_TITLE_TRANSLATIONS,
   parseTrackRoleTarget,
   pickDistinct,
   postCreatorSigned,

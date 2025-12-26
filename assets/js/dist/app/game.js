@@ -4,7 +4,7 @@ import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, read
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
-import { ACT_NAMES, CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLES } from "./game/names.js";
+import { ACT_NAME_TRANSLATIONS, ACT_NAMES, CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLE_TRANSLATIONS, PROJECT_TITLES } from "./game/names.js";
 import { AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
 import { evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks, getProjectTrackLimits, normalizeProjectName, normalizeProjectType } from "./game/project-tracks.js";
 import { buildDefaultTrackSlotVisibility, buildEmptyTrackSlotList, parseTrackRoleTarget, roleLabel, trackRoleLimit } from "./game/track-roles.js";
@@ -2988,7 +2988,7 @@ function creatorPreferredGenres(creator) {
 }
 function makeActName() {
     const existing = state.acts.map((act) => act.name);
-    return buildCompositeName(NAME_PARTS.actPrefix, NAME_PARTS.actSuffix, existing, ACT_NAMES, "Collective");
+    return pickUniqueName(ACT_NAMES, existing, "Collective");
 }
 function makeLabelName() {
     const existing = [state.label.name];
@@ -3297,11 +3297,11 @@ function makeTrackTitleByCountrySeeded(theme, mood, country, rng) {
 }
 function makeRivalActName() {
     const existing = state.marketTracks.map((track) => track.actName);
-    return buildCompositeName(NAME_PARTS.actPrefix, NAME_PARTS.actSuffix, existing, ACT_NAMES, "Unit");
+    return pickUniqueName(ACT_NAMES, existing, "Unit");
 }
 function makeRivalActNameSeeded(rng) {
     const existing = state.marketTracks.map((track) => track.actName);
-    return buildCompositeNameSeeded(NAME_PARTS.actPrefix, NAME_PARTS.actSuffix, existing, ACT_NAMES, "Unit", rng);
+    return seededPickUniqueName(ACT_NAMES, existing, "Unit", rng);
 }
 function makeProjectTitle() {
     const existing = [
@@ -3724,6 +3724,51 @@ function createRolloutStrategyForEra(era, { source = "PlayerPlanned", status = "
     };
     ensureRolloutStrategies().push(strategy);
     era.rolloutStrategyId = strategy.id;
+    return strategy;
+}
+function listRolloutStrategyTemplates() {
+    return Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) ? ROLLOUT_STRATEGY_TEMPLATES : [];
+}
+function getRolloutStrategyTemplateById(templateId) {
+    if (!templateId)
+        return null;
+    return listRolloutStrategyTemplates().find((template) => template.id === templateId) || null;
+}
+function applyRolloutTemplateToStrategy(strategy, template) {
+    if (!strategy || !template)
+        return false;
+    const steps = normalizeHuskCadence(template.cadence);
+    if (!steps.length)
+        return false;
+    const maxOffset = steps.reduce((max, step) => Math.max(max, step.weekOffset || 0), 0);
+    const neededWeeks = Math.max(1, maxOffset + 1);
+    if (!Array.isArray(strategy.weeks) || strategy.weeks.length < neededWeeks) {
+        strategy.weeks = buildRolloutWeeks(neededWeeks);
+    }
+    steps.forEach((step) => {
+        const weekIndex = Number.isFinite(step.weekOffset) ? step.weekOffset : 0;
+        const week = strategy.weeks[weekIndex];
+        if (!week)
+            return;
+        if (step.kind === "release") {
+            week.drops.push(makeRolloutDrop(null));
+            return;
+        }
+        week.events.push(makeRolloutEvent(step.promoType || HUSK_PROMO_DEFAULT_TYPE, null));
+    });
+    if (template.id) {
+        strategy.source = `Template:${template.id}`;
+    }
+    return true;
+}
+function createRolloutStrategyFromTemplate(era, templateId) {
+    const template = getRolloutStrategyTemplateById(templateId);
+    if (!template || !era)
+        return null;
+    const strategy = createRolloutStrategyForEra(era, { source: `Template:${template.id}` });
+    if (!strategy)
+        return null;
+    applyRolloutTemplateToStrategy(strategy, template);
     return strategy;
 }
 function getRolloutStrategyById(id) {
@@ -5312,6 +5357,10 @@ function scheduleRolloutDrop(strategy, era, weekIndex, drop, mode) {
         return { ok: true, alreadyScheduled: true };
     if (!era || era.status !== "Active") {
         recordRolloutBlock(drop, "Era is not active.", mode, "Rollout drop");
+        return { ok: false, blocked: true };
+    }
+    if (!drop.contentId) {
+        recordRolloutBlock(drop, "Drop requires a Track ID.", mode, "Rollout drop");
         return { ok: false, blocked: true };
     }
     const track = getTrack(drop.contentId);
@@ -7530,11 +7579,56 @@ function updateLabelReach() {
     const gain = points * 1500 + state.tracks.filter((track) => track.status === "Released").length * 40;
     state.label.fans = clamp(state.label.fans + gain, 0, snapshot.total);
 }
+const LABEL_SCORE_WEIGHTS = {
+    tracks: { global: 1, nation: 0.55, region: 0.35 },
+    promos: { global: 0.4, nation: 0.3, region: 0.2 },
+    tours: { global: 0.4, nation: 0.3, region: 0.2 }
+};
+function resolveChartEntryLabel(entry) {
+    if (!entry)
+        return "";
+    if (entry.label)
+        return entry.label;
+    if (entry.track?.label)
+        return entry.track.label;
+    return "";
+}
+function addLabelScores(scores, entries, size, weight) {
+    if (!Array.isArray(entries) || !entries.length || !weight)
+        return;
+    entries.forEach((entry, index) => {
+        if (!entry)
+            return;
+        const label = resolveChartEntryLabel(entry);
+        if (!label)
+            return;
+        const rank = Number.isFinite(entry.rank) ? entry.rank : index + 1;
+        const points = Math.max(1, size + 1 - rank) * weight;
+        scores[label] = (scores[label] || 0) + points;
+    });
+}
 function computeLabelScoresFromCharts() {
     const scores = {};
-    (state.charts.global || []).forEach((entry) => {
-        const points = Math.max(1, CHART_SIZES.global + 1 - entry.rank);
-        scores[entry.track.label] = (scores[entry.track.label] || 0) + points;
+    addLabelScores(scores, state.charts.global || [], CHART_SIZES.global, LABEL_SCORE_WEIGHTS.tracks.global);
+    NATIONS.forEach((nation) => {
+        addLabelScores(scores, state.charts.nations?.[nation] || [], CHART_SIZES.nation, LABEL_SCORE_WEIGHTS.tracks.nation);
+    });
+    REGION_DEFS.forEach((region) => {
+        addLabelScores(scores, state.charts.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.tracks.region);
+    });
+    addLabelScores(scores, state.promoCharts?.global || [], CHART_SIZES.global, LABEL_SCORE_WEIGHTS.promos.global);
+    NATIONS.forEach((nation) => {
+        addLabelScores(scores, state.promoCharts?.nations?.[nation] || [], CHART_SIZES.nation, LABEL_SCORE_WEIGHTS.promos.nation);
+    });
+    REGION_DEFS.forEach((region) => {
+        addLabelScores(scores, state.promoCharts?.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.promos.region);
+    });
+    addLabelScores(scores, state.tourCharts?.global || [], CHART_SIZES.global, LABEL_SCORE_WEIGHTS.tours.global);
+    NATIONS.forEach((nation) => {
+        addLabelScores(scores, state.tourCharts?.nations?.[nation] || [], CHART_SIZES.nation, LABEL_SCORE_WEIGHTS.tours.nation);
+    });
+    REGION_DEFS.forEach((region) => {
+        addLabelScores(scores, state.tourCharts?.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.tours.region);
     });
     return scores;
 }
@@ -7596,15 +7690,59 @@ function topCumulativeLabel() {
         return { label: null, points: 0 };
     return { label: ordered[0][0], points: ordered[0][1] };
 }
-function isMonopoly(scores) {
-    const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-    if (!entries.length)
-        return false;
-    const total = entries.reduce((sum, entry) => sum + entry[1], 0);
-    const [topLabel, topScore] = entries[0];
-    const runnerUp = entries[1]?.[1] || 0;
-    const share = total ? topScore / total : 0;
-    return topLabel === state.label.name && share >= MONOPOLY_SHARE && topScore >= runnerUp * 1.4;
+function monopolyChartLabel(scopeKey, contentType) {
+    const scopeLabel = chartScopeLabel(scopeKey);
+    const typeLabel = contentType === "promotions" ? "Promotions" : contentType === "tours" ? "Tours" : "Tracks";
+    return `${scopeLabel} ${typeLabel} chart`;
+}
+function detectChartMonopoly(entries, size) {
+    if (!Array.isArray(entries) || entries.length < size)
+        return null;
+    let label = "";
+    for (let i = 0; i < entries.length; i += 1) {
+        const entryLabel = resolveChartEntryLabel(entries[i]);
+        if (!entryLabel)
+            return null;
+        if (!label) {
+            label = entryLabel;
+            continue;
+        }
+        if (entryLabel !== label)
+            return null;
+    }
+    return label || null;
+}
+function findChartMonopoly() {
+    const checks = [];
+    checks.push({ entries: state.charts.global, size: CHART_SIZES.global, scope: "global", type: "tracks" });
+    NATIONS.forEach((nation) => {
+        checks.push({ entries: state.charts.nations?.[nation] || [], size: CHART_SIZES.nation, scope: nation, type: "tracks" });
+    });
+    REGION_DEFS.forEach((region) => {
+        checks.push({ entries: state.charts.regions?.[region.id] || [], size: CHART_SIZES.region, scope: region.id, type: "tracks" });
+    });
+    checks.push({ entries: state.promoCharts?.global || [], size: CHART_SIZES.global, scope: "global", type: "promotions" });
+    NATIONS.forEach((nation) => {
+        checks.push({ entries: state.promoCharts?.nations?.[nation] || [], size: CHART_SIZES.nation, scope: nation, type: "promotions" });
+    });
+    REGION_DEFS.forEach((region) => {
+        checks.push({ entries: state.promoCharts?.regions?.[region.id] || [], size: CHART_SIZES.region, scope: region.id, type: "promotions" });
+    });
+    checks.push({ entries: state.tourCharts?.global || [], size: CHART_SIZES.global, scope: "global", type: "tours" });
+    NATIONS.forEach((nation) => {
+        checks.push({ entries: state.tourCharts?.nations?.[nation] || [], size: CHART_SIZES.nation, scope: nation, type: "tours" });
+    });
+    REGION_DEFS.forEach((region) => {
+        checks.push({ entries: state.tourCharts?.regions?.[region.id] || [], size: CHART_SIZES.region, scope: region.id, type: "tours" });
+    });
+    for (let i = 0; i < checks.length; i += 1) {
+        const check = checks[i];
+        const label = detectChartMonopoly(check.entries, check.size);
+        if (label) {
+            return { label, chart: monopolyChartLabel(check.scope, check.type) };
+        }
+    }
+    return null;
 }
 function announceWin(reason) {
     if (state.meta.winState)
@@ -7720,21 +7858,26 @@ function checkWinLoss(scores) {
         return;
     const year = currentYear();
     const achievements = Math.max(state.meta.achievementsUnlocked.length, state.meta.achievements || 0);
-    const monopoly = isMonopoly(scores);
+    const monopoly = findChartMonopoly();
+    if (monopoly) {
+        logEvent(`Monopoly rule triggered: ${monopoly.label} occupies the ${monopoly.chart}.`, "warn");
+        finalizeGame("loss", `Monopoly rule: ${monopoly.label} occupies the ${monopoly.chart}.`);
+        return;
+    }
     if (year < 3000) {
-        if (!state.meta.winState && achievements >= ACHIEVEMENT_TARGET && !monopoly) {
+        if (!state.meta.winState && achievements >= ACHIEVEMENT_TARGET) {
             announceWin("Completed 12 CEO Requests without monopoly.");
         }
     }
     else if (year < 4000) {
-        if (!state.meta.winState && (achievements >= ACHIEVEMENT_TARGET || monopoly)) {
-            announceWin(monopoly ? "Reached monopoly status." : "Completed 12 CEO Requests.");
+        if (!state.meta.winState && achievements >= ACHIEVEMENT_TARGET) {
+            announceWin("Completed 12 CEO Requests.");
         }
     }
     if (year >= 4000) {
         const currentTop = topLabelFromScores(scores).label;
         const cumulativeTop = topCumulativeLabel().label;
-        const victory = Boolean(state.meta.winState) || monopoly
+        const victory = Boolean(state.meta.winState)
             || currentTop === state.label.name || cumulativeTop === state.label.name;
         finalizeGame(victory ? "win" : "loss", victory ? "Final Year 4000 verdict." : "Not #1 at Year 4000.");
     }
@@ -7891,7 +8034,7 @@ function ageMarketTracks() {
     archiveMarketTracks(archived);
     paginateMarketTracks();
 }
-const HUSK_STARTERS = [
+const DEFAULT_HUSK_STARTERS = [
     {
         id: "starter-lite",
         label: "Starter Lite",
@@ -7930,6 +8073,12 @@ const HUSK_STARTERS = [
         context: { alignmentTags: ALIGNMENTS.slice(), trendTags: [], outcomeScore: 52 }
     }
 ];
+const HUSK_STARTERS = Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) && ROLLOUT_STRATEGY_TEMPLATES.length
+    ? ROLLOUT_STRATEGY_TEMPLATES.map((template) => ({
+        ...template,
+        source: template?.source || "starter"
+    }))
+    : DEFAULT_HUSK_STARTERS;
 function normalizeHuskContext(husk) {
     const context = husk?.context || {};
     return {
@@ -10989,18 +11138,10 @@ function collectKnownLabelNames() {
     return labels;
 }
 function computeLabelScores() {
-    const labelScores = {};
+    const labelScores = computeLabelScoresFromCharts();
     const knownLabels = collectKnownLabelNames();
-    (state.charts.global || []).forEach((entry) => {
-        const label = entry.track?.label;
-        if (!label)
-            return;
-        const points = Math.max(1, CHART_SIZES.global + 1 - entry.rank);
-        labelScores[label] = (labelScores[label] || 0) + points;
-        knownLabels.add(label);
-    });
     knownLabels.forEach((label) => {
-        if (typeof labelScores[label] !== "number")
+        if (!Number.isFinite(labelScores[label]))
             labelScores[label] = 0;
     });
     return labelScores;
@@ -11456,7 +11597,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, countryColor, countryDemonym, createRolloutStrategyForEra, createTrack, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, reservePromoFacilitySlot, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, setSlotTarget, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, trendAlignmentLeader, uid, weekIndex, weekNumberFromEpochMs, };
+export { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, countryColor, countryDemonym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, reservePromoFacilitySlot, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, setSlotTarget, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, trendAlignmentLeader, uid, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;
