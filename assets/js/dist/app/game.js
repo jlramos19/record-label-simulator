@@ -6505,7 +6505,7 @@ async function onYearTick(year) {
     state.meta.annualWinners = state.meta.annualWinners || [];
     state.meta.annualWinners.push({ year, label: winner, points: topPoints, resolvedBy });
     logEvent(`Annual Winner ${year}: ${winner} (${formatCount(topPoints)} points) [${resolvedBy}].`);
-    postSocial({ handle: "@RLSCharts", title: `Annual Winner ${year}`, lines: [`${winner} secured the year with ${formatCount(topPoints)} points.`, `Tie-break: ${resolvedBy}`], type: "system", order: 1 });
+    postSocial({ handle: "@GaiaCharts", title: `Annual Winner ${year}`, lines: [`${winner} secured the year with ${formatCount(topPoints)} points.`, `Tie-break: ${resolvedBy}`], type: "system", order: 1 });
     // Run end-of-year economy/housekeeping: award EXP, refresh quests
     awardExp(1200, `Year ${year} Season End`, true);
     // Reconcile win/loss state

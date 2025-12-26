@@ -2851,7 +2851,7 @@ function renderMainMenu() {
             : "";
         const metaLine = data
             ? `${modeTag ? `${modeTag} ` : ""}Week ${week} | ${formatMoney(cash)} | ${savedAt}`
-            : "Start a new label in this game slot.";
+            : "Create a new label in this game slot.";
         list.push(`
       <div class="slot-card" data-slot-index="${i}" data-slot-has-data="${hasData ? "1" : "0"}" data-slot-default="${hasData ? "continue" : "new"}">
         <div class="slot-row">
@@ -3070,6 +3070,20 @@ function getSheetStartPlan({ mode, theme, modifierId, cash } = {}) {
         };
     }
     if (!themeReady) {
+        let previewCash = cashOnHand;
+        let previewCapacity = capacityLimit;
+        let sheetCost = 0;
+        for (let i = 0; i < eligibleSongwriters.length; i += 1) {
+            if (previewCapacity <= 0)
+                break;
+            const songwriterId = eligibleSongwriters[i];
+            const stageCost = getStageCost(0, modifier, [songwriterId]);
+            if (previewCash < stageCost)
+                break;
+            previewCash -= stageCost;
+            previewCapacity -= 1;
+            sheetCost += stageCost;
+        }
         return {
             mode: resolvedMode,
             themeReady,
@@ -3078,7 +3092,7 @@ function getSheetStartPlan({ mode, theme, modifierId, cash } = {}) {
             eligibleSongwriters,
             startableSongwriters: [],
             startableCount: 0,
-            sheetCost: 0,
+            sheetCost,
             capacityLimit,
             studioSlotsAvailable,
             sheetStageSlots,

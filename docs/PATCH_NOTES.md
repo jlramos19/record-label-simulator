@@ -1,10 +1,12 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-0322Z)
+- Create-stage buttons now show costs and use Create wording for sheet, demo, and master actions.
+- Creation guidance copy now uses Create verbs instead of Start for new label and content prompts.
+
 ## 2025-12-26 (RLS-PATCH-20251226-0318Z)
 - Creator name pools now align to language-specific lists (Annglora = English, Bytenza = Korean, Crowlya = Spanish).
 - Bytenza given names now spawn with 2/3/4 Hangul syllable weighting (85%/12.5%/2.5%) while surnames stay single-syllable.
-
-## 2025-12-26 (RLS-PATCH-20251226-0315Z)
 - Promo pushes now work on scheduled tracks, banking pre-release momentum into launch.
 - Music video promos unlock after release and are single-use per track, with disabled card states when unavailable.
 

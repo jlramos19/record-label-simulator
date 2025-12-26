@@ -1,5 +1,5 @@
 // @ts-nocheck
-// Name pools derived from Record Label Simulator vocabulary; ASCII-normalized for runtime stability.
+// Name pools mix lore vocabulary with language-specific lists; Hangul is preserved where required.
 const RLS_GIVEN_NAMES = [
     "Alustor",
     "Astorian",
