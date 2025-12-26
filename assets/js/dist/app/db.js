@@ -50,6 +50,18 @@ export function fetchChartSnapshot(scope, week) {
         request.onerror = () => reject(request.error);
     })).catch(() => null);
 }
+export function fetchChartSnapshotsForWeek(week) {
+    if (!week)
+        return Promise.resolve([]);
+    return openDb().then((db) => new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_CHART_HISTORY, "readonly");
+        const store = tx.objectStore(STORE_CHART_HISTORY);
+        const index = store.index("by_week");
+        const request = index.getAll(week);
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+    })).catch(() => []);
+}
 export function listChartWeeks() {
     return openDb().then((db) => new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_CHART_HISTORY, "readonly");

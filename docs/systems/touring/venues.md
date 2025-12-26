@@ -9,10 +9,23 @@ This document introduces venues for the touring feature and the booking rules th
 - Arena: 11,000 to 40,000 seats, national tours.
 - Stadium: 41,000 to 200,000 seats, flagship tours and era-defining runs.
 
+## Venue data model (v0)
+Venue records live in `assets/js/data/constants.js` and expose:
+- `id`: unique venue ID.
+- `label`: venue name for UI display.
+- `tier`: Club/Theater/Amphitheater/Arena/Stadium.
+- `capacity`: integer seat cap within tier range.
+- `regionId`: matches `REGION_DEFS` (ex: `Annglora Capital`).
+- `nation`: Annglora/Bytenza/Crowlya.
+- `owner`: public or label name.
+- `slotsPerDay`: available booking slots per day (default 1).
+
 ## Booking slots
 - Venues expose booking slots by date; each booking reserves a full day.
 - Slots are limited by venue availability and owner rules.
 - Booked dates appear on the Calendar and block overlapping events for the Act.
+  - Capacity is tracked by venue + day; if `slotsPerDay` is exhausted, booking is blocked.
+  - Act double-booking on the same day is blocked with a reason code.
 
 ## Demand and outcomes
 - Attendance projection uses Act popularity, Era momentum, Trends, and promo spend.
@@ -25,6 +38,13 @@ This document introduces venues for the touring feature and the booking rules th
 - Travel: 1-3 buffer days between legs in different regions.
 - Length caps: tier-driven max dates (Club 8-12, Theater 10-16, Amphitheater 12-20, Arena 14-24, Stadium 10-18).
 - Cooldown: 4-8 weeks between tours per Act to limit stacking.
+
+## Reason codes (booking)
+- `TOUR_NO_ACTIVE_ERA`: act lacks an active Era.
+- `TOUR_NO_RELEASED_CONTENT`: no released Project/Track anchor available.
+- `TOUR_SLOT_CONFLICT`: act already booked on the same date.
+- `TOUR_VENUE_FULL`: venue slots are exhausted for the date.
+- `TOUR_DATE_OUTSIDE_WINDOW`: booking date not inside the tour window.
 
 ## Projection model (draft)
 ```text

@@ -1,7 +1,7 @@
 # Rival Husk Planner (Web MVP)
 
 ## Intent
-Rival labels plan releases and promos from a shared husk library rather than targeting the player. At least one rival is always in competitive rollout mode each planning cycle.
+Rival labels plan releases and promos from a shared husk library rather than targeting the player. All rivals use the same eligibility rules with no forced anchor participant.
 
 ## Husk Library
 - Starter husks: baseline rollout templates for early game or fallback.
@@ -37,18 +37,14 @@ A rival is in competitive rollout mode when it:
 
 ## Participation Rule
 - Planning cycle checkpoints: new game seed and weekly planning.
-- Ensure at least one rival participates each cycle.
-- Deterministic anchor selection (no player targeting):
-  - Seeded dominant rival if available, else highest momentum.
-  - Tie-break by cash, then label ID/name for stability.
-- Other rivals participate only if they pass the budget gate.
+- All rivals evaluate the same budget gate and cadence rules (no anchor label).
+- Participation depends on wallet cash and reserves; some cycles may have zero rival rollouts if budgets are tight.
 
 ## Budget Gate
 Rivals are eligible to compete when they can cover:
 - A minimum cash buffer above operating costs, and
 - At least one drop plus required promo intensity for the next window.
 - Operating cost estimates cap leased usage to preserve the planning reserve.
-The anchor rival is forced into participation even if it is below the budget gate (promo may be skipped when unaffordable).
 
 ## Release Budget + Reserve
 - Rival release planning uses a wallet-percent budget with a minimum cash reserve (mirrors auto-create math).
@@ -56,7 +52,7 @@ The anchor rival is forced into participation even if it is below the budget gat
 - Release volume is capped by signed Creator IDs (per-role capacity) before budget is applied.
 
 ## Chart Dominance Push
-- Competitive rivals (anchor first, then high-ambition labels) queue extra releases to chase chart monopolies.
+- Competitive rivals with high ambition or focus triggers queue extra releases to chase chart monopolies.
 - Target scope follows their current focus (global/nation/region) and falls back to their home region when unspecified.
 - The push size uses chart size minus current label presence, then caps by budget + roster capacity.
 

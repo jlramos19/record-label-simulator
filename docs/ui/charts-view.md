@@ -22,6 +22,7 @@ Defines the full Charts gameplay view, including scope drilldown and content fil
 
 ## History
 - Week picker opens chart history by current scope + content filter.
+- Acts leaderboard is yearly and does not use chart history snapshots.
 
 ## Observability
 - Empty states surface when charts are locked or no data exists.

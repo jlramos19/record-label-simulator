@@ -37,6 +37,7 @@ profit = revenue - costs
 
 ## Initial defaults (v0)
 These values lock the first-pass implementation and are expected to move after telemetry.
+Applied in `assets/js/data/constants.js` as touring tier config.
 
 Ticket + draw + sponsor:
 
@@ -90,6 +91,10 @@ World and gameplay effects to tune:
 ## Feature flag path
 - `RLS-TOUR-BALANCE-001`: disable all wallet and momentum effects; log only.
 - Gradually enable effects by tier or by goal (visibility first, revenue second).
+
+## Notes for v0
+- Booking projections always render; balance effects only apply when the flag is enabled.
+- Attendance-derived touring charts are computed from booked tour dates.
 
 ## Related
 - `docs/ui/touring-tab.md`

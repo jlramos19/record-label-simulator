@@ -1,5 +1,20 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-2047Z)
+- Critics Councils now score releases by scope and adjust final quality, storing critic grades and deltas for awards and charts.
+- CEO Requests now resolve yearly award winners for tracks, projects, promotions, and tours with the documented tie-break ladder.
+- Chart snapshots now carry critic/quality metadata to support annual awards and history lookups.
+
+## 2025-12-26 (RLS-PATCH-20251226-2042Z)
+- Charts view now includes an Acts tab with a yearly, cumulative act popularity leaderboard (tracks/promos/tours points + activity weeks).
+- Act popularity ledger updates weekly from chart data to keep era/achievement pacing visible.
+- Documented default loop balance math and act leaderboard rules for balance review.
+
+## 2025-12-26 (RLS-PATCH-20251226-2040Z)
+- Rival rollout planning no longer forces an anchor label; all rivals follow the same eligibility gates.
+- Rival dominance pushes now depend only on ambition/focus rules (no anchor boost).
+- Rival rollout planning now logs when no labels pass the budget gate.
+
 ## 2025-12-26 (RLS-PATCH-20251226-2019Z)
 - Rival rollout scheduling now applies a wallet-percent release budget and cash reserve before queuing drops.
 - Competitive rivals can queue additional dominance drops toward target chart scopes when budget + roster capacity allow.

@@ -100,6 +100,30 @@ declare const ECONOMY_TUNING: {
   promoWeeksMax: number;
   physicalUnitCostMin: number;
 };
+declare const TOUR_TIER_CONFIG: Record<string, {
+  capacityMin: number;
+  capacityMax: number;
+  baseTicketPrice: number;
+  drawMultiplier: number;
+  sponsorBase: number;
+  merchAttachRate: number;
+  merchSpendPerFan: number;
+  venueFee: number;
+  staffingBase: number;
+  travelBase: number;
+  maxDatesMin: number;
+  maxDatesMax: number;
+}>;
+declare const TOUR_VENUE_CATALOG: {
+  id: string;
+  label: string;
+  tier: string;
+  capacity: number;
+  regionId: string;
+  nation: string;
+  owner: string;
+  slotsPerDay?: number;
+}[];
 declare const ECONOMY_PRICE_MULTIPLIERS: { single: number; ep: number; album: number };
 declare const PRICE_PATTERN: number[];
 declare const MODIFIERS: {

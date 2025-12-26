@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { fetchChartSnapshot, listChartWeeks, storeChartSnapshot } from "./db.js";
+import { fetchChartSnapshot, fetchChartSnapshotsForWeek, listChartWeeks, storeChartSnapshot } from "./db.js";
 import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, readSaveSlotFromExternal } from "./file-storage.js";
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
 import { useCalendarProjection } from "./calendar.js";
@@ -514,6 +514,7 @@ function makeDefaultState() {
       savedAt: null,
       version: STATE_VERSION,
       annualWinners: [],
+      annualAwards: [],
       questIdCounter: 0,
       chartHistoryLastWeek: null,
       achievements: 0,
@@ -525,6 +526,7 @@ function makeDefaultState() {
       exp: 0,
       promoRuns: 0,
       cumulativeLabelPoints: {},
+      actPopularity: { years: {}, lastUpdateYear: null, lastUpdateWeek: null },
       labelShare: {},
       labelCompetition: {},
       labelShareWeek: null,
@@ -839,6 +841,18 @@ const PROMO_GAP_PENALTY_PER_TYPE = 3;
 const PROMO_GAP_PENALTY_MAX = 9;
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
   .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
+const TOUR_GOALS = ["visibility", "revenue"];
+const TOUR_LEAD_MIN_WEEKS = 2;
+const TOUR_LEAD_MAX_WEEKS = 6;
+const TOUR_WEEKLY_MAX_DATES = 2;
+const TOUR_REST_DAY_MIN = 1;
+const TOUR_TRAVEL_BUFFER_MIN = 1;
+const TOUR_WARNING_SELLTHROUGH_LOW = 0.5;
+const TOUR_WARNING_SELLTHROUGH_HIGH = 0.95;
+const TOUR_FAN_GAIN_VISIBILITY = 0.35;
+const TOUR_FAN_GAIN_REVENUE = 0.2;
+const TOUR_VISIBILITY_PROMO_MAX = 4;
+const TOUR_VISIBILITY_PROMO_MIN = 1;
 const CREATOR_SKILL_GAIN_BY_STAGE = [0.15, 0.25, 0.4];
 const CREATOR_SKILL_DECAY_GRACE_WEEKS = 6;
 const CREATOR_SKILL_DECAY_STEP_WEEKS = 2;
@@ -864,6 +878,17 @@ const RIVAL_AMBITION_ROSTER_BONUS = 3;
 const RIVAL_CASH_BASE = Math.round(STARTING_CASH * 0.4);
 const RIVAL_CASH_AMBITION_BOOST = Math.round(STARTING_CASH * 0.5);
 const RIVAL_CASH_YEAR_BOOST = Math.round(STARTING_CASH * 0.1);
+const CRITIC_SCORE_WEIGHTS = { quality: 0.5, alignment: 0.3, themeMood: 0.2 };
+const CRITIC_QUALITY_BLEND = 0.35;
+const CRITIC_QUALITY_DELTA_MAX = 12;
+const CRITIC_SCORE_JITTER = 3;
+const CRITIC_PICK_THRESHOLD = 90;
+const CRITIC_SATURATION_WINDOW_WEEKS = 8;
+const CRITIC_SATURATION_STEP = 2;
+const CRITIC_SATURATION_MAX = 10;
+const CRITIC_STRINGENCY_BASE = 1;
+const CRITIC_STRINGENCY_ERA_STEP = 0.01;
+const CRITIC_STRINGENCY_MAX = 1.15;
 
 function currentYear() {
   return new Date(state.time.epochMs).getUTCFullYear();
@@ -995,234 +1020,40 @@ function labelSharePercent(labelName) {
   return (shares[labelName] || 0) * 100;
 }
 
-const ACHIEVEMENTS = [
-  {
-    id: "REQ-01",
-    label: "Global No.1",
-    desc: "Land a track at #1 on the Global chart.",
-    exp: 2200,
-    target: 1,
-    check: () => playerHasGlobalRank(1),
-    progress: () => {
-      const ranks = (state.charts.global || []).filter((entry) => entry.track.isPlayer).map((entry) => entry.rank);
-      return ranks.length ? Math.min(...ranks) : null;
-    }
-  },
-  {
-    id: "REQ-02",
-    label: "National Top 3",
-    desc: "Reach Top 3 on any national chart.",
-    exp: 1600,
-    target: 3,
-    check: () => playerHasNationRank(3),
-    progress: () => {
-      const ranks = [];
-      NATIONS.forEach((nation) => {
-        (state.charts.nations[nation] || []).forEach((entry) => {
-          if (entry.track.isPlayer) ranks.push(entry.rank);
-        });
-      });
-      return ranks.length ? Math.min(...ranks) : null;
-    }
-  },
-  {
-    id: "REQ-03",
-    label: "Regional Top 5",
-    desc: "Reach Top 5 on any regional chart.",
-    exp: 1400,
-    target: 5,
-    check: () => playerHasRegionRank(5),
-    progress: () => {
-      const ranks = [];
-      REGION_DEFS.forEach((region) => {
-        (state.charts.regions[region.id] || []).forEach((entry) => {
-          if (entry.track.isPlayer) ranks.push(entry.rank);
-        });
-      });
-      return ranks.length ? Math.min(...ranks) : null;
-    }
-  },
-  {
-    id: "REQ-04",
-    label: "Quality Gold",
-    desc: "Release a track with 90+ quality.",
-    exp: 1700,
-    target: 90,
-    check: () => releasedTracks().some((track) => track.quality >= 90),
-    progress: () => {
-      const released = releasedTracks().map((track) => track.quality);
-      return released.length ? Math.max(...released) : 0;
-    }
-  },
-  {
-    id: "REQ-05",
-    label: "Catalog Depth",
-    desc: "Release 12 tracks.",
-    exp: 2000,
-    target: 12,
-    check: () => releasedTracks().length >= 12,
-    progress: () => releasedTracks().length
-  },
-  {
-    id: "REQ-06",
-    label: "Era Complete",
-    desc: "Complete one full Era cycle.",
-    exp: 1500,
-    target: 1,
-    check: () => state.era.history.length >= 1,
-    progress: () => state.era.history.length
-  },
-  {
-    id: "REQ-07",
-    label: "Trend Rider",
-    desc: "Release a track that matched a live trend.",
-    exp: 1500,
-    target: 1,
-    check: () => releasedTracks().some((track) => track.trendAtRelease),
-    progress: () => releasedTracks().filter((track) => track.trendAtRelease).length
-  },
-  {
-    id: "REQ-08",
-    label: "Audience Reach",
-    desc: "Capture at least 4% of Gaia's population.",
-    exp: 1800,
-    target: 4,
-    check: () => {
-      const snapshot = computePopulationSnapshot();
-      return snapshot.total > 0 && state.label.fans >= snapshot.total * 0.04;
-    },
-    progress: () => {
-      const snapshot = computePopulationSnapshot();
-      return snapshot.total ? (state.label.fans / snapshot.total) * 100 : 0;
-    }
-  },
-  {
-    id: "REQ-09",
-    label: "Roster Builder",
-    desc: "Sign at least 8 creators.",
-    exp: 1500,
-    target: 8,
-    check: () => state.creators.length >= 8,
-    progress: () => state.creators.length
-  },
-  {
-    id: "REQ-10",
-    label: "Project Variety",
-    desc: "Release tracks across 4 different projects.",
-    exp: 1600,
-    target: 4,
-    check: () => releasedProjectCount() >= 4,
-    progress: () => releasedProjectCount()
-  },
-  {
-    id: "REQ-11",
-    label: "Profit Week",
-    desc: "Hit a weekly net of $40,000 or more.",
-    exp: 1800,
-    target: 40000,
-    check: () => state.economy.lastRevenue - state.economy.lastUpkeep >= 40000,
-    progress: () => state.economy.lastRevenue - state.economy.lastUpkeep
-  },
-  {
-    id: "REQ-12",
-    label: "Promo Push",
-    desc: "Run 5 promo pushes.",
-    exp: 1500,
-    target: 5,
-    check: () => state.meta.promoRuns >= 5,
-    progress: () => state.meta.promoRuns
-  }
+const CEO_REQUEST_DEFS = [
+  { id: "REQ-01", label: "Chart-Topping Track", desc: "Most chart-topping track of the year in Gaia.", exp: 2200 },
+  { id: "REQ-02", label: "Best-Selling Track", desc: "Best-selling / most-streamed track of the year in Gaia.", exp: 2000 },
+  { id: "REQ-03", label: "Critics' Track", desc: "Most awarded / critically acclaimed track of the year in Gaia.", exp: 2000 },
+  { id: "REQ-04", label: "Chart-Topping Project", desc: "Most chart-topping project of the year in Gaia.", exp: 2100 },
+  { id: "REQ-05", label: "Best-Selling Project", desc: "Best-selling / most-streamed project of the year in Gaia.", exp: 2000 },
+  { id: "REQ-06", label: "Critics' Project", desc: "Most awarded / critically acclaimed project of the year in Gaia.", exp: 2000 },
+  { id: "REQ-07", label: "Chart-Topping Promo", desc: "Most chart-topping promotional content of the year in Gaia.", exp: 1800 },
+  { id: "REQ-08", label: "Most-Watched Promo", desc: "Best-selling / most-watched promotional content of the year in Gaia.", exp: 1700 },
+  { id: "REQ-09", label: "Critics' Promo", desc: "Most awarded / critically acclaimed promotional content of the year in Gaia.", exp: 1700 },
+  { id: "REQ-10", label: "Chart-Topping Tour", desc: "Most chart-topping tour of the year in Gaia.", exp: 1900 },
+  { id: "REQ-11", label: "Best-Attended Tour", desc: "Best-selling / highest-attended tour of the year in Gaia.", exp: 1800 },
+  { id: "REQ-12", label: "Critics' Tour", desc: "Most awarded / critically acclaimed tour of the year in Gaia.", exp: 1800 }
 ];
 
-const RIVAL_ACHIEVEMENTS = ACHIEVEMENTS.map((definition) => {
-  const base = {
-    id: definition.id,
-    label: definition.label,
-    desc: definition.desc,
-    exp: definition.exp,
-    target: definition.target
-  };
-  switch (definition.id) {
-    case "REQ-01":
-      return {
-        ...base,
-        check: (rival) => labelHasGlobalRank(rival?.name, 1),
-        progress: (rival) => labelBestGlobalRank(rival?.name)
-      };
-    case "REQ-02":
-      return {
-        ...base,
-        check: (rival) => labelHasNationRank(rival?.name, 3),
-        progress: (rival) => labelBestNationRank(rival?.name)
-      };
-    case "REQ-03":
-      return {
-        ...base,
-        check: (rival) => labelHasRegionRank(rival?.name, 5),
-        progress: (rival) => labelBestRegionRank(rival?.name)
-      };
-    case "REQ-04":
-      return {
-        ...base,
-        check: (rival) => labelBestQuality(rival?.name) >= 90,
-        progress: (rival) => labelBestQuality(rival?.name)
-      };
-    case "REQ-05":
-      return {
-        ...base,
-        check: (rival) => labelReleaseCount(rival?.name) >= 12,
-        progress: (rival) => labelReleaseCount(rival?.name)
-      };
-    case "REQ-06":
-      return {
-        ...base,
-        check: (rival) => (rival?.eraCompletions || 0) >= 1,
-        progress: (rival) => rival?.eraCompletions || 0
-      };
-    case "REQ-07":
-      return {
-        ...base,
-        check: (rival) => labelTrendReleaseCount(rival?.name) >= 1,
-        progress: (rival) => labelTrendReleaseCount(rival?.name)
-      };
-    case "REQ-08":
-      return {
-        ...base,
-        check: (rival) => labelSharePercent(rival?.name) >= 4,
-        progress: (rival) => labelSharePercent(rival?.name)
-      };
-    case "REQ-09":
-      return {
-        ...base,
-        check: (rival) => (rival?.creators?.length || 0) >= 8,
-        progress: (rival) => rival?.creators?.length || 0
-      };
-    case "REQ-10":
-      return {
-        ...base,
-        check: (rival) => labelReleasedProjectCount(rival?.name) >= 4,
-        progress: (rival) => labelReleasedProjectCount(rival?.name)
-      };
-    case "REQ-11":
-      return {
-        ...base,
-        check: (rival) => (rival?.economy?.lastRevenue || 0) - (rival?.economy?.lastUpkeep || 0) >= 40000,
-        progress: (rival) => (rival?.economy?.lastRevenue || 0) - (rival?.economy?.lastUpkeep || 0)
-      };
-    case "REQ-12":
-      return {
-        ...base,
-        check: (rival) => (rival?.promoRuns || 0) >= 5,
-        progress: (rival) => rival?.promoRuns || 0
-      };
-    default:
-      return {
-        ...base,
-        check: () => false,
-        progress: () => 0
-      };
-  }
-});
+const ACHIEVEMENTS = CEO_REQUEST_DEFS.map((definition) => ({
+  id: definition.id,
+  label: definition.label,
+  desc: definition.desc,
+  exp: definition.exp,
+  target: 1,
+  check: () => countAnnualAwardWins(definition.id, state.label.name) >= 1,
+  progress: () => countAnnualAwardWins(definition.id, state.label.name)
+}));
+
+const RIVAL_ACHIEVEMENTS = CEO_REQUEST_DEFS.map((definition) => ({
+  id: definition.id,
+  label: definition.label,
+  desc: definition.desc,
+  exp: definition.exp,
+  target: 1,
+  check: (rival) => countAnnualAwardWins(definition.id, rival?.name) >= 1,
+  progress: (rival) => countAnnualAwardWins(definition.id, rival?.name)
+}));
 
 function awardExp(amount, note, silent = false) {
   const value = Math.max(0, Math.round(amount || 0));
@@ -1256,11 +1087,6 @@ function evaluateAchievements() {
 function achievementProgressRatio(definition, value) {
   if (!definition || typeof definition.target === "undefined") return 0;
   if (value === null || typeof value === "undefined") return 0;
-  if (["REQ-01", "REQ-02", "REQ-03"].includes(definition.id)) {
-    const rank = Number(value);
-    if (!Number.isFinite(rank) || rank <= 0) return 0;
-    return clamp(definition.target / rank, 0, 1);
-  }
   const target = Number(definition.target);
   if (!Number.isFinite(target) || target <= 0) return 0;
   return clamp(Number(value) / target, 0, 1);
@@ -6079,6 +5905,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     promoTypesUsed,
     promoTypesLastAt
   };
+  applyCriticsReview({ track, marketEntry, log: true });
   track.marketId = marketEntry.id;
   state.marketTracks.push(marketEntry);
   if (track.promo) track.promo.preReleaseWeeks = 0;
@@ -7000,6 +6827,191 @@ function getActPromoStalePenaltyForTrack(track, now = state.time.epochMs) {
   return getActPromoStalePenalty(act, fallbackAt, now);
 }
 
+function normalizeCriticScopeKey(scopeKey) {
+  if (!scopeKey) return "global";
+  const raw = String(scopeKey);
+  if (raw.startsWith("promo:")) return raw.slice(6);
+  if (raw.startsWith("tour:")) return raw.slice(5);
+  return raw;
+}
+
+function criticScopeWeight(scopeKey) {
+  const normalized = normalizeCriticScopeKey(scopeKey);
+  if (normalized.startsWith("region:")) return 1;
+  if (normalized.startsWith("nation:")) return 2;
+  return 3;
+}
+
+function buildGlobalCriticProfile() {
+  const alignmentTotals = { Safe: 0, Neutral: 0, Risky: 0 };
+  const themeCounts = {};
+  const moodCounts = {};
+  NATIONS.forEach((nation) => {
+    const profile = getAudienceProfile(nation);
+    ALIGNMENTS.forEach((alignment) => {
+      alignmentTotals[alignment] += Number(profile?.alignmentWeights?.[alignment] || 0);
+    });
+    (profile?.themes || []).forEach((theme) => {
+      if (!theme) return;
+      themeCounts[theme] = (themeCounts[theme] || 0) + 1;
+    });
+    (profile?.moods || []).forEach((mood) => {
+      if (!mood) return;
+      moodCounts[mood] = (moodCounts[mood] || 0) + 1;
+    });
+  });
+  const themes = Object.entries(themeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map((entry) => entry[0])
+    .slice(0, AUDIENCE_PREF_LIMIT);
+  const moods = Object.entries(moodCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map((entry) => entry[0])
+    .slice(0, AUDIENCE_PREF_LIMIT);
+  return {
+    alignmentWeights: normalizeAlignmentWeights(alignmentTotals),
+    themes,
+    moods
+  };
+}
+
+function resolveCriticProfile(scopeKey) {
+  const normalized = normalizeCriticScopeKey(scopeKey);
+  if (normalized === "global") return buildGlobalCriticProfile();
+  const audience = getAudienceProfile(normalized);
+  const baseProfile = baseAudienceProfile(normalized);
+  const alignmentWeights = audience?.alignmentWeights
+    ? normalizeAlignmentWeights(audience.alignmentWeights)
+    : defaultAlignmentWeights(baseProfile?.alignment);
+  const themes = Array.isArray(audience?.themes) && audience.themes.length ? audience.themes : baseProfile.themes;
+  const moods = Array.isArray(audience?.moods) && audience.moods.length ? audience.moods : baseProfile.moods;
+  return { alignmentWeights, themes, moods };
+}
+
+function criticAlignmentScore(alignmentWeights, alignment) {
+  const weights = normalizeAlignmentWeights(alignmentWeights || defaultAlignmentWeights("Neutral"));
+  const target = ALIGNMENTS.includes(alignment) ? alignment : "Neutral";
+  const baseline = 1 / ALIGNMENTS.length;
+  const delta = weights[target] - baseline;
+  return clamp(Math.round(50 + delta * 150), 0, 100);
+}
+
+function criticThemeMoodScore(profile, track) {
+  const themes = Array.isArray(profile?.themes) ? profile.themes : [];
+  const moods = Array.isArray(profile?.moods) ? profile.moods : [];
+  const themeScore = themes.includes(track?.theme) ? 100 : 55;
+  const moodScore = moods.includes(track?.mood)
+    ? 100
+    : track?.mood === "Boring"
+      ? 30
+      : 55;
+  return Math.round((themeScore + moodScore) / 2);
+}
+
+function criticStringencyForScope(scopeKey) {
+  const eraCount = Array.isArray(state.era?.history) ? state.era.history.length : 0;
+  const eraBoost = clamp(eraCount * CRITIC_STRINGENCY_ERA_STEP, 0, CRITIC_STRINGENCY_MAX - CRITIC_STRINGENCY_BASE);
+  const normalized = normalizeCriticScopeKey(scopeKey);
+  const scopeBoost = normalized === "global" ? 0.04 : normalized.startsWith("nation:") ? 0.02 : 0;
+  return clamp(CRITIC_STRINGENCY_BASE + eraBoost + scopeBoost, CRITIC_STRINGENCY_BASE, CRITIC_STRINGENCY_MAX);
+}
+
+function criticSaturationPenalty(track, { excludeMarketId = null, excludeTrackId = null } = {}) {
+  if (!track?.genre) return 0;
+  const referenceWeek = weekIndexForEpochMs(track.releasedAt || state.time.epochMs);
+  const windowStart = referenceWeek - CRITIC_SATURATION_WINDOW_WEEKS;
+  const matches = state.marketTracks.filter((entry) => {
+    if (!entry || entry.genre !== track.genre) return false;
+    if (excludeMarketId && entry.id === excludeMarketId) return false;
+    if (excludeTrackId && entry.trackId === excludeTrackId) return false;
+    const entryWeek = weekIndexForEpochMs(entry.releasedAt || state.time.epochMs);
+    return entryWeek >= windowStart && entryWeek <= referenceWeek;
+  });
+  const count = Math.max(0, matches.length - 1);
+  return Math.min(CRITIC_SATURATION_MAX, count * CRITIC_SATURATION_STEP);
+}
+
+function scoreCriticForScope(track, scopeKey, options = {}) {
+  if (!track) return 0;
+  const normalized = normalizeCriticScopeKey(scopeKey);
+  const profile = resolveCriticProfile(normalized);
+  const qualityScore = resolveTrackQualityScore(track) ?? 0;
+  const alignmentScore = criticAlignmentScore(profile.alignmentWeights, track?.alignment);
+  const themeMoodScore = criticThemeMoodScore(profile, track);
+  const weights = CRITIC_SCORE_WEIGHTS;
+  let score = qualityScore * weights.quality
+    + alignmentScore * weights.alignment
+    + themeMoodScore * weights.themeMood;
+  score = score / criticStringencyForScope(normalized);
+  score -= criticSaturationPenalty(track, options);
+  const seed = makeStableSeed([trackKey(track), normalized, "critics"]);
+  const rng = makeSeededRng(seed);
+  score += seededRand(-CRITIC_SCORE_JITTER, CRITIC_SCORE_JITTER, rng);
+  return clamp(Math.round(score), 0, 100);
+}
+
+function buildCriticScoresByScope(track, options = {}) {
+  const scores = {};
+  const scopes = ["global"]
+    .concat(NATIONS.map((nation) => `nation:${nation}`))
+    .concat(REGION_DEFS.map((region) => `region:${region.id}`));
+  scopes.forEach((scopeKey) => {
+    scores[scopeKey] = scoreCriticForScope(track, scopeKey, options);
+  });
+  return scores;
+}
+
+function aggregateCriticScores(scores) {
+  if (!scores || typeof scores !== "object") return 0;
+  let total = 0;
+  let weightTotal = 0;
+  Object.entries(scores).forEach(([scopeKey, score]) => {
+    if (!Number.isFinite(score)) return;
+    const weight = criticScopeWeight(scopeKey);
+    total += score * weight;
+    weightTotal += weight;
+  });
+  if (!weightTotal) return 0;
+  return Math.round(total / weightTotal);
+}
+
+function applyCriticsReview({ track = null, marketEntry = null, log = false } = {}) {
+  const source = marketEntry || track;
+  if (!source) return null;
+  const existingBase = Number.isFinite(source.qualityBase) ? source.qualityBase : null;
+  const baseQuality = existingBase ?? resolveTrackQualityScore(source);
+  if (!Number.isFinite(baseQuality) || baseQuality <= 0) return null;
+  if (Number.isFinite(source.criticScore) && source.criticScores && Number.isFinite(source.qualityFinal)) {
+    return { criticScore: source.criticScore, qualityFinal: source.qualityFinal };
+  }
+  const criticScores = buildCriticScoresByScope(source, {
+    excludeMarketId: marketEntry?.id || null,
+    excludeTrackId: source.trackId || source.id || null
+  });
+  const criticScore = aggregateCriticScores(criticScores);
+  const deltaRaw = Math.round((criticScore - baseQuality) * CRITIC_QUALITY_BLEND);
+  const delta = clamp(deltaRaw, -CRITIC_QUALITY_DELTA_MAX, CRITIC_QUALITY_DELTA_MAX);
+  const qualityFinal = clampQuality(baseQuality + delta);
+  const criticGrade = scoreGrade(criticScore);
+  const apply = (target) => {
+    if (!target) return;
+    if (!Number.isFinite(target.qualityBase)) target.qualityBase = baseQuality;
+    target.qualityFinal = qualityFinal;
+    target.quality = qualityFinal;
+    target.criticScores = criticScores;
+    target.criticScore = criticScore;
+    target.criticGrade = criticGrade;
+    target.criticDelta = delta;
+  };
+  apply(track);
+  apply(marketEntry);
+  if (log) {
+    const deltaLabel = delta === 0 ? "no change" : `${delta > 0 ? "+" : ""}${delta} quality`;
+    logEvent(`Critics review: ${criticGrade} (${criticScore}) with ${deltaLabel}.`);
+  }
+  return { criticScore, criticGrade, qualityFinal, criticScores, criticDelta: delta };
+}
+
 function scoreTrack(track, regionName) {
   const audience = getAudienceProfile(regionName);
   let score = track.quality;
@@ -7220,6 +7232,7 @@ function buildChartSnapshot(scope, entries) {
         promoType: entry.promoType || null,
         promoLabel: entry.promoLabel || null,
         trackCount: entry.trackCount || null,
+        primaryTrackId: primary.id || primary.trackId || entry.primaryTrackId || null,
         primaryTrackTitle: primary.title || entry.primaryTrackTitle || null,
         primaryTrackTheme: primary.theme || entry.primaryTrackTheme || null,
         primaryTrackMood: primary.mood || entry.primaryTrackMood || null,
@@ -7236,6 +7249,52 @@ function buildChartSnapshot(scope, entries) {
         mood: entry.track?.mood || entry.mood || base.mood || "",
         alignment: entry.track?.alignment || entry.alignment || base.alignment || "",
         genre: entry.track?.genre || entry.genre || base.genre || "",
+        quality: Number.isFinite(entry.track?.qualityFinal)
+          ? entry.track.qualityFinal
+          : Number.isFinite(entry.track?.quality)
+            ? entry.track.quality
+            : Number.isFinite(entry.qualityFinal)
+              ? entry.qualityFinal
+              : Number.isFinite(entry.quality)
+                ? entry.quality
+                : Number.isFinite(base.qualityFinal)
+                  ? base.qualityFinal
+                  : Number.isFinite(base.quality)
+                    ? base.quality
+                    : null,
+        qualityBase: Number.isFinite(entry.track?.qualityBase)
+          ? entry.track.qualityBase
+          : Number.isFinite(entry.qualityBase)
+            ? entry.qualityBase
+            : Number.isFinite(base.qualityBase)
+              ? base.qualityBase
+              : null,
+        qualityFinal: Number.isFinite(entry.track?.qualityFinal)
+          ? entry.track.qualityFinal
+          : Number.isFinite(entry.qualityFinal)
+            ? entry.qualityFinal
+            : Number.isFinite(base.qualityFinal)
+              ? base.qualityFinal
+              : null,
+        criticScore: Number.isFinite(entry.track?.criticScore)
+          ? entry.track.criticScore
+          : Number.isFinite(entry.criticScore)
+            ? entry.criticScore
+            : Number.isFinite(base.criticScore)
+              ? base.criticScore
+              : null,
+        criticGrade: entry.track?.criticGrade || entry.criticGrade || base.criticGrade || null,
+        criticDelta: Number.isFinite(entry.track?.criticDelta)
+          ? entry.track.criticDelta
+          : Number.isFinite(entry.criticDelta)
+            ? entry.criticDelta
+            : Number.isFinite(base.criticDelta)
+              ? base.criticDelta
+              : null,
+        criticScores: entry.track?.criticScores
+          || entry.criticScores
+          || base.criticScores
+          || null,
         projectType: entry.track?.projectType || entry.projectType || base.projectType || "",
         distribution: entry.track?.distribution || entry.distribution || base.distribution || "",
         isPlayer: typeof entry.isPlayer === "boolean" ? entry.isPlayer : !!base.isPlayer
@@ -7267,6 +7326,79 @@ function ensurePromoContentStore() {
   return state.promoContent;
 }
 
+const TOUR_TIER_DEFAULTS = {
+  Club: {
+    capacityMin: 500,
+    capacityMax: 2000,
+    baseTicketPrice: 25,
+    drawMultiplier: 0.8,
+    sponsorBase: 0,
+    merchAttachRate: 0.08,
+    merchSpendPerFan: 18,
+    venueFee: 2000,
+    staffingBase: 1500,
+    travelBase: 800,
+    maxDatesMin: 8,
+    maxDatesMax: 12
+  },
+  Theater: {
+    capacityMin: 2000,
+    capacityMax: 5000,
+    baseTicketPrice: 35,
+    drawMultiplier: 0.95,
+    sponsorBase: 2000,
+    merchAttachRate: 0.1,
+    merchSpendPerFan: 22,
+    venueFee: 6000,
+    staffingBase: 3000,
+    travelBase: 1500,
+    maxDatesMin: 10,
+    maxDatesMax: 16
+  },
+  Amphitheater: {
+    capacityMin: 6000,
+    capacityMax: 10000,
+    baseTicketPrice: 50,
+    drawMultiplier: 1,
+    sponsorBase: 8000,
+    merchAttachRate: 0.12,
+    merchSpendPerFan: 26,
+    venueFee: 14000,
+    staffingBase: 5500,
+    travelBase: 3500,
+    maxDatesMin: 12,
+    maxDatesMax: 20
+  },
+  Arena: {
+    capacityMin: 11000,
+    capacityMax: 40000,
+    baseTicketPrice: 70,
+    drawMultiplier: 1.1,
+    sponsorBase: 25000,
+    merchAttachRate: 0.15,
+    merchSpendPerFan: 30,
+    venueFee: 30000,
+    staffingBase: 10000,
+    travelBase: 8000,
+    maxDatesMin: 14,
+    maxDatesMax: 24
+  },
+  Stadium: {
+    capacityMin: 41000,
+    capacityMax: 200000,
+    baseTicketPrice: 95,
+    drawMultiplier: 1.2,
+    sponsorBase: 100000,
+    merchAttachRate: 0.18,
+    merchSpendPerFan: 35,
+    venueFee: 75000,
+    staffingBase: 22000,
+    travelBase: 18000,
+    maxDatesMin: 10,
+    maxDatesMax: 18
+  }
+};
+
 function ensureTouringStore() {
   if (!state.touring || typeof state.touring !== "object") {
     state.touring = { drafts: [], bookings: [], lastDraftId: 0 };
@@ -7275,6 +7407,474 @@ function ensureTouringStore() {
   if (!Array.isArray(state.touring.bookings)) state.touring.bookings = [];
   if (typeof state.touring.lastDraftId !== "number") state.touring.lastDraftId = 0;
   return state.touring;
+}
+
+function touringBalanceEnabled() {
+  if (!state.meta) state.meta = makeDefaultState().meta;
+  if (typeof state.meta.touringBalanceEnabled !== "boolean") {
+    state.meta.touringBalanceEnabled = true;
+  }
+  return state.meta.touringBalanceEnabled;
+}
+
+function setTouringBalanceEnabled(enabled) {
+  if (!state.meta) state.meta = makeDefaultState().meta;
+  state.meta.touringBalanceEnabled = Boolean(enabled);
+  return state.meta.touringBalanceEnabled;
+}
+
+function listTourDrafts() {
+  return ensureTouringStore().drafts;
+}
+
+function getTourDraftById(draftId) {
+  if (!draftId) return null;
+  return listTourDrafts().find((draft) => draft.id === draftId) || null;
+}
+
+function getSelectedTourDraft() {
+  const draftId = state.ui?.tourDraftId || null;
+  return draftId ? getTourDraftById(draftId) : null;
+}
+
+function selectTourDraft(draftId) {
+  if (!state.ui) state.ui = {};
+  state.ui.tourDraftId = draftId || null;
+  return getSelectedTourDraft();
+}
+
+function createTourDraft({ name, actId, eraId, goal, anchorTrackIds, anchorProjectId, window, notes } = {}) {
+  const touring = ensureTouringStore();
+  touring.lastDraftId = Math.max(0, Math.round(Number(touring.lastDraftId) || 0) + 1);
+  const act = actId ? getAct(actId) : null;
+  const defaultName = act ? `${act.name} Tour` : `Tour Draft ${touring.lastDraftId}`;
+  const draft = {
+    id: uid("TD"),
+    name: typeof name === "string" && name.trim() ? name.trim() : defaultName,
+    actId: actId || null,
+    eraId: eraId || null,
+    goal: TOUR_GOALS.includes(goal) ? goal : "visibility",
+    anchorTrackIds: Array.isArray(anchorTrackIds) ? anchorTrackIds.filter(Boolean) : [],
+    anchorProjectId: typeof anchorProjectId === "string" ? anchorProjectId : null,
+    window: {
+      startWeek: Number.isFinite(window?.startWeek) ? Math.round(window.startWeek) : null,
+      endWeek: Number.isFinite(window?.endWeek) ? Math.round(window.endWeek) : null
+    },
+    legs: [],
+    notes: typeof notes === "string" ? notes : "",
+    status: "Draft",
+    createdAt: state.time?.epochMs || Date.now(),
+    updatedAt: state.time?.epochMs || Date.now()
+  };
+  touring.drafts.push(draft);
+  selectTourDraft(draft.id);
+  return draft;
+}
+
+function updateTourDraft(draftId, updates = {}) {
+  const draft = getTourDraftById(draftId);
+  if (!draft) return null;
+  if (typeof updates.name === "string") draft.name = updates.name.trim() || draft.name;
+  if (typeof updates.actId === "string" || updates.actId === null) draft.actId = updates.actId;
+  if (typeof updates.eraId === "string" || updates.eraId === null) draft.eraId = updates.eraId;
+  if (TOUR_GOALS.includes(updates.goal)) draft.goal = updates.goal;
+  if (Array.isArray(updates.anchorTrackIds)) draft.anchorTrackIds = updates.anchorTrackIds.filter(Boolean);
+  if (typeof updates.anchorProjectId === "string" || updates.anchorProjectId === null) draft.anchorProjectId = updates.anchorProjectId;
+  if (updates.window && typeof updates.window === "object") {
+    if (Number.isFinite(updates.window.startWeek)) draft.window.startWeek = Math.round(updates.window.startWeek);
+    if (Number.isFinite(updates.window.endWeek)) draft.window.endWeek = Math.round(updates.window.endWeek);
+  }
+  if (typeof updates.notes === "string") draft.notes = updates.notes;
+  draft.updatedAt = state.time?.epochMs || Date.now();
+  return draft;
+}
+
+function deleteTourDraft(draftId) {
+  const touring = ensureTouringStore();
+  const before = touring.drafts.length;
+  touring.drafts = touring.drafts.filter((draft) => draft.id !== draftId);
+  touring.bookings = touring.bookings.filter((booking) => booking.tourId !== draftId);
+  if (state.ui?.tourDraftId === draftId) state.ui.tourDraftId = null;
+  return touring.drafts.length !== before;
+}
+
+function listTourBookings({ tourId = null, actId = null } = {}) {
+  const bookings = ensureTouringStore().bookings || [];
+  return bookings.filter((booking) => {
+    if (!booking) return false;
+    if (tourId && booking.tourId !== tourId) return false;
+    if (actId && booking.actId !== actId) return false;
+    return true;
+  });
+}
+
+function listMarketTracksForAct(actId, eraId = null) {
+  return (state.marketTracks || []).filter((track) => {
+    if (!track || !track.isPlayer) return false;
+    if (actId && track.actId !== actId) return false;
+    if (eraId && track.eraId !== eraId) return false;
+    return true;
+  });
+}
+
+function resolveTourAnchor(draft, actId, eraId) {
+  const marketTracks = listMarketTracksForAct(actId, eraId);
+  if (!marketTracks.length) {
+    return { primary: null, anchors: [], projectName: null };
+  }
+  let anchors = [];
+  if (Array.isArray(draft?.anchorTrackIds) && draft.anchorTrackIds.length) {
+    anchors = draft.anchorTrackIds
+      .map((id) => marketTracks.find((track) => track.trackId === id || track.id === id))
+      .filter(Boolean);
+  }
+  let projectName = null;
+  if (!anchors.length && draft?.anchorProjectId) {
+    const parsed = parsePromoProjectKey(draft.anchorProjectId);
+    projectName = parsed?.projectName || draft.anchorProjectId;
+    const normalized = normalizeProjectName(projectName);
+    anchors = marketTracks.filter((track) => normalizeProjectName(track.projectName || "") === normalized);
+  }
+  if (!anchors.length) {
+    const sorted = marketTracks.slice().sort((a, b) => (b.releasedAt || 0) - (a.releasedAt || 0));
+    anchors = sorted.length ? [sorted[0]] : [];
+  }
+  const primary = anchors[0] || null;
+  if (!projectName && primary?.projectName) projectName = primary.projectName;
+  return { primary, anchors, projectName };
+}
+
+function estimateTourPopularityMultiplier(actId, eraId) {
+  const tracks = listMarketTracksForAct(actId, eraId);
+  if (!tracks.length) return 0.7;
+  const scores = tracks.map((track) => {
+    const quality = Number.isFinite(track.quality) ? track.quality : 60;
+    const freshness = Math.max(0, 12 - (track.weeksOnChart || 0));
+    const promoWeeks = Math.max(0, track.promoWeeks || 0);
+    return quality + freshness * 4 + promoWeeks * 4;
+  });
+  const avg = scores.reduce((sum, value) => sum + value, 0) / scores.length;
+  return clamp(avg / 80, 0.6, 1.5);
+}
+
+function tourRegionPriceIndex(venue) {
+  const regionId = venue?.regionId || "";
+  if (regionId.includes("Capital")) return 1.1;
+  if (regionId.includes("Elsewhere")) return 0.95;
+  return 1;
+}
+
+function tourQualityPremium(quality) {
+  const base = 0.9 + (Number(quality || 60) - 60) / 150;
+  return clamp(base, 0.9, 1.2);
+}
+
+function tourEraMomentum(era) {
+  if (!era) return 0.9;
+  const stageIndex = Number.isFinite(era.stageIndex) ? era.stageIndex : 0;
+  const weeks = Number.isFinite(era.weeksElapsed) ? era.weeksElapsed : 0;
+  return clamp(0.85 + stageIndex * 0.07 + weeks * 0.01, 0.8, 1.25);
+}
+
+function tourLeadWeeks(scheduledAt) {
+  if (!Number.isFinite(scheduledAt)) return 0;
+  const delta = scheduledAt - state.time.epochMs;
+  return Math.max(0, delta / WEEK_MS);
+}
+
+function computeTourProjection({ draft, act, era, venue, scheduledAt, anchor }) {
+  const tier = getTourTierConfig(venue?.tier) || TOUR_TIER_DEFAULTS.Club;
+  const capacity = Math.max(1, Number(venue?.capacity || tier.capacityMin || 500));
+  const basePopularity = estimateTourPopularityMultiplier(act?.id || "", era?.id || null);
+  const labelFans = Math.max(0, state.label?.fans || 0);
+  const fanBoost = 1 + Math.log1p(labelFans / 50000) * 0.25;
+  const baseDemand = Math.max(500, Math.round(4000 * basePopularity * fanBoost));
+  const anchorGenre = anchor?.genre || "";
+  const trendFit = state.trends.includes(anchorGenre) ? 1.1 : 0.95;
+  const regionAffinity = anchor?.country && venue?.nation && anchor.country === venue.nation ? 1.08 : 0.96;
+  const leadWeeks = tourLeadWeeks(scheduledAt);
+  const announceLead = clamp(leadWeeks / TOUR_LEAD_MAX_WEEKS, 0.5, 1.2);
+  const promoWeeks = Math.max(0, (anchor?.promoWeeks || 0) + (act?.promoWeeks || 0));
+  const promoScale = 5000;
+  const promoEfficiency = 0.35;
+  const promoLift = 1 + Math.log1p((promoWeeks * (ECONOMY_TUNING?.promoWeekBudgetStep || 1200)) / promoScale) * promoEfficiency;
+  const goalWeight = draft?.goal === "revenue" ? 0.95 : 1.1;
+  const momentum = tourEraMomentum(era);
+  const desiredAttendance = baseDemand * trendFit * regionAffinity * announceLead * tier.drawMultiplier * promoLift * goalWeight * momentum;
+  const sellThrough = clamp(desiredAttendance / capacity, 0.2, 1.1);
+  const attendance = Math.min(capacity, roundToAudienceChunk(capacity * sellThrough));
+  const regionPriceIndex = tourRegionPriceIndex(venue);
+  const qualityPremium = tourQualityPremium(anchor?.quality);
+  const ticketPrice = roundMoney(tier.baseTicketPrice * regionPriceIndex * qualityPremium);
+  const grossTicket = Math.round(attendance * ticketPrice);
+  const merch = Math.round(attendance * tier.merchAttachRate * tier.merchSpendPerFan);
+  const sponsorship = Math.round((tier.sponsorBase || 0) * momentum * goalWeight);
+  const revenue = Math.round(grossTicket + merch + sponsorship);
+  const staffing = Math.round(tier.staffingBase + attendance * 0.4);
+  const travel = Math.round(tier.travelBase);
+  const production = Math.round(attendance * 0.5);
+  const marketing = Math.round(grossTicket * 0.03);
+  const costs = Math.round((tier.venueFee || 0) + staffing + travel + production + marketing);
+  const profit = Math.round(revenue - costs);
+  return {
+    attendance,
+    sellThrough,
+    desiredAttendance: Math.round(desiredAttendance),
+    ticketPrice,
+    grossTicket,
+    merch,
+    sponsorship,
+    revenue,
+    costs,
+    profit
+  };
+}
+
+function buildTourWarnings({ actId, venue, scheduledAt, projection, draftId }) {
+  const warnings = [];
+  const sellThrough = projection?.sellThrough;
+  if (Number.isFinite(sellThrough) && sellThrough < TOUR_WARNING_SELLTHROUGH_LOW) {
+    warnings.push({ code: "TOUR_UNDERBOOKED", message: "Projected sell-through below 50%." });
+  }
+  if (Number.isFinite(sellThrough) && sellThrough > TOUR_WARNING_SELLTHROUGH_HIGH) {
+    warnings.push({ code: "TOUR_OVERBOOKED", message: "Projected sell-through above 95%." });
+  }
+  const leadWeeks = tourLeadWeeks(scheduledAt);
+  if (leadWeeks > 0 && leadWeeks < TOUR_LEAD_MIN_WEEKS) {
+    warnings.push({ code: "TOUR_LEAD_SHORT", message: "Lead time below 2 weeks." });
+  }
+  if (leadWeeks > TOUR_LEAD_MAX_WEEKS) {
+    warnings.push({ code: "TOUR_LEAD_LONG", message: "Lead time above 6 weeks." });
+  }
+  const weekNumber = weekIndexForEpochMs(scheduledAt) + 1;
+  const sameWeek = listTourBookings({ tourId: draftId, actId })
+    .filter((booking) => weekIndexForEpochMs(booking.scheduledAt) + 1 === weekNumber);
+  if (sameWeek.length >= TOUR_WEEKLY_MAX_DATES) {
+    warnings.push({ code: "TOUR_WEEKLY_CAP", message: "More than 2 dates scheduled in the same week." });
+  }
+  const dayKey = tourDayKey(scheduledAt);
+  const neighbors = listTourBookings({ tourId: draftId, actId })
+    .filter((booking) => Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_REST_DAY_MIN);
+  if (neighbors.length) {
+    warnings.push({ code: "TOUR_REST_DAY", message: "Less than 1 rest day between tour dates." });
+  }
+  const travelConflicts = listTourBookings({ tourId: draftId, actId })
+    .filter((booking) => booking.venueId !== venue?.id && Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_TRAVEL_BUFFER_MIN);
+  if (travelConflicts.length) {
+    warnings.push({ code: "TOUR_TRAVEL_BUFFER", message: "Travel buffer below 1 day between regions." });
+  }
+  return warnings;
+}
+
+function validateTourBooking({ draft, venue, scheduledAt }) {
+  if (!draft) return { ok: false, reason: "Select a tour draft first.", code: "TOUR_NO_DRAFT" };
+  if (!draft.actId) return { ok: false, reason: "Tour draft requires an Act.", code: "TOUR_NO_ACT" };
+  const act = getAct(draft.actId);
+  if (!act) return { ok: false, reason: "Tour Act not found.", code: "TOUR_NO_ACT" };
+  const era = draft.eraId ? getEraById(draft.eraId) : getLatestActiveEraForAct(act.id);
+  if (!era || era.status !== "Active") {
+    return { ok: false, reason: "Touring requires an active Era.", code: "TOUR_NO_ACTIVE_ERA" };
+  }
+  const releases = listMarketTracksForAct(act.id, era.id);
+  if (!releases.length) {
+    return { ok: false, reason: "Touring requires released Project or Track content.", code: "TOUR_NO_RELEASED_CONTENT" };
+  }
+  if (!venue) return { ok: false, reason: "Select a venue for this date.", code: "TOUR_NO_VENUE" };
+  if (!Number.isFinite(scheduledAt)) {
+    return { ok: false, reason: "Tour date is invalid.", code: "TOUR_INVALID_DATE" };
+  }
+  if (scheduledAt <= state.time.epochMs) {
+    return { ok: false, reason: "Tour date must be in the future.", code: "TOUR_PAST_DATE" };
+  }
+  const weekNumber = weekIndexForEpochMs(scheduledAt) + 1;
+  const startWeek = Number.isFinite(draft.window?.startWeek) ? draft.window.startWeek : null;
+  const endWeek = Number.isFinite(draft.window?.endWeek) ? draft.window.endWeek : null;
+  if (Number.isFinite(startWeek) && weekNumber < startWeek) {
+    return { ok: false, reason: "Tour date is before the tour window.", code: "TOUR_DATE_OUTSIDE_WINDOW" };
+  }
+  if (Number.isFinite(endWeek) && weekNumber > endWeek) {
+    return { ok: false, reason: "Tour date is after the tour window.", code: "TOUR_DATE_OUTSIDE_WINDOW" };
+  }
+  const availability = getTourVenueAvailability(venue.id, scheduledAt);
+  if (availability.available <= 0) {
+    return { ok: false, reason: "Venue slots are full for this date.", code: "TOUR_VENUE_FULL" };
+  }
+  const dayKey = tourDayKey(scheduledAt);
+  const conflicts = listTourBookings({ actId: act.id }).filter((booking) => tourDayKey(booking.scheduledAt) === dayKey);
+  if (conflicts.length) {
+    return { ok: false, reason: "Act already booked for this date.", code: "TOUR_SLOT_CONFLICT" };
+  }
+  return { ok: true, act, era, releases };
+}
+
+function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
+  const draft = getTourDraftById(draftId);
+  const venue = getTourVenueById(venueId);
+  const day = Number.isFinite(dayIndex) ? clamp(Math.round(dayIndex), 0, 6) : 0;
+  const week = Number.isFinite(weekNumber) ? Math.max(1, Math.round(weekNumber)) : null;
+  if (!week) return { ok: false, reason: "Select a valid tour week.", code: "TOUR_INVALID_WEEK" };
+  const scheduledAt = weekStartEpochMs(week) + day * DAY_MS;
+  const validation = validateTourBooking({ draft, venue, scheduledAt });
+  if (!validation.ok) return validation;
+  const { act, era } = validation;
+  const anchor = resolveTourAnchor(draft, act.id, era.id);
+  const projection = computeTourProjection({
+    draft,
+    act,
+    era,
+    venue,
+    scheduledAt,
+    anchor: anchor.primary
+  });
+  const warnings = buildTourWarnings({ actId: act.id, venue, scheduledAt, projection, draftId: draft.id });
+  const booking = {
+    id: uid("TB"),
+    tourId: draft.id,
+    tourName: draft.name || "",
+    actId: act.id,
+    actName: act.name,
+    eraId: era.id,
+    eraName: era.name,
+    goal: draft.goal || "visibility",
+    anchorTrackId: anchor.primary?.trackId || null,
+    anchorProjectName: anchor.projectName || null,
+    venueId: venue.id,
+    venueLabel: venue.label,
+    tier: venue.tier,
+    capacity: venue.capacity,
+    regionId: venue.regionId,
+    nation: venue.nation,
+    scheduledAt,
+    weekNumber: week,
+    dayIndex: day,
+    status: "Booked",
+    projection,
+    warnings,
+    createdAt: state.time?.epochMs || Date.now(),
+    updatedAt: state.time?.epochMs || Date.now(),
+    label: state.label?.name || "Record Label",
+    alignment: act.alignment || state.label?.alignment || "Neutral",
+    country: venue.nation || state.label?.country || "Annglora"
+  };
+  ensureTouringStore().bookings.push(booking);
+  draft.status = "Booked";
+  logEvent(`Tour booked: ${act.name} at ${venue.label} (Week ${week}, ${DAYS[day]}).`);
+  return { ok: true, booking };
+}
+
+function removeTourBooking(bookingId) {
+  const touring = ensureTouringStore();
+  const before = touring.bookings.length;
+  touring.bookings = touring.bookings.filter((booking) => booking.id !== bookingId);
+  return touring.bookings.length !== before;
+}
+
+function applyTourVisibilityBoost(booking) {
+  if (!booking || booking.goal !== "visibility") return;
+  const attendance = Number(booking.projection?.attendance || booking.attendance || 0);
+  if (!attendance) return;
+  const boostWeeks = clamp(
+    Math.round(attendance / 15000) + 1,
+    TOUR_VISIBILITY_PROMO_MIN,
+    TOUR_VISIBILITY_PROMO_MAX
+  );
+  const act = booking.actId ? getAct(booking.actId) : null;
+  if (act) act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
+  const marketTracks = listMarketTracksForAct(booking.actId, booking.eraId);
+  if (!marketTracks.length) return;
+  if (booking.anchorProjectName) {
+    const normalized = normalizeProjectName(booking.anchorProjectName);
+    marketTracks.forEach((track) => {
+      if (normalizeProjectName(track.projectName || "") !== normalized) return;
+      track.promoWeeks = Math.max(track.promoWeeks || 0, boostWeeks);
+    });
+    return;
+  }
+  if (booking.anchorTrackId) {
+    const entry = marketTracks.find((track) => track.trackId === booking.anchorTrackId || track.id === booking.anchorTrackId);
+    if (entry) entry.promoWeeks = Math.max(entry.promoWeeks || 0, boostWeeks);
+    return;
+  }
+  marketTracks.forEach((track) => {
+    track.promoWeeks = Math.max(track.promoWeeks || 0, boostWeeks);
+  });
+}
+
+function resolveTourBookings(now = state.time.epochMs) {
+  const touring = ensureTouringStore();
+  const pending = {
+    revenue: 0,
+    costs: 0,
+    profit: 0,
+    attendance: 0,
+    fanGain: 0,
+    count: 0
+  };
+  touring.bookings.forEach((booking) => {
+    if (!booking || booking.status !== "Booked") return;
+    if (!Number.isFinite(booking.scheduledAt) || booking.scheduledAt > now) return;
+    const projection = booking.projection || {};
+    const attendance = Number(projection.attendance || 0);
+    const revenue = Number(projection.revenue || 0);
+    const costs = Number(projection.costs || 0);
+    const profit = Number(projection.profit || 0);
+    booking.attendance = attendance;
+    booking.revenue = revenue;
+    booking.costs = costs;
+    booking.profit = profit;
+    booking.status = "Completed";
+    booking.resolvedAt = now;
+    pending.attendance += attendance;
+    pending.revenue += revenue;
+    pending.costs += costs;
+    pending.profit += profit;
+    pending.count += 1;
+    logEvent(`Tour completed: ${booking.actName} at ${booking.venueLabel} (${formatMoney(profit)} net).`);
+    if (touringBalanceEnabled()) {
+      const gainRate = booking.goal === "visibility" ? TOUR_FAN_GAIN_VISIBILITY : TOUR_FAN_GAIN_REVENUE;
+      const gain = Math.round(attendance * gainRate);
+      pending.fanGain += gain;
+      const snapshot = computePopulationSnapshot();
+      state.label.fans = clamp(state.label.fans + gain, 0, snapshot.total);
+      applyTourVisibilityBoost(booking);
+    }
+  });
+  if (pending.count) {
+    if (!state.economy) state.economy = {};
+    if (!state.economy.pendingTouring || typeof state.economy.pendingTouring !== "object") {
+      state.economy.pendingTouring = { revenue: 0, costs: 0, profit: 0, attendance: 0, fanGain: 0, count: 0 };
+    }
+    state.economy.pendingTouring.revenue += pending.revenue;
+    state.economy.pendingTouring.costs += pending.costs;
+    state.economy.pendingTouring.profit += pending.profit;
+    state.economy.pendingTouring.attendance += pending.attendance;
+    state.economy.pendingTouring.fanGain += pending.fanGain;
+    state.economy.pendingTouring.count += pending.count;
+    state.economy.lastTouring = { ...pending, week: weekIndex() + 1 };
+  }
+  return pending;
+}
+
+function computeTourDraftSummary(draftId) {
+  const bookings = listTourBookings({ tourId: draftId });
+  const summary = {
+    attendance: 0,
+    revenue: 0,
+    costs: 0,
+    profit: 0,
+    count: 0,
+    warnings: []
+  };
+  bookings.forEach((booking) => {
+    const projection = booking.projection || {};
+    summary.attendance += Number(projection.attendance || 0);
+    summary.revenue += Number(projection.revenue || 0);
+    summary.costs += Number(projection.costs || 0);
+    summary.profit += Number(projection.profit || 0);
+    summary.count += 1;
+    if (Array.isArray(booking.warnings)) summary.warnings.push(...booking.warnings);
+  });
+  return summary;
 }
 
 function ensurePromoChartsStore() {
@@ -7290,6 +7890,54 @@ function ensureTourChartsStore() {
 function ensureTourHistoryStore() {
   if (!state.tourChartHistory || typeof state.tourChartHistory !== "object") state.tourChartHistory = {};
   return state.tourChartHistory;
+}
+
+function listTourTiers() {
+  const tiers = typeof TOUR_TIER_CONFIG === "object" ? TOUR_TIER_CONFIG : TOUR_TIER_DEFAULTS;
+  return Object.keys(tiers || TOUR_TIER_DEFAULTS);
+}
+
+function getTourTierConfig(tier) {
+  if (!tier) return null;
+  if (typeof TOUR_TIER_CONFIG === "object" && TOUR_TIER_CONFIG[tier]) return TOUR_TIER_CONFIG[tier];
+  return TOUR_TIER_DEFAULTS[tier] || null;
+}
+
+function listTourVenues({ regionId = null, nation = null, tier = null } = {}) {
+  const list = Array.isArray(TOUR_VENUE_CATALOG) ? TOUR_VENUE_CATALOG : [];
+  return list.filter((venue) => {
+    if (!venue || !venue.id) return false;
+    if (regionId && venue.regionId !== regionId) return false;
+    if (nation && venue.nation !== nation) return false;
+    if (tier && venue.tier !== tier) return false;
+    return true;
+  });
+}
+
+function getTourVenueById(venueId) {
+  if (!venueId) return null;
+  return listTourVenues().find((venue) => venue.id === venueId) || null;
+}
+
+function tourVenueSlotsPerDay(venue) {
+  const slots = Number(venue?.slotsPerDay);
+  if (Number.isFinite(slots) && slots > 0) return Math.round(slots);
+  return 1;
+}
+
+function tourDayKey(epochMs) {
+  if (!Number.isFinite(epochMs)) return null;
+  return startOfDayEpochMs(epochMs);
+}
+
+function getTourVenueAvailability(venueId, epochMs) {
+  const venue = getTourVenueById(venueId);
+  if (!venue) return { capacity: 0, used: 0, available: 0, dayKey: null };
+  const dayKey = tourDayKey(epochMs);
+  const bookings = ensureTouringStore().bookings || [];
+  const used = bookings.filter((booking) => booking?.venueId === venueId && tourDayKey(booking?.scheduledAt) === dayKey).length;
+  const capacity = tourVenueSlotsPerDay(venue);
+  return { capacity, used, available: Math.max(0, capacity - used), dayKey };
 }
 
 function promoEntryWeeksRemaining(entry, currentWeek) {
@@ -7411,7 +8059,8 @@ function buildPromoAnchorTrack(entry, currentWeek) {
   const act = entry.actId ? getAct(entry.actId) : null;
   const fallback = buildPromoFallbackTrack(entry, act);
   const anchor = { ...fallback, ...(base || {}) };
-  anchor.quality = clampQuality(Number.isFinite(anchor.quality) ? anchor.quality : fallback.quality);
+  const resolvedQuality = resolveTrackQualityScore(anchor) ?? resolveTrackQualityScore(fallback) ?? fallback.quality;
+  anchor.quality = clampQuality(Number.isFinite(resolvedQuality) ? resolvedQuality : 60);
   anchor.alignment = ALIGNMENTS.includes(anchor.alignment) ? anchor.alignment : fallback.alignment;
   anchor.theme = anchor.theme || fallback.theme;
   anchor.mood = anchor.mood || fallback.mood;
@@ -7946,6 +8595,8 @@ function archiveMarketTracks(entries) {
       mood: entry.mood || "",
       alignment: entry.alignment || "",
       quality: Number.isFinite(entry.quality) ? entry.quality : 0,
+      qualityBase: Number.isFinite(entry.qualityBase) ? entry.qualityBase : (Number.isFinite(entry.quality) ? entry.quality : 0),
+      qualityFinal: Number.isFinite(entry.qualityFinal) ? entry.qualityFinal : (Number.isFinite(entry.quality) ? entry.quality : 0),
       genre: entry.genre || "",
       distribution: entry.distribution || "Digital",
       trendAtRelease: Boolean(entry.trendAtRelease),
@@ -7953,6 +8604,10 @@ function archiveMarketTracks(entries) {
       country: entry.country || "",
       actCountry: entry.actCountry || null,
       creatorCountries: Array.isArray(entry.creatorCountries) ? entry.creatorCountries.slice() : [],
+      criticScore: Number.isFinite(entry.criticScore) ? entry.criticScore : null,
+      criticGrade: typeof entry.criticGrade === "string" ? entry.criticGrade : null,
+      criticDelta: Number.isFinite(entry.criticDelta) ? entry.criticDelta : null,
+      criticScores: entry.criticScores && typeof entry.criticScores === "object" ? { ...entry.criticScores } : null,
       chartHistory: entry.chartHistory || {},
     }));
   state.meta.marketTrackArchive = state.meta.marketTrackArchive.concat(archived).slice(-MARKET_TRACK_ARCHIVE_LIMIT);
@@ -8622,6 +9277,12 @@ const LABEL_SCORE_WEIGHTS = {
   tours: { global: 0.4, nation: 0.3, region: 0.2 }
 };
 
+const ACT_POPULARITY_WEIGHTS = {
+  tracks: { global: 1, nation: 0.55, region: 0.35 },
+  promos: { global: 0.4, nation: 0.3, region: 0.2 },
+  tours: { global: 0.4, nation: 0.3, region: 0.2 }
+};
+
 function resolveChartEntryLabel(entry) {
   if (!entry) return "";
   if (entry.label) return entry.label;
@@ -8665,6 +9326,195 @@ function computeLabelScoresFromCharts() {
     addLabelScores(scores, state.tourCharts?.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.tours.region);
   });
   return scores;
+}
+
+function resolveChartEntryAct(entry) {
+  if (!entry) return { actId: null, actName: "", label: "", country: "", isPlayer: false };
+  const base = entry.track || entry;
+  const actId = entry.actId || base.actId || null;
+  const actName = entry.actName || base.actName || "";
+  const label = entry.label || base.label || "";
+  const country = entry.country || base.country || "";
+  const isPlayer = typeof entry.isPlayer === "boolean"
+    ? entry.isPlayer
+    : typeof base.isPlayer === "boolean"
+      ? base.isPlayer
+      : (label && state.label?.name ? label === state.label.name : false);
+  return { actId, actName, label, country, isPlayer };
+}
+
+function actPopularityKey(info) {
+  if (!info) return "";
+  if (info.actId) return `act:${info.actId}`;
+  const name = info.actName ? String(info.actName).trim() : "";
+  const label = info.label ? String(info.label).trim() : "";
+  if (!name && !label) return "";
+  return `actname:${name || "Unknown"}::${label || "Unknown"}`;
+}
+
+function ensureActPopularityLedger() {
+  if (!state.meta) state.meta = makeDefaultState().meta;
+  if (!state.meta.actPopularity || typeof state.meta.actPopularity !== "object") {
+    state.meta.actPopularity = { years: {}, lastUpdateYear: null, lastUpdateWeek: null };
+  }
+  const ledger = state.meta.actPopularity;
+  if (!ledger.years || typeof ledger.years !== "object") ledger.years = {};
+  if (typeof ledger.lastUpdateYear !== "number") ledger.lastUpdateYear = null;
+  if (typeof ledger.lastUpdateWeek !== "number") ledger.lastUpdateWeek = null;
+  return ledger;
+}
+
+function ensureActPopularityYear(year) {
+  const ledger = ensureActPopularityLedger();
+  const key = String(year);
+  if (!ledger.years[key] || typeof ledger.years[key] !== "object") {
+    ledger.years[key] = { acts: {}, totalWeeks: 0 };
+  }
+  const entry = ledger.years[key];
+  if (!entry.acts || typeof entry.acts !== "object") entry.acts = {};
+  if (typeof entry.totalWeeks !== "number") entry.totalWeeks = 0;
+  return entry;
+}
+
+function addActPopularityPoints(yearEntry, actInfo, points, kind, week, seen) {
+  if (!yearEntry || !actInfo || !Number.isFinite(points) || points <= 0) return;
+  const actKey = actPopularityKey(actInfo);
+  if (!actKey) return;
+  const fallbackName = actInfo.actName ? actInfo.actName : "Unknown Act";
+  const fallbackLabel = actInfo.label ? actInfo.label : "Unknown Label";
+  const fallbackCountry = actInfo.country ? actInfo.country : "";
+  let entry = yearEntry.acts[actKey];
+  if (!entry) {
+    entry = {
+      actId: actInfo.actId || null,
+      actName: fallbackName,
+      label: fallbackLabel,
+      country: fallbackCountry,
+      points: 0,
+      trackPoints: 0,
+      promoPoints: 0,
+      tourPoints: 0,
+      weeksActive: 0,
+      lastWeek: null,
+      isPlayer: !!actInfo.isPlayer
+    };
+    yearEntry.acts[actKey] = entry;
+  }
+  if (!entry.country && fallbackCountry) entry.country = fallbackCountry;
+  entry.points += points;
+  if (kind === "tracks") entry.trackPoints += points;
+  if (kind === "promos") entry.promoPoints += points;
+  if (kind === "tours") entry.tourPoints += points;
+  if (actInfo.isPlayer) entry.isPlayer = true;
+  if (!seen.has(actKey)) {
+    entry.weeksActive += 1;
+    seen.add(actKey);
+  }
+  entry.lastWeek = week;
+}
+
+function addActPopularityFromEntries(yearEntry, entries, size, weight, kind, week, seen) {
+  if (!Array.isArray(entries) || !entries.length || !Number.isFinite(weight) || weight <= 0) return;
+  entries.forEach((entry, index) => {
+    if (!entry) return;
+    const rank = Number.isFinite(entry.rank) ? entry.rank : index + 1;
+    const points = Math.max(1, size + 1 - rank) * weight;
+    const actInfo = resolveChartEntryAct(entry);
+    addActPopularityPoints(yearEntry, actInfo, points, kind, week, seen);
+  });
+}
+
+function updateActPopularityLedger({ year = currentYear(), week = weekIndex() + 1 } = {}) {
+  if (!Number.isFinite(year) || !Number.isFinite(week)) return;
+  const ledger = ensureActPopularityLedger();
+  if (ledger.lastUpdateYear === year && ledger.lastUpdateWeek === week) return;
+  const yearEntry = ensureActPopularityYear(year);
+  const seen = new Set();
+  addActPopularityFromEntries(yearEntry, state.charts.global || [], CHART_SIZES.global, ACT_POPULARITY_WEIGHTS.tracks.global, "tracks", week, seen);
+  NATIONS.forEach((nation) => {
+    addActPopularityFromEntries(
+      yearEntry,
+      state.charts.nations?.[nation] || [],
+      CHART_SIZES.nation,
+      ACT_POPULARITY_WEIGHTS.tracks.nation,
+      "tracks",
+      week,
+      seen
+    );
+  });
+  REGION_DEFS.forEach((region) => {
+    addActPopularityFromEntries(
+      yearEntry,
+      state.charts.regions?.[region.id] || [],
+      CHART_SIZES.region,
+      ACT_POPULARITY_WEIGHTS.tracks.region,
+      "tracks",
+      week,
+      seen
+    );
+  });
+  addActPopularityFromEntries(yearEntry, state.promoCharts?.global || [], CHART_SIZES.global, ACT_POPULARITY_WEIGHTS.promos.global, "promos", week, seen);
+  NATIONS.forEach((nation) => {
+    addActPopularityFromEntries(
+      yearEntry,
+      state.promoCharts?.nations?.[nation] || [],
+      CHART_SIZES.nation,
+      ACT_POPULARITY_WEIGHTS.promos.nation,
+      "promos",
+      week,
+      seen
+    );
+  });
+  REGION_DEFS.forEach((region) => {
+    addActPopularityFromEntries(
+      yearEntry,
+      state.promoCharts?.regions?.[region.id] || [],
+      CHART_SIZES.region,
+      ACT_POPULARITY_WEIGHTS.promos.region,
+      "promos",
+      week,
+      seen
+    );
+  });
+  addActPopularityFromEntries(yearEntry, state.tourCharts?.global || [], CHART_SIZES.global, ACT_POPULARITY_WEIGHTS.tours.global, "tours", week, seen);
+  NATIONS.forEach((nation) => {
+    addActPopularityFromEntries(
+      yearEntry,
+      state.tourCharts?.nations?.[nation] || [],
+      CHART_SIZES.nation,
+      ACT_POPULARITY_WEIGHTS.tours.nation,
+      "tours",
+      week,
+      seen
+    );
+  });
+  REGION_DEFS.forEach((region) => {
+    addActPopularityFromEntries(
+      yearEntry,
+      state.tourCharts?.regions?.[region.id] || [],
+      CHART_SIZES.region,
+      ACT_POPULARITY_WEIGHTS.tours.region,
+      "tours",
+      week,
+      seen
+    );
+  });
+  yearEntry.totalWeeks = Math.max(yearEntry.totalWeeks, week);
+  ledger.lastUpdateYear = year;
+  ledger.lastUpdateWeek = week;
+}
+
+function getActPopularityLeaderboard(year = currentYear()) {
+  const ledger = ensureActPopularityLedger();
+  const yearEntry = ledger.years?.[String(year)];
+  if (!yearEntry) return { year, entries: [], totalWeeks: 0 };
+  const entries = Object.values(yearEntry.acts || {});
+  entries.sort((a, b) => {
+    const diff = (b.points || 0) - (a.points || 0);
+    if (diff !== 0) return diff;
+    return String(a.actName || "").localeCompare(String(b.actName || ""));
+  });
+  return { year, entries, totalWeeks: yearEntry.totalWeeks || 0 };
 }
 
 function updateCumulativeLabelPoints(scores) {
@@ -9351,25 +10201,6 @@ function applyRivalHuskFocus(rival, husk) {
   rival.focusMoods = uniqueList([...rival.focusMoods, ...moods]).slice(-4);
 }
 
-function selectCompetitiveAnchorRival(rivals) {
-  if (!Array.isArray(rivals) || !rivals.length) return null;
-  const dominantId = state.meta?.seedInfo?.dominantLabelId || null;
-  const dominant = dominantId ? rivals.find((rival) => rival.id === dominantId) : null;
-  if (dominant) return dominant;
-  const sorted = rivals.slice().sort((a, b) => {
-    const momentumA = typeof a.momentum === "number" ? a.momentum : 0;
-    const momentumB = typeof b.momentum === "number" ? b.momentum : 0;
-    if (momentumA !== momentumB) return momentumB - momentumA;
-    const cashA = a.wallet?.cash ?? a.cash ?? 0;
-    const cashB = b.wallet?.cash ?? b.cash ?? 0;
-    if (cashA !== cashB) return cashB - cashA;
-    const idA = String(a.id || a.name || "");
-    const idB = String(b.id || b.name || "");
-    return idA.localeCompare(idB);
-  });
-  return sorted[0] || null;
-}
-
 function isRivalCompetitiveEligible(rival, husk) {
   if (!rival || !husk) return false;
   const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
@@ -9651,13 +10482,11 @@ function scheduleHuskForRival(rival, husk, options = {}) {
   return stats;
 }
 
-function shouldRivalPursueMonopoly(rival, isAnchor) {
-  if (!rival) return false;
-  if (!rival.aiPlan?.competitive && !isAnchor) return false;
+function shouldRivalPursueMonopoly(rival) {
+  if (!rival || !rival.aiPlan?.competitive) return false;
   const focus = rival.achievementFocus;
   if (["REQ-01", "REQ-02", "REQ-03"].includes(focus)) return true;
   const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
-  if (isAnchor && ambition >= 0.5) return true;
   return ambition >= 0.75;
 }
 
@@ -9778,8 +10607,9 @@ function generateRivalReleases() {
   if (!Array.isArray(state.rivals) || !state.rivals.length) return;
   const huskLibrary = buildHuskLibrary();
   const fallbackHusk = HUSK_STARTERS[0] || null;
-  const anchor = selectCompetitiveAnchorRival(state.rivals);
   const currentWeek = weekIndex();
+  let plannedThisWeek = false;
+  let eligibleCount = 0;
   state.rivals.forEach((rival) => {
     if (!rival) return;
     if (!rival.aiPlan) {
@@ -9799,7 +10629,7 @@ function generateRivalReleases() {
       };
     }
     if (rival.aiPlan.lastPlannedWeek === currentWeek) return;
-    const force = anchor && rival.id === anchor.id;
+    plannedThisWeek = true;
     let husk = null;
     let planWeekIndex = null;
     let planEndWeekIndex = null;
@@ -9820,7 +10650,7 @@ function generateRivalReleases() {
     }
     applyRivalHuskFocus(rival, husk);
     const eligible = isRivalCompetitiveEligible(rival, husk);
-    if (!eligible && !force) {
+    if (!eligible) {
       rival.aiPlan.competitive = false;
       rival.aiPlan.activeHuskId = null;
       rival.aiPlan.huskSource = null;
@@ -9831,6 +10661,7 @@ function generateRivalReleases() {
       rival.aiPlan.lastPlannedAt = state.time.epochMs;
       return;
     }
+    eligibleCount += 1;
     if (!activePlan || !activePlan.activeHuskId || activePlan.activeHuskId !== husk.id) {
       const startWeekIndex = getRivalPlanStartWeekIndex(state.time.epochMs);
       const windowWeeks = huskWindowWeeks(husk);
@@ -9854,14 +10685,14 @@ function generateRivalReleases() {
       planWeek,
       startWeekIndex,
       endWeekIndex: planEndWeekIndex,
-      allowPromo: force || eligible,
+      allowPromo: eligible,
       budget,
       releaseCost: RIVAL_COMPETE_DROP_COST
     });
-    if (scheduleStats?.blockedReason && !scheduleStats.releases && (force || rival.aiPlan.competitive)) {
+    if (scheduleStats?.blockedReason && !scheduleStats.releases && rival.aiPlan.competitive) {
       logEvent(`${rival.name} release plan paused: ${scheduleStats.blockedReason}`, "warn");
     }
-    if (shouldRivalPursueMonopoly(rival, force)) {
+    if (shouldRivalPursueMonopoly(rival)) {
       const priorWeek = rival.aiPlan.dominanceWeekIndex;
       const priorScope = rival.aiPlan.dominanceScopeKey;
       const priorType = rival.aiPlan.dominanceScopeType;
@@ -9886,6 +10717,9 @@ function generateRivalReleases() {
       }
     }
   });
+  if (plannedThisWeek && eligibleCount === 0) {
+    logEvent("Rival rollout skipped: no labels passed the budget gate this week.", "warn");
+  }
 }
 
 function collectRivalProjectMarkets(rival, anchorMarket) {
@@ -9965,7 +10799,7 @@ function processRivalReleaseQueue() {
       const actCountry = entry.country || dominantValue(creatorCountries, null);
       const trendAtRelease = Array.isArray(state.trends) && entry.genre ? state.trends.includes(entry.genre) : false;
       const projectType = normalizeProjectType(entry.projectType || "Single");
-      state.marketTracks.push({
+      const marketEntry = {
         id: uid("MK"),
         trackId: null,
         title: entry.title,
@@ -9988,7 +10822,9 @@ function processRivalReleaseQueue() {
         releasedAt: entry.releaseAt,
         weeksOnChart: 0,
         promoWeeks: 0
-      });
+      };
+      applyCriticsReview({ marketEntry });
+      state.marketTracks.push(marketEntry);
       markRivalReleaseActivity(entry.label, entry.releaseAt, entry.creatorIds);
     } else {
       remaining.push(entry);
@@ -10547,6 +11383,7 @@ function weeklyUpdate() {
   updateRivalEconomy(globalScores);
   recordTrendLedgerSnapshot(globalScores);
   updateEconomy(globalScores);
+  updateActPopularityLedger();
   awardExp(Math.min(300, Math.round(state.economy.lastRevenue / 500)), null, true);
   updateLabelReach();
   updateQuests();
@@ -10564,6 +11401,451 @@ function weeklyUpdate() {
   checkWinLoss(labelScores);
   uiHooks.renderAll?.();
   logDuration("weeklyUpdate", startTime, WEEKLY_UPDATE_WARN_MS, `(week ${week})`);
+}
+
+function awardYearWeekRange(year) {
+  const startEpoch = Date.UTC(year, 0, 1, 0, 0, 0, 0);
+  const endEpoch = Date.UTC(year + 1, 0, 1, 0, 0, 0, 0) - 1;
+  const startWeek = weekIndexForEpochMs(startEpoch) + 1;
+  const endWeek = weekIndexForEpochMs(endEpoch) + 1;
+  return { startWeek, endWeek, startEpoch, endEpoch };
+}
+
+function buildAwardMetricStore() {
+  return {
+    candidates: {},
+    chartPoints: {},
+    sales: {},
+    critics: {},
+    awards: {},
+    firstLeadWeek: { chartPoints: {}, sales: {}, critics: {} }
+  };
+}
+
+function resolveAwardActKey(entry) {
+  if (!entry) return null;
+  if (entry.actId) return entry.actId;
+  const actName = entry.actName || "Unknown";
+  const label = entry.label || "Unknown";
+  return `${actName}::${label}`;
+}
+
+function ensureAwardCandidate(store, entry) {
+  const key = resolveAwardActKey(entry);
+  if (!key) return null;
+  if (!store.candidates[key]) {
+    store.candidates[key] = {
+      actKey: key,
+      actId: entry.actId || null,
+      actName: entry.actName || "Unknown",
+      label: entry.label || ""
+    };
+  } else {
+    const candidate = store.candidates[key];
+    if (!candidate.actId && entry.actId) candidate.actId = entry.actId;
+    if ((!candidate.actName || candidate.actName === "Unknown") && entry.actName) candidate.actName = entry.actName;
+    if (!candidate.label && entry.label) candidate.label = entry.label;
+  }
+  return key;
+}
+
+function addAwardMetric(map, key, amount) {
+  if (!key || !Number.isFinite(amount)) return;
+  map[key] = Math.max(0, Number(map[key] || 0) + amount);
+}
+
+function updateLeadWeek(metricMap, leadMap, week) {
+  const entries = Object.entries(metricMap);
+  if (!entries.length) return;
+  let best = null;
+  entries.forEach(([, value]) => {
+    if (!Number.isFinite(value)) return;
+    if (best === null || value > best) best = value;
+  });
+  if (best === null) return;
+  entries.forEach(([key, value]) => {
+    if (!Number.isFinite(value) || value !== best) return;
+    if (!Number.isFinite(leadMap[key])) leadMap[key] = week;
+  });
+}
+
+function resolveMarketEntryById(marketId) {
+  if (!marketId) return null;
+  const active = state.marketTracks?.find((entry) => entry.id === marketId) || null;
+  if (active) return active;
+  const archived = state.meta?.marketTrackArchive?.find((entry) => entry.id === marketId) || null;
+  return archived || null;
+}
+
+function resolveMarketEntryByTrackId(trackId) {
+  if (!trackId) return null;
+  const active = state.marketTracks?.find((entry) => entry.trackId === trackId) || null;
+  if (active) return active;
+  const archived = state.meta?.marketTrackArchive?.find((entry) => entry.trackId === trackId) || null;
+  return archived || null;
+}
+
+function resolveCriticScoreForEntry(entry, scopeKey) {
+  if (!entry) return 0;
+  const normalized = normalizeCriticScopeKey(scopeKey);
+  if (entry.criticScores && Number.isFinite(entry.criticScores[normalized])) return entry.criticScores[normalized];
+  if (Number.isFinite(entry.criticScore)) return entry.criticScore;
+  const market = entry.marketId ? resolveMarketEntryById(entry.marketId) : null;
+  if (market?.criticScores && Number.isFinite(market.criticScores[normalized])) return market.criticScores[normalized];
+  if (Number.isFinite(market?.criticScore)) return market.criticScore;
+  const track = entry.trackId ? getTrack(entry.trackId) : null;
+  if (track?.criticScores && Number.isFinite(track.criticScores[normalized])) return track.criticScores[normalized];
+  if (Number.isFinite(track?.criticScore)) return track.criticScore;
+  const primaryTrackEntry = entry.primaryTrackId ? resolveMarketEntryByTrackId(entry.primaryTrackId) : null;
+  if (primaryTrackEntry?.criticScores && Number.isFinite(primaryTrackEntry.criticScores[normalized])) {
+    return primaryTrackEntry.criticScores[normalized];
+  }
+  if (Number.isFinite(primaryTrackEntry?.criticScore)) return primaryTrackEntry.criticScore;
+  return scoreCriticForScope(primaryTrackEntry || market || track || entry, normalized);
+}
+
+function collectProjectAwardEntries(entries, scopeKey) {
+  const projects = new Map();
+  (entries || []).forEach((entry) => {
+    if (!entry) return;
+    const projectName = entry.projectName || `${entry.title || "Unknown"} - Single`;
+    const projectType = normalizeProjectType(entry.projectType || "Single");
+    const label = entry.label || "Unknown";
+    const actName = entry.actName || "-";
+    const key = `${normalizeProjectName(projectName)}::${projectType}::${label}::${actName}`;
+    const metrics = entry.metrics || {};
+    const score = Number(entry.score || 0);
+    const criticScore = resolveCriticScoreForEntry(entry, scopeKey);
+    const existing = projects.get(key) || {
+      projectName,
+      projectType,
+      label,
+      actId: entry.actId || null,
+      actName,
+      alignment: entry.alignment,
+      country: entry.country || "Annglora",
+      primaryTrack: entry,
+      primaryScore: Number.isFinite(score) ? score : 0,
+      trackCount: 0,
+      metrics: { sales: 0, streaming: 0, airplay: 0, social: 0 },
+      score: 0,
+      criticScoreTotal: 0,
+      criticScoreWeight: 0
+    };
+    existing.trackCount += 1;
+    if (Number.isFinite(score)) {
+      existing.score += score;
+      if (!existing.primaryTrack || score > existing.primaryScore) {
+        existing.primaryTrack = entry;
+        existing.primaryScore = score;
+      }
+    }
+    existing.metrics.sales += Number(metrics.sales || 0);
+    existing.metrics.streaming += Number(metrics.streaming || 0);
+    existing.metrics.airplay += Number(metrics.airplay || 0);
+    existing.metrics.social += Number(metrics.social || 0);
+    if (Number.isFinite(criticScore)) {
+      existing.criticScoreTotal += criticScore;
+      existing.criticScoreWeight += 1;
+    }
+    projects.set(key, existing);
+  });
+  return Array.from(projects.values())
+    .map((entry) => {
+      const criticScore = entry.criticScoreWeight
+        ? Math.round(entry.criticScoreTotal / entry.criticScoreWeight)
+        : 0;
+      return { ...entry, criticScore };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+function promoPrimaryMetric(metrics) {
+  if (!metrics || typeof metrics !== "object") return 0;
+  const primary = Number(metrics.primary || 0);
+  if (primary) return primary;
+  return Number(metrics.views || metrics.likes || metrics.concurrent || metrics.comments || 0);
+}
+
+function applyTrackSnapshotsForAwards(week, snapshots, trackStore, projectStore) {
+  const trackSnapshots = snapshots.filter((snapshot) => !String(snapshot.scope || "").startsWith("promo:")
+    && !String(snapshot.scope || "").startsWith("tour:"));
+  trackSnapshots.forEach((snapshot) => {
+    const scopeKey = normalizeCriticScopeKey(snapshot.scope);
+    const weight = criticScopeWeight(scopeKey);
+    const entries = Array.isArray(snapshot.entries) ? snapshot.entries : [];
+    if (!entries.length) return;
+    const topTrack = entries[0];
+    const trackKey = ensureAwardCandidate(trackStore, topTrack);
+    if (trackKey) addAwardMetric(trackStore.chartPoints, trackKey, weight);
+    const projectEntries = collectProjectAwardEntries(entries, scopeKey);
+    if (projectEntries.length) {
+      const topProject = projectEntries[0];
+      const projectKey = ensureAwardCandidate(projectStore, topProject);
+      if (projectKey) addAwardMetric(projectStore.chartPoints, projectKey, weight);
+    }
+    entries.forEach((entry) => {
+      const actKey = ensureAwardCandidate(trackStore, entry);
+      if (!actKey) return;
+      const criticScore = resolveCriticScoreForEntry(entry, scopeKey);
+      addAwardMetric(trackStore.critics, actKey, criticScore * weight);
+      if (criticScore >= CRITIC_PICK_THRESHOLD) addAwardMetric(trackStore.awards, actKey, weight);
+    });
+    projectEntries.forEach((entry) => {
+      const actKey = ensureAwardCandidate(projectStore, entry);
+      if (!actKey) return;
+      const criticScore = Number(entry.criticScore || 0);
+      addAwardMetric(projectStore.critics, actKey, criticScore * weight);
+      if (criticScore >= CRITIC_PICK_THRESHOLD) addAwardMetric(projectStore.awards, actKey, weight);
+    });
+    if (scopeKey === "global") {
+      entries.forEach((entry) => {
+        const actKey = ensureAwardCandidate(trackStore, entry);
+        if (!actKey) return;
+        const metrics = entry.metrics || {};
+        const sales = Number(metrics.sales || 0) + Number(metrics.streaming || 0);
+        addAwardMetric(trackStore.sales, actKey, sales);
+      });
+      projectEntries.forEach((entry) => {
+        const actKey = ensureAwardCandidate(projectStore, entry);
+        if (!actKey) return;
+        const metrics = entry.metrics || {};
+        const sales = Number(metrics.sales || 0) + Number(metrics.streaming || 0);
+        addAwardMetric(projectStore.sales, actKey, sales);
+      });
+    }
+  });
+  updateLeadWeek(trackStore.chartPoints, trackStore.firstLeadWeek.chartPoints, week);
+  updateLeadWeek(trackStore.sales, trackStore.firstLeadWeek.sales, week);
+  updateLeadWeek(trackStore.critics, trackStore.firstLeadWeek.critics, week);
+  updateLeadWeek(projectStore.chartPoints, projectStore.firstLeadWeek.chartPoints, week);
+  updateLeadWeek(projectStore.sales, projectStore.firstLeadWeek.sales, week);
+  updateLeadWeek(projectStore.critics, projectStore.firstLeadWeek.critics, week);
+}
+
+function applyPromoSnapshotsForAwards(week, snapshots, promoStore) {
+  const promoSnapshots = snapshots.filter((snapshot) => String(snapshot.scope || "").startsWith("promo:"));
+  promoSnapshots.forEach((snapshot) => {
+    const scopeKey = normalizeCriticScopeKey(snapshot.scope);
+    const weight = criticScopeWeight(scopeKey);
+    const entries = Array.isArray(snapshot.entries) ? snapshot.entries : [];
+    if (!entries.length) return;
+    const top = entries[0];
+    const actKey = ensureAwardCandidate(promoStore, top);
+    if (actKey) addAwardMetric(promoStore.chartPoints, actKey, weight);
+    entries.forEach((entry) => {
+      const entryKey = ensureAwardCandidate(promoStore, entry);
+      if (!entryKey) return;
+      const criticScore = resolveCriticScoreForEntry(entry, scopeKey);
+      addAwardMetric(promoStore.critics, entryKey, criticScore * weight);
+      if (criticScore >= CRITIC_PICK_THRESHOLD) addAwardMetric(promoStore.awards, entryKey, weight);
+    });
+    if (scopeKey === "global") {
+      entries.forEach((entry) => {
+        const entryKey = ensureAwardCandidate(promoStore, entry);
+        if (!entryKey) return;
+        const amount = promoPrimaryMetric(entry.metrics);
+        addAwardMetric(promoStore.sales, entryKey, amount);
+      });
+    }
+  });
+  updateLeadWeek(promoStore.chartPoints, promoStore.firstLeadWeek.chartPoints, week);
+  updateLeadWeek(promoStore.sales, promoStore.firstLeadWeek.sales, week);
+  updateLeadWeek(promoStore.critics, promoStore.firstLeadWeek.critics, week);
+}
+
+function applyTourSnapshotsForAwards(week, snapshots, tourStore) {
+  const tourSnapshots = snapshots.filter((snapshot) => String(snapshot.scope || "").startsWith("tour:"));
+  tourSnapshots.forEach((snapshot) => {
+    const scopeKey = normalizeCriticScopeKey(snapshot.scope);
+    const weight = criticScopeWeight(scopeKey);
+    const entries = Array.isArray(snapshot.entries) ? snapshot.entries : [];
+    if (!entries.length) return;
+    const top = entries[0];
+    const actKey = ensureAwardCandidate(tourStore, top);
+    if (actKey) addAwardMetric(tourStore.chartPoints, actKey, weight);
+    entries.forEach((entry) => {
+      const entryKey = ensureAwardCandidate(tourStore, entry);
+      if (!entryKey) return;
+      const criticScore = resolveCriticScoreForEntry(entry, scopeKey);
+      addAwardMetric(tourStore.critics, entryKey, criticScore * weight);
+      if (criticScore >= CRITIC_PICK_THRESHOLD) addAwardMetric(tourStore.awards, entryKey, weight);
+    });
+    if (scopeKey === "global") {
+      entries.forEach((entry) => {
+        const entryKey = ensureAwardCandidate(tourStore, entry);
+        if (!entryKey) return;
+        const attendance = Number(entry.metrics?.attendance || 0);
+        addAwardMetric(tourStore.sales, entryKey, attendance);
+      });
+    }
+  });
+  updateLeadWeek(tourStore.chartPoints, tourStore.firstLeadWeek.chartPoints, week);
+  updateLeadWeek(tourStore.sales, tourStore.firstLeadWeek.sales, week);
+  updateLeadWeek(tourStore.critics, tourStore.firstLeadWeek.critics, week);
+}
+
+function pickTopKeys(keys, metricMap, preferLower = false) {
+  let bestValue = preferLower ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+  let bestKeys = [];
+  keys.forEach((key) => {
+    const value = Number(metricMap[key] || 0);
+    if (!Number.isFinite(value)) return;
+    if (preferLower ? value < bestValue : value > bestValue) {
+      bestValue = value;
+      bestKeys = [key];
+    } else if (value === bestValue) {
+      bestKeys.push(key);
+    }
+  });
+  return { keys: bestKeys, value: bestValue };
+}
+
+function resolveAnnualAwardWinner(store, primaryMetric) {
+  const keys = Object.keys(store.candidates || {});
+  if (!keys.length) return null;
+  const primary = store[primaryMetric] || {};
+  const primaryEligible = keys.filter((key) => Number(primary[key] || 0) > 0);
+  const candidates = primaryEligible.length ? primaryEligible : keys;
+  let { keys: tied } = pickTopKeys(candidates, primary);
+  let resolvedBy = "primary";
+  if (tied.length > 1) {
+    const salesResult = pickTopKeys(tied, store.sales || {});
+    if (salesResult.keys.length === 1) {
+      tied = salesResult.keys;
+      resolvedBy = "sales";
+    } else {
+      tied = salesResult.keys;
+    }
+  }
+  if (tied.length > 1) {
+    const criticsResult = pickTopKeys(tied, store.critics || {});
+    if (criticsResult.keys.length === 1) {
+      tied = criticsResult.keys;
+      resolvedBy = "critics";
+    } else {
+      tied = criticsResult.keys;
+    }
+  }
+  if (tied.length > 1) {
+    const awardsResult = pickTopKeys(tied, store.awards || {});
+    if (awardsResult.keys.length === 1) {
+      tied = awardsResult.keys;
+      resolvedBy = "awards";
+    } else {
+      tied = awardsResult.keys;
+    }
+  }
+  if (tied.length > 1) {
+    const leadMap = store.firstLeadWeek?.[primaryMetric] || {};
+    const leadResult = pickTopKeys(tied, leadMap, true);
+    if (leadResult.keys.length === 1) {
+      tied = leadResult.keys;
+      resolvedBy = "first";
+    } else {
+      tied = leadResult.keys;
+    }
+  }
+  if (tied.length > 1) {
+    tied.sort((a, b) => String(a).localeCompare(String(b)));
+    resolvedBy = `${resolvedBy}-alpha`;
+  }
+  const winnerKey = tied[0];
+  const candidate = store.candidates[winnerKey];
+  return {
+    ...candidate,
+    primaryValue: Number(primary[winnerKey] || 0),
+    resolvedBy
+  };
+}
+
+function ensureAnnualAwardsStore() {
+  if (!Array.isArray(state.meta.annualAwards)) state.meta.annualAwards = [];
+  return state.meta.annualAwards;
+}
+
+function countAnnualAwardWins(awardId, labelName) {
+  if (!awardId || !labelName) return 0;
+  const awards = ensureAnnualAwardsStore();
+  return awards.reduce((total, entry) => {
+    const winner = entry?.awards?.[awardId];
+    if (winner?.label === labelName) return total + 1;
+    return total;
+  }, 0);
+}
+
+async function evaluateAnnualAwards(year) {
+  const { startWeek, endWeek, startEpoch, endEpoch } = awardYearWeekRange(year);
+  const weekList = await listChartWeeks();
+  const weeks = weekList
+    .map((entry) => entry.week)
+    .filter((week) => week >= startWeek && week <= endWeek)
+    .sort((a, b) => a - b);
+  if (!weeks.length) {
+    logEvent(`Annual awards skipped for ${year}: no chart history in weeks ${startWeek}-${endWeek}.`, "warn");
+    return null;
+  }
+  const snapshotsByWeek = new Map();
+  const results = await Promise.all(weeks.map((week) => fetchChartSnapshotsForWeek(week)));
+  weeks.forEach((week, index) => {
+    const filtered = (results[index] || []).filter((snapshot) => {
+      if (!Number.isFinite(snapshot?.ts)) return false;
+      return snapshot.ts >= startEpoch && snapshot.ts <= endEpoch;
+    });
+    snapshotsByWeek.set(week, filtered);
+  });
+  const stores = {
+    tracks: buildAwardMetricStore(),
+    projects: buildAwardMetricStore(),
+    promotions: buildAwardMetricStore(),
+    tours: buildAwardMetricStore()
+  };
+  weeks.forEach((week) => {
+    const snapshots = snapshotsByWeek.get(week) || [];
+    applyTrackSnapshotsForAwards(week, snapshots, stores.tracks, stores.projects);
+    applyPromoSnapshotsForAwards(week, snapshots, stores.promotions);
+    applyTourSnapshotsForAwards(week, snapshots, stores.tours);
+  });
+  const awards = {};
+  const awardDefs = [
+    { id: "REQ-01", metric: "chartPoints", store: "tracks" },
+    { id: "REQ-02", metric: "sales", store: "tracks" },
+    { id: "REQ-03", metric: "critics", store: "tracks" },
+    { id: "REQ-04", metric: "chartPoints", store: "projects" },
+    { id: "REQ-05", metric: "sales", store: "projects" },
+    { id: "REQ-06", metric: "critics", store: "projects" },
+    { id: "REQ-07", metric: "chartPoints", store: "promotions" },
+    { id: "REQ-08", metric: "sales", store: "promotions" },
+    { id: "REQ-09", metric: "critics", store: "promotions" },
+    { id: "REQ-10", metric: "chartPoints", store: "tours" },
+    { id: "REQ-11", metric: "sales", store: "tours" },
+    { id: "REQ-12", metric: "critics", store: "tours" }
+  ];
+  awardDefs.forEach((definition) => {
+    const store = stores[definition.store];
+    const result = resolveAnnualAwardWinner(store, definition.metric);
+    if (!result) return;
+    awards[definition.id] = {
+      actKey: result.actKey,
+      actId: result.actId,
+      actName: result.actName,
+      label: result.label,
+      primaryValue: result.primaryValue,
+      resolvedBy: result.resolvedBy
+    };
+  });
+  if (Object.keys(awards).length !== awardDefs.length) {
+    logEvent(`Annual awards ${year}: ${Object.keys(awards).length}/${awardDefs.length} categories resolved.`, "warn");
+  }
+  const annualAwards = ensureAnnualAwardsStore();
+  const existing = annualAwards.find((entry) => entry.year === year);
+  if (existing) {
+    existing.awards = awards;
+  } else {
+    annualAwards.push({ year, awards });
+  }
+  logEvent(`Annual awards computed for ${year}.`);
+  return awards;
 }
 
 async function onYearTick(year) {
@@ -10601,6 +11883,9 @@ async function onYearTick(year) {
   state.meta.annualWinners.push({ year, label: winner, points: topPoints, resolvedBy });
   logEvent(`Annual Winner ${year}: ${winner} (${formatCount(topPoints)} points) [${resolvedBy}].`);
   postSocial({ handle: chartScopeHandle("global"), title: `Annual Winner ${year}`, lines: [`${winner} secured the year with ${formatCount(topPoints)} points.`, `Tie-break: ${resolvedBy}`], type: "system", order: 1 });
+  await evaluateAnnualAwards(year);
+  evaluateAchievements();
+  evaluateRivalAchievements();
   // Run end-of-year economy/housekeeping: award EXP, refresh quests
   awardExp(1200, `Year ${year} Season End` , true);
   // Reconcile win/loss state
@@ -10932,7 +12217,7 @@ function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null
     for (let i = 0; i < projectSize && remaining > 0; i += 1) {
       let quality = clampQuality(seededRand(55, 95, rngFn) + Math.round(momentum * 6));
       if (mood === "Boring") quality = clampQuality(quality - 12);
-      state.marketTracks.push({
+      const marketEntry = {
         id: uid("MK"),
         trackId: null,
         title: makeTrackTitleByCountrySeeded(theme, mood, rival.country, rngFn),
@@ -10954,7 +12239,9 @@ function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null
         trendAtRelease,
         weeksOnChart: seededRand(0, 8, rngFn),
         promoWeeks: seededRand(0, 4, rngFn)
-      });
+      };
+      applyCriticsReview({ marketEntry });
+      state.marketTracks.push(marketEntry);
       remaining -= 1;
     }
   }
@@ -11129,7 +12416,8 @@ function normalizeState() {
   if (state.ui.chartContentType !== "tracks"
     && state.ui.chartContentType !== "projects"
     && state.ui.chartContentType !== "promotions"
-    && state.ui.chartContentType !== "tours") {
+    && state.ui.chartContentType !== "tours"
+    && state.ui.chartContentType !== "acts") {
     state.ui.chartContentType = "tracks";
   }
   if (state.ui.chartPulseContentType !== "tracks"
@@ -11491,6 +12779,13 @@ function normalizeState() {
   state.meta.difficulty = normalizeDifficultyId(state.meta.difficulty);
   if (typeof state.meta.questIdCounter !== "number") state.meta.questIdCounter = 0;
   if (!Array.isArray(state.meta.marketTrackArchive)) state.meta.marketTrackArchive = [];
+  if (!Array.isArray(state.meta.annualAwards)) state.meta.annualAwards = [];
+  state.meta.annualAwards = state.meta.annualAwards.filter(Boolean).map((entry) => {
+    if (!entry || typeof entry !== "object") return null;
+    const year = Number(entry.year);
+    const awards = entry.awards && typeof entry.awards === "object" ? entry.awards : {};
+    return Number.isFinite(year) ? { year, awards } : null;
+  }).filter(Boolean);
   if (!Array.isArray(state.meta.achievementsUnlocked)) state.meta.achievementsUnlocked = [];
   if (typeof state.meta.achievements !== "number") state.meta.achievements = state.meta.achievementsUnlocked.length;
   state.meta.achievements = Math.max(state.meta.achievements, state.meta.achievementsUnlocked.length);
@@ -11502,6 +12797,14 @@ function normalizeState() {
   if (typeof state.meta.exp !== "number") state.meta.exp = 0;
   if (typeof state.meta.promoRuns !== "number") state.meta.promoRuns = 0;
   if (!state.meta.cumulativeLabelPoints) state.meta.cumulativeLabelPoints = {};
+  if (!state.meta.actPopularity || typeof state.meta.actPopularity !== "object") {
+    state.meta.actPopularity = { years: {}, lastUpdateYear: null, lastUpdateWeek: null };
+  }
+  if (!state.meta.actPopularity.years || typeof state.meta.actPopularity.years !== "object") {
+    state.meta.actPopularity.years = {};
+  }
+  if (typeof state.meta.actPopularity.lastUpdateYear !== "number") state.meta.actPopularity.lastUpdateYear = null;
+  if (typeof state.meta.actPopularity.lastUpdateWeek !== "number") state.meta.actPopularity.lastUpdateWeek = null;
   if (!state.meta.labelShare || typeof state.meta.labelShare !== "object") state.meta.labelShare = {};
   if (!state.meta.labelCompetition || typeof state.meta.labelCompetition !== "object") {
     state.meta.labelCompetition = {};
@@ -11807,6 +13110,13 @@ function normalizeState() {
       );
       track.quality = clampQuality(track.quality ?? 0);
       track.qualityPotential = clampQuality(track.qualityPotential ?? track.quality);
+      if (!Number.isFinite(track.qualityBase)) track.qualityBase = track.quality;
+      if (!Number.isFinite(track.qualityFinal)) track.qualityFinal = track.quality;
+      if (Number.isFinite(track.qualityFinal)) track.quality = clampQuality(track.qualityFinal);
+      if (track.criticScores && typeof track.criticScores !== "object") track.criticScores = null;
+      if (!Number.isFinite(track.criticScore)) track.criticScore = null;
+      if (typeof track.criticGrade !== "string") track.criticGrade = track.criticGrade || null;
+      if (!Number.isFinite(track.criticDelta)) track.criticDelta = null;
       if (typeof track.trendAtRelease !== "boolean") track.trendAtRelease = false;
       if (!track.projectType) track.projectType = "Single";
       track.releaseType = normalizeReleaseType(track.releaseType, track.projectType);
@@ -11828,6 +13138,12 @@ function normalizeState() {
       }
       if (track.modifier && !track.modifier.id) track.modifier = getModifier(track.modifier);
       ensureTrackEconomy(track);
+      if (track.status === "Released" && !Number.isFinite(track.criticScore)) {
+        const marketEntry = track.marketId
+          ? state.marketTracks?.find((entry) => entry.id === track.marketId)
+          : state.marketTracks?.find((entry) => entry.trackId === track.id);
+        applyCriticsReview({ track, marketEntry });
+      }
     });
   }
   if (!state.inventory || typeof state.inventory !== "object") state.inventory = { modifiers: {} };
@@ -11861,6 +13177,16 @@ function normalizeState() {
       if (typeof entry.releasedAt !== "number") entry.releasedAt = state.time?.epochMs || Date.now();
       if (typeof entry.isPlayer !== "boolean") entry.isPlayer = false;
       if (typeof entry.trendAtRelease !== "boolean") entry.trendAtRelease = false;
+      if (!Number.isFinite(entry.qualityBase)) entry.qualityBase = entry.quality;
+      if (!Number.isFinite(entry.qualityFinal)) entry.qualityFinal = entry.quality;
+      if (Number.isFinite(entry.qualityFinal)) entry.quality = clampQuality(entry.qualityFinal);
+      if (entry.criticScores && typeof entry.criticScores !== "object") entry.criticScores = null;
+      if (!Number.isFinite(entry.criticScore)) entry.criticScore = null;
+      if (typeof entry.criticGrade !== "string") entry.criticGrade = entry.criticGrade || null;
+      if (!Number.isFinite(entry.criticDelta)) entry.criticDelta = null;
+      if (!Number.isFinite(entry.criticScore) && Number.isFinite(entry.quality)) {
+        applyCriticsReview({ marketEntry: entry });
+      }
       if (!entry.promoTypesUsed || typeof entry.promoTypesUsed !== "object") entry.promoTypesUsed = {};
       if (!entry.promoTypesLastAt || typeof entry.promoTypesLastAt !== "object") entry.promoTypesLastAt = {};
       const originMeta = resolveTrackOriginMeta(entry);
@@ -11904,6 +13230,13 @@ function normalizeState() {
       if (typeof entry.trendAtRelease !== "boolean") entry.trendAtRelease = false;
       if (typeof entry.isPlayer !== "boolean") entry.isPlayer = false;
       if (!Number.isFinite(entry.quality)) entry.quality = 0;
+      if (!Number.isFinite(entry.qualityBase)) entry.qualityBase = entry.quality;
+      if (!Number.isFinite(entry.qualityFinal)) entry.qualityFinal = entry.quality;
+      if (Number.isFinite(entry.qualityFinal)) entry.quality = clampQuality(entry.qualityFinal);
+      if (entry.criticScores && typeof entry.criticScores !== "object") entry.criticScores = null;
+      if (!Number.isFinite(entry.criticScore)) entry.criticScore = null;
+      if (typeof entry.criticGrade !== "string") entry.criticGrade = entry.criticGrade || null;
+      if (!Number.isFinite(entry.criticDelta)) entry.criticDelta = null;
       if (!Number.isFinite(entry.releasedAt)) entry.releasedAt = state.time?.epochMs || Date.now();
       if (!entry.projectName && entry.title) entry.projectName = `${entry.title} - Single`;
       if (!Array.isArray(entry.creatorCountries)) entry.creatorCountries = [];
@@ -12036,6 +13369,7 @@ function gradeRange(grade, radius = 1) {
 
 function resolveTrackQualityScore(track) {
   if (!track) return null;
+  if (Number.isFinite(track.qualityFinal) && track.qualityFinal > 0) return track.qualityFinal;
   if (Number.isFinite(track.quality) && track.quality > 0) return track.quality;
   if (Number.isFinite(track.qualityPotential) && track.qualityPotential > 0) return track.qualityPotential;
   return null;
@@ -12958,6 +14292,7 @@ export {
   formatShortDate,
   formatWeekRangeLabel,
   getAct,
+  getActPopularityLeaderboard,
   getActiveEras,
   getAdjustedStageHours,
   getAdjustedTotalStageHours,

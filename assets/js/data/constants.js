@@ -423,6 +423,230 @@ const ECONOMY_TUNING = {
   promoWeeksMax: 4,
   physicalUnitCostMin: 0.5
 };
+const TOUR_TIER_CONFIG = {
+  Club: {
+    capacityMin: 500,
+    capacityMax: 2000,
+    baseTicketPrice: 25,
+    drawMultiplier: 0.8,
+    sponsorBase: 0,
+    merchAttachRate: 0.08,
+    merchSpendPerFan: 18,
+    venueFee: 2000,
+    staffingBase: 1500,
+    travelBase: 800,
+    maxDatesMin: 8,
+    maxDatesMax: 12
+  },
+  Theater: {
+    capacityMin: 2000,
+    capacityMax: 5000,
+    baseTicketPrice: 35,
+    drawMultiplier: 0.95,
+    sponsorBase: 2000,
+    merchAttachRate: 0.1,
+    merchSpendPerFan: 22,
+    venueFee: 6000,
+    staffingBase: 3000,
+    travelBase: 1500,
+    maxDatesMin: 10,
+    maxDatesMax: 16
+  },
+  Amphitheater: {
+    capacityMin: 6000,
+    capacityMax: 10000,
+    baseTicketPrice: 50,
+    drawMultiplier: 1,
+    sponsorBase: 8000,
+    merchAttachRate: 0.12,
+    merchSpendPerFan: 26,
+    venueFee: 14000,
+    staffingBase: 5500,
+    travelBase: 3500,
+    maxDatesMin: 12,
+    maxDatesMax: 20
+  },
+  Arena: {
+    capacityMin: 11000,
+    capacityMax: 40000,
+    baseTicketPrice: 70,
+    drawMultiplier: 1.1,
+    sponsorBase: 25000,
+    merchAttachRate: 0.15,
+    merchSpendPerFan: 30,
+    venueFee: 30000,
+    staffingBase: 10000,
+    travelBase: 8000,
+    maxDatesMin: 14,
+    maxDatesMax: 24
+  },
+  Stadium: {
+    capacityMin: 41000,
+    capacityMax: 200000,
+    baseTicketPrice: 95,
+    drawMultiplier: 1.2,
+    sponsorBase: 100000,
+    merchAttachRate: 0.18,
+    merchSpendPerFan: 35,
+    venueFee: 75000,
+    staffingBase: 22000,
+    travelBase: 18000,
+    maxDatesMin: 10,
+    maxDatesMax: 18
+  }
+};
+const TOUR_VENUE_CATALOG = [
+  {
+    id: "AN-CLUB-01",
+    label: "Bloomville Cellar",
+    tier: "Club",
+    capacity: 1200,
+    regionId: "Annglora Capital",
+    nation: "Annglora",
+    owner: "Public",
+    slotsPerDay: 2
+  },
+  {
+    id: "AN-THEATER-01",
+    label: "Bloomville Crown Theater",
+    tier: "Theater",
+    capacity: 3200,
+    regionId: "Annglora Capital",
+    nation: "Annglora",
+    owner: "Public",
+    slotsPerDay: 2
+  },
+  {
+    id: "AN-AMPH-01",
+    label: "Gleaming Meadows Amphitheater",
+    tier: "Amphitheater",
+    capacity: 8500,
+    regionId: "Annglora Elsewhere",
+    nation: "Annglora",
+    owner: "Public",
+    slotsPerDay: 1
+  },
+  {
+    id: "AN-ARENA-01",
+    label: "Bloomville Dome",
+    tier: "Arena",
+    capacity: 18000,
+    regionId: "Annglora Capital",
+    nation: "Annglora",
+    owner: "Public",
+    slotsPerDay: 1
+  },
+  {
+    id: "AN-STADIUM-01",
+    label: "Hann Field",
+    tier: "Stadium",
+    capacity: 60000,
+    regionId: "Annglora Capital",
+    nation: "Annglora",
+    owner: "Public",
+    slotsPerDay: 1
+  },
+  {
+    id: "BY-CLUB-01",
+    label: "Belltown Underground",
+    tier: "Club",
+    capacity: 1400,
+    regionId: "Bytenza Capital",
+    nation: "Bytenza",
+    owner: "Public",
+    slotsPerDay: 2
+  },
+  {
+    id: "BY-THEATER-01",
+    label: "Belltown Grand Hall",
+    tier: "Theater",
+    capacity: 4200,
+    regionId: "Bytenza Capital",
+    nation: "Bytenza",
+    owner: "Public",
+    slotsPerDay: 2
+  },
+  {
+    id: "BY-AMPH-01",
+    label: "Bytenza Sunstage",
+    tier: "Amphitheater",
+    capacity: 9000,
+    regionId: "Bytenza Elsewhere",
+    nation: "Bytenza",
+    owner: "Public",
+    slotsPerDay: 1
+  },
+  {
+    id: "BY-ARENA-01",
+    label: "Belltown Axis Arena",
+    tier: "Arena",
+    capacity: 20000,
+    regionId: "Bytenza Capital",
+    nation: "Bytenza",
+    owner: "Public",
+    slotsPerDay: 1
+  },
+  {
+    id: "BY-STADIUM-01",
+    label: "Bytenza Crown Stadium",
+    tier: "Stadium",
+    capacity: 75000,
+    regionId: "Bytenza Capital",
+    nation: "Bytenza",
+    owner: "Public",
+    slotsPerDay: 1
+  },
+  {
+    id: "CR-CLUB-01",
+    label: "Campana City Vault",
+    tier: "Club",
+    capacity: 900,
+    regionId: "Crowlya Capital",
+    nation: "Crowlya",
+    owner: "Public",
+    slotsPerDay: 2
+  },
+  {
+    id: "CR-THEATER-01",
+    label: "Campana City Opera Hall",
+    tier: "Theater",
+    capacity: 3500,
+    regionId: "Crowlya Capital",
+    nation: "Crowlya",
+    owner: "Public",
+    slotsPerDay: 2
+  },
+  {
+    id: "CR-AMPH-01",
+    label: "Crowlya Coast Amphitheater",
+    tier: "Amphitheater",
+    capacity: 8000,
+    regionId: "Crowlya Elsewhere",
+    nation: "Crowlya",
+    owner: "Public",
+    slotsPerDay: 1
+  },
+  {
+    id: "CR-ARENA-01",
+    label: "Campana City Rally Arena",
+    tier: "Arena",
+    capacity: 15000,
+    regionId: "Crowlya Capital",
+    nation: "Crowlya",
+    owner: "Public",
+    slotsPerDay: 1
+  },
+  {
+    id: "CR-STADIUM-01",
+    label: "Crowlya Unity Stadium",
+    tier: "Stadium",
+    capacity: 65000,
+    regionId: "Crowlya Capital",
+    nation: "Crowlya",
+    owner: "Public",
+    slotsPerDay: 1
+  }
+];
 const ECONOMY_PRICE_MULTIPLIERS = { single: 1, ep: 1.55, album: 2.25 };
 const PRICE_PATTERN = [0.3, 0.7];
 

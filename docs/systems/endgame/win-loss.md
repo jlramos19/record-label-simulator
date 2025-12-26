@@ -1,8 +1,8 @@
 # Win/Loss Rules (Web MVP)
 
 ## Victory Paths
-- Before Year 3000: complete the 12 CEO Requests (no monopoly loss).
-- Year 3000-3999: complete the 12 CEO Requests to secure a win state.
+- Before Year 3000: complete the 12 CEO Requests (annual award wins; see `annual-awards.md`) without triggering a monopoly loss.
+- Year 3000-3999: complete the 12 CEO Requests (annual award wins) to secure a win state.
 - Year 4000: final verdict uses current or cumulative #1 label status if no loss has occurred.
 
 ## Loss Conditions

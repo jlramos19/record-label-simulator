@@ -7,7 +7,7 @@
 - [ ] RLS-UI-CHARTS-SCOPE-001: Replace Charts scope tabs with nation -> region drilldown and keep content-type filters accessible in the Charts view.
 - [ ] RLS-CCC-DECLINE-001: Add decline reason logic + player-facing feedback for CCC signing, and update tutorial to split loops vs concepts.
 - [ ] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
-- [ ] RLS-AI-COMPETE-001: Guarantee at least one rival in competitive rollout mode per planning cycle, with deterministic selection and budget gates.
+- [ ] RLS-AI-COMPETE-001: Remove the anchor rival guarantee so all rivals use identical rollout eligibility rules (no forced participant).
 - [x] RLS-AI-ACHIEVEMENTS-001: Track CEO Requests for rival labels, surface the race on the Dashboard, and tune AI ambition to keep all 7 labels competitive through Year 3000. (Agent Codex, started 2025-12-26 16:14:27 -04:00, completed 2025-12-26 16:14:27 -04:00)
 - [x] RLS-PROMO-AUTO-001: Define auto promo wallet-percentage budgeting for player + rivals and document the rule. (Agent Codex, started 2025-12-26 16:19:17 -04:00, completed 2025-12-26 16:20:34 -04:00)
 - [x] RLS-AUTO-CREATE-001: Add auto-create rules (cash reserve + budget percent, weekly cadence, max tracks, solo/collab) with Create view controls and status disclosure.

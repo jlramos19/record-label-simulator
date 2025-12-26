@@ -49,6 +49,7 @@ import {
   formatShortDate,
   formatWeekRangeLabel,
   getAct,
+  getActPopularityLeaderboard,
   getActiveEras,
   getBusyCreatorIds,
   getCommunityLabelRankingLimit,
@@ -4465,16 +4466,103 @@ function renderStudiosList() {
 
 function renderCharts() {
   const contentType = state.ui.chartContentType || "tracks";
+  const isActs = contentType === "acts";
   document.querySelectorAll("#chartTypeTabs .tab").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.chartContent === contentType);
   });
+  const chartTabs = document.querySelector("#chartTabs");
+  if (chartTabs) chartTabs.classList.toggle("hidden", isActs);
+  const regionTabs = document.querySelector("#chartRegionTabs");
   const regions = Array.isArray(REGION_DEFS) ? REGION_DEFS : [];
   const regionIds = new Set(regions.map((region) => region.id));
   let activeChart = state.ui.activeChart || "global";
-  if (activeChart !== "global" && !NATIONS.includes(activeChart) && !regionIds.has(activeChart)) {
+  if (isActs) {
+    if (activeChart !== "global") {
+      activeChart = "global";
+      state.ui.activeChart = activeChart;
+    }
+  } else if (activeChart !== "global" && !NATIONS.includes(activeChart) && !regionIds.has(activeChart)) {
     activeChart = "global";
     state.ui.activeChart = activeChart;
     logEvent("Charts scope reset to Global after an invalid selection.", "warn");
+  }
+  const chartWeekBtn = $("chartWeekBtn");
+  if (chartWeekBtn) {
+    chartWeekBtn.disabled = isActs;
+    chartWeekBtn.title = isActs ? "History snapshots are available for charts only." : "";
+  }
+  if (isActs) {
+    if (regionTabs) {
+      regionTabs.innerHTML = "";
+      regionTabs.classList.add("hidden");
+    }
+    const leaderboard = getActPopularityLeaderboard(currentYear());
+    const yearLabel = `Year ${leaderboard.year}`;
+    if ($("chartWeekRange")) $("chartWeekRange").textContent = yearLabel;
+    if ($("chartHistoryNotice")) $("chartHistoryNotice").textContent = "";
+    const meta = $("chartMeta");
+    if (meta) {
+      const weeksTracked = Number.isFinite(leaderboard.totalWeeks) ? leaderboard.totalWeeks : 0;
+      const trackedLabel = weeksTracked
+        ? `${formatCount(weeksTracked)} weeks tracked`
+        : "No weekly points logged yet";
+      meta.textContent = `${yearLabel} | Act popularity leaderboard | ${trackedLabel}`;
+    }
+    const entries = Array.isArray(leaderboard.entries) ? leaderboard.entries : [];
+    if (!entries.length) {
+      $("chartList").innerHTML = `<div class="muted">No act popularity data yet. Weekly chart updates will populate this leaderboard.</div>`;
+      return;
+    }
+    const rows = entries.map((entry, index) => {
+      const labelTag = renderLabelTag(entry.label || "Unknown Label", entry.country || state.label?.country || "Annglora");
+      const actName = renderActName(entry.actName || "Unknown Act") || "Unknown Act";
+      const weeksActive = Number.isFinite(entry.weeksActive) ? entry.weeksActive : 0;
+      const lastWeek = Number.isFinite(entry.lastWeek) ? entry.lastWeek : null;
+      const lastWeekLabel = lastWeek ? `Last week ${lastWeek}` : "Last week --";
+      const trackPoints = formatCount(Math.round(entry.trackPoints || 0));
+      const promoPoints = formatCount(Math.round(entry.promoPoints || 0));
+      const tourPoints = formatCount(Math.round(entry.tourPoints || 0));
+      const totalPoints = formatCount(Math.round(entry.points || 0));
+      const playerLine = entry.isPlayer ? `<div class="muted">Your act</div>` : "";
+      return `
+        <tr>
+          <td class="chart-rank">#${index + 1}</td>
+          <td class="chart-title">
+            <div class="item-title">${actName}</div>
+            ${playerLine}
+          </td>
+          <td class="chart-label">${labelTag}</td>
+          <td class="chart-act">
+            <div>Weeks active ${formatCount(weeksActive)}</div>
+            <div class="muted">${lastWeekLabel}</div>
+          </td>
+          <td class="chart-metrics">
+            <div class="muted">Tracks ${trackPoints} | Promos ${promoPoints} | Tours ${tourPoints}</div>
+          </td>
+          <td class="chart-score">${totalPoints}</td>
+        </tr>
+      `;
+    });
+    $("chartList").innerHTML = `
+      <div class="chart-table-wrap">
+        <table class="chart-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Act</th>
+              <th>Label</th>
+              <th>Activity</th>
+              <th>Breakdown</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+    return;
   }
   const activeRegion = regions.find((region) => region.id === activeChart) || null;
   const activeNation = activeChart === "global"
@@ -4490,7 +4578,6 @@ function renderCharts() {
       : chartKey === activeNation;
     btn.classList.toggle("active", !!isActive);
   });
-  const regionTabs = document.querySelector("#chartRegionTabs");
   if (regionTabs) {
     if (!activeNation) {
       regionTabs.innerHTML = "";
@@ -4822,25 +4909,13 @@ function renderAchievements() {
   const summaryEl = $("achievementSummary");
   if (!listEl) return;
   const unlocked = new Set(state.meta.achievementsUnlocked || []);
-  const rankIds = new Set(["REQ-01", "REQ-02", "REQ-03"]);
   listEl.innerHTML = ACHIEVEMENTS.map((achievement) => {
     const done = unlocked.has(achievement.id);
     const badgeClass = done ? "badge" : "badge warn";
     let progressText = "";
     if (typeof achievement.progress === "function" && typeof achievement.target !== "undefined") {
       const value = achievement.progress();
-      if (rankIds.has(achievement.id)) {
-        const best = value === null ? "--" : value;
-        progressText = `Best #${best} / Target #${achievement.target}`;
-      } else if (achievement.id === "REQ-08") {
-        progressText = `Reach ${value.toFixed(2)}% / ${achievement.target}%`;
-      } else if (achievement.id === "REQ-04") {
-        progressText = `Best Q ${value} / ${achievement.target}`;
-      } else if (achievement.id === "REQ-11") {
-        progressText = `Net ${formatMoney(value)} / ${formatMoney(achievement.target)}`;
-      } else {
-        progressText = `${formatCount(value)} / ${formatCount(achievement.target)}`;
-      }
+      progressText = `Wins ${formatCount(value)} / ${formatCount(achievement.target)}`;
     }
     return `
       <div class="list-item">
