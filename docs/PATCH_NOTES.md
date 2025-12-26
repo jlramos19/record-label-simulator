@@ -1,5 +1,19 @@
 # Patch Notes
 
+## 2025-12-26 (RLS-PATCH-20251226-1826Z)
+- Top Labels "More" window now includes each label's most-used theme and mood column.
+- Broadcast and filming studios now include regional facilities with five daily slots split across morning/afternoon/night timeframes.
+
+## 2025-12-26 (RLS-PATCH-20251226-1822Z)
+- UI panels, floating windows, and buttons now render with thicker borders for clearer separation.
+- Theme/mood/country/alignment tags now normalize to fixed-width pills with wrapping text for consistent rows.
+- Record label pills now stack label names over a dedicated "Record Label" line, and Top Labels points round to whole numbers.
+
+## 2025-12-26 (RLS-PATCH-20251226-1807Z)
+- Auto promo now supports four target slots (Act/Project/Track per slot) with per-slot budget allocations capped at 100% total.
+- Auto promo slots can run act-only and report per-slot readiness in the Promotions summary.
+- Auto promo selectors now exclude inactive acts/projects/tracks and avoid missing-era reference errors.
+
 ## 2025-12-26 (RLS-PATCH-20251226-1749Z)
 - New games now default to Modern Mode (2400), Medium difficulty, and Fast time speed (1h = 1s).
 - Auto-save now starts enabled at a 2-minute interval for new games.

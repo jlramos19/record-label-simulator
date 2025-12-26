@@ -5,7 +5,7 @@ They exist to promote an Act (and optionally its content) by putting it in front
 
 ## Structure context
 - Broadcast studios are public facilities owned by eyeriS; booking uses facility slots (not creator ID slots).
-- Slots are day-based and surface warnings when full or ineligible.
+- Slots are timeframe-based (morning/afternoon/night) and surface warnings when full or ineligible.
 
 ## Promo targeting
 - Promo pushes can target an Act only, or an Act plus an associated Track.
@@ -13,36 +13,72 @@ They exist to promote an Act (and optionally its content) by putting it in front
 - Fit signals include scope (global/nation/region), audience age bands, alignment, themes, and moods.
 - Broadcast impact is strongest in the studio's coverage area and its audience profile.
 
+## Slot schedule (UTC)
+- Daily capacity per studio: 5 slots.
+- Timeframes: Morning 06:00-12:00 (2 slots), Afternoon 12:00-18:00 (1 slot), Night 18:00-24:00 (2 slots).
+- Slots reserve the active window; if booked outside a window, the next available window is used.
+
 ## EyeriS studio catalog (MVP)
-Slots are day-based, reset at midnight UTC, and consume a studio's daily capacity.
 
 - EyeriS Prime (global)
-  - Slots (Sun..Sat): 3/1/1/1/1/1/1
   - Audience: 25-44
   - Alignment: Safe, Neutral
   - Theme focus: Freedom, Ambition
   - Mood focus: Uplifting, Energizing, Thrilling
 - EyeriS Nationline: Annglora
-  - Slots (Sun..Sat): 2/1/0/0/0/1/1
   - Coverage: Annglora (Bloomville Capital, Elsewhere)
   - Audience: 25-49
   - Alignment: Safe
   - Theme focus: Freedom
   - Mood focus: Calming, Cheering, Uplifting
 - EyeriS Nationline: Bytenza
-  - Slots (Sun..Sat): 1/0/1/0/0/1/0
   - Coverage: Bytenza (Belltown Capital, Elsewhere)
   - Audience: 16-29
   - Alignment: Neutral
   - Theme focus: Ambition
   - Mood focus: Energizing, Uplifting, Calming
 - EyeriS Nationline: Crowlya
-  - Slots (Sun..Sat): 1/0/0/1/1/0/1
   - Coverage: Crowlya (Campana City Capital, Elsewhere)
   - Audience: 18-39
   - Alignment: Risky
   - Theme focus: Power
   - Mood focus: Daring, Thrilling, Angering
+- EyeriS Regionline: Bloomville
+  - Coverage: Annglora (Bloomville Capital)
+  - Audience: 25-49
+  - Alignment: Safe
+  - Theme focus: Freedom
+  - Mood focus: Uplifting, Cheering, Calming
+- EyeriS Regionline: Annglora Elsewhere
+  - Coverage: Annglora (Elsewhere)
+  - Audience: 25-49
+  - Alignment: Safe
+  - Theme focus: Morality
+  - Mood focus: Calming, Uplifting, Boring
+- EyeriS Regionline: Belltown
+  - Coverage: Bytenza (Belltown Capital)
+  - Audience: 16-29
+  - Alignment: Neutral
+  - Theme focus: Ambition
+  - Mood focus: Energizing, Thrilling, Uplifting
+- EyeriS Regionline: Bytenza Elsewhere
+  - Coverage: Bytenza (Elsewhere)
+  - Audience: 16-29
+  - Alignment: Neutral
+  - Theme focus: Loyalty
+  - Mood focus: Calming, Uplifting, Cheering
+- EyeriS Regionline: Campana City
+  - Coverage: Crowlya (Campana City Capital)
+  - Audience: 18-39
+  - Alignment: Risky
+  - Theme focus: Power
+  - Mood focus: Daring, Thrilling, Angering
+- EyeriS Regionline: Crowlya Elsewhere
+  - Coverage: Crowlya (Elsewhere)
+  - Audience: 18-39
+  - Alignment: Risky
+  - Theme focus: Ambition
+  - Mood focus: Daring, Energizing, Angering
 
 ## Program tiers
 - Standard programs (interviews, live sets) require only an Act presence and a broadcast slot.
@@ -59,10 +95,10 @@ Slots are day-based, reset at midnight UTC, and consume a studio's daily capacit
 - Interview: requires a broadcast slot.
 - Live performance: requires a broadcast slot.
 - Prime-time showcase: requires a broadcast slot and eligibility checks.
-- Slots are booked for the remainder of the current day and free at the next midnight.
+- Slots are booked for the current timeframe window and free at the next window boundary.
 
 ## Rationale
-Sunday has the highest availability to simulate heavier broadcast programming and promo throughput.
+Timeframes keep broadcast scheduling readable while reinforcing morning/afternoon/night programming cadence.
 
 ## Related
 - `docs/systems/promo/auto-promo.md`

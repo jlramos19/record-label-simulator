@@ -1094,7 +1094,7 @@
             Form and manage Acts by assigning Creator IDs. Track which Eras each Act is participating in.
           </div>
           <div class="subhead">Acts</div>
-          <div id="actList" class="list"></div>
+          <div id="actList" class="list act-grid"></div>
           <div class="actions">
             <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
           </div>
@@ -1313,6 +1313,69 @@
               <button type="button" class="ghost mini" data-slot-clear="promo-track">Clear</button>
             </div>
           </div>
+          <div class="subhead">Auto Promo Targets</div>
+          <div id="autoPromoTargetGrid" class="promo-target-grid slot-grid slot-grid--multi">
+            <div class="id-slot" data-slot-target="auto-promo-act-1" data-slot-type="act">
+              <div class="slot-label">Auto Slot 1: Act</div>
+              <div id="autoPromoActSlot1" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-act-1">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-project-1" data-slot-type="project">
+              <div class="slot-label">Auto Slot 1: Project</div>
+              <div id="autoPromoProjectSlot1" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-project-1">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-track-1" data-slot-type="track">
+              <div class="slot-label">Auto Slot 1: Track</div>
+              <div id="autoPromoTrackSlot1" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-track-1">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-act-2" data-slot-type="act">
+              <div class="slot-label">Auto Slot 2: Act</div>
+              <div id="autoPromoActSlot2" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-act-2">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-project-2" data-slot-type="project">
+              <div class="slot-label">Auto Slot 2: Project</div>
+              <div id="autoPromoProjectSlot2" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-project-2">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-track-2" data-slot-type="track">
+              <div class="slot-label">Auto Slot 2: Track</div>
+              <div id="autoPromoTrackSlot2" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-track-2">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-act-3" data-slot-type="act">
+              <div class="slot-label">Auto Slot 3: Act</div>
+              <div id="autoPromoActSlot3" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-act-3">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-project-3" data-slot-type="project">
+              <div class="slot-label">Auto Slot 3: Project</div>
+              <div id="autoPromoProjectSlot3" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-project-3">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-track-3" data-slot-type="track">
+              <div class="slot-label">Auto Slot 3: Track</div>
+              <div id="autoPromoTrackSlot3" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-track-3">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-act-4" data-slot-type="act">
+              <div class="slot-label">Auto Slot 4: Act</div>
+              <div id="autoPromoActSlot4" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-act-4">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-project-4" data-slot-type="project">
+              <div class="slot-label">Auto Slot 4: Project</div>
+              <div id="autoPromoProjectSlot4" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-project-4">Clear</button>
+            </div>
+            <div class="id-slot" data-slot-target="auto-promo-track-4" data-slot-type="track">
+              <div class="slot-label">Auto Slot 4: Track</div>
+              <div id="autoPromoTrackSlot4" class="slot-value">?</div>
+              <button type="button" class="ghost mini" data-slot-clear="auto-promo-track-4">Clear</button>
+            </div>
+          </div>
           <div class="list-item">
             <div class="list-row">
               <div>
@@ -1429,12 +1492,30 @@
               <input id="autoRolloutToggle" type="checkbox">
               <span>Auto Promo</span>
             </label>
-            <div class="tiny">Auto-run promo pushes for the promo slot using a percentage of wallet cash.</div>
+            <div class="tiny">Auto-run promo pushes for the auto promo slots using a percentage of wallet cash.</div>
           </div>
           <div class="field">
-            <label for="autoRolloutBudgetPct">Auto Promo Budget %</label>
-            <input id="autoRolloutBudgetPct" type="number" min="0" max="100" step="1">
-            <div class="tiny">Percent of wallet cash per promo type (min $100).</div>
+            <div class="slot-label">Auto Promo Budget Allocation</div>
+            <div id="autoPromoBudgetGrid" class="auto-promo-budget-grid">
+              <div class="auto-promo-budget-card">
+                <label class="slot-label" for="autoPromoBudgetPct1">Slot 1 Budget %</label>
+                <input id="autoPromoBudgetPct1" type="number" min="0" max="100" step="1" data-auto-promo-pct data-auto-promo-index="0">
+              </div>
+              <div class="auto-promo-budget-card">
+                <label class="slot-label" for="autoPromoBudgetPct2">Slot 2 Budget %</label>
+                <input id="autoPromoBudgetPct2" type="number" min="0" max="100" step="1" data-auto-promo-pct data-auto-promo-index="1">
+              </div>
+              <div class="auto-promo-budget-card">
+                <label class="slot-label" for="autoPromoBudgetPct3">Slot 3 Budget %</label>
+                <input id="autoPromoBudgetPct3" type="number" min="0" max="100" step="1" data-auto-promo-pct data-auto-promo-index="2">
+              </div>
+              <div class="auto-promo-budget-card">
+                <label class="slot-label" for="autoPromoBudgetPct4">Slot 4 Budget %</label>
+                <input id="autoPromoBudgetPct4" type="number" min="0" max="100" step="1" data-auto-promo-pct data-auto-promo-index="3">
+              </div>
+            </div>
+            <div id="autoPromoBudgetTotal" class="tiny muted"></div>
+            <div class="tiny">Total allocation must be 100% or less. Budgets apply per promo type (min $100 per slot).</div>
           </div>
           <div id="autoPromoSummary" class="list"></div>
           <div class="actions">

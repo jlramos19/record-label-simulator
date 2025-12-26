@@ -1335,7 +1335,7 @@ function ensureAutoPromoSlots() {
 }
 function ensureAutoPromoBudgetSlots() {
     if (!state.meta)
-        state.meta = {};
+        state.meta = makeDefaultState().meta;
     if (!state.meta.autoRollout) {
         state.meta.autoRollout = {
             enabled: false,
@@ -1815,42 +1815,234 @@ function ensurePromoFacilities() {
     }
     return state.promoFacilities;
 }
+function listPromoTimeframes() {
+    return Array.isArray(PROMO_TIMEFRAMES) ? PROMO_TIMEFRAMES : [];
+}
+function getPromoTimeframeById(timeframeId) {
+    if (!timeframeId)
+        return null;
+    return listPromoTimeframes().find((frame) => frame.id === timeframeId) || null;
+}
+function getPromoTimeframeForHour(hour) {
+    const frames = listPromoTimeframes();
+    if (!frames.length)
+        return null;
+    return frames.find((frame) => hour >= frame.startHour && hour < frame.endHour) || null;
+}
+function getPromoTimeframeForEpochMs(epochMs) {
+    const current = getUtcDayHourMinute(epochMs);
+    return getPromoTimeframeForHour(current.hour);
+}
+function buildPromoTimeframeWindow(dayStartEpochMs, timeframe, isCurrent) {
+    if (!timeframe)
+        return null;
+    const startsAt = dayStartEpochMs + timeframe.startHour * HOUR_MS;
+    const endsAt = dayStartEpochMs + timeframe.endHour * HOUR_MS;
+    return { timeframe, startsAt, endsAt, isCurrent: Boolean(isCurrent) };
+}
+function resolvePromoTimeframeWindow(epochMs, { allowFuture = true } = {}) {
+    const frames = listPromoTimeframes();
+    if (!frames.length)
+        return null;
+    const dayStart = startOfDayEpochMs(epochMs);
+    const hour = getUtcDayHourMinute(epochMs).hour;
+    const current = getPromoTimeframeForHour(hour);
+    if (current)
+        return buildPromoTimeframeWindow(dayStart, current, true);
+    if (!allowFuture)
+        return null;
+    const first = frames[0];
+    if (hour < first.startHour) {
+        return buildPromoTimeframeWindow(dayStart, first, false);
+    }
+    const nextDayStart = dayStart + DAY_MS;
+    return buildPromoTimeframeWindow(nextDayStart, first, false);
+}
+function formatPromoTimeframeWindowLabel(window) {
+    if (!window?.timeframe)
+        return "Timeframe";
+    const dayIndex = getUtcDayIndex(window.startsAt);
+    const dayLabel = DAYS?.[dayIndex] || "Day";
+    const startHour = window.timeframe.startHour % 24;
+    const endHour = window.timeframe.endHour % 24;
+    return `${dayLabel} ${window.timeframe.label} (${formatHour(startHour)}-${formatHour(endHour)})`;
+}
+function getBookingTimeframeId(booking) {
+    if (booking?.timeframeId)
+        return booking.timeframeId;
+    if (Number.isFinite(booking?.startsAt)) {
+        const frame = getPromoTimeframeForEpochMs(booking.startsAt);
+        if (frame?.id)
+            return frame.id;
+    }
+    return listPromoTimeframes()[0]?.id || null;
+}
+function bookingMatchesWindow(booking, window) {
+    if (!booking || !window?.timeframe)
+        return false;
+    const timeframeId = getBookingTimeframeId(booking);
+    if (timeframeId !== window.timeframe.id)
+        return false;
+    const windowDay = startOfDayEpochMs(window.startsAt);
+    const bookingDay = startOfDayEpochMs(Number.isFinite(booking.startsAt) ? booking.startsAt : window.startsAt);
+    return windowDay === bookingDay;
+}
+function getStudioTimeframeSlots(studio, timeframeId) {
+    const frame = getPromoTimeframeById(timeframeId);
+    if (!frame)
+        return 0;
+    const overrides = studio?.timeframeSlots;
+    if (overrides && typeof overrides === "object") {
+        const value = overrides[timeframeId];
+        if (Number.isFinite(value))
+            return Math.max(0, Math.floor(value));
+    }
+    return Number.isFinite(frame.slots) ? Math.max(0, Math.floor(frame.slots)) : 0;
+}
 function listBroadcastStudios() {
     return Array.isArray(BROADCAST_STUDIOS) ? BROADCAST_STUDIOS : [];
 }
+function listFilmingStudios() {
+    return Array.isArray(FILMING_STUDIOS) ? FILMING_STUDIOS : [];
+}
 function getBroadcastStudioDefaultId() {
     return listBroadcastStudios()[0]?.id || null;
+}
+function getFilmingStudioDefaultId() {
+    return listFilmingStudios()[0]?.id || null;
 }
 function getBroadcastStudioById(studioId) {
     if (!studioId)
         return null;
     return listBroadcastStudios().find((studio) => studio.id === studioId) || null;
 }
+function getFilmingStudioById(studioId) {
+    if (!studioId)
+        return null;
+    return listFilmingStudios().find((studio) => studio.id === studioId) || null;
+}
 function broadcastSlotsForDay(dayIndex) {
     const studios = listBroadcastStudios();
     if (studios.length) {
-        return studios.reduce((sum, studio) => sum + (studio.slotSchedule?.[dayIndex] || 0), 0);
+        const frames = listPromoTimeframes();
+        return studios.reduce((sum, studio) => {
+            const total = frames.reduce((frameSum, frame) => frameSum + getStudioTimeframeSlots(studio, frame.id), 0);
+            return sum + total;
+        }, 0);
     }
     return BROADCAST_SLOT_SCHEDULE[dayIndex] || 0;
 }
+function broadcastSlotsForTimeframe(timeframeId) {
+    const studios = listBroadcastStudios();
+    if (!studios.length)
+        return 0;
+    return studios.reduce((sum, studio) => sum + getStudioTimeframeSlots(studio, timeframeId), 0);
+}
+function filmingSlotsForTimeframe(timeframeId) {
+    const studios = listFilmingStudios();
+    if (studios.length) {
+        return studios.reduce((sum, studio) => sum + getStudioTimeframeSlots(studio, timeframeId), 0);
+    }
+    const frame = getPromoTimeframeById(timeframeId);
+    const fallback = Number.isFinite(frame?.slots) ? frame.slots : 0;
+    return Math.max(0, Math.floor(fallback));
+}
+function promoFacilityCapacityForTimeframe(facilityId, timeframeId) {
+    if (!facilityId || !timeframeId)
+        return 0;
+    if (facilityId === "broadcast")
+        return broadcastSlotsForTimeframe(timeframeId);
+    if (facilityId === "filming")
+        return filmingSlotsForTimeframe(timeframeId);
+    return 0;
+}
 function getBroadcastStudioAvailability(studioId, epochMs = state.time.epochMs) {
     const studio = getBroadcastStudioById(studioId);
-    const dayIndex = getUtcDayIndex(epochMs);
-    if (!studio) {
-        const fallbackCapacity = BROADCAST_SLOT_SCHEDULE[dayIndex] || 0;
-        return { capacity: fallbackCapacity, inUse: 0, available: fallbackCapacity, dayIndex };
+    const window = resolvePromoTimeframeWindow(epochMs, { allowFuture: true });
+    const dayIndex = getUtcDayIndex(window?.startsAt ?? epochMs);
+    if (!studio || !window?.timeframe) {
+        const fallbackCapacity = window?.timeframe?.id
+            ? broadcastSlotsForTimeframe(window.timeframe.id)
+            : BROADCAST_SLOT_SCHEDULE[dayIndex] || 0;
+        return {
+            capacity: fallbackCapacity,
+            inUse: 0,
+            available: fallbackCapacity,
+            dayIndex,
+            timeframeId: window?.timeframe?.id || null,
+            timeframeLabel: window?.timeframe?.label || null,
+            windowLabel: window ? formatPromoTimeframeWindowLabel(window) : null,
+            windowStart: window?.startsAt ?? null,
+            windowEnd: window?.endsAt ?? null,
+            isUpcoming: Boolean(window && window.startsAt > epochMs)
+        };
     }
     const facilities = ensurePromoFacilities();
     const defaultStudioId = getBroadcastStudioDefaultId();
     const active = (facilities.broadcast?.bookings || []).filter((booking) => {
-        if (booking.endsAt <= epochMs || booking.startsAt > epochMs)
+        if (!bookingMatchesWindow(booking, window))
             return false;
         const bookingStudioId = booking.studioId || defaultStudioId;
         return bookingStudioId === studio.id;
     });
-    const capacity = studio.slotSchedule?.[dayIndex] || 0;
+    const capacity = getStudioTimeframeSlots(studio, window.timeframe.id);
     const inUse = active.length;
-    return { capacity, inUse, available: Math.max(0, capacity - inUse), dayIndex };
+    return {
+        capacity,
+        inUse,
+        available: Math.max(0, capacity - inUse),
+        dayIndex,
+        timeframeId: window.timeframe.id,
+        timeframeLabel: window.timeframe.label,
+        windowLabel: formatPromoTimeframeWindowLabel(window),
+        windowStart: window.startsAt,
+        windowEnd: window.endsAt,
+        isUpcoming: window.startsAt > epochMs
+    };
+}
+function getFilmingStudioAvailability(studioId, epochMs = state.time.epochMs) {
+    const studio = getFilmingStudioById(studioId);
+    const window = resolvePromoTimeframeWindow(epochMs, { allowFuture: true });
+    const dayIndex = getUtcDayIndex(window?.startsAt ?? epochMs);
+    if (!studio || !window?.timeframe) {
+        const fallbackCapacity = window?.timeframe?.id
+            ? filmingSlotsForTimeframe(window.timeframe.id)
+            : FILMING_STUDIO_SLOTS;
+        return {
+            capacity: fallbackCapacity,
+            inUse: 0,
+            available: fallbackCapacity,
+            dayIndex,
+            timeframeId: window?.timeframe?.id || null,
+            timeframeLabel: window?.timeframe?.label || null,
+            windowLabel: window ? formatPromoTimeframeWindowLabel(window) : null,
+            windowStart: window?.startsAt ?? null,
+            windowEnd: window?.endsAt ?? null,
+            isUpcoming: Boolean(window && window.startsAt > epochMs)
+        };
+    }
+    const facilities = ensurePromoFacilities();
+    const defaultStudioId = getFilmingStudioDefaultId();
+    const active = (facilities.filming?.bookings || []).filter((booking) => {
+        if (!bookingMatchesWindow(booking, window))
+            return false;
+        const bookingStudioId = booking.studioId || defaultStudioId;
+        return bookingStudioId === studio.id;
+    });
+    const capacity = getStudioTimeframeSlots(studio, window.timeframe.id);
+    const inUse = active.length;
+    return {
+        capacity,
+        inUse,
+        available: Math.max(0, capacity - inUse),
+        dayIndex,
+        timeframeId: window.timeframe.id,
+        timeframeLabel: window.timeframe.label,
+        windowLabel: formatPromoTimeframeWindowLabel(window),
+        windowStart: window.startsAt,
+        windowEnd: window.endsAt,
+        isUpcoming: window.startsAt > epochMs
+    };
 }
 function getPromoTypeMeta(typeId) {
     return PROMO_TYPE_DETAILS[typeId] || getPromoTypeDetails(typeId);
@@ -2034,6 +2226,40 @@ function selectBroadcastStudioForPromo({ studioId, act, track, epochMs }) {
     scored.sort((a, b) => b.score - a.score);
     return scored[0];
 }
+function scoreFilmingStudioFit(studio, { labelCountry }) {
+    if (!studio)
+        return -1;
+    const scopeType = studio.scope?.type;
+    const scopeId = studio.scope?.id;
+    if (scopeType === "region" && labelCountry) {
+        const region = REGION_DEFS.find((entry) => entry.id === scopeId);
+        if (region && region.nation === labelCountry)
+            return 3;
+    }
+    if (scopeType === "nation" && labelCountry && scopeId === labelCountry)
+        return 2;
+    if (scopeType === "global")
+        return 1;
+    return 0;
+}
+function selectFilmingStudioForPromo({ studioId, act, track, epochMs }) {
+    const labelCountry = state.label?.country;
+    if (studioId) {
+        const availability = getFilmingStudioAvailability(studioId, epochMs);
+        return availability.available > 0 ? { studioId, availability } : null;
+    }
+    const studios = listFilmingStudios();
+    const scored = studios.map((studio) => {
+        const availability = getFilmingStudioAvailability(studio.id, epochMs);
+        if (availability.available <= 0)
+            return null;
+        return { studioId: studio.id, availability, score: scoreFilmingStudioFit(studio, { labelCountry }) };
+    }).filter(Boolean);
+    if (!scored.length)
+        return null;
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0];
+}
 function resolveBroadcastProgramForPromo(promoType, { actId, trackId }) {
     const details = getPromoTypeMeta(promoType);
     const programId = details?.broadcastProgramId;
@@ -2079,14 +2305,27 @@ function promoFacilityLabel(facilityId) {
 }
 function getPromoFacilityAvailability(facilityId, epochMs = state.time.epochMs) {
     const facilities = ensurePromoFacilities();
-    const dayIndex = getUtcDayIndex(epochMs);
+    const window = resolvePromoTimeframeWindow(epochMs, { allowFuture: true });
+    const dayIndex = getUtcDayIndex(window?.startsAt ?? epochMs);
     const bookings = facilities[facilityId]?.bookings || [];
-    const active = bookings.filter((booking) => booking.endsAt > epochMs && booking.startsAt <= epochMs);
-    const capacity = facilityId === "broadcast"
-        ? broadcastSlotsForDay(dayIndex)
-        : FILMING_STUDIO_SLOTS;
-    const inUse = active.length;
-    return { capacity, inUse, available: Math.max(0, capacity - inUse), dayIndex };
+    const inUse = window
+        ? bookings.filter((booking) => bookingMatchesWindow(booking, window)).length
+        : 0;
+    const capacity = window?.timeframe?.id
+        ? promoFacilityCapacityForTimeframe(facilityId, window.timeframe.id)
+        : 0;
+    return {
+        capacity,
+        inUse,
+        available: Math.max(0, capacity - inUse),
+        dayIndex,
+        timeframeId: window?.timeframe?.id || null,
+        timeframeLabel: window?.timeframe?.label || null,
+        windowLabel: window ? formatPromoTimeframeWindowLabel(window) : null,
+        windowStart: window?.startsAt ?? null,
+        windowEnd: window?.endsAt ?? null,
+        isUpcoming: Boolean(window && window.startsAt > epochMs)
+    };
 }
 function reservePromoFacilitySlot(facilityId, promoType, trackId, options = {}) {
     if (!facilityId)
@@ -2094,6 +2333,11 @@ function reservePromoFacilitySlot(facilityId, promoType, trackId, options = {}) 
     const now = state.time.epochMs;
     const actId = options.actId || (trackId ? getTrack(trackId)?.actId : null);
     const facilities = ensurePromoFacilities();
+    const window = resolvePromoTimeframeWindow(now, { allowFuture: true });
+    if (!window?.timeframe) {
+        return { ok: false, reason: "Promo booking requires a valid timeframe window." };
+    }
+    const windowLabel = formatPromoTimeframeWindowLabel(window);
     if (facilityId === "broadcast") {
         const programResult = resolveBroadcastProgramForPromo(promoType, { actId, trackId });
         if (!programResult.ok) {
@@ -2106,7 +2350,7 @@ function reservePromoFacilitySlot(facilityId, promoType, trackId, options = {}) 
             epochMs: now
         });
         if (!studioPick || studioPick.availability.available <= 0) {
-            return { ok: false, reason: "No Broadcast Studio slots available today." };
+            return { ok: false, reason: `No Broadcast Studio slots available for ${windowLabel}.` };
         }
         const booking = {
             id: uid("PB"),
@@ -2116,8 +2360,11 @@ function reservePromoFacilitySlot(facilityId, promoType, trackId, options = {}) 
             actId: actId || null,
             studioId: studioPick.studioId,
             programId: programResult.program?.id || null,
-            startsAt: now,
-            endsAt: endOfDayEpochMs(now)
+            timeframeId: window.timeframe.id,
+            timeframeLabel: window.timeframe.label,
+            windowLabel,
+            startsAt: window.startsAt,
+            endsAt: window.endsAt
         };
         facilities[facilityId].bookings.push(booking);
         return { ok: true, booking, availability: studioPick.availability };
@@ -2126,7 +2373,19 @@ function reservePromoFacilitySlot(facilityId, promoType, trackId, options = {}) 
     if (availability.available <= 0) {
         return {
             ok: false,
-            reason: `No ${promoFacilityLabel(facilityId)} slots available today.`
+            reason: `No ${promoFacilityLabel(facilityId)} slots available for ${windowLabel}.`
+        };
+    }
+    const studioPick = selectFilmingStudioForPromo({
+        studioId: options.studioId,
+        act: actId ? getAct(actId) : null,
+        track: trackId ? getTrack(trackId) : null,
+        epochMs: now
+    });
+    if (!studioPick || studioPick.availability.available <= 0) {
+        return {
+            ok: false,
+            reason: `No Filming Studio slots available for ${windowLabel}.`
         };
     }
     const booking = {
@@ -2135,11 +2394,15 @@ function reservePromoFacilitySlot(facilityId, promoType, trackId, options = {}) 
         promoType,
         trackId: trackId || null,
         actId: actId || null,
-        startsAt: now,
-        endsAt: endOfDayEpochMs(now)
+        studioId: studioPick.studioId,
+        timeframeId: window.timeframe.id,
+        timeframeLabel: window.timeframe.label,
+        windowLabel,
+        startsAt: window.startsAt,
+        endsAt: window.endsAt
     };
     facilities[facilityId].bookings.push(booking);
-    return { ok: true, booking, availability };
+    return { ok: true, booking, availability: studioPick.availability };
 }
 function promoFacilityNeeds(typeIds) {
     const list = Array.isArray(typeIds) ? typeIds : [typeIds];
@@ -5567,12 +5830,24 @@ function markRolloutEventStatusFromSchedule(entry) {
 function countScheduledFacilityUsage(facilityId, epochMs) {
     if (!facilityId)
         return 0;
-    const start = startOfDayEpochMs(epochMs);
-    const end = endOfDayEpochMs(epochMs);
-    return ensureScheduledEventsStore().filter((entry) => entry.facilityId === facilityId
-        && entry.scheduledAt >= start
-        && entry.scheduledAt < end
-        && entry.status === "Scheduled").length;
+    const window = resolvePromoTimeframeWindow(epochMs, { allowFuture: false });
+    if (!window?.timeframe)
+        return 0;
+    const dayStart = startOfDayEpochMs(window.startsAt);
+    return ensureScheduledEventsStore().filter((entry) => {
+        if (entry.facilityId !== facilityId)
+            return false;
+        if (entry.status !== "Scheduled")
+            return false;
+        if (!Number.isFinite(entry.scheduledAt))
+            return false;
+        const entryWindow = resolvePromoTimeframeWindow(entry.scheduledAt, { allowFuture: false });
+        if (!entryWindow?.timeframe)
+            return false;
+        if (entryWindow.timeframe.id !== window.timeframe.id)
+            return false;
+        return startOfDayEpochMs(entry.scheduledAt) === dayStart;
+    }).length;
 }
 function scheduleRolloutDrop(strategy, era, weekIndex, drop, mode) {
     if (!strategy || !drop)
@@ -5701,13 +5976,12 @@ function scheduleRolloutEvent(strategy, era, weekIndex, eventItem, eventIndex, m
     }
     const facilityId = getPromoFacilityForType(eventItem.actionType);
     if (facilityId) {
-        const dayIndex = getUtcDayIndex(eventAt);
-        const capacity = facilityId === "broadcast"
-            ? broadcastSlotsForDay(dayIndex)
-            : FILMING_STUDIO_SLOTS;
+        const window = resolvePromoTimeframeWindow(eventAt, { allowFuture: false });
+        const capacity = promoFacilityCapacityForEpochMs(facilityId, eventAt);
         const used = countScheduledFacilityUsage(facilityId, eventAt);
         if (used >= capacity) {
-            recordRolloutBlock(eventItem, `No ${promoFacilityLabel(facilityId)} slots available on ${DAYS[dayIndex]}.`, mode, "Rollout event");
+            const windowLabel = window ? formatPromoTimeframeWindowLabel(window) : "valid timeframes";
+            recordRolloutBlock(eventItem, `No ${promoFacilityLabel(facilityId)} slots available for ${windowLabel}.`, mode, "Rollout event");
             return { ok: false, blocked: true };
         }
     }
@@ -8767,24 +9041,32 @@ function planRivalPromoEntry({ rival, husk, promoAt, stepIndex, planWeek, promoT
     };
 }
 function promoFacilityCapacityForEpochMs(facilityId, epochMs) {
-    const dayIndex = getUtcDayIndex(epochMs);
-    if (facilityId === "broadcast")
-        return broadcastSlotsForDay(dayIndex);
-    if (facilityId === "filming")
-        return FILMING_STUDIO_SLOTS;
-    return 0;
+    const window = resolvePromoTimeframeWindow(epochMs, { allowFuture: false });
+    if (!window?.timeframe)
+        return 0;
+    return promoFacilityCapacityForTimeframe(facilityId, window.timeframe.id);
 }
 function countScheduledPromoEventsForFacility(facilityId, epochMs) {
     if (!facilityId)
         return 0;
-    const dayStart = startOfDayEpochMs(epochMs);
-    const dayEnd = endOfDayEpochMs(epochMs);
+    const window = resolvePromoTimeframeWindow(epochMs, { allowFuture: false });
+    if (!window?.timeframe)
+        return 0;
+    const dayStart = startOfDayEpochMs(window.startsAt);
+    const timeframeId = window.timeframe.id;
     const rivalCount = state.rivalReleaseQueue.filter((entry) => {
         if ((entry.queueType || "release") !== "promo")
             return false;
         if (getPromoFacilityForType(entry.promoType) !== facilityId)
             return false;
-        return Number.isFinite(entry.releaseAt) && entry.releaseAt >= dayStart && entry.releaseAt < dayEnd;
+        if (!Number.isFinite(entry.releaseAt))
+            return false;
+        const entryWindow = resolvePromoTimeframeWindow(entry.releaseAt, { allowFuture: false });
+        if (!entryWindow?.timeframe)
+            return false;
+        if (entryWindow.timeframe.id !== timeframeId)
+            return false;
+        return startOfDayEpochMs(entry.releaseAt) === dayStart;
     }).length;
     const labelCount = Array.isArray(state.scheduledEvents)
         ? state.scheduledEvents.filter((entry) => {
@@ -8792,7 +9074,14 @@ function countScheduledPromoEventsForFacility(facilityId, epochMs) {
                 return false;
             if (entry.facilityId !== facilityId)
                 return false;
-            return Number.isFinite(entry.scheduledAt) && entry.scheduledAt >= dayStart && entry.scheduledAt < dayEnd;
+            if (!Number.isFinite(entry.scheduledAt))
+                return false;
+            const entryWindow = resolvePromoTimeframeWindow(entry.scheduledAt, { allowFuture: false });
+            if (!entryWindow?.timeframe)
+                return false;
+            if (entryWindow.timeframe.id !== timeframeId)
+                return false;
+            return startOfDayEpochMs(entry.scheduledAt) === dayStart;
         }).length
         : 0;
     return rivalCount + labelCount;
@@ -9529,16 +9818,22 @@ function runAutoPromoForPlayer() {
         const promoLabels = resolvedTypes.map((typeId) => getPromoTypeDetails(typeId).label).join(", ");
         const bookingNotes = reservations.map((booking) => {
             const facilityLabel = promoFacilityLabel(booking.facility);
+            const timeframeNote = booking.timeframeLabel ? ` ${booking.timeframeLabel}` : "";
+            if (booking.facility === "filming") {
+                const studio = booking.studioId ? getFilmingStudioById(booking.studioId) : null;
+                return studio ? `${facilityLabel}${timeframeNote} (${studio.label})` : `${facilityLabel}${timeframeNote}`;
+            }
             if (booking.facility !== "broadcast")
-                return facilityLabel;
+                return `${facilityLabel}${timeframeNote}`;
             const studio = booking.studioId ? getBroadcastStudioById(booking.studioId) : null;
             const program = booking.programId ? getBroadcastProgramById(booking.programId) : null;
             const details = [studio?.label, program?.label].filter(Boolean).join(", ");
-            return details ? `${facilityLabel} (${details})` : facilityLabel;
+            return details ? `${facilityLabel}${timeframeNote} (${details})` : `${facilityLabel}${timeframeNote}`;
         });
         const spendEach = formatMoney(budget);
         const totalSpend = formatMoney(totalCost);
-        const scheduleLabel = formatDate(state.time.epochMs);
+        const scheduleLabel = reservations.find((booking) => booking?.windowLabel)?.windowLabel
+            || formatDate(state.time.epochMs);
         const bookingLine = bookingNotes.length ? ` Booked ${bookingNotes.join(" | ")}.` : "";
         const targetLabel = track
             ? `"${track.title}"`
@@ -12142,7 +12437,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, countryColor, countryDemonym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, reservePromoFacilitySlot, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, setSlotTarget, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, trendAlignmentLeader, uid, weekIndex, weekNumberFromEpochMs, };
+export { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, countryColor, countryDemonym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, reservePromoFacilitySlot, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, setSlotTarget, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, trendAlignmentLeader, uid, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

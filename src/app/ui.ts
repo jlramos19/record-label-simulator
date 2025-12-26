@@ -98,6 +98,7 @@ const {
   makeEraName,
   getEraById,
   getActiveEras,
+  getLatestActiveEraForAct,
   getStudioAvailableSlots,
   getFocusedEra,
   getRolloutPlanningEra,
@@ -127,6 +128,7 @@ const {
   normalizeCreator,
   normalizeProjectName,
   normalizeProjectType,
+  parseAutoPromoSlotTarget,
   parsePromoProjectKey,
   postCreatorSigned,
   getSlotData,
@@ -2205,12 +2207,19 @@ function syncPrimeTimeToggle(root, trackContext) {
     : `Prime Time locked: ${eligibility.reason || "Requirements not met."}`;
 }
 
+function formatPromoFacilityWindowLabel(availability) {
+  if (!availability?.timeframeLabel) return "today";
+  const prefix = availability.isUpcoming ? "Next " : "";
+  return `${prefix}${availability.timeframeLabel}`;
+}
+
 function buildPromoFacilityHint(typeId) {
   const facility = getPromoFacilityForType(typeId);
   if (!facility) return "";
   const availability = getPromoFacilityAvailability(facility);
   const label = facility === "broadcast" ? "Broadcast slots" : "Filming slots";
-  return ` | ${label} today: ${availability.available}/${availability.capacity}`;
+  const windowLabel = formatPromoFacilityWindowLabel(availability);
+  return ` | ${label} (${windowLabel}): ${availability.available}/${availability.capacity}`;
 }
 
 function getPromoFacilityNeeds(typeIds) {
@@ -2232,7 +2241,8 @@ function buildPromoFacilityHints(typeIds) {
     const availability = getPromoFacilityAvailability(facilityId);
     const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
     const neededLabel = count > 1 ? ` (need ${count})` : "";
-    return `${label} today: ${availability.available}/${availability.capacity}${neededLabel}`;
+    const windowLabel = formatPromoFacilityWindowLabel(availability);
+    return `${label} (${windowLabel}): ${availability.available}/${availability.capacity}${neededLabel}`;
   }).join(" | ");
 }
 
@@ -2288,7 +2298,6 @@ function updateAutoPromoSummary(scope) {
       targetLabel = `Act "${context.act.name}"`;
     }
     let readiness = "Ready";
-    if (!enabled) readiness = "Disabled";
     if (!hasTarget) readiness = "Assign Act/Project/Track";
     if (hasTarget && !context.act) readiness = "Select an Act";
     if (context.era && context.era.status !== "Active") readiness = "No active era";
@@ -2304,6 +2313,7 @@ function updateAutoPromoSummary(scope) {
       readiness = "Act already in promo weeks";
     }
     if (pct <= 0) readiness = "Budget 0%";
+    if (!enabled) readiness = "Disabled";
     const budget = pct > 0 ? computeAutoPromoBudget(walletCash, pct) : 0;
     if (hasTarget && pct > 0) totalBudgetPerType += budget;
     rows.push({
@@ -3497,6 +3507,9 @@ function bindViewHandlers(route, root) {
         logEvent("Auto promo budget allocation cannot exceed 100%.", "warn");
       }
       slots[index] = nextPct;
+      if (state.meta?.autoRollout) {
+        state.meta.autoRollout.budgetPct = slots.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+      }
       input.value = String(Math.round(nextPct * 100));
       updateAutoPromoBudgetTotal(root, slots);
       updateAutoPromoSummary(root);
@@ -4210,6 +4223,11 @@ function updateSlotDropdowns() {
     const type = slot.dataset.slotType;
     const role = slot.dataset.slotRole;
     const currentValue = getSlotValue(target) || "";
+    const autoPromoSlot = parseAutoPromoSlotTarget(target);
+    const autoPromoSlots = autoPromoSlot ? ensureAutoPromoSlots() : null;
+    const isPromoActSlot = target === "promo-act" || autoPromoSlot?.kind === "act";
+    const isPromoProjectSlot = target === "promo-project" || autoPromoSlot?.kind === "project";
+    const isPromoTrackSlot = target === "promo-track" || autoPromoSlot?.kind === "track";
 
     const options = [{ value: "", label: "Unassigned" }];
     if (type === "creator") {
@@ -4225,7 +4243,7 @@ function updateSlotDropdowns() {
       });
     } else if (type === "act") {
       let acts = state.acts;
-      if (target === "promo-act") {
+      if (isPromoActSlot) {
         const activeActIds = new Set(
           getActiveEras().filter((era) => era.status === "Active").map((era) => era.actId)
         );
@@ -4235,21 +4253,32 @@ function updateSlotDropdowns() {
         options.push({ value: act.id, label: act.name });
       });
     } else if (type === "project") {
-      const actId = state.ui?.promoSlots?.actId || null;
+      let actId = null;
+      if (target === "promo-project") {
+        actId = state.ui?.promoSlots?.actId || null;
+      } else if (isPromoProjectSlot && autoPromoSlots) {
+        actId = autoPromoSlots.actIds[autoPromoSlot.index] || null;
+      }
       const projects = listPromoProjectOptions(actId);
       projects.forEach((project) => {
         options.push({ value: project.value, label: project.label });
       });
     } else if (type === "track") {
       let tracks = state.tracks;
-      if (target === "promo-track") {
+      if (isPromoTrackSlot) {
         const activeEraIds = new Set(
           getActiveEras().filter((era) => era.status === "Active").map((era) => era.id)
         );
-        const selectedActId = state.ui?.promoSlots?.actId || null;
-        const selectedProject = state.ui?.promoSlots?.projectId
-          ? parsePromoProjectKey(state.ui.promoSlots.projectId)
-          : null;
+        let selectedActId = null;
+        let selectedProjectId = null;
+        if (target === "promo-track") {
+          selectedActId = state.ui?.promoSlots?.actId || null;
+          selectedProjectId = state.ui?.promoSlots?.projectId || null;
+        } else if (autoPromoSlot && autoPromoSlot.kind === "track" && autoPromoSlots) {
+          selectedActId = autoPromoSlots.actIds[autoPromoSlot.index] || null;
+          selectedProjectId = autoPromoSlots.projectIds[autoPromoSlot.index] || null;
+        }
+        const selectedProject = selectedProjectId ? parsePromoProjectKey(selectedProjectId) : null;
         const projectName = selectedProject?.projectName || "";
         const projectType = normalizeProjectType(selectedProject?.projectType || "Single");
         const projectEraId = selectedProject?.eraId || null;
@@ -5290,7 +5319,8 @@ function runPromotion() {
     if (availability.available < count) {
       const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
       const plural = count === 1 ? "type" : "types";
-      logEvent(`Not enough ${label} today for ${count} promo ${plural}.`, "warn");
+      const windowLabel = formatPromoFacilityWindowLabel(availability);
+      logEvent(`Not enough ${label} (${windowLabel}) for ${count} promo ${plural}.`, "warn");
       return;
     }
   }
@@ -5299,7 +5329,7 @@ function runPromotion() {
     if (!facilityId) continue;
     const reservation = reservePromoFacilitySlot(facilityId, promoType, trackContext.track?.id || null, { actId: act.id });
     if (!reservation.ok) {
-      logEvent(reservation.reason || "No facility slots available today.", "warn");
+      logEvent(reservation.reason || "No facility slots available for the current timeframe.", "warn");
       return;
     }
   }

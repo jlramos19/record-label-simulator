@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getModifierInventoryCount, getPromoFacilityAvailability, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
+import { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getModifier, getModifierInventoryCount, getProjectTrackLimits, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, syncLabelWallets, themeFromGenre, trackRoleLimit, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -102,17 +102,17 @@ function pickAccessibleTextColor(bgColor) {
 /** @deprecated Replaced by React Pill/Tag components. */
 function renderAlignmentTag(alignment) {
     const cls = alignmentClass(alignment);
-    return `<span class="tag ${cls}"><span class="tag-dot"></span>${alignment}</span>`;
+    return `<span class="tag tag--alignment ${cls}"><span class="tag-dot"></span><span class="tag-label">${alignment}</span></span>`;
 }
 /** @deprecated Replaced by React Pill/Tag components. */
 function renderThemeTag(theme) {
     const cls = `theme-${slugify(theme)}`;
-    return `<span class="tag ${cls}"><span class="tag-dot"></span>${theme}</span>`;
+    return `<span class="tag tag--theme ${cls}"><span class="tag-dot"></span><span class="tag-label">${theme}</span></span>`;
 }
 /** @deprecated Replaced by React Pill/Tag components. */
 function renderCountryTag(country) {
     const cls = `country-${slugify(country)}`;
-    return `<span class="tag ${cls}"><span class="tag-dot"></span>${country}</span>`;
+    return `<span class="tag tag--country ${cls}"><span class="tag-dot"></span><span class="tag-label">${country}</span></span>`;
 }
 /** @deprecated Replaced by React Pill/Tag components. */
 function renderNationalityPill(country) {
@@ -280,22 +280,34 @@ function renderCreatorSkillProgress(creator) {
     const exp = getCreatorSkillExp(creator);
     return `Skill Level ${level} | EXP ${exp.toFixed(2)} / ${SKILL_EXP_PER_LEVEL_LABEL}`;
 }
+function splitRecordLabelName(label) {
+    const raw = String(label || "").trim();
+    if (!raw)
+        return { primary: "Label", secondary: "Record Label" };
+    const match = raw.match(/^(.*?)(?:\s+Record Label)$/i);
+    const primary = match ? match[1].trim() : raw;
+    if (!primary)
+        return { primary: raw, secondary: "" };
+    return { primary, secondary: "Record Label" };
+}
 /** @deprecated Replaced by React Pill/Tag components. */
 function renderLabelTag(label, country) {
     const color = countryColor(country);
-    return `<span class="tag" style="color:${color};"><span class="tag-dot"></span>${label}</span>`;
+    const { primary, secondary } = splitRecordLabelName(label);
+    const secondaryLine = secondary ? `<span class="tag-line tag-line--sub">${secondary}</span>` : "";
+    return `<span class="tag tag--label" style="color:${color};"><span class="tag-dot"></span><span class="tag-label tag-label--stacked"><span class="tag-line">${primary}</span>${secondaryLine}</span></span>`;
 }
 /** @deprecated Replaced by React Pill/Tag components. */
 function renderMoodTag(mood, alignment) {
     const emoji = getMoodEmoji(mood) || "\u2753";
     const cls = alignment ? alignmentClass(alignment) : "neutral";
-    return `<span class="tag mood ${cls}"><span class="mood-emoji">${emoji}</span>${mood}</span>`;
+    return `<span class="tag tag--mood mood ${cls}"><span class="mood-emoji">${emoji}</span><span class="tag-label">${mood}</span></span>`;
 }
 /** @deprecated Replaced by React Pill/Tag components. */
 function renderMoodLabel(mood, alignment) {
     const emoji = getMoodEmoji(mood) || "\u2753";
     const cls = alignment ? alignmentClass(alignment) : "neutral";
-    return `<span class="tag mood ${cls}">${mood} <span class="mood-emoji">${emoji}</span></span>`;
+    return `<span class="tag tag--mood mood ${cls}"><span class="tag-label">${mood}</span><span class="mood-emoji">${emoji}</span></span>`;
 }
 function formatModifierDelta(modifier) {
     if (!modifier)
@@ -1068,6 +1080,81 @@ function buildLabelRankingMeta() {
     }
     return { metaByLabel, fallbackSinceAt };
 }
+function buildLabelUsageByName() {
+    const usageByLabel = new Map();
+    if (!Array.isArray(state.marketTracks))
+        return usageByLabel;
+    state.marketTracks.forEach((entry) => {
+        if (!entry)
+            return;
+        const label = String(entry.label || "").trim();
+        if (!label)
+            return;
+        const theme = entry.theme || themeFromGenre(entry.genre);
+        const mood = entry.mood || moodFromGenre(entry.genre);
+        const current = usageByLabel.get(label) || { total: 0, themes: {}, moods: {} };
+        current.total += 1;
+        if (theme)
+            current.themes[theme] = (current.themes[theme] || 0) + 1;
+        if (mood)
+            current.moods[mood] = (current.moods[mood] || 0) + 1;
+        usageByLabel.set(label, current);
+    });
+    return usageByLabel;
+}
+function pickTopUsage(counts) {
+    const entries = Object.entries(counts || {});
+    if (!entries.length)
+        return null;
+    entries.sort((a, b) => {
+        const diff = b[1] - a[1];
+        if (diff !== 0)
+            return diff;
+        return String(a[0]).localeCompare(String(b[0]));
+    });
+    return { value: entries[0][0], count: entries[0][1] };
+}
+function getLabelUsageSummary(labelName, usageByLabel) {
+    if (!usageByLabel) {
+        return { total: 0, theme: null, themeCount: 0, mood: null, moodCount: 0 };
+    }
+    const key = String(labelName || "").trim();
+    const usage = usageByLabel.get(key) || { total: 0, themes: {}, moods: {} };
+    const themeTop = pickTopUsage(usage.themes);
+    const moodTop = pickTopUsage(usage.moods);
+    return {
+        total: usage.total || 0,
+        theme: themeTop?.value || null,
+        themeCount: themeTop?.count || 0,
+        mood: moodTop?.value || null,
+        moodCount: moodTop?.count || 0
+    };
+}
+function renderLabelUsageColumn(labelName, usageByLabel) {
+    const usage = getLabelUsageSummary(labelName, usageByLabel);
+    if (!usage.total) {
+        return `
+      <div class="label-rank-usage">
+        <div class="muted">Top Theme / Mood</div>
+        <div class="label-usage-empty muted">No releases yet</div>
+      </div>
+    `;
+    }
+    const alignment = labelName === state.label?.name
+        ? state.label?.alignment
+        : getRivalByName(labelName)?.alignment;
+    const themeTag = usage.theme ? renderThemeTag(usage.theme) : `<span class="muted">-</span>`;
+    const moodTag = usage.mood ? renderMoodTag(usage.mood, alignment) : `<span class="muted">-</span>`;
+    return `
+    <div class="label-rank-usage">
+      <div class="muted">Top Theme / Mood</div>
+      <div class="label-usage-tags">
+        ${themeTag}
+        ${moodTag}
+      </div>
+    </div>
+  `;
+}
 function getLabelRankingStatus(points, meta) {
     if (points > 0)
         return null;
@@ -1076,9 +1163,10 @@ function getLabelRankingStatus(points, meta) {
         return "bankrupted";
     return "inactive";
 }
-function buildLabelRankingList({ limit = null, showMore = false } = {}) {
+function buildLabelRankingList({ limit = null, showMore = false, showUsage = false } = {}) {
     const fullRanking = getLabelRanking();
     const { metaByLabel, fallbackSinceAt } = buildLabelRankingMeta();
+    const usageByLabel = showUsage ? buildLabelUsageByName() : null;
     const visible = typeof limit === "number" ? fullRanking.slice(0, limit) : fullRanking;
     if (!visible.length) {
         return { markup: `<div class="muted">No labels yet.</div>`, visibleCount: 0, totalCount: fullRanking.length };
@@ -1095,9 +1183,11 @@ function buildLabelRankingList({ limit = null, showMore = false } = {}) {
         const moreAction = showMore && index === 0
             ? `<button type="button" class="ghost mini" data-ranking-more="labels">More</button>`
             : "";
+        const usageMarkup = showUsage ? renderLabelUsageColumn(labelName, usageByLabel) : "";
+        const rowClass = showUsage ? "list-row label-ranking-row" : "list-row";
         return `
       <div class="list-item">
-        <div class="list-row">
+        <div class="${rowClass}">
           <div class="label-rank">
             <div class="item-title">#${index + 1} ${renderLabelTag(labelName, country)}</div>
             <div class="label-rank-meta">
@@ -1105,6 +1195,7 @@ function buildLabelRankingList({ limit = null, showMore = false } = {}) {
               ${statusMarkup}
             </div>
           </div>
+          ${usageMarkup}
           <div class="ranking-actions">
             <span class="muted">${formatCount(points)} pts</span>
             ${moreAction}
@@ -1141,7 +1232,7 @@ function renderTopBar() {
         ? ranking.map((row, index) => `
         <div class="top-mini-item">
           <span>${index + 1}. ${renderLabelTag(row[0], (getRivalByName(row[0])?.country || state.label.country))}</span>
-          <span class="muted">${row[1]} pts</span>
+          <span class="muted">${formatCount(row[1])} pts</span>
         </div>
       `).join("")
         : `<div class="muted">No labels yet</div>`;
@@ -2497,6 +2588,77 @@ function formatBroadcastScope(scope) {
         return `${scope.id} Region`;
     return scope.id || scope.type || "Local";
 }
+function listPromoTimeframesSafe() {
+    return Array.isArray(PROMO_TIMEFRAMES) ? PROMO_TIMEFRAMES : [];
+}
+function promoDayStartEpochMs(epochMs) {
+    const day = new Date(epochMs);
+    day.setUTCHours(0, 0, 0, 0);
+    return day.getTime();
+}
+function resolvePromoWindow(epochMs) {
+    const frames = listPromoTimeframesSafe();
+    if (!frames.length)
+        return null;
+    const hour = new Date(epochMs).getUTCHours();
+    const dayStart = promoDayStartEpochMs(epochMs);
+    const current = frames.find((frame) => hour >= frame.startHour && hour < frame.endHour);
+    if (current)
+        return { frame: current, dayStart, isCurrent: true };
+    const first = frames[0];
+    if (hour < first.startHour)
+        return { frame: first, dayStart, isCurrent: false };
+    return { frame: first, dayStart: dayStart + DAY_MS, isCurrent: false };
+}
+function getBookingTimeframeId(booking) {
+    if (booking?.timeframeId)
+        return booking.timeframeId;
+    if (!Number.isFinite(booking?.startsAt))
+        return null;
+    const hour = new Date(booking.startsAt).getUTCHours();
+    const frames = listPromoTimeframesSafe();
+    const match = frames.find((frame) => hour >= frame.startHour && hour < frame.endHour);
+    return match?.id || frames[0]?.id || null;
+}
+function getStudioTimeframeCapacity(studio, timeframeId) {
+    const frames = listPromoTimeframesSafe();
+    const frame = frames.find((entry) => entry.id === timeframeId);
+    if (!frame)
+        return 0;
+    const overrides = studio?.timeframeSlots;
+    if (overrides && typeof overrides === "object") {
+        const value = overrides[timeframeId];
+        if (Number.isFinite(value))
+            return Math.max(0, Math.floor(value));
+    }
+    return Math.max(0, Math.floor(frame.slots || 0));
+}
+function buildPromoTimeframeUsage(bookings, studio, dayStart, defaultStudioId) {
+    const frames = listPromoTimeframesSafe();
+    return frames.map((frame) => {
+        const capacity = getStudioTimeframeCapacity(studio, frame.id);
+        const inUse = bookings.filter((booking) => {
+            if (!booking)
+                return false;
+            const bookingStudioId = booking.studioId || defaultStudioId;
+            if (studio && bookingStudioId !== studio.id)
+                return false;
+            if (!Number.isFinite(booking.startsAt))
+                return false;
+            if (promoDayStartEpochMs(booking.startsAt) !== dayStart)
+                return false;
+            const timeframeId = getBookingTimeframeId(booking);
+            return timeframeId === frame.id;
+        }).length;
+        return { frame, capacity, inUse, available: Math.max(0, capacity - inUse) };
+    });
+}
+function formatPromoTimeframeUsageLine(usage) {
+    if (!usage.length)
+        return "Slots: -";
+    const segments = usage.map((entry) => `${entry.frame.label} ${formatCount(entry.inUse)}/${formatCount(entry.capacity)}`);
+    return `Slots: ${segments.join(" | ")}`;
+}
 function renderCalendarStructuresPanel() {
     const recordingList = $("calendarRecordingStudios");
     const broadcastList = $("calendarBroadcastStudios");
@@ -2546,20 +2708,21 @@ function renderCalendarStructuresPanel() {
         }
         else {
             const epochMs = Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now();
-            const dayIndex = new Date(epochMs).getUTCDay();
+            const window = resolvePromoWindow(epochMs);
+            const dayIndex = new Date((window?.dayStart ?? epochMs)).getUTCDay();
             const dayLabel = DAYS?.[dayIndex] || "Day";
+            const windowLabel = window ? (window.isCurrent ? window.frame.label : `Next ${window.frame.label}`) : "";
             const bookings = state.promoFacilities?.broadcast?.bookings || [];
-            const activeBookings = bookings.filter((booking) => booking.endsAt > epochMs && booking.startsAt <= epochMs);
+            const dayStart = window?.dayStart ?? promoDayStartEpochMs(epochMs);
             const defaultStudioId = studios[0]?.id || null;
             broadcastList.innerHTML = studios.map((studio) => {
-                const capacity = studio.slotSchedule?.[dayIndex] || 0;
-                const inUse = activeBookings.filter((booking) => (booking.studioId || defaultStudioId) === studio.id).length;
-                const available = Math.max(0, capacity - inUse);
+                const usage = buildPromoTimeframeUsage(bookings, studio, dayStart, defaultStudioId);
+                const windowUsage = window ? usage.find((entry) => entry.frame.id === window.frame.id) : null;
+                const capacity = windowUsage?.capacity || 0;
+                const available = windowUsage?.available || 0;
                 const scopeLabel = formatBroadcastScope(studio.scope);
-                const meta = `${studio.owner || "Broadcast"} | ${scopeLabel} | ${dayLabel}`;
-                const slotLine = capacity > 0
-                    ? `Slots: ${formatCount(inUse)} in use | ${formatCount(available)} open`
-                    : "Slots: 0 today";
+                const meta = `${studio.owner || "Broadcast"} | ${scopeLabel} | ${dayLabel}${windowLabel ? ` | ${windowLabel}` : ""}`;
+                const slotLine = formatPromoTimeframeUsageLine(usage);
                 const status = capacity > 0 ? `${formatCount(available)} open` : "Closed";
                 return `
           <div class="list-item">
@@ -2577,28 +2740,41 @@ function renderCalendarStructuresPanel() {
         }
     }
     if (filmingList) {
-        const availability = getPromoFacilityAvailability("filming");
-        if (!availability) {
-            filmingList.innerHTML = `<div class="muted">Filming studio data unavailable.</div>`;
+        const studios = Array.isArray(FILMING_STUDIOS) ? FILMING_STUDIOS : [];
+        if (!studios.length) {
+            filmingList.innerHTML = `<div class="muted">No filming studios available.</div>`;
         }
         else {
-            const dayLabel = DAYS?.[availability.dayIndex] || "Day";
-            const slotLine = availability.capacity > 0
-                ? `Slots: ${formatCount(availability.inUse)} in use | ${formatCount(availability.available)} open`
-                : "Slots: 0 today";
-            const status = availability.capacity > 0 ? `${formatCount(availability.available)} open` : "Closed";
-            filmingList.innerHTML = `
-        <div class="list-item">
-          <div class="list-row">
-            <div>
-              <div class="item-title">Filming Studio Slots</div>
-              <div class="muted">Market Facilities | ${dayLabel}</div>
-              <div class="muted">${slotLine}</div>
+            const epochMs = Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now();
+            const window = resolvePromoWindow(epochMs);
+            const dayIndex = new Date((window?.dayStart ?? epochMs)).getUTCDay();
+            const dayLabel = DAYS?.[dayIndex] || "Day";
+            const windowLabel = window ? (window.isCurrent ? window.frame.label : `Next ${window.frame.label}`) : "";
+            const dayStart = window?.dayStart ?? promoDayStartEpochMs(epochMs);
+            const bookings = state.promoFacilities?.filming?.bookings || [];
+            const defaultStudioId = studios[0]?.id || null;
+            filmingList.innerHTML = studios.map((studio) => {
+                const usage = buildPromoTimeframeUsage(bookings, studio, dayStart, defaultStudioId);
+                const windowUsage = window ? usage.find((entry) => entry.frame.id === window.frame.id) : null;
+                const capacity = windowUsage?.capacity || 0;
+                const available = windowUsage?.available || 0;
+                const scopeLabel = formatBroadcastScope(studio.scope);
+                const meta = `${studio.owner || "Filming"} | ${scopeLabel} | ${dayLabel}${windowLabel ? ` | ${windowLabel}` : ""}`;
+                const slotLine = formatPromoTimeframeUsageLine(usage);
+                const status = capacity > 0 ? `${formatCount(available)} open` : "Closed";
+                return `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">${studio.label}</div>
+                <div class="muted">${meta}</div>
+                <div class="muted">${slotLine}</div>
+              </div>
+              <div class="pill">${status}</div>
             </div>
-            <div class="pill">${status}</div>
           </div>
-        </div>
-      `;
+        `;
+            }).join("");
         }
     }
 }
@@ -4109,7 +4285,7 @@ function renderRankingWindow(category) {
         return;
     const isLabels = category === "labels";
     if (isLabels) {
-        const { markup, visibleCount, totalCount } = buildLabelRankingList({ limit: 8 });
+        const { markup, visibleCount, totalCount } = buildLabelRankingList({ limit: 8, showUsage: true });
         titleEl.textContent = "Top Labels";
         listEl.innerHTML = markup;
         if (metaEl) {

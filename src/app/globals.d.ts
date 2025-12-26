@@ -8,6 +8,13 @@ declare const QUARTERS_PER_HOUR: number;
 declare const QUARTER_HOUR_MS: number;
 declare const WEEK_HOURS: number;
 declare const BASE_EPOCH: number;
+declare const PROMO_TIMEFRAMES: {
+  id: string;
+  label: string;
+  startHour: number;
+  endHour: number;
+  slots: number;
+}[];
 declare const BROADCAST_SLOT_SCHEDULE: number[];
 declare const FILMING_STUDIO_SLOTS: number;
 declare const BROADCAST_PROGRAMS: {
@@ -24,7 +31,17 @@ declare const BROADCAST_STUDIOS: {
   owner: string;
   scope: { type: string; id: string; regions?: string[] };
   slotSchedule: number[];
+  timeframeSlots?: Record<string, number>;
   audience: { ages: string[]; alignment: string[]; themes: string[]; moods: string[] };
+}[];
+declare const FILMING_STUDIOS: {
+  id: string;
+  label: string;
+  owner: string;
+  scope: { type: string; id: string; regions?: string[] };
+  slotSchedule: number[];
+  timeframeSlots?: Record<string, number>;
+  audience?: { ages: string[]; alignment: string[]; themes: string[]; moods: string[] };
 }[];
 declare const STAGES: { name: string; role: string; hours: number; cost: number; stamina: number; progress: number }[];
 declare const TRACK_ROLE_LIMITS: Record<string, number>;

@@ -9,7 +9,7 @@ import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistor
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -2068,13 +2068,20 @@ function syncPrimeTimeToggle(root, trackContext) {
         ? "Prime Time eligible."
         : `Prime Time locked: ${eligibility.reason || "Requirements not met."}`;
 }
+function formatPromoFacilityWindowLabel(availability) {
+    if (!availability?.timeframeLabel)
+        return "today";
+    const prefix = availability.isUpcoming ? "Next " : "";
+    return `${prefix}${availability.timeframeLabel}`;
+}
 function buildPromoFacilityHint(typeId) {
     const facility = getPromoFacilityForType(typeId);
     if (!facility)
         return "";
     const availability = getPromoFacilityAvailability(facility);
     const label = facility === "broadcast" ? "Broadcast slots" : "Filming slots";
-    return ` | ${label} today: ${availability.available}/${availability.capacity}`;
+    const windowLabel = formatPromoFacilityWindowLabel(availability);
+    return ` | ${label} (${windowLabel}): ${availability.available}/${availability.capacity}`;
 }
 function getPromoFacilityNeeds(typeIds) {
     const list = Array.isArray(typeIds) ? typeIds : [typeIds];
@@ -2097,7 +2104,8 @@ function buildPromoFacilityHints(typeIds) {
         const availability = getPromoFacilityAvailability(facilityId);
         const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
         const neededLabel = count > 1 ? ` (need ${count})` : "";
-        return `${label} today: ${availability.available}/${availability.capacity}${neededLabel}`;
+        const windowLabel = formatPromoFacilityWindowLabel(availability);
+        return `${label} (${windowLabel}): ${availability.available}/${availability.capacity}${neededLabel}`;
     }).join(" | ");
 }
 function updateAutoPromoSummary(scope) {
@@ -2156,8 +2164,6 @@ function updateAutoPromoSummary(scope) {
             targetLabel = `Act "${context.act.name}"`;
         }
         let readiness = "Ready";
-        if (!enabled)
-            readiness = "Disabled";
         if (!hasTarget)
             readiness = "Assign Act/Project/Track";
         if (hasTarget && !context.act)
@@ -2179,6 +2185,8 @@ function updateAutoPromoSummary(scope) {
         }
         if (pct <= 0)
             readiness = "Budget 0%";
+        if (!enabled)
+            readiness = "Disabled";
         const budget = pct > 0 ? computeAutoPromoBudget(walletCash, pct) : 0;
         if (hasTarget && pct > 0)
             totalBudgetPerType += budget;
@@ -3438,6 +3446,9 @@ function bindViewHandlers(route, root) {
                 logEvent("Auto promo budget allocation cannot exceed 100%.", "warn");
             }
             slots[index] = nextPct;
+            if (state.meta?.autoRollout) {
+                state.meta.autoRollout.budgetPct = slots.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+            }
             input.value = String(Math.round(nextPct * 100));
             updateAutoPromoBudgetTotal(root, slots);
             updateAutoPromoSummary(root);
@@ -4162,6 +4173,11 @@ function updateSlotDropdowns() {
         const type = slot.dataset.slotType;
         const role = slot.dataset.slotRole;
         const currentValue = getSlotValue(target) || "";
+        const autoPromoSlot = parseAutoPromoSlotTarget(target);
+        const autoPromoSlots = autoPromoSlot ? ensureAutoPromoSlots() : null;
+        const isPromoActSlot = target === "promo-act" || autoPromoSlot?.kind === "act";
+        const isPromoProjectSlot = target === "promo-project" || autoPromoSlot?.kind === "project";
+        const isPromoTrackSlot = target === "promo-track" || autoPromoSlot?.kind === "track";
         const options = [{ value: "", label: "Unassigned" }];
         if (type === "creator") {
             const req = role ? staminaRequirement(role) : 0;
@@ -4177,7 +4193,7 @@ function updateSlotDropdowns() {
         }
         else if (type === "act") {
             let acts = state.acts;
-            if (target === "promo-act") {
+            if (isPromoActSlot) {
                 const activeActIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.actId));
                 acts = state.acts.filter((act) => activeActIds.has(act.id));
             }
@@ -4186,7 +4202,13 @@ function updateSlotDropdowns() {
             });
         }
         else if (type === "project") {
-            const actId = state.ui?.promoSlots?.actId || null;
+            let actId = null;
+            if (target === "promo-project") {
+                actId = state.ui?.promoSlots?.actId || null;
+            }
+            else if (isPromoProjectSlot && autoPromoSlots) {
+                actId = autoPromoSlots.actIds[autoPromoSlot.index] || null;
+            }
             const projects = listPromoProjectOptions(actId);
             projects.forEach((project) => {
                 options.push({ value: project.value, label: project.label });
@@ -4194,12 +4216,19 @@ function updateSlotDropdowns() {
         }
         else if (type === "track") {
             let tracks = state.tracks;
-            if (target === "promo-track") {
+            if (isPromoTrackSlot) {
                 const activeEraIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.id));
-                const selectedActId = state.ui?.promoSlots?.actId || null;
-                const selectedProject = state.ui?.promoSlots?.projectId
-                    ? parsePromoProjectKey(state.ui.promoSlots.projectId)
-                    : null;
+                let selectedActId = null;
+                let selectedProjectId = null;
+                if (target === "promo-track") {
+                    selectedActId = state.ui?.promoSlots?.actId || null;
+                    selectedProjectId = state.ui?.promoSlots?.projectId || null;
+                }
+                else if (autoPromoSlot && autoPromoSlot.kind === "track" && autoPromoSlots) {
+                    selectedActId = autoPromoSlots.actIds[autoPromoSlot.index] || null;
+                    selectedProjectId = autoPromoSlots.projectIds[autoPromoSlot.index] || null;
+                }
+                const selectedProject = selectedProjectId ? parsePromoProjectKey(selectedProjectId) : null;
                 const projectName = selectedProject?.projectName || "";
                 const projectType = normalizeProjectType(selectedProject?.projectType || "Single");
                 const projectEraId = selectedProject?.eraId || null;
@@ -5246,7 +5275,8 @@ function runPromotion() {
         if (availability.available < count) {
             const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
             const plural = count === 1 ? "type" : "types";
-            logEvent(`Not enough ${label} today for ${count} promo ${plural}.`, "warn");
+            const windowLabel = formatPromoFacilityWindowLabel(availability);
+            logEvent(`Not enough ${label} (${windowLabel}) for ${count} promo ${plural}.`, "warn");
             return;
         }
     }
@@ -5256,7 +5286,7 @@ function runPromotion() {
             continue;
         const reservation = reservePromoFacilitySlot(facilityId, promoType, trackContext.track?.id || null, { actId: act.id });
         if (!reservation.ok) {
-            logEvent(reservation.reason || "No facility slots available today.", "warn");
+            logEvent(reservation.reason || "No facility slots available for the current timeframe.", "warn");
             return;
         }
     }

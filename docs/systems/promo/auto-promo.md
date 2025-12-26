@@ -18,7 +18,7 @@ Auto promo uses a percentage-based allocation of the label wallet cash to fund p
 - Auto promo is toggled in the Promotions view.
 - Promotions shows the next auto-run window, budget math, and the steps auto promo will take.
 - Auto promo uses the Auto Promo slots (up to four) with Act / Project / Track targets.
-- Each slot resolves target priority: Track → Project → Act (Act-only promos are allowed for active eras).
+- Each slot resolves target priority: Track -> Project -> Act (Act-only promos are allowed for active eras).
 - Auto promo skips slots with zero allocation, invalid targets, inactive eras, or existing promo weeks.
 - Auto promo uses the current promo type selection and respects facility slot limits.
 

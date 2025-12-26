@@ -16,7 +16,7 @@ This document defines the structure and slot model for the web MVP and near-term
 
 ## Slot rules (contract)
 - A slot is blocked if required inputs are missing, the assigned ID is busy, or the structure is unavailable.
-- Slot occupancy is time-bound; releases occur at completion or at UTC midnight for day-based facilities.
+- Slot occupancy is time-bound; releases occur at completion, and promo facilities clear at UTC timeframe boundaries (morning/afternoon/night).
 - Every blocked slot surfaces a reason code and warning message in the UI (observability first).
 - Slot actions append to the event log and never silently fail.
 

@@ -4,8 +4,13 @@ const QUARTERS_PER_HOUR = 4;
 const QUARTER_HOUR_MS = HOUR_MS / QUARTERS_PER_HOUR;
 const WEEK_HOURS = 168;
 const BASE_EPOCH = Date.UTC(2400, 0, 1, 0, 0, 0);
-const BROADCAST_SLOT_SCHEDULE = [6, 2, 2, 2, 2, 3, 3];
-const FILMING_STUDIO_SLOTS = 2;
+const PROMO_TIMEFRAMES = [
+  { id: "morning", label: "Morning", startHour: 6, endHour: 12, slots: 2 },
+  { id: "afternoon", label: "Afternoon", startHour: 12, endHour: 18, slots: 1 },
+  { id: "night", label: "Night", startHour: 18, endHour: 24, slots: 2 }
+];
+const BROADCAST_SLOT_SCHEDULE = [5, 5, 5, 5, 5, 5, 5];
+const FILMING_STUDIO_SLOTS = 5;
 
 const BROADCAST_PROGRAMS = [
   {
@@ -40,7 +45,7 @@ const BROADCAST_STUDIOS = [
     label: "EyeriS Prime",
     owner: "eyeriS Corp",
     scope: { type: "global", id: "global" },
-    slotSchedule: [3, 1, 1, 1, 1, 1, 1],
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
     audience: {
       ages: ["25-34", "35-44"],
       alignment: ["Safe", "Neutral"],
@@ -53,7 +58,7 @@ const BROADCAST_STUDIOS = [
     label: "EyeriS Nationline Annglora",
     owner: "eyeriS Corp",
     scope: { type: "nation", id: "Annglora", regions: ["Annglora Capital", "Annglora Elsewhere"] },
-    slotSchedule: [2, 1, 0, 0, 0, 1, 1],
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
     audience: {
       ages: ["25-34", "35-49"],
       alignment: ["Safe"],
@@ -66,7 +71,7 @@ const BROADCAST_STUDIOS = [
     label: "EyeriS Nationline Bytenza",
     owner: "eyeriS Corp",
     scope: { type: "nation", id: "Bytenza", regions: ["Bytenza Capital", "Bytenza Elsewhere"] },
-    slotSchedule: [1, 0, 1, 0, 0, 1, 0],
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
     audience: {
       ages: ["16-24", "25-29"],
       alignment: ["Neutral"],
@@ -79,12 +84,171 @@ const BROADCAST_STUDIOS = [
     label: "EyeriS Nationline Crowlya",
     owner: "eyeriS Corp",
     scope: { type: "nation", id: "Crowlya", regions: ["Crowlya Capital", "Crowlya Elsewhere"] },
-    slotSchedule: [1, 0, 0, 1, 1, 0, 1],
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
     audience: {
       ages: ["18-29", "30-39"],
       alignment: ["Risky"],
       themes: ["Power"],
       moods: ["Daring", "Thrilling", "Angering"]
+    }
+  },
+  {
+    id: "eyeris-annglora-capital",
+    label: "EyeriS Regionline: Bloomville",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Annglora Capital", regions: ["Annglora Capital"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["25-34", "35-49"],
+      alignment: ["Safe"],
+      themes: ["Freedom"],
+      moods: ["Uplifting", "Cheering", "Calming"]
+    }
+  },
+  {
+    id: "eyeris-annglora-elsewhere",
+    label: "EyeriS Regionline: Annglora Elsewhere",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Annglora Elsewhere", regions: ["Annglora Elsewhere"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["25-34", "35-49"],
+      alignment: ["Safe"],
+      themes: ["Morality"],
+      moods: ["Calming", "Uplifting", "Boring"]
+    }
+  },
+  {
+    id: "eyeris-bytenza-capital",
+    label: "EyeriS Regionline: Belltown",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Bytenza Capital", regions: ["Bytenza Capital"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["16-24", "25-29"],
+      alignment: ["Neutral"],
+      themes: ["Ambition"],
+      moods: ["Energizing", "Thrilling", "Uplifting"]
+    }
+  },
+  {
+    id: "eyeris-bytenza-elsewhere",
+    label: "EyeriS Regionline: Bytenza Elsewhere",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Bytenza Elsewhere", regions: ["Bytenza Elsewhere"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["16-24", "25-29"],
+      alignment: ["Neutral"],
+      themes: ["Loyalty"],
+      moods: ["Calming", "Uplifting", "Cheering"]
+    }
+  },
+  {
+    id: "eyeris-crowlya-capital",
+    label: "EyeriS Regionline: Campana City",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Crowlya Capital", regions: ["Crowlya Capital"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["18-29", "30-39"],
+      alignment: ["Risky"],
+      themes: ["Power"],
+      moods: ["Daring", "Thrilling", "Angering"]
+    }
+  },
+  {
+    id: "eyeris-crowlya-elsewhere",
+    label: "EyeriS Regionline: Crowlya Elsewhere",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Crowlya Elsewhere", regions: ["Crowlya Elsewhere"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["18-29", "30-39"],
+      alignment: ["Risky"],
+      themes: ["Ambition"],
+      moods: ["Daring", "Energizing", "Angering"]
+    }
+  }
+];
+
+const FILMING_STUDIOS = [
+  {
+    id: "eyeris-film-annglora-capital",
+    label: "EyeriS Filming Studio: Bloomville",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Annglora Capital", regions: ["Annglora Capital"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["25-34", "35-49"],
+      alignment: ["Safe"],
+      themes: ["Freedom"],
+      moods: ["Uplifting", "Cheering", "Calming"]
+    }
+  },
+  {
+    id: "eyeris-film-annglora-elsewhere",
+    label: "EyeriS Filming Studio: Annglora Elsewhere",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Annglora Elsewhere", regions: ["Annglora Elsewhere"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["25-34", "35-49"],
+      alignment: ["Safe"],
+      themes: ["Morality"],
+      moods: ["Calming", "Uplifting", "Boring"]
+    }
+  },
+  {
+    id: "eyeris-film-bytenza-capital",
+    label: "EyeriS Filming Studio: Belltown",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Bytenza Capital", regions: ["Bytenza Capital"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["16-24", "25-29"],
+      alignment: ["Neutral"],
+      themes: ["Ambition"],
+      moods: ["Energizing", "Thrilling", "Uplifting"]
+    }
+  },
+  {
+    id: "eyeris-film-bytenza-elsewhere",
+    label: "EyeriS Filming Studio: Bytenza Elsewhere",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Bytenza Elsewhere", regions: ["Bytenza Elsewhere"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["16-24", "25-29"],
+      alignment: ["Neutral"],
+      themes: ["Loyalty"],
+      moods: ["Calming", "Uplifting", "Cheering"]
+    }
+  },
+  {
+    id: "eyeris-film-crowlya-capital",
+    label: "EyeriS Filming Studio: Campana City",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Crowlya Capital", regions: ["Crowlya Capital"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["18-29", "30-39"],
+      alignment: ["Risky"],
+      themes: ["Power"],
+      moods: ["Daring", "Thrilling", "Angering"]
+    }
+  },
+  {
+    id: "eyeris-film-crowlya-elsewhere",
+    label: "EyeriS Filming Studio: Crowlya Elsewhere",
+    owner: "eyeriS Corp",
+    scope: { type: "region", id: "Crowlya Elsewhere", regions: ["Crowlya Elsewhere"] },
+    slotSchedule: [5, 5, 5, 5, 5, 5, 5],
+    audience: {
+      ages: ["18-29", "30-39"],
+      alignment: ["Risky"],
+      themes: ["Ambition"],
+      moods: ["Daring", "Energizing", "Angering"]
     }
   }
 ];

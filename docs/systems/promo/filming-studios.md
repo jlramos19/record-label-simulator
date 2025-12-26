@@ -4,11 +4,26 @@ Filming studios are production facilities required for multimedia promo types.
 
 ## Structure context
 - Filming studios are public facilities; booking uses facility slots (not creator ID slots).
-- Slots are day-based and surface warnings when full or ineligible.
+- Slots are timeframe-based (morning/afternoon/night) and surface warnings when full or ineligible.
 
-## Slot capacity (MVP)
-- Static capacity: 2 slots per day.
-- Slots are booked for the remainder of the current day and free at the next midnight.
+## Slot schedule (UTC)
+- Daily capacity per studio: 5 slots.
+- Timeframes: Morning 06:00-12:00 (2 slots), Afternoon 12:00-18:00 (1 slot), Night 18:00-24:00 (2 slots).
+- Slots are booked for the current timeframe window and free at the next window boundary.
+
+## Filming studio catalog (MVP)
+- EyeriS Filming Studio: Bloomville
+  - Coverage: Annglora (Bloomville Capital)
+- EyeriS Filming Studio: Annglora Elsewhere
+  - Coverage: Annglora (Elsewhere)
+- EyeriS Filming Studio: Belltown
+  - Coverage: Bytenza (Belltown Capital)
+- EyeriS Filming Studio: Bytenza Elsewhere
+  - Coverage: Bytenza (Elsewhere)
+- EyeriS Filming Studio: Campana City
+  - Coverage: Crowlya (Campana City Capital)
+- EyeriS Filming Studio: Crowlya Elsewhere
+  - Coverage: Crowlya (Elsewhere)
 
 ## Promo type requirements
 - Music video: requires a filming slot.

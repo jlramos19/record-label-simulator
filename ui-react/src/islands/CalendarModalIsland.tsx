@@ -57,6 +57,15 @@ function resolveLabelTextColor(state, entry) {
   return country === "Bytenza" ? "#ffffff" : "#000000";
 }
 
+function formatRecordLabelPill(label) {
+  const raw = String(label || "").trim();
+  if (!raw) return "Label\nRecord Label";
+  const match = raw.match(/^(.*?)(?:\s+Record Label)$/i);
+  const primary = match ? match[1].trim() : raw;
+  if (!primary) return raw;
+  return `${primary}\nRecord Label`;
+}
+
 function applyCalendarTab(tabId) {
   const bridge = window.rlsUi?.setCalendarTab;
   if (typeof bridge === "function") {
@@ -169,6 +178,7 @@ export function CalendarModalIsland() {
                 </div>
                 {entries.map((entry) => {
                   const label = entry.label || state.label?.name || "Label";
+                  const labelText = formatRecordLabelPill(label);
                   const color = resolveLabelColor(state, entry);
                   const textColor = resolveLabelTextColor(state, entry);
                   const actName = entry.actName || "Unknown";
@@ -177,7 +187,7 @@ export function CalendarModalIsland() {
                   const distribution = entry.distribution || "Digital";
                   return (
                     <div key={entry.id || `${label}-${entry.ts}-${title}`} className="muted">
-                      <Tag label={label} bgColor={color} textColor={textColor} /> | {actName} | {title} ({typeLabel}, {distribution})
+                      <Tag label={labelText} intent="label" bgColor={color} textColor={textColor} /> | {actName} | {title} ({typeLabel}, {distribution})
                     </div>
                   );
                 })}
