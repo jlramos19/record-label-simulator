@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listAwardShows, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -290,6 +290,33 @@ function renderCreatorStudioName(creator) {
     const realName = formatCreatorRealNameLine(creator);
     const realLine = realName ? `<span class="muted">[${realName}]</span>` : "";
     return `<span class="name-stack"><span class="creator-stage-name">${stageName}</span>${realLine}</span>`;
+}
+function listCreatorActs(creatorId) {
+    if (!creatorId)
+        return [];
+    return state.acts.filter((act) => Array.isArray(act.memberIds) && act.memberIds.includes(creatorId));
+}
+function buildActPopularityScoreMap(year = currentYear()) {
+    const leaderboard = getActPopularityLeaderboard(year);
+    const map = new Map();
+    const entries = Array.isArray(leaderboard?.entries) ? leaderboard.entries : [];
+    entries.forEach((entry) => {
+        if (!entry?.actId)
+            return;
+        const score = Number.isFinite(entry.points) ? entry.points : 0;
+        map.set(entry.actId, score);
+    });
+    return map;
+}
+function sortActsByPopularity(acts, scoreMap) {
+    const safeActs = Array.isArray(acts) ? acts.slice() : [];
+    return safeActs.sort((a, b) => {
+        const aScore = scoreMap?.get(a?.id) ?? 0;
+        const bScore = scoreMap?.get(b?.id) ?? 0;
+        if (bScore !== aScore)
+            return bScore - aScore;
+        return String(a?.name || "").localeCompare(String(b?.name || ""));
+    });
 }
 function buildWorkOrderCrewLabel(crew) {
     const lead = crew[0] || null;
@@ -1028,11 +1055,8 @@ function renderStats() {
         if (state.meta.bailoutPending) {
             $("bailoutStatus").textContent = "Bailout offer pending.";
         }
-        else if (state.meta.achievementsLocked) {
-            $("bailoutStatus").textContent = "Bailout used: achievements locked.";
-        }
         else if (state.meta.bailoutUsed) {
-            $("bailoutStatus").textContent = "Bailout used.";
+            $("bailoutStatus").textContent = "Bailout used: win flagged.";
         }
         else {
             $("bailoutStatus").textContent = "";
@@ -1040,7 +1064,8 @@ function renderStats() {
     }
     if ($("winTrackDisplay")) {
         if (state.meta.winState) {
-            $("winTrackDisplay").textContent = `Won ${state.meta.winState.year}`;
+            const bailoutTag = state.meta.winState.bailoutUsed || state.meta.bailoutUsed ? " (Bailout)" : "";
+            $("winTrackDisplay").textContent = `Won ${state.meta.winState.year}${bailoutTag}`;
         }
         else {
             const year = currentYear();
@@ -2359,6 +2384,57 @@ function renderPromoAlerts() {
     });
     listEl.innerHTML = blocks.join("");
 }
+function renderAwardsCircuit() {
+    const listEl = $("awardsCircuitList");
+    if (!listEl)
+        return;
+    const shows = listAwardShows({ includePast: true, limit: 6 });
+    if (!shows.length) {
+        listEl.innerHTML = `<div class="muted">No award shows scheduled yet.</div>`;
+        return;
+    }
+    const playerLabel = state.label?.name || "";
+    const items = shows.map((show) => {
+        const showDate = Number.isFinite(show.showAt) ? formatDate(show.showAt) : "TBD";
+        const window = show.nominationWindow || {};
+        const windowLabel = Number.isFinite(window.startWeek) && Number.isFinite(window.endWeek)
+            ? `Weeks ${window.startWeek}-${window.endWeek}`
+            : "Nomination window TBD";
+        const lockLabel = Number.isFinite(show.nominationLockAt) ? formatDate(show.nominationLockAt) : "TBD";
+        const revealLabel = Number.isFinite(show.nominationRevealAt) ? formatDate(show.nominationRevealAt) : "TBD";
+        const nominees = Array.isArray(show.categories)
+            ? show.categories.flatMap((category) => category?.nominees || [])
+            : [];
+        const nominationCount = playerLabel
+            ? nominees.filter((nominee) => nominee?.label === playerLabel).length
+            : 0;
+        const winCount = playerLabel && Array.isArray(show.categories)
+            ? show.categories.filter((category) => category?.winner?.label === playerLabel).length
+            : 0;
+        const playerLine = playerLabel
+            ? ` | ${nominationCount} nom${nominationCount === 1 ? "" : "s"}${winCount ? `, ${winCount} win${winCount === 1 ? "" : "s"}` : ""}`
+            : "";
+        const performanceLine = Array.isArray(show.performances) && show.performances.length
+            ? show.performances.map((slot) => `${slot.label}: ${slot.actName || "TBD"}`).join(" | ")
+            : "Performance slots TBD";
+        const status = show.status || "Scheduled";
+        const badgeClass = status === "Resolved" || status === "Revealed" ? "badge" : "badge warn";
+        return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${show.label}</div>
+            <div class="muted">${showDate} | ${windowLabel}</div>
+            <div class="muted">Lock ${lockLabel} | Reveal ${revealLabel}${playerLine}</div>
+            <div class="tiny muted">${performanceLine}</div>
+          </div>
+          <div class="${badgeClass}">${status}</div>
+        </div>
+      </div>
+    `;
+    });
+    listEl.innerHTML = items.join("");
+}
 function renderWallet() {
     const items = [
         `
@@ -3192,6 +3268,7 @@ function renderCreators() {
     const labelCountry = state.label?.country || "";
     const labelAcronym = state.label?.acronym || "";
     const labelPill = renderCreatorLabelPill({ labelName, labelCountry, labelAcronym });
+    const actPopularityMap = buildActPopularityScoreMap();
     const columns = MARKET_ROLES.map((role) => {
         const roleLabelText = roleLabel(role);
         const roleCreators = pool.filter((creator) => creator.role === role);
@@ -3204,10 +3281,25 @@ function renderCreators() {
             const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
             const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
             const nationalityPill = renderNationalityPill(creator.country);
-            const memberships = state.acts
-                .filter((act) => act.memberIds.includes(creator.id))
-                .map((act) => renderActName(act));
-            const actText = memberships.length ? memberships.join(", ") : "No Act";
+            const memberships = listCreatorActs(creator.id);
+            const sortedActs = sortActsByPopularity(memberships, actPopularityMap);
+            const primaryAct = sortedActs[0] || null;
+            const primaryActLabel = primaryAct ? renderActName(primaryAct) : "No Act";
+            const hasMultipleActs = sortedActs.length > 1;
+            const popoverId = `creator-acts-popover-${creator.id}`;
+            const actsPopover = hasMultipleActs
+                ? `
+          <div id="${popoverId}" class="creator-acts-popover" data-creator-acts-popover="${creator.id}" aria-hidden="true">
+            <div class="creator-acts-popover-title">Acts</div>
+            <div class="creator-acts-popover-list">
+              ${sortedActs.map((act) => `<div class="creator-acts-popover-item">${renderActName(act)}</div>`).join("")}
+            </div>
+          </div>
+        `
+                : "";
+            const actsMoreButton = hasMultipleActs
+                ? `<button type="button" class="ghost mini creator-acts-more" data-creator-acts-more="${creator.id}" aria-expanded="false" aria-controls="${popoverId}">See more</button>`
+                : "";
             return `
         <div class="list-item" data-entity-type="creator" data-entity-id="${creator.id}" data-entity-name="${creator.name}" draggable="true">
           <div class="list-row">
@@ -3225,8 +3317,15 @@ function renderCreators() {
                   <div class="item-title">${renderCreatorName(creator)}</div>
                   <div class="muted">${formatCreatorAgeMeta(creator)}</div>
                   <div class="muted">${renderCreatorSkillProgress(creator)}</div>
-                  <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
-                  <div class="muted">Acts: ${actText}</div>
+                  <div class="creator-card-meta-row">
+                    <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
+                    <div class="muted creator-card-acts">
+                      <span class="creator-acts-label">Acts:</span>
+                      <span class="creator-acts-primary">${primaryActLabel}</span>
+                      ${actsMoreButton}
+                      ${actsPopover}
+                    </div>
+                  </div>
                   <div class="muted">Preferred Themes:</div>
                   <div class="creator-pref-tags">${themeCells}</div>
                   <div class="muted">Preferred Moods:</div>
@@ -5777,6 +5876,14 @@ function renderCharts() {
     `;
     }
 }
+function formatAchievementWins(value, target) {
+    const wins = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+    const goal = Number.isFinite(target) ? Math.max(1, Math.round(target)) : 1;
+    if (wins >= goal && wins > 0) {
+        return wins > 1 ? `WON x${formatCount(wins)}` : "WON";
+    }
+    return `Wins ${formatCount(wins)} / ${formatCount(goal)}`;
+}
 function renderAchievements() {
     const listEl = $("achievementList");
     const summaryEl = $("achievementSummary");
@@ -5789,7 +5896,7 @@ function renderAchievements() {
         let progressText = "";
         if (typeof achievement.progress === "function" && typeof achievement.target !== "undefined") {
             const value = achievement.progress();
-            progressText = `Wins ${formatCount(value)} / ${formatCount(achievement.target)}`;
+            progressText = formatAchievementWins(value, achievement.target);
         }
         return `
       <div class="list-item">
@@ -5807,8 +5914,8 @@ function renderAchievements() {
     if (summaryEl) {
         const count = Math.max(unlocked.size, state.meta.achievements || 0);
         const notes = [];
-        if (state.meta.achievementsLocked)
-            notes.push("Achievements locked after bailout.");
+        if (state.meta.bailoutUsed)
+            notes.push("Bailout used: win flagged for leaderboards.");
         if (state.meta.cheaterMode)
             notes.push("Cheater mode active: achievements paused.");
         const noteText = notes.join(" ");
@@ -5845,6 +5952,9 @@ function renderRivalAchievementRace() {
         const requestMarkup = progress.entries.map((request) => {
             const done = request.wins >= request.target;
             const badgeClass = done ? "badge" : "badge warn";
+            const badgeText = done
+                ? formatAchievementWins(request.wins, request.target)
+                : `${formatCount(request.wins)} / ${formatCount(request.target)}`;
             const percent = Math.round(request.ratio * 100);
             return `
         <div class="rival-achievement-detail">
@@ -5853,12 +5963,12 @@ function renderRivalAchievementRace() {
               <div class="item-title">${request.id} ${request.label}</div>
               <div class="muted">${request.desc}</div>
             </div>
-            <div class="${badgeClass}">${formatCount(request.wins)} / ${formatCount(request.target)}</div>
+            <div class="${badgeClass}">${badgeText}</div>
           </div>
           <div class="progress-bar">
             <div class="progress-fill" style="width: ${percent}%"></div>
           </div>
-          <div class="tiny muted">Wins ${formatCount(request.wins)} / ${formatCount(request.target)}</div>
+          <div class="tiny muted">${formatAchievementWins(request.wins, request.target)}</div>
         </div>
       `;
         }).join("");
@@ -5923,6 +6033,10 @@ function renderQuests() {
             detail = `${quest.progress}/${quest.target} promos launched`;
         if (quest.type === "tourBookings")
             detail = `${quest.progress}/${quest.target} dates booked`;
+        if (quest.type === "awardNominations")
+            detail = `${quest.progress}/${quest.target} nominations`;
+        if (quest.type === "awardWins")
+            detail = `${quest.progress}/${quest.target} wins`;
         if (quest.type === "cash")
             detail = `${formatMoney(quest.progress)} / ${formatMoney(quest.target)}`;
         const badgeClass = quest.done ? "badge" : "badge warn";
@@ -6691,6 +6805,7 @@ function renderActiveView(view) {
         renderSlots();
         renderEventLog();
         renderPromoAlerts();
+        renderAwardsCircuit();
         renderPromoScheduleControls();
         renderWallet();
         renderResourceTickSummary();

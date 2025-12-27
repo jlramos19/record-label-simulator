@@ -5,6 +5,7 @@ Define how releases attach to an Era's project cycle so singles, album tracks, a
 
 ## Core Rules
 - Each active Era owns one "main project" (Album or EP) that collects all releases in the Era window.
+- Projects are release containers (Albums, EPs, and Single albums), not individual tracks.
 - Every release prompts a release-type choice: `Single` or `Project track`.
 - Singles still attach to the Era's main project; release type only affects pricing/demand logic.
 - The main project stays open while the Era has recent release or promo activity within the gap window.

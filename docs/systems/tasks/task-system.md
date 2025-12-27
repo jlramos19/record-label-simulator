@@ -19,6 +19,7 @@
 - Task templates should map to CEO Requests categories (chart wins, sales/streams, promos, tours).
 - Prefer tasks that move the player toward annual awards and 12-request victory tracking.
 - Award show nominations and wins can satisfy or advance tasks when linked to the same CEO Request IDs.
+- Project-release tasks count EP/Album releases only; Single albums do not satisfy project task progress.
 
 ## Observability
 - Log auto-fulfill attempts and outcomes (success, skipped, blocked reason).

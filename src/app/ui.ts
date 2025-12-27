@@ -2546,6 +2546,39 @@ function updateCreateModePanels(scope) {
   if (mode === "auto") updateAutoCreateSummary(root);
 }
 
+function closeCreatorActsPopovers(exceptId = null) {
+  document.querySelectorAll("[data-creator-acts-popover]").forEach((popover) => {
+    const popoverId = popover.dataset.creatorActsPopover;
+    if (exceptId && popoverId === exceptId) return;
+    popover.classList.remove("is-open");
+    popover.setAttribute("aria-hidden", "true");
+  });
+  document.querySelectorAll("[data-creator-acts-more]").forEach((button) => {
+    const buttonId = button.dataset.creatorActsMore;
+    if (exceptId && buttonId === exceptId) return;
+    button.setAttribute("aria-expanded", "false");
+  });
+}
+
+function toggleCreatorActsPopover(trigger) {
+  if (!trigger) return;
+  const creatorId = trigger.dataset.creatorActsMore;
+  if (!creatorId) return;
+  const popover = document.querySelector(`[data-creator-acts-popover="${creatorId}"]`);
+  if (!popover) return;
+  const isOpen = popover.classList.contains("is-open");
+  closeCreatorActsPopovers(creatorId);
+  if (isOpen) {
+    popover.classList.remove("is-open");
+    popover.setAttribute("aria-hidden", "true");
+    trigger.setAttribute("aria-expanded", "false");
+  } else {
+    popover.classList.add("is-open");
+    popover.setAttribute("aria-hidden", "false");
+    trigger.setAttribute("aria-expanded", "true");
+  }
+}
+
 function bindGlobalHandlers() {
   const on = (id, event, handler) => {
     const el = $(id);
@@ -2587,6 +2620,12 @@ function bindGlobalHandlers() {
   }, { capture: true });
   window.addEventListener("blur", () => {
     endUiRenderHold();
+  });
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (target.closest("[data-creator-acts-popover]")) return;
+    if (target.closest("[data-creator-acts-more]")) return;
+    closeCreatorActsPopovers();
   });
 
   on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
@@ -4122,6 +4161,14 @@ function bindViewHandlers(route, root) {
   const creatorList = root.querySelector("#creatorList");
   if (creatorList) {
     creatorList.addEventListener("click", (e) => {
+      const actsBtn = e.target.closest("[data-creator-acts-more]");
+      if (actsBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleCreatorActsPopover(actsBtn);
+        return;
+      }
+      if (e.target.closest("[data-creator-acts-popover]")) return;
       const item = e.target.closest("[data-entity-type=\"creator\"]");
       if (!item) return;
       const target = state.ui.slotTarget;

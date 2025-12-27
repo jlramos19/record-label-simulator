@@ -1,10 +1,19 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-2254Z)
+- Creator cards now show the most popular act beside catharsis, with a See more popover for full act memberships. [PN-20251227-AC12]
+- Track title generation now deprioritizes repeats, while act/project auto-names avoid duplicate names across player + market pools. [PN-20251227-AC13]
+- Tour drafts now auto-name from the active era/project anchor to keep tour names aligned with release branding. [PN-20251227-AC14]
+- Project release tasks now target EP/Album releases (Singles excluded). [PN-20251227-AC15]
+- Chart history snapshots now retain project types so Projects charts label releases correctly across weeks. [PN-20251227-AC16]
+
 ## 2025-12-27 (RLS-PATCH-20251227-2245Z)
 - Tour charts now include simulated rival tour entries so touring awards stay competitive across all labels. [PN-20251227-AC07]
 - CEO Requests now show expandable label race rows with per-request progress bars for all labels. [PN-20251227-AC08]
+- CEO Requests now show WON/WON xN after completed wins, and bailout runs keep progress tracking while flagging leaderboard eligibility. [PN-20251227-AC12]
 - Win-track HUD copy now reflects the monopoly-loss rule through the full timeline. [PN-20251227-AC09]
 - GitHub Pages deployment now builds the root + UI React bundles and publishes the assembled `site/` folder on main pushes. [PN-20251227-AC10]
+- Monthly award shows now schedule nominations, live performance slots, winner boosts, and task progress with calendar + Promotions visibility. [PN-20251227-AC11]
 
 ## 2025-12-27 (RLS-PATCH-20251227-2110Z)
 - Simulation ticks now batch quarter-hour processing and surface a catch-up warning to keep fast-forward runs responsive. [PN-20251227-AC06]
@@ -649,3 +658,10 @@
 - PN-20251227-AC08 (2025-12-27 22:45Z): CEO Requests now show expandable label race rows with per-request progress bars for all labels.
 - PN-20251227-AC09 (2025-12-27 22:45Z): Win-track HUD copy now reflects the monopoly-loss rule through the full timeline.
 - PN-20251227-AC10 (2025-12-27 22:45Z): GitHub Pages deployment now builds the root + UI React bundles and publishes the assembled `site/` folder on main pushes.
+- PN-20251227-AC11 (2025-12-27 22:31Z): Monthly award shows now schedule nominations, live performance slots, winner boosts, and task progress with calendar + Promotions visibility.
+- PN-20251227-AC12 (2025-12-27 22:54Z): Creator cards now show the most popular act beside catharsis, with a See more popover for full act memberships.
+- PN-20251227-AC13 (2025-12-27 22:54Z): Track title generation now deprioritizes repeats, while act/project auto-names avoid duplicate names across player + market pools.
+- PN-20251227-AC14 (2025-12-27 22:54Z): Tour drafts now auto-name from the active era/project anchor to keep tour names aligned with release branding.
+- PN-20251227-AC15 (2025-12-27 22:54Z): Project release tasks now target EP/Album releases (Singles excluded).
+- PN-20251227-AC16 (2025-12-27 22:54Z): Chart history snapshots now retain project types so Projects charts label releases correctly across weeks.
+- PN-20251227-AC12 (2025-12-27 22:49Z): CEO Requests now show WON/WON xN after completed wins, and bailout runs keep progress tracking while flagging leaderboard eligibility.

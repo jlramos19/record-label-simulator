@@ -30,6 +30,7 @@ This doc defines the Touring view (MVP v0) for the current touring feature.
 - Venue Finder: filters for region, capacity tier, availability; includes a venue list and quick-select.
 - Route Timeline: date + venue bookings list with conflict warnings and removal actions.
 - Budget + Staffing: per-show projection totals and a tour-wide summary (revenue, costs, profit, attendance).
+- Tour names auto-fill from the active Era or anchored Project when available.
 
 ## Slot and gating rules
 - Touring requires an active Era and at least one released Project or Track.

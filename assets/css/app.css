@@ -2194,6 +2194,60 @@ select.theme-select {
   align-content: start;
   min-width: 0;
 }
+.creator-card-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.creator-card-acts {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  min-width: 0;
+}
+.creator-acts-label {
+  white-space: nowrap;
+}
+.creator-acts-primary {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.creator-acts-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  max-width: 240px;
+  background: var(--surface-1);
+  border: var(--line-width) solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 10px 24px var(--shadow);
+  display: none;
+  z-index: 5;
+}
+.creator-acts-popover.is-open {
+  display: block;
+}
+.creator-acts-popover-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.creator-acts-popover-list {
+  display: grid;
+  gap: 4px;
+}
+.creator-acts-popover-item {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .creator-card-footer {
   display: flex;
   align-items: center;

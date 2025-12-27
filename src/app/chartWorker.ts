@@ -154,6 +154,8 @@ function scoreTrack(track, regionName, profiles, trends, audience, labelCompetit
   score += rand(-4, 4);
   const competitionMultiplier = Number.isFinite(labelCompetition?.[track.label]) ? labelCompetition[track.label] : 1;
   if (competitionMultiplier !== 1) score = Math.round(score * competitionMultiplier);
+  const boostMultiplier = Number.isFinite(track?.boostMultiplier) ? track.boostMultiplier : 1;
+  if (boostMultiplier !== 1) score = Math.round(score * boostMultiplier);
   const decay = Math.max(0.4, 1 - (track.weeksOnChart || 0) * 0.05);
   return Math.round(score * decay);
 }

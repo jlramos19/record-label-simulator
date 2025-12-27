@@ -114,7 +114,7 @@ This file tracks known mismatches between the current web MVP implementation and
 
 ### 2025-12-24-bailout-choice-01 - Bailout choice flow
 - ID: 2025-12-24-bailout-choice-01
-- Description: Legacy docs auto-trigger bailout at first bankruptcy; JL directive makes bailout optional with accept/decline and achievement lockout on acceptance. Source: `game-design-documents/99-Archive/winning-and-losing-conditions-in-record-label-simulator.md`.
+- Description: Legacy docs auto-trigger bailout at first bankruptcy; JL directive makes bailout optional with accept/decline, keeps achievements tracking, and flags bailout wins for leaderboards. Source: `game-design-documents/99-Archive/winning-and-losing-conditions-in-record-label-simulator.md`.
 - Status: PATCH
 - Decision ID: TBD
 - TODO notes: Add patch note entry for bailout choice flow (if required by closure workflow).

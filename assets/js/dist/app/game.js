@@ -391,6 +391,8 @@ function makeDefaultState() {
             annualWinners: [],
             annualAwards: [],
             annualAwardLedger: { years: {}, lastUpdateYear: null, lastUpdateWeek: null },
+            awardShows: { shows: [], lastScheduledMonth: null },
+            awardBoosts: { acts: {}, content: {} },
             questIdCounter: 0,
             chartHistoryLastWeek: null,
             achievements: 0,
@@ -795,6 +797,19 @@ const CRITIC_SATURATION_MAX = 10;
 const CRITIC_STRINGENCY_BASE = 1;
 const CRITIC_STRINGENCY_ERA_STEP = 0.01;
 const CRITIC_STRINGENCY_MAX = 1.15;
+const AWARD_SHOW_WINDOW_WEEKS = 4;
+const AWARD_SHOW_EXTENDED_WINDOW_WEEKS = 8;
+const AWARD_SHOW_MIN_NOMINEES = 3;
+const AWARD_SHOW_PER_ACT_CAP = 2;
+const AWARD_SHOW_PERFORMANCE_SLOTS = ["Opener", "Spotlight", "Finale"];
+const AWARD_SHOW_AUDIENCE_PROMO_TYPES_REQUIRED = 2;
+const AWARD_TRACK_MIN_FQ = 70;
+const AWARD_HYBRID_CRITIC_WEIGHT = 0.6;
+const AWARD_HYBRID_AUDIENCE_WEIGHT = 0.4;
+const AWARD_BOOSTS = {
+    winner: { act: 0.05, content: 0.03, weeks: 4 },
+    nominee: { act: 0.02, content: 0.01, weeks: 2 }
+};
 function currentYear() {
     return new Date(state.time.epochMs).getUTCFullYear();
 }
@@ -954,7 +969,11 @@ function awardExp(amount, note, silent = false) {
     }
 }
 function achievementsDisabled() {
-    return Boolean(state.meta?.cheaterMode || state.meta?.achievementsLocked);
+    if (state.meta?.cheaterMode)
+        return true;
+    if (state.meta?.achievementsLocked && !state.meta?.bailoutUsed)
+        return true;
+    return false;
 }
 function unlockAchievement(definition) {
     if (achievementsDisabled())
@@ -1150,6 +1169,33 @@ function seededPickUniqueName(list, existingNames, suffix, rng) {
     if (available.length)
         return seededPick(available, rng);
     return `${seededPick(list, rng)} ${suffix || "II"}`;
+}
+function buildTrackTitleUsageCounts() {
+    const counts = new Map();
+    const record = (title) => {
+        if (!title)
+            return;
+        counts.set(title, (counts.get(title) || 0) + 1);
+    };
+    (Array.isArray(state.tracks) ? state.tracks : []).forEach((track) => record(track?.title));
+    (Array.isArray(state.marketTracks) ? state.marketTracks : []).forEach((track) => record(track?.title));
+    return counts;
+}
+function pickWeightedTrackTitle(pool, counts, rng) {
+    if (!Array.isArray(pool) || !pool.length)
+        return "Untitled";
+    const usage = counts || new Map();
+    const weights = pool.map((title) => 1 / (1 + (usage.get(title) || 0)));
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    if (!Number.isFinite(total) || total <= 0)
+        return pool[0];
+    let roll = (typeof rng === "function" ? rng() : Math.random()) * total;
+    for (let i = 0; i < pool.length; i += 1) {
+        roll -= weights[i];
+        if (roll <= 0)
+            return pool[i];
+    }
+    return pool[pool.length - 1];
 }
 function namePartText(part) {
     if (!part)
@@ -4831,13 +4877,18 @@ function listActNameKeys(list = state.acts, actKind = null) {
         .map((act) => act?.nameKey)
         .filter(Boolean);
 }
+function listUsedActNameKeys(existingKeys = []) {
+    const base = listActNameKeys(state.acts);
+    const market = listMarketActNameKeys();
+    return Array.from(new Set([...existingKeys, ...base, ...market].filter(Boolean)));
+}
 function makeActNameEntry({ nation, rng, existingKeys, actKind = "group", memberIds } = {}) {
     const resolvedActKind = resolveActKindFromType(actKind);
     const resolvedNation = nation
         || resolveActCountryFromMemberIds(memberIds)
         || state.label.country
         || "Annglora";
-    const usedKeys = existingKeys || listActNameKeys(state.acts, resolvedActKind);
+    const usedKeys = listUsedActNameKeys(existingKeys);
     const [pair] = generateUniqueActNamePairs({
         count: 1,
         nation: resolvedNation,
@@ -5310,24 +5361,16 @@ function pickTrackLanguageSeeded(country, rng) {
     return weights[0]?.lang || "en";
 }
 function makeTrackTitleByCountry(theme, mood, country) {
-    const existing = [
-        ...state.tracks.map((track) => track.title),
-        ...state.marketTracks.map((track) => track.title)
-    ];
     const lang = pickTrackLanguage(country);
     const pool = trackPoolByLang(lang);
-    const base = pickUniqueName(pool, existing, "II");
-    return base;
+    const counts = buildTrackTitleUsageCounts();
+    return pickWeightedTrackTitle(pool, counts);
 }
 function makeTrackTitleByCountrySeeded(theme, mood, country, rng) {
-    const existing = [
-        ...state.tracks.map((track) => track.title),
-        ...state.marketTracks.map((track) => track.title)
-    ];
     const lang = pickTrackLanguageSeeded(country, rng);
     const pool = trackPoolByLang(lang);
-    const base = seededPickUniqueName(pool, existing, "II", rng);
-    return base;
+    const counts = buildTrackTitleUsageCounts();
+    return pickWeightedTrackTitle(pool, counts, rng);
 }
 function listMarketActNameKeys(list = state.marketTracks) {
     return list.map((track) => track?.actNameKey).filter(Boolean);
@@ -5335,7 +5378,7 @@ function listMarketActNameKeys(list = state.marketTracks) {
 function makeRivalActNameEntry({ nation, rng, existingKeys, actKind = "group" } = {}) {
     const resolvedNation = nation || "Annglora";
     const resolvedActKind = resolveActKindFromType(actKind);
-    const usedKeys = existingKeys || listMarketActNameKeys();
+    const usedKeys = listUsedActNameKeys(existingKeys);
     const [pair] = generateUniqueActNamePairs({
         count: 1,
         nation: resolvedNation,
@@ -5380,6 +5423,26 @@ function makeProjectTitleSeeded(rng) {
     return existing.includes(composed)
         ? seededPickUniqueName(PROJECT_TITLES, existing, "Edition", rng)
         : seededPickUniqueName([composed, ...PROJECT_TITLES], existing, "Edition", rng);
+}
+function listProjectNames() {
+    return [
+        ...(Array.isArray(state.tracks) ? state.tracks : []).map((track) => track.projectName).filter(Boolean),
+        ...(Array.isArray(state.marketTracks) ? state.marketTracks : []).map((track) => track.projectName).filter(Boolean)
+    ];
+}
+function resolveUniqueProjectName(baseName) {
+    const normalized = normalizeProjectName(baseName);
+    if (!normalized)
+        return baseName;
+    const existing = new Set(listProjectNames().map((name) => normalizeProjectName(name)));
+    if (!existing.has(normalized))
+        return baseName;
+    for (let i = 2; i <= 24; i += 1) {
+        const candidate = `${baseName} ${i}`;
+        if (!existing.has(normalizeProjectName(candidate)))
+            return candidate;
+    }
+    return `${baseName} II`;
 }
 function computeQualityPotential(track) {
     const writers = getTrackRoleIds(track, "Songwriter").map((id) => getCreator(id)).filter(Boolean);
@@ -6225,6 +6288,10 @@ function resolveRolloutWeekIndex(strategy, weekNumber) {
     return index;
 }
 function rolloutEventLabel(actionType) {
+    if (actionType === "awardShow")
+        return "Award Show";
+    if (actionType === "awardPerformance")
+        return "Award Performance";
     const details = actionType && PROMO_TYPE_DETAILS[actionType] ? PROMO_TYPE_DETAILS[actionType] : null;
     if (details?.label)
         return details.label;
@@ -6638,8 +6705,10 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
         return null;
     }
     const resolvedAlignment = alignment || state.label.alignment || "Neutral";
-    const resolvedProjectName = String(projectName || "").trim() || `${title} - Single`;
+    const rawProjectName = String(projectName || "").trim();
     const resolvedProjectType = normalizeProjectType(projectType);
+    const baseProjectName = rawProjectName || (resolvedProjectType === "Single" ? `${title} - Single` : makeProjectTitle());
+    const resolvedProjectName = rawProjectName ? rawProjectName : resolveUniqueProjectName(baseProjectName);
     const projectCheck = evaluateProjectTrackConstraints(resolvedProjectName, resolvedProjectType);
     if (!projectCheck.ok) {
         logEvent(projectCheck.reason, "warn");
@@ -8557,6 +8626,9 @@ function scoreTrack(track, regionName) {
     if (competitionMultiplier !== 1)
         score = Math.round(score * competitionMultiplier);
     score = applyEmergingTrendDebuff(score, track.genre);
+    const awardBoost = resolveAwardContentBoostMultiplierForTrack(track);
+    if (awardBoost !== 1)
+        score = Math.round(score * awardBoost);
     const decay = Math.max(0.4, 1 - track.weeksOnChart * 0.05);
     return Math.round(score * decay);
 }
@@ -8597,6 +8669,9 @@ function scoreTrackProjected(track, regionName, seedKey) {
     if (competitionMultiplier !== 1)
         score = Math.round(score * competitionMultiplier);
     score = applyEmergingTrendDebuff(score, track.genre);
+    const awardBoost = resolveAwardContentBoostMultiplierForTrack(track);
+    if (awardBoost !== 1)
+        score = Math.round(score * awardBoost);
     const decay = Math.max(0.4, 1 - (track.weeksOnChart || 0) * 0.05);
     return Math.round(score * decay);
 }
@@ -8769,6 +8844,7 @@ function buildChartSnapshot(scope, entries) {
                 marketId: entry.track?.marketId || entry.marketId || base.marketId || null,
                 title: entry.track?.title || entry.trackTitle || base.title || "",
                 projectName: entry.track?.projectName || entry.projectName || base.projectName || "",
+                projectType: entry.track?.projectType || entry.projectType || base.projectType || "",
                 label: entry.track?.label || entry.label || base.label || "",
                 actId: entry.track?.actId || entry.actId || base.actId || null,
                 actName: entry.track?.actName || entry.actName || base.actName || "",
@@ -8987,11 +9063,25 @@ function normalizeTourGoal(goal) {
         return goal;
     return TOUR_GOAL_DEFAULT;
 }
+function buildTourDraftName({ act, eraId, anchorTrackIds, anchorProjectId } = {}) {
+    const era = eraId ? getEraById(eraId) : null;
+    if (era?.projectName)
+        return `${era.projectName} Tour`;
+    if (era?.name)
+        return `${era.name} Tour`;
+    const anchor = act?.id ? resolveTourAnchor({ anchorTrackIds, anchorProjectId }, act.id, eraId) : null;
+    if (anchor?.projectName)
+        return `${anchor.projectName} Tour`;
+    if (act?.name)
+        return `${act.name} Tour`;
+    return null;
+}
 function createTourDraft({ name, actId, eraId, goal, anchorTrackIds, anchorProjectId, window, notes } = {}) {
     const touring = ensureTouringStore();
     touring.lastDraftId = Math.max(0, Math.round(Number(touring.lastDraftId) || 0) + 1);
     const act = actId ? getAct(actId) : null;
-    const defaultName = act ? `${act.name} Tour` : `Tour Draft ${touring.lastDraftId}`;
+    const defaultName = buildTourDraftName({ act, eraId, anchorTrackIds, anchorProjectId })
+        || `Tour Draft ${touring.lastDraftId}`;
     const draft = {
         id: uid("TD"),
         name: typeof name === "string" && name.trim() ? name.trim() : defaultName,
@@ -10200,7 +10290,8 @@ function buildPromoChartList(entries, scopeId, scopeKey, size, prevEntries, curr
         const baseScore = scoreTrack(anchor, scopeId);
         const budgetBoost = Math.round(Math.max(0, Number(entry.budget || 0)) / 600);
         const durationBoost = Math.round(Math.max(0, remaining) * 2);
-        const score = Math.max(0, Math.round(baseScore + budgetBoost + durationBoost));
+        const awardBoost = resolveAwardBoostMultiplierForPromo(entry);
+        const score = Math.max(0, Math.round((baseScore + budgetBoost + durationBoost) * awardBoost));
         const weights = chartWeightsForScope(scopeId);
         const baseMetrics = buildChartMetrics(score, weights);
         const engagement = buildPromoEngagementMetrics(baseMetrics);
@@ -10540,7 +10631,12 @@ function buildTourChartList(entries, scopeKey, size, prevEntries) {
         const label = entry.label || track?.label || "Unknown";
         const key = tourActKey({ actId, actName, actNameKey, label });
         const metrics = entry.metrics || {};
-        const score = Number(entry.score || metrics.attendance || 0);
+        let score = Number(entry.score || metrics.attendance || 0);
+        const awardBoost = key
+            ? resolveAwardBoostMultiplier(ensureAwardBoostStore().content, `tour:${key}`, state.time.epochMs)
+            : 1;
+        if (awardBoost !== 1)
+            score = Math.round(score * awardBoost);
         const existing = grouped.get(key) || {
             actKey: key,
             actId,
@@ -10713,6 +10809,7 @@ function buildChartWorkerPayload() {
             weeksOnChart: track.weeksOnChart,
             label: track.label,
             country: track.country,
+            boostMultiplier: resolveAwardContentBoostMultiplierForTrack(track),
             actCountry: originMeta.actCountry,
             creatorCountries: originMeta.creatorCountries
         });
@@ -12063,6 +12160,8 @@ function ensureActPopularityYear(year) {
 function addActPopularityPoints(yearEntry, actInfo, points, kind, week, seen) {
     if (!yearEntry || !actInfo || !Number.isFinite(points) || points <= 0)
         return;
+    const awardBoost = resolveAwardBoostMultiplierForAct(actInfo);
+    const adjustedPoints = Math.max(1, Math.round(points * awardBoost));
     const actKey = actPopularityKey(actInfo);
     if (!actKey)
         return;
@@ -12092,13 +12191,13 @@ function addActPopularityPoints(yearEntry, actInfo, points, kind, week, seen) {
         entry.country = fallbackCountry;
     if (!entry.actNameKey && fallbackNameKey)
         entry.actNameKey = fallbackNameKey;
-    entry.points += points;
+    entry.points += adjustedPoints;
     if (kind === "tracks")
-        entry.trackPoints += points;
+        entry.trackPoints += adjustedPoints;
     if (kind === "promos")
-        entry.promoPoints += points;
+        entry.promoPoints += adjustedPoints;
     if (kind === "tours")
-        entry.tourPoints += points;
+        entry.tourPoints += adjustedPoints;
     if (actInfo.isPlayer)
         entry.isPlayer = true;
     if (!seen.has(actKey)) {
@@ -12287,14 +12386,22 @@ function findChartMonopoly() {
 function announceWin(reason) {
     if (state.meta.winState)
         return;
-    state.meta.winState = { reason, year: currentYear(), exp: state.meta.exp };
+    const bailoutUsed = Boolean(state.meta?.bailoutUsed);
+    state.meta.winState = { reason, year: currentYear(), exp: state.meta.exp, bailoutUsed };
     logEvent(`Victory secured: ${reason}.`);
+    if (bailoutUsed) {
+        logEvent("Bailout used: win flagged for leaderboards.", "warn");
+    }
     if (!state.meta.winShown) {
         state.meta.winShown = true;
-        uiHooks.showEndScreen?.("You Won", [
-            { title: reason, detail: `EXP ${formatCount(state.meta.exp)} | ${formatDate(state.time.epochMs)}` },
-            { title: "Continue Play", detail: "You can keep playing until Year 4000." }
-        ]);
+        const lines = [
+            { title: reason, detail: `EXP ${formatCount(state.meta.exp)} | ${formatDate(state.time.epochMs)}` }
+        ];
+        if (bailoutUsed) {
+            lines.push({ title: "Bailout used", detail: "Win flagged for leaderboards." });
+        }
+        lines.push({ title: "Continue Play", detail: "You can keep playing until Year 4000." });
+        uiHooks.showEndScreen?.("You Won", lines);
     }
 }
 function archiveLossGame(reason, slotIndex) {
@@ -12338,12 +12445,19 @@ function finalizeGame(result, reason) {
     if (state.meta.gameOver)
         return;
     const endedSlot = session.activeSlot;
-    state.meta.gameOver = { result, reason, year: currentYear(), exp: state.meta.exp };
+    const bailoutUsed = Boolean(state.meta?.bailoutUsed);
+    state.meta.gameOver = { result, reason, year: currentYear(), exp: state.meta.exp, bailoutUsed };
     setTimeSpeed("pause");
     const title = result === "win" ? "You Won" : "Game Over - You Lost";
     const lines = [
         { title: reason, detail: `EXP ${formatCount(state.meta.exp)} | End ${formatDate(state.time.epochMs)}` }
     ];
+    if (result === "win" && bailoutUsed) {
+        lines.push({ title: "Bailout used", detail: "Win flagged for leaderboards." });
+        if (!state.meta.winState) {
+            logEvent("Bailout used: win flagged for leaderboards.", "warn");
+        }
+    }
     if (result === "loss") {
         lines.push({ title: "Loss archived", detail: `Saved to Loss Archives (last ${LOSS_ARCHIVE_LIMIT}).` });
         const cash = formatMoney(state.label?.cash ?? 0);
@@ -12380,10 +12494,11 @@ function acceptBailout() {
         return false;
     state.meta.bailoutUsed = true;
     state.meta.bailoutPending = false;
-    state.meta.achievementsLocked = true;
+    if (state.meta.achievementsLocked)
+        state.meta.achievementsLocked = false;
     const difficulty = getGameDifficulty(state.meta?.difficulty);
     state.label.cash = difficulty.bailoutAmount;
-    logEvent(`Bailout accepted: debt cleared and ${formatMoney(difficulty.bailoutAmount)} granted. Achievements locked.`, "warn");
+    logEvent(`Bailout accepted: debt cleared and ${formatMoney(difficulty.bailoutAmount)} granted. Achievements still track; win flagged for leaderboards.`, "warn");
     return true;
 }
 function declineBailout() {
@@ -12452,7 +12567,8 @@ const QUEST_FOCUS_REQUESTS = {
     tracks: ["REQ-01", "REQ-02", "REQ-03"],
     projects: ["REQ-04", "REQ-05", "REQ-06"],
     promos: ["REQ-07", "REQ-08", "REQ-09"],
-    tours: ["REQ-10", "REQ-11", "REQ-12"]
+    tours: ["REQ-10", "REQ-11", "REQ-12"],
+    awards: ["REQ-01", "REQ-02", "REQ-03", "REQ-04", "REQ-05", "REQ-06", "REQ-07", "REQ-08", "REQ-09", "REQ-10", "REQ-11", "REQ-12"]
 };
 function questFocusRequests(group) {
     const list = QUEST_FOCUS_REQUESTS[group];
@@ -12476,6 +12592,33 @@ function countPlayerTourBookings() {
     const bookings = Array.isArray(state.touring?.bookings) ? state.touring.bookings : [];
     const label = state.label?.name || "";
     return bookings.filter((booking) => booking?.label === label).length;
+}
+function countAwardShowNominationsSince(startAt, labelName = state.label?.name) {
+    if (!Number.isFinite(startAt) || !labelName)
+        return 0;
+    const store = ensureAwardShowStore();
+    return (store.shows || []).reduce((total, show) => {
+        if (!show || !Number.isFinite(show.showAt) || show.showAt < startAt)
+            return total;
+        const nominations = Array.isArray(show.categories)
+            ? show.categories.flatMap((category) => category?.nominees || [])
+            : [];
+        const count = nominations.filter((nominee) => nominee?.label === labelName).length;
+        return total + count;
+    }, 0);
+}
+function countAwardShowWinsSince(startAt, labelName = state.label?.name) {
+    if (!Number.isFinite(startAt) || !labelName)
+        return 0;
+    const store = ensureAwardShowStore();
+    return (store.shows || []).reduce((total, show) => {
+        if (!show || !Number.isFinite(show.showAt) || show.showAt < startAt)
+            return total;
+        const wins = Array.isArray(show.categories)
+            ? show.categories.filter((category) => category?.winner?.label === labelName).length
+            : 0;
+        return total + wins;
+    }, 0);
 }
 function pickQuestChartScope() {
     const roll = Math.random();
@@ -12621,7 +12764,7 @@ function questTemplates() {
             focusGroup: "projects",
             focusRequests: questFocusRequests("projects"),
             build: (week) => {
-                const options = week < 12 ? ["Single", "EP"] : ["EP", "Album"];
+                const options = week < 12 ? ["EP"] : ["EP", "Album"];
                 const projectType = pickOne(options);
                 const target = 1;
                 const startCount = countReleasedProjects(projectType);
@@ -12672,6 +12815,42 @@ function questTemplates() {
                     expReward: 420 + target * 40,
                     story: "CEO Directive: lock tour dates to chase touring awards.",
                     text: `Book ${target} tour date${target === 1 ? "" : "s"}`
+                };
+            }
+        },
+        {
+            type: "awardNominations",
+            focusGroup: "awards",
+            focusRequests: questFocusRequests("awards"),
+            isAvailable: () => hasReleasedTracks,
+            build: (week) => {
+                const target = clamp(1 + Math.floor(week / 12), 1, 3);
+                return {
+                    target,
+                    progress: 0,
+                    startAt: state.time.epochMs,
+                    reward: 3200 + target * 700,
+                    expReward: 400 + target * 50,
+                    story: "CEO Directive: earn nominations on the awards circuit.",
+                    text: `Earn ${target} award nomination${target === 1 ? "" : "s"}`
+                };
+            }
+        },
+        {
+            type: "awardWins",
+            focusGroup: "awards",
+            focusRequests: questFocusRequests("awards"),
+            isAvailable: () => hasReleasedTracks,
+            build: (week) => {
+                const target = clamp(1 + Math.floor(week / 20), 1, 2);
+                return {
+                    target,
+                    progress: 0,
+                    startAt: state.time.epochMs,
+                    reward: 4200 + target * 900,
+                    expReward: 520 + target * 60,
+                    story: "CEO Directive: convert nominations into award wins.",
+                    text: `Win ${target} award${target === 1 ? "" : "s"}`
                 };
             }
         }
@@ -12743,6 +12922,16 @@ function updateQuests() {
         if (quest.type === "tourBookings") {
             const current = countPlayerTourBookings();
             quest.progress = current - (quest.startCount || 0);
+            quest.done = quest.progress >= quest.target;
+        }
+        if (quest.type === "awardNominations") {
+            const startAt = Number.isFinite(quest.startAt) ? quest.startAt : quest.createdAt;
+            quest.progress = countAwardShowNominationsSince(startAt);
+            quest.done = quest.progress >= quest.target;
+        }
+        if (quest.type === "awardWins") {
+            const startAt = Number.isFinite(quest.startAt) ? quest.startAt : quest.createdAt;
+            quest.progress = countAwardShowWinsSince(startAt);
             quest.done = quest.progress >= quest.target;
         }
         if (quest.type === "cash") {
@@ -14555,6 +14744,94 @@ const ANNUAL_AWARD_DEFS = [
     { id: "REQ-11", metric: "sales", store: "tours" },
     { id: "REQ-12", metric: "critics", store: "tours" }
 ];
+const AWARD_SHOW_FAMILIES = [
+    {
+        id: "praised",
+        label: "Praised Content Awards",
+        ratingFocus: "critics",
+        categories: [
+            { id: "critics-track", label: "Critics' Track of the Month", contentType: "tracks", ratingMode: "critics", nomineeCount: 12 },
+            { id: "critics-project", label: "Critics' Project of the Month", contentType: "projects", ratingMode: "critics", nomineeCount: 8 },
+            { id: "critics-promo", label: "Critics' Promo of the Month", contentType: "promos", ratingMode: "critics", nomineeCount: 8 },
+            { id: "critics-tour", label: "Critics' Tour of the Month", contentType: "tours", ratingMode: "critics", nomineeCount: 5 },
+            { id: "critics-breakthrough", label: "Critics' Breakthrough Act", contentType: "acts", ratingMode: "critics", nomineeCount: 6, kind: "breakthrough" }
+        ]
+    },
+    {
+        id: "pop",
+        label: "Pop Content Awards",
+        ratingFocus: "audience",
+        categories: [
+            {
+                id: "audience-track",
+                label: "Most Streamed Track",
+                contentType: "tracks",
+                ratingMode: "audience",
+                nomineeCount: 12,
+                minPromoTypes: AWARD_SHOW_AUDIENCE_PROMO_TYPES_REQUIRED
+            },
+            {
+                id: "audience-project",
+                label: "Best-Selling Project",
+                contentType: "projects",
+                ratingMode: "audience",
+                nomineeCount: 8,
+                minPromoTypes: AWARD_SHOW_AUDIENCE_PROMO_TYPES_REQUIRED
+            },
+            {
+                id: "audience-promo",
+                label: "Most-Engaged Promo",
+                contentType: "promos",
+                ratingMode: "audience",
+                nomineeCount: 8,
+                minPromoTypes: AWARD_SHOW_AUDIENCE_PROMO_TYPES_REQUIRED
+            },
+            {
+                id: "audience-tour",
+                label: "Most Attended Tour",
+                contentType: "tours",
+                ratingMode: "audience",
+                nomineeCount: 5,
+                minPromoTypes: AWARD_SHOW_AUDIENCE_PROMO_TYPES_REQUIRED
+            },
+            {
+                id: "fan-surge",
+                label: "Fan Surge Act",
+                contentType: "acts",
+                ratingMode: "audience",
+                nomineeCount: 6,
+                minPromoTypes: AWARD_SHOW_AUDIENCE_PROMO_TYPES_REQUIRED
+            }
+        ]
+    },
+    {
+        id: "impact",
+        label: "Impact Circuit Awards",
+        ratingFocus: "hybrid",
+        categories: [
+            { id: "impact-track", label: "Track Impact of the Month", contentType: "tracks", ratingMode: "hybrid", nomineeCount: 8 },
+            { id: "impact-project", label: "Project Impact of the Month", contentType: "projects", ratingMode: "hybrid", nomineeCount: 6 },
+            {
+                id: "impact-video",
+                label: "Music Video Impact",
+                contentType: "promos",
+                ratingMode: "hybrid",
+                nomineeCount: 6,
+                promoType: "musicVideo"
+            },
+            {
+                id: "impact-live",
+                label: "Live Performance Impact",
+                contentType: "promos",
+                ratingMode: "hybrid",
+                nomineeCount: 6,
+                promoType: "livePerformance"
+            },
+            { id: "impact-tour", label: "Tour Impact of the Month", contentType: "tours", ratingMode: "hybrid", nomineeCount: 5 },
+            { id: "impact-act", label: "Act Impact of the Month", contentType: "acts", ratingMode: "hybrid", nomineeCount: 6 }
+        ]
+    }
+];
 function buildAnnualAwardsFromStores(stores) {
     const awards = {};
     ANNUAL_AWARD_DEFS.forEach((definition) => {
@@ -15283,6 +15560,1197 @@ async function maybeReleaseAnnualAwards(now = state.time.epochMs) {
     uiHooks.renderAll?.();
     return awards;
 }
+function awardShowMonthKey(year, monthIndex) {
+    if (!Number.isFinite(year) || !Number.isFinite(monthIndex))
+        return "";
+    const month = String(monthIndex + 1).padStart(2, "0");
+    return `${year}-${month}`;
+}
+function awardShowMonthKeyFromEpoch(epochMs) {
+    if (!Number.isFinite(epochMs))
+        return "";
+    const date = new Date(epochMs);
+    return awardShowMonthKey(date.getUTCFullYear(), date.getUTCMonth());
+}
+function awardShowId(year, monthIndex, familyId) {
+    const key = awardShowMonthKey(year, monthIndex);
+    if (!key || !familyId)
+        return null;
+    return `AS-${key}-${familyId}`;
+}
+function awardShowNthSaturday(year, monthIndex, slotIndex) {
+    const slot = Math.max(0, Math.floor(Number(slotIndex) || 0));
+    const base = new Date(Date.UTC(year, monthIndex, 1, 20, 0, 0));
+    const day = base.getUTCDay();
+    const offset = (6 - day + 7) % 7;
+    const date = 1 + offset + slot * 7;
+    return Date.UTC(year, monthIndex, date, 20, 0, 0);
+}
+function awardShowTimeline(showAt) {
+    if (!Number.isFinite(showAt))
+        return { lockAt: null, revealAt: null, weekStart: null };
+    const showDate = new Date(showAt);
+    const day = showDate.getUTCDay();
+    const weekStart = startOfDayEpochMs(showAt) - day * DAY_MS;
+    const lockAt = weekStart + 3 * DAY_MS + 12 * HOUR_MS;
+    const revealAt = weekStart + 5 * DAY_MS + 12 * HOUR_MS;
+    return { lockAt, revealAt, weekStart };
+}
+function buildAwardNominationWindow(showAt, weeks = AWARD_SHOW_WINDOW_WEEKS) {
+    if (!Number.isFinite(showAt))
+        return { startWeek: null, endWeek: null, startEpoch: null, endEpoch: null };
+    const showWeek = weekIndexForEpochMs(showAt) + 1;
+    const safeWeeks = Math.max(1, Math.round(Number(weeks) || AWARD_SHOW_WINDOW_WEEKS));
+    const endWeek = Math.max(1, showWeek - 1);
+    const startWeek = Math.max(1, endWeek - (safeWeeks - 1));
+    const startEpoch = weekStartEpochMs(startWeek);
+    const endEpoch = weekStartEpochMs(endWeek + 1) - 1;
+    return { startWeek, endWeek, startEpoch, endEpoch };
+}
+function normalizeAwardShowCategory(category) {
+    const next = category || {};
+    if (!next.id)
+        next.id = uid("AC");
+    if (typeof next.label !== "string")
+        next.label = next.label || "Award Category";
+    if (!next.contentType)
+        next.contentType = "tracks";
+    if (!next.ratingMode)
+        next.ratingMode = "critics";
+    if (!Number.isFinite(next.nomineeCount))
+        next.nomineeCount = 6;
+    if (!Array.isArray(next.nominees))
+        next.nominees = [];
+    if (!next.winner || typeof next.winner !== "object")
+        next.winner = null;
+    if (typeof next.scoreKey !== "string")
+        next.scoreKey = null;
+    if (!Number.isFinite(next.windowWeeks))
+        next.windowWeeks = AWARD_SHOW_WINDOW_WEEKS;
+    if (typeof next.lastUpdatedAt !== "number")
+        next.lastUpdatedAt = null;
+    return next;
+}
+function normalizeAwardShowPerformance(performance) {
+    const next = performance || {};
+    if (!next.id)
+        next.id = uid("ASP");
+    if (typeof next.label !== "string")
+        next.label = next.label || "Performance";
+    if (typeof next.status !== "string")
+        next.status = "Pending";
+    if (typeof next.actId !== "string")
+        next.actId = next.actId || null;
+    if (typeof next.actName !== "string")
+        next.actName = next.actName || null;
+    if (typeof next.actNameKey !== "string")
+        next.actNameKey = next.actNameKey || null;
+    if (typeof next.labelName !== "string")
+        next.labelName = next.labelName || null;
+    if (typeof next.trackId !== "string")
+        next.trackId = next.trackId || null;
+    if (typeof next.executedAt !== "number")
+        next.executedAt = null;
+    return next;
+}
+function normalizeAwardShowEntry(show) {
+    const next = show || {};
+    if (!next.id)
+        return null;
+    if (typeof next.familyId !== "string")
+        next.familyId = next.familyId || null;
+    if (typeof next.label !== "string")
+        next.label = next.label || "Award Show";
+    if (typeof next.ratingFocus !== "string")
+        next.ratingFocus = next.ratingFocus || null;
+    if (!Number.isFinite(next.showAt))
+        next.showAt = null;
+    if (!Number.isFinite(next.nominationLockAt))
+        next.nominationLockAt = null;
+    if (!Number.isFinite(next.nominationRevealAt))
+        next.nominationRevealAt = null;
+    if (!next.nominationWindow || typeof next.nominationWindow !== "object") {
+        next.nominationWindow = buildAwardNominationWindow(next.showAt);
+    }
+    else {
+        const window = next.nominationWindow;
+        if (!Number.isFinite(window.startWeek))
+            window.startWeek = null;
+        if (!Number.isFinite(window.endWeek))
+            window.endWeek = null;
+        if (!Number.isFinite(window.startEpoch))
+            window.startEpoch = null;
+        if (!Number.isFinite(window.endEpoch))
+            window.endEpoch = null;
+    }
+    if (typeof next.status !== "string")
+        next.status = "Scheduled";
+    if (!Array.isArray(next.categories))
+        next.categories = [];
+    next.categories = next.categories.map((category) => normalizeAwardShowCategory(category)).filter(Boolean);
+    if (!Array.isArray(next.performances))
+        next.performances = [];
+    next.performances = next.performances.map((slot) => normalizeAwardShowPerformance(slot)).filter(Boolean);
+    if (typeof next.monthKey !== "string")
+        next.monthKey = next.monthKey || null;
+    if (!Number.isFinite(next.year))
+        next.year = null;
+    if (!Number.isFinite(next.monthIndex))
+        next.monthIndex = null;
+    if (typeof next.lockedAt !== "number")
+        next.lockedAt = null;
+    if (typeof next.revealedAt !== "number")
+        next.revealedAt = null;
+    if (typeof next.resolvedAt !== "number")
+        next.resolvedAt = null;
+    if (typeof next.createdAt !== "number")
+        next.createdAt = null;
+    if (typeof next.lockNote !== "string")
+        next.lockNote = next.lockNote || null;
+    return next;
+}
+function ensureAwardShowStore() {
+    if (!state.meta)
+        state.meta = makeDefaultState().meta;
+    if (!state.meta.awardShows || typeof state.meta.awardShows !== "object") {
+        state.meta.awardShows = { shows: [], lastScheduledMonth: null };
+    }
+    if (!Array.isArray(state.meta.awardShows.shows))
+        state.meta.awardShows.shows = [];
+    if (typeof state.meta.awardShows.lastScheduledMonth !== "string") {
+        state.meta.awardShows.lastScheduledMonth = null;
+    }
+    return state.meta.awardShows;
+}
+function ensureAwardBoostStore() {
+    if (!state.meta)
+        state.meta = makeDefaultState().meta;
+    if (!state.meta.awardBoosts || typeof state.meta.awardBoosts !== "object") {
+        state.meta.awardBoosts = { acts: {}, content: {} };
+    }
+    if (!state.meta.awardBoosts.acts || typeof state.meta.awardBoosts.acts !== "object") {
+        state.meta.awardBoosts.acts = {};
+    }
+    if (!state.meta.awardBoosts.content || typeof state.meta.awardBoosts.content !== "object") {
+        state.meta.awardBoosts.content = {};
+    }
+    return state.meta.awardBoosts;
+}
+function pruneAwardBoosts(now = state.time.epochMs) {
+    const boosts = ensureAwardBoostStore();
+    const prune = (map) => {
+        Object.keys(map).forEach((key) => {
+            const entry = map[key];
+            if (!entry || typeof entry !== "object") {
+                delete map[key];
+                return;
+            }
+            if (!Number.isFinite(entry.expiresAt) || entry.expiresAt <= now) {
+                delete map[key];
+            }
+        });
+    };
+    prune(boosts.acts);
+    prune(boosts.content);
+}
+function resolveAwardBoostMultiplier(map, key, now = state.time.epochMs) {
+    if (!key || !map)
+        return 1;
+    const entry = map[key];
+    if (!entry || typeof entry !== "object")
+        return 1;
+    if (!Number.isFinite(entry.expiresAt) || entry.expiresAt <= now) {
+        delete map[key];
+        return 1;
+    }
+    const pct = Number(entry.pct || 0);
+    return pct > 0 ? 1 + pct : 1;
+}
+function applyAwardBoostEntry(map, key, pct, weeks, meta) {
+    if (!key || !map || !Number.isFinite(pct) || pct <= 0)
+        return false;
+    const now = state.time.epochMs;
+    const durationWeeks = Math.max(1, Math.round(Number(weeks) || 1));
+    const durationMs = durationWeeks * WEEK_MS;
+    const existing = map[key];
+    const nextPct = Math.max(existing?.pct || 0, pct);
+    const nextExpires = Math.max(existing?.expiresAt || 0, now + durationMs);
+    map[key] = { pct: nextPct, expiresAt: nextExpires, updatedAt: now, source: meta || null };
+    return true;
+}
+function resolveAwardBoostMultiplierForAct(actInfo, now = state.time.epochMs) {
+    const actKey = resolveAwardActKey(actInfo);
+    const boosts = ensureAwardBoostStore();
+    return resolveAwardBoostMultiplier(boosts.acts, actKey, now);
+}
+function resolveAwardContentBoostMultiplierForTrack(track, now = state.time.epochMs) {
+    if (!track)
+        return 1;
+    const boosts = ensureAwardBoostStore();
+    const map = boosts.content;
+    const trackId = track.trackId || track.id || null;
+    const keys = [];
+    if (trackId)
+        keys.push(`track:${trackId}`);
+    const projectName = normalizeProjectName(track.projectName || "");
+    const projectType = normalizeProjectType(track.projectType || "Single");
+    if (projectName) {
+        const label = track.label || "";
+        const actName = track.actName || "";
+        keys.push(`project:${projectName}::${projectType}::${label}::${actName}`);
+    }
+    if (!keys.length)
+        return 1;
+    return keys.reduce((best, key) => Math.max(best, resolveAwardBoostMultiplier(map, key, now)), 1);
+}
+function resolveAwardBoostMultiplierForPromo(entry, now = state.time.epochMs) {
+    if (!entry)
+        return 1;
+    const boosts = ensureAwardBoostStore();
+    const key = entry.id ? `promo:${entry.id}` : null;
+    return resolveAwardBoostMultiplier(boosts.content, key, now);
+}
+function resolveAwardBoostMultiplierForTour(entry, now = state.time.epochMs) {
+    if (!entry)
+        return 1;
+    const boosts = ensureAwardBoostStore();
+    const key = entry.actKey ? `tour:${entry.actKey}` : null;
+    return resolveAwardBoostMultiplier(boosts.content, key, now);
+}
+function awardTrackCandidateKey(entry) {
+    if (!entry)
+        return null;
+    return entry.trackId || entry.marketId || entry.id || entry.title || null;
+}
+function awardProjectCandidateKey(entry) {
+    if (!entry)
+        return null;
+    const projectName = normalizeProjectName(entry.projectName || "");
+    if (!projectName)
+        return null;
+    const projectType = normalizeProjectType(entry.projectType || "Single");
+    const label = entry.label || "Unknown";
+    const actName = entry.actName || "Unknown";
+    return `${projectName}::${projectType}::${label}::${actName}`;
+}
+function awardPromoCandidateKey(entry) {
+    if (!entry)
+        return null;
+    return entry.id || entry.trackId || entry.marketId || null;
+}
+function awardTourCandidateKey(entry) {
+    if (!entry)
+        return null;
+    return entry.actKey || tourActKey(entry);
+}
+function buildPromoEntryLookup() {
+    const map = new Map();
+    if (Array.isArray(state.promoContent)) {
+        state.promoContent.forEach((entry) => {
+            if (!entry?.id)
+                return;
+            map.set(entry.id, entry);
+        });
+    }
+    return map;
+}
+function resolveAwardTrackReleaseAt(entry) {
+    if (!entry)
+        return null;
+    const market = entry.marketId ? resolveMarketEntryById(entry.marketId) : null;
+    if (Number.isFinite(market?.releasedAt))
+        return market.releasedAt;
+    const track = entry.trackId ? getTrack(entry.trackId) : null;
+    if (Number.isFinite(track?.releasedAt))
+        return track.releasedAt;
+    return null;
+}
+function resolveAwardProjectReleaseAt(entry) {
+    if (!entry)
+        return null;
+    const primaryTrackId = entry.primaryTrackId || entry.primaryTrack?.trackId || entry.primaryTrack?.id || null;
+    if (primaryTrackId) {
+        const market = resolveMarketEntryByTrackId(primaryTrackId);
+        if (Number.isFinite(market?.releasedAt))
+            return market.releasedAt;
+        const track = getTrack(primaryTrackId);
+        if (Number.isFinite(track?.releasedAt))
+            return track.releasedAt;
+    }
+    return resolveAwardTrackReleaseAt(entry.primaryTrack || entry);
+}
+function ensureShowCandidate(map, key, entry, contentType) {
+    if (!key || !map)
+        return null;
+    let candidate = map.get(key);
+    if (!candidate) {
+        candidate = {
+            key,
+            contentType,
+            actKey: resolveAwardActKey(entry) || key,
+            actId: entry?.actId || null,
+            actName: entry?.actName || "Unknown",
+            actNameKey: entry?.actNameKey || null,
+            label: entry?.label || "",
+            title: entry?.title || "",
+            projectName: entry?.projectName || "",
+            projectType: normalizeProjectType(entry?.projectType || "Single"),
+            promoType: entry?.promoType || null,
+            trackId: entry?.trackId || null,
+            marketId: entry?.marketId || null,
+            primaryTrackId: entry?.primaryTrackId || null,
+            criticScoreTotal: 0,
+            criticScoreWeight: 0,
+            audienceScoreTotal: 0,
+            audienceScoreWeight: 0,
+            appearances: 0,
+            dateCount: 0,
+            createdAt: null,
+            releasedAt: null,
+            firstSeenAt: null
+        };
+        map.set(key, candidate);
+    }
+    if (!candidate.actId && entry?.actId)
+        candidate.actId = entry.actId;
+    if ((!candidate.actName || candidate.actName === "Unknown") && entry?.actName)
+        candidate.actName = entry.actName;
+    if (!candidate.actNameKey && entry?.actNameKey)
+        candidate.actNameKey = entry.actNameKey;
+    if (!candidate.label && entry?.label)
+        candidate.label = entry.label;
+    if (!candidate.title && entry?.title)
+        candidate.title = entry.title;
+    if (!candidate.projectName && entry?.projectName)
+        candidate.projectName = entry.projectName;
+    if (entry?.projectType)
+        candidate.projectType = normalizeProjectType(entry.projectType || candidate.projectType);
+    if (!candidate.trackId && entry?.trackId)
+        candidate.trackId = entry.trackId;
+    if (!candidate.marketId && entry?.marketId)
+        candidate.marketId = entry.marketId;
+    if (!candidate.primaryTrackId && entry?.primaryTrackId)
+        candidate.primaryTrackId = entry.primaryTrackId;
+    return candidate;
+}
+function updateAwardActAggregate(map, entry, criticScore, audienceScore, weight, seenAt) {
+    const actKey = resolveAwardActKey(entry);
+    if (!actKey)
+        return;
+    let candidate = map.get(actKey);
+    if (!candidate) {
+        candidate = {
+            key: actKey,
+            contentType: "acts",
+            actKey,
+            actId: entry?.actId || null,
+            actName: entry?.actName || "Unknown",
+            actNameKey: entry?.actNameKey || null,
+            label: entry?.label || "",
+            criticScoreTotal: 0,
+            criticScoreWeight: 0,
+            audienceScoreTotal: 0,
+            audienceScoreWeight: 0,
+            appearances: 0,
+            firstSeenAt: null
+        };
+        map.set(actKey, candidate);
+    }
+    candidate.criticScoreTotal += Number(criticScore || 0) * weight;
+    candidate.criticScoreWeight += weight;
+    candidate.audienceScoreTotal += Number(audienceScore || 0) * weight;
+    candidate.audienceScoreWeight += weight;
+    candidate.appearances += 1;
+    if (Number.isFinite(seenAt) && (!Number.isFinite(candidate.firstSeenAt) || seenAt < candidate.firstSeenAt)) {
+        candidate.firstSeenAt = seenAt;
+    }
+}
+function finalizeAwardCandidateScores(map) {
+    if (!map)
+        return;
+    map.forEach((candidate) => {
+        const criticScore = candidate.criticScoreWeight
+            ? Math.round(candidate.criticScoreTotal / candidate.criticScoreWeight)
+            : 0;
+        const audienceScore = Number.isFinite(candidate.audienceScoreTotal) ? candidate.audienceScoreTotal : 0;
+        candidate.criticScore = criticScore;
+        candidate.audienceScore = audienceScore;
+        candidate.appearances = Math.max(0, Math.round(candidate.appearances || 0));
+    });
+}
+function buildAwardCandidateMaps(snapshots, window) {
+    const maps = {
+        tracks: new Map(),
+        projects: new Map(),
+        promos: new Map(),
+        tours: new Map(),
+        acts: new Map()
+    };
+    const promoLookup = buildPromoEntryLookup();
+    const list = Array.isArray(snapshots) ? snapshots : [];
+    list.forEach((snapshot) => {
+        if (!snapshot)
+            return;
+        const scope = String(snapshot.scope || "");
+        const scopeKey = normalizeCriticScopeKey(scope);
+        const weight = criticScopeWeight(scopeKey);
+        const entries = Array.isArray(snapshot.entries) ? snapshot.entries : [];
+        if (!entries.length)
+            return;
+        if (scope.startsWith("promo:")) {
+            entries.forEach((entry) => {
+                const key = awardPromoCandidateKey(entry);
+                if (!key)
+                    return;
+                const candidate = ensureShowCandidate(maps.promos, key, entry, "promos");
+                const promoMeta = promoLookup.get(key);
+                if (promoMeta) {
+                    candidate.promoType = promoMeta.promoType || candidate.promoType;
+                    if (!Number.isFinite(candidate.createdAt))
+                        candidate.createdAt = promoMeta.createdAt;
+                }
+                if (!Number.isFinite(candidate.createdAt) && Number.isFinite(entry.createdAt)) {
+                    candidate.createdAt = entry.createdAt;
+                }
+                const criticScore = resolveCriticScoreForEntry(entry, scopeKey);
+                const audienceScore = promoPrimaryMetric(entry.metrics);
+                candidate.criticScoreTotal += criticScore * weight;
+                candidate.criticScoreWeight += weight;
+                candidate.audienceScoreTotal += audienceScore * weight;
+                candidate.audienceScoreWeight += weight;
+                candidate.appearances += 1;
+                if (Number.isFinite(snapshot.ts) && (!Number.isFinite(candidate.firstSeenAt) || snapshot.ts < candidate.firstSeenAt)) {
+                    candidate.firstSeenAt = snapshot.ts;
+                }
+                updateAwardActAggregate(maps.acts, entry, criticScore, audienceScore, weight, snapshot.ts);
+            });
+            return;
+        }
+        if (scope.startsWith("tour:")) {
+            entries.forEach((entry) => {
+                const key = awardTourCandidateKey(entry);
+                if (!key)
+                    return;
+                const candidate = ensureShowCandidate(maps.tours, key, entry, "tours");
+                candidate.actKey = entry.actKey || candidate.actKey;
+                const criticScore = resolveCriticScoreForEntry(entry, scopeKey);
+                const audienceScore = Number(entry.metrics?.attendance || 0);
+                candidate.criticScoreTotal += criticScore * weight;
+                candidate.criticScoreWeight += weight;
+                candidate.audienceScoreTotal += audienceScore * weight;
+                candidate.audienceScoreWeight += weight;
+                if (scopeKey === "global")
+                    candidate.dateCount += 1;
+                candidate.appearances += 1;
+                if (Number.isFinite(snapshot.ts) && (!Number.isFinite(candidate.firstSeenAt) || snapshot.ts < candidate.firstSeenAt)) {
+                    candidate.firstSeenAt = snapshot.ts;
+                }
+                updateAwardActAggregate(maps.acts, entry, criticScore, audienceScore, weight, snapshot.ts);
+            });
+            return;
+        }
+        entries.forEach((entry) => {
+            const key = awardTrackCandidateKey(entry);
+            if (!key)
+                return;
+            const candidate = ensureShowCandidate(maps.tracks, key, entry, "tracks");
+            if (!Number.isFinite(candidate.releasedAt))
+                candidate.releasedAt = resolveAwardTrackReleaseAt(entry);
+            const criticScore = resolveCriticScoreForEntry(entry, scopeKey);
+            const audienceScore = salesEquivalentFromMetrics(entry.metrics);
+            candidate.criticScoreTotal += criticScore * weight;
+            candidate.criticScoreWeight += weight;
+            candidate.audienceScoreTotal += audienceScore * weight;
+            candidate.audienceScoreWeight += weight;
+            candidate.appearances += 1;
+            if (Number.isFinite(snapshot.ts) && (!Number.isFinite(candidate.firstSeenAt) || snapshot.ts < candidate.firstSeenAt)) {
+                candidate.firstSeenAt = snapshot.ts;
+            }
+            updateAwardActAggregate(maps.acts, entry, criticScore, audienceScore, weight, snapshot.ts);
+        });
+        const projectEntries = collectProjectAwardEntries(entries, scopeKey);
+        projectEntries.forEach((entry) => {
+            const key = awardProjectCandidateKey(entry);
+            if (!key)
+                return;
+            const candidate = ensureShowCandidate(maps.projects, key, entry, "projects");
+            if (!Number.isFinite(candidate.releasedAt))
+                candidate.releasedAt = resolveAwardProjectReleaseAt(entry);
+            if (entry.primaryTrackId)
+                candidate.primaryTrackId = entry.primaryTrackId;
+            const criticScore = Number(entry.criticScore || 0);
+            const audienceScore = salesEquivalentFromMetrics(entry.metrics);
+            candidate.criticScoreTotal += criticScore * weight;
+            candidate.criticScoreWeight += weight;
+            candidate.audienceScoreTotal += audienceScore * weight;
+            candidate.audienceScoreWeight += weight;
+            candidate.appearances += 1;
+            if (Number.isFinite(snapshot.ts) && (!Number.isFinite(candidate.firstSeenAt) || snapshot.ts < candidate.firstSeenAt)) {
+                candidate.firstSeenAt = snapshot.ts;
+            }
+            updateAwardActAggregate(maps.acts, entry, criticScore, audienceScore, weight, snapshot.ts);
+        });
+    });
+    finalizeAwardCandidateScores(maps.tracks);
+    finalizeAwardCandidateScores(maps.projects);
+    finalizeAwardCandidateScores(maps.promos);
+    finalizeAwardCandidateScores(maps.tours);
+    finalizeAwardCandidateScores(maps.acts);
+    return maps;
+}
+function buildActPromoTypeMap(window) {
+    const map = new Map();
+    if (!window || !Array.isArray(state.promoContent))
+        return map;
+    state.promoContent.forEach((entry) => {
+        if (!entry || !Number.isFinite(entry.createdAt))
+            return;
+        if (!isEpochInWindow(entry.createdAt, window))
+            return;
+        const actKey = resolveAwardActKey(entry);
+        if (!actKey)
+            return;
+        const set = map.get(actKey) || new Set();
+        if (entry.promoType)
+            set.add(entry.promoType);
+        map.set(actKey, set);
+    });
+    return map;
+}
+function buildEligibleActSet(maps, window) {
+    const set = new Set();
+    if (!window || !maps)
+        return set;
+    const addAct = (candidate) => {
+        if (candidate?.actKey)
+            set.add(candidate.actKey);
+    };
+    Array.from(maps.tracks.values()).forEach((candidate) => {
+        if (Number.isFinite(candidate.releasedAt) && isEpochInWindow(candidate.releasedAt, window))
+            addAct(candidate);
+    });
+    Array.from(maps.projects.values()).forEach((candidate) => {
+        if (Number.isFinite(candidate.releasedAt) && isEpochInWindow(candidate.releasedAt, window))
+            addAct(candidate);
+    });
+    Array.from(maps.promos.values()).forEach((candidate) => {
+        if (Number.isFinite(candidate.createdAt) && isEpochInWindow(candidate.createdAt, window))
+            addAct(candidate);
+    });
+    Array.from(maps.tours.values()).forEach((candidate) => {
+        if (candidate.dateCount >= 2)
+            addAct(candidate);
+    });
+    return set;
+}
+function isEpochInWindow(epochMs, window) {
+    if (!Number.isFinite(epochMs) || !window)
+        return false;
+    return epochMs >= window.startEpoch && epochMs <= window.endEpoch;
+}
+function normalizeAwardAudienceScore(value, min, max) {
+    if (!Number.isFinite(value))
+        return 50;
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max === min)
+        return 50;
+    return Math.round(clamp((value - min) / (max - min), 0, 1) * 100);
+}
+function applyHybridScores(candidates) {
+    if (!Array.isArray(candidates) || !candidates.length)
+        return;
+    const values = candidates.map((candidate) => candidate.audienceScore).filter(Number.isFinite);
+    const min = values.length ? Math.min(...values) : 0;
+    const max = values.length ? Math.max(...values) : 0;
+    candidates.forEach((candidate) => {
+        const normalized = normalizeAwardAudienceScore(candidate.audienceScore, min, max);
+        const hybridScore = Math.round((candidate.criticScore || 0) * AWARD_HYBRID_CRITIC_WEIGHT
+            + normalized * AWARD_HYBRID_AUDIENCE_WEIGHT);
+        candidate.hybridScore = hybridScore;
+        candidate.finalQuality = clampQuality(hybridScore);
+    });
+}
+function resolveActFirstReleaseAt(candidate) {
+    if (!candidate)
+        return null;
+    const actId = candidate.actId;
+    const actName = candidate.actName || "";
+    const label = candidate.label || "";
+    const pool = [];
+    if (Array.isArray(state.marketTracks))
+        pool.push(...state.marketTracks);
+    if (Array.isArray(state.meta?.marketTrackArchive))
+        pool.push(...state.meta.marketTrackArchive);
+    const stamps = pool
+        .filter((track) => {
+        if (!Number.isFinite(track?.releasedAt))
+            return false;
+        if (actId && track.actId && track.actId !== actId)
+            return false;
+        if (!actId && actName && track.actName && track.actName !== actName)
+            return false;
+        if (label && track.label && track.label !== label)
+            return false;
+        return true;
+    })
+        .map((track) => track.releasedAt);
+    return stamps.length ? Math.min(...stamps) : null;
+}
+function isBreakthroughAct(candidate, showAt) {
+    if (!candidate || !Number.isFinite(showAt))
+        return false;
+    const firstReleaseAt = resolveActFirstReleaseAt(candidate);
+    if (!Number.isFinite(firstReleaseAt))
+        return false;
+    const ageWeeks = Math.floor(Math.max(0, showAt - firstReleaseAt) / WEEK_MS);
+    return ageWeeks <= 26;
+}
+function buildAwardNomineePool(category, maps, window, actPromoTypes, eligibleActs, showAt) {
+    if (!category || !maps)
+        return [];
+    let pool = [];
+    if (category.contentType === "tracks")
+        pool = Array.from(maps.tracks.values());
+    else if (category.contentType === "projects")
+        pool = Array.from(maps.projects.values());
+    else if (category.contentType === "promos")
+        pool = Array.from(maps.promos.values());
+    else if (category.contentType === "tours")
+        pool = Array.from(maps.tours.values());
+    else if (category.contentType === "acts")
+        pool = Array.from(maps.acts.values());
+    pool = pool.filter(Boolean);
+    applyHybridScores(pool);
+    if (category.contentType === "tracks" || category.contentType === "projects") {
+        pool = pool.filter((candidate) => (Number.isFinite(candidate.releasedAt)
+            && isEpochInWindow(candidate.releasedAt, window)
+            && Number(candidate.finalQuality || 0) >= AWARD_TRACK_MIN_FQ));
+    }
+    if (category.contentType === "promos") {
+        pool = pool.filter((candidate) => Number.isFinite(candidate.createdAt) && isEpochInWindow(candidate.createdAt, window));
+        if (category.promoType) {
+            pool = pool.filter((candidate) => candidate.promoType === category.promoType);
+        }
+    }
+    if (category.contentType === "tours") {
+        pool = pool.filter((candidate) => candidate.dateCount >= 2);
+    }
+    if (category.contentType === "acts") {
+        pool = pool.filter((candidate) => eligibleActs?.has(candidate.actKey));
+        if (category.kind === "breakthrough") {
+            pool = pool.filter((candidate) => isBreakthroughAct(candidate, showAt));
+        }
+    }
+    if (Number.isFinite(category.minPromoTypes) && category.minPromoTypes > 0) {
+        pool = pool.filter((candidate) => {
+            const promoSet = actPromoTypes?.get(candidate.actKey);
+            return promoSet && promoSet.size >= category.minPromoTypes;
+        });
+    }
+    return pool;
+}
+function resolveAwardCandidateTimestamp(candidate) {
+    if (!candidate)
+        return 0;
+    if (Number.isFinite(candidate.releasedAt))
+        return candidate.releasedAt;
+    if (Number.isFinite(candidate.createdAt))
+        return candidate.createdAt;
+    if (Number.isFinite(candidate.firstSeenAt))
+        return candidate.firstSeenAt;
+    return 0;
+}
+function serializeAwardCandidate(candidate, scoreKey) {
+    return {
+        key: candidate.key,
+        contentType: candidate.contentType,
+        actKey: candidate.actKey,
+        actId: candidate.actId || null,
+        actName: candidate.actName || "Unknown",
+        actNameKey: candidate.actNameKey || null,
+        label: candidate.label || "",
+        title: candidate.title || "",
+        projectName: candidate.projectName || "",
+        projectType: candidate.projectType || "",
+        promoType: candidate.promoType || null,
+        trackId: candidate.trackId || null,
+        marketId: candidate.marketId || null,
+        primaryTrackId: candidate.primaryTrackId || null,
+        score: Number(candidate?.[scoreKey] || 0),
+        criticScore: Number(candidate.criticScore || 0),
+        audienceScore: Number(candidate.audienceScore || 0),
+        hybridScore: Number(candidate.hybridScore || 0),
+        finalQuality: Number.isFinite(candidate.finalQuality) ? candidate.finalQuality : null,
+        releasedAt: Number.isFinite(candidate.releasedAt) ? candidate.releasedAt : null,
+        createdAt: Number.isFinite(candidate.createdAt) ? candidate.createdAt : null,
+        firstSeenAt: Number.isFinite(candidate.firstSeenAt) ? candidate.firstSeenAt : null
+    };
+}
+function selectAwardNominees(category, pool, actNominationCounts) {
+    const scoreKey = category.ratingMode === "audience"
+        ? "audienceScore"
+        : category.ratingMode === "hybrid"
+            ? "hybridScore"
+            : "criticScore";
+    const ordered = pool.slice().sort((a, b) => {
+        const diff = Number(b[scoreKey] || 0) - Number(a[scoreKey] || 0);
+        if (diff !== 0)
+            return diff;
+        const criticDiff = Number(b.criticScore || 0) - Number(a.criticScore || 0);
+        if (criticDiff !== 0)
+            return criticDiff;
+        const audienceDiff = Number(b.audienceScore || 0) - Number(a.audienceScore || 0);
+        if (audienceDiff !== 0)
+            return audienceDiff;
+        const timeDiff = resolveAwardCandidateTimestamp(a) - resolveAwardCandidateTimestamp(b);
+        if (timeDiff !== 0)
+            return timeDiff;
+        return String(a.key).localeCompare(String(b.key));
+    });
+    const nominees = [];
+    ordered.forEach((candidate) => {
+        if (nominees.length >= category.nomineeCount)
+            return;
+        const actKey = candidate.actKey || candidate.key;
+        const existingCount = actNominationCounts.get(actKey) || 0;
+        if (existingCount >= AWARD_SHOW_PER_ACT_CAP)
+            return;
+        nominees.push(serializeAwardCandidate(candidate, scoreKey));
+        actNominationCounts.set(actKey, existingCount + 1);
+    });
+    return { nominees, scoreKey };
+}
+function resolveAwardWinner(category) {
+    if (!category || !Array.isArray(category.nominees))
+        return null;
+    const scoreKey = category.scoreKey || (category.ratingMode === "audience"
+        ? "audienceScore"
+        : category.ratingMode === "hybrid"
+            ? "hybridScore"
+            : "criticScore");
+    const ordered = category.nominees.slice().sort((a, b) => {
+        const diff = Number(b[scoreKey] || 0) - Number(a[scoreKey] || 0);
+        if (diff !== 0)
+            return diff;
+        const criticDiff = Number(b.criticScore || 0) - Number(a.criticScore || 0);
+        if (criticDiff !== 0)
+            return criticDiff;
+        const audienceDiff = Number(b.audienceScore || 0) - Number(a.audienceScore || 0);
+        if (audienceDiff !== 0)
+            return audienceDiff;
+        const timeDiff = resolveAwardCandidateTimestamp(a) - resolveAwardCandidateTimestamp(b);
+        if (timeDiff !== 0)
+            return timeDiff;
+        return String(a.key).localeCompare(String(b.key));
+    });
+    return ordered[0] || null;
+}
+function ensureAwardShowScheduledEvent(show) {
+    if (!show || !Number.isFinite(show.showAt))
+        return;
+    const scheduledEvents = ensureScheduledEventsStore();
+    const existing = scheduledEvents.find((entry) => entry?.source === "awardShow"
+        && entry?.awardShowId === show.id
+        && entry?.eventKind === "awardShow");
+    if (existing)
+        return;
+    scheduledEvents.push({
+        id: uid("SE"),
+        scheduledAt: show.showAt,
+        eventAt: show.showAt,
+        actionType: "awardShow",
+        contentId: null,
+        actId: null,
+        actName: "Awards Circuit",
+        actNameKey: null,
+        status: "Scheduled",
+        source: "awardShow",
+        awardShowId: show.id,
+        eventKind: "awardShow",
+        label: show.label,
+        createdAt: state.time.epochMs,
+        completedAt: null
+    });
+}
+function ensureAwardPerformanceEvents(show) {
+    if (!show || !Array.isArray(show.performances))
+        return;
+    const scheduledEvents = ensureScheduledEventsStore();
+    show.performances.forEach((slot) => {
+        if (!slot?.id)
+            return;
+        const existing = scheduledEvents.find((entry) => entry?.source === "awardShow"
+            && entry?.awardShowId === show.id
+            && entry?.eventKind === "awardPerformance"
+            && entry?.performanceId === slot.id);
+        if (existing) {
+            existing.actId = slot.actId || existing.actId || null;
+            existing.actName = slot.actName || existing.actName || null;
+            existing.actNameKey = slot.actNameKey || existing.actNameKey || null;
+            existing.contentId = slot.trackId || existing.contentId || null;
+            existing.label = `${show.label} ${slot.label}`;
+            return;
+        }
+        scheduledEvents.push({
+            id: uid("SE"),
+            scheduledAt: show.showAt,
+            eventAt: show.showAt,
+            actionType: "awardPerformance",
+            contentId: slot.trackId || null,
+            actId: slot.actId || null,
+            actName: slot.actName || null,
+            actNameKey: slot.actNameKey || null,
+            status: "Scheduled",
+            source: "awardShow",
+            awardShowId: show.id,
+            performanceId: slot.id,
+            eventKind: "awardPerformance",
+            label: `${show.label} ${slot.label}`,
+            createdAt: state.time.epochMs,
+            completedAt: null
+        });
+    });
+}
+function assignAwardShowPerformances(show) {
+    if (!show || !Array.isArray(show.categories))
+        return;
+    if (!Array.isArray(show.performances) || !show.performances.length) {
+        show.performances = AWARD_SHOW_PERFORMANCE_SLOTS.map((label) => ({
+            id: uid("ASP"),
+            label,
+            status: "Pending",
+            actId: null,
+            actName: null,
+            actNameKey: null,
+            trackId: null,
+            executedAt: null
+        }));
+    }
+    const picksByAct = new Map();
+    show.categories.forEach((category) => {
+        (category.nominees || []).forEach((nominee) => {
+            if (!nominee?.actKey)
+                return;
+            const existing = picksByAct.get(nominee.actKey);
+            if (!existing || Number(nominee.score || 0) > Number(existing.score || 0)) {
+                picksByAct.set(nominee.actKey, nominee);
+            }
+        });
+    });
+    const ordered = Array.from(picksByAct.values()).sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+    show.performances.forEach((slot, index) => {
+        const candidate = ordered[index];
+        if (!candidate)
+            return;
+        slot.actKey = candidate.actKey || slot.actKey || null;
+        slot.actId = candidate.actId || slot.actId || null;
+        slot.actName = candidate.actName || slot.actName || null;
+        slot.actNameKey = candidate.actNameKey || slot.actNameKey || null;
+        slot.labelName = candidate.label || slot.labelName || null;
+        slot.trackId = candidate.trackId || candidate.primaryTrackId || slot.trackId || null;
+        slot.status = "Booked";
+    });
+    ensureAwardPerformanceEvents(show);
+}
+function applyAwardShowPerformances(show) {
+    if (!show || !Array.isArray(show.performances))
+        return;
+    show.performances.forEach((slot) => {
+        if (slot.status === "Completed")
+            return;
+        if (!slot.actId && !slot.actName)
+            return;
+        const track = slot.trackId ? getTrack(slot.trackId) : null;
+        recordPromoContent({
+            promoType: "livePerformance",
+            actId: slot.actId || null,
+            actName: slot.actName || null,
+            actNameKey: slot.actNameKey || null,
+            trackId: track?.id || slot.trackId || null,
+            projectName: track?.projectName || null,
+            label: slot.labelName || track?.label || null,
+            budget: 0,
+            weeks: 1,
+            isPlayer: track ? track.isPlayer : slot.actName === state.label?.name
+        });
+        recordPromoUsage({ track, act: slot.actId ? getAct(slot.actId) : null, promoType: "livePerformance", atMs: show.showAt });
+        slot.status = "Completed";
+        slot.executedAt = show.showAt;
+    });
+}
+function resolveAwardContentBoostKey(candidate) {
+    if (!candidate)
+        return null;
+    if (candidate.contentType === "tracks") {
+        const trackId = candidate.trackId || candidate.marketId || candidate.key;
+        return trackId ? `track:${trackId}` : null;
+    }
+    if (candidate.contentType === "projects") {
+        const projectName = normalizeProjectName(candidate.projectName || "");
+        if (!projectName)
+            return null;
+        const projectType = normalizeProjectType(candidate.projectType || "Single");
+        const label = candidate.label || "";
+        const actName = candidate.actName || "";
+        return `project:${projectName}::${projectType}::${label}::${actName}`;
+    }
+    if (candidate.contentType === "promos") {
+        return candidate.key ? `promo:${candidate.key}` : null;
+    }
+    if (candidate.contentType === "tours") {
+        return candidate.key ? `tour:${candidate.key}` : null;
+    }
+    return null;
+}
+function applyAwardShowBoosts(show) {
+    if (!show || !Array.isArray(show.categories))
+        return;
+    const boosts = ensureAwardBoostStore();
+    show.categories.forEach((category) => {
+        const nominees = Array.isArray(category.nominees) ? category.nominees : [];
+        nominees.forEach((nominee) => {
+            const actKey = nominee.actKey || resolveAwardActKey(nominee);
+            if (actKey) {
+                applyAwardBoostEntry(boosts.acts, actKey, AWARD_BOOSTS.nominee.act, AWARD_BOOSTS.nominee.weeks, {
+                    showId: show.id,
+                    categoryId: category.id,
+                    result: "nominee"
+                });
+            }
+            const contentKey = resolveAwardContentBoostKey(nominee);
+            if (contentKey) {
+                applyAwardBoostEntry(boosts.content, contentKey, AWARD_BOOSTS.nominee.content, AWARD_BOOSTS.nominee.weeks, {
+                    showId: show.id,
+                    categoryId: category.id,
+                    result: "nominee"
+                });
+            }
+        });
+        if (category.winner) {
+            const actKey = category.winner.actKey || resolveAwardActKey(category.winner);
+            if (actKey) {
+                applyAwardBoostEntry(boosts.acts, actKey, AWARD_BOOSTS.winner.act, AWARD_BOOSTS.winner.weeks, {
+                    showId: show.id,
+                    categoryId: category.id,
+                    result: "winner"
+                });
+            }
+            const contentKey = resolveAwardContentBoostKey(category.winner);
+            if (contentKey) {
+                applyAwardBoostEntry(boosts.content, contentKey, AWARD_BOOSTS.winner.content, AWARD_BOOSTS.winner.weeks, {
+                    showId: show.id,
+                    categoryId: category.id,
+                    result: "winner"
+                });
+            }
+        }
+    });
+}
+async function lockAwardShowNominations(show) {
+    if (!show || !Number.isFinite(show.showAt))
+        return { ok: false, reason: "invalid show" };
+    const baseWindow = buildAwardNominationWindow(show.showAt, AWARD_SHOW_WINDOW_WEEKS);
+    const weekList = await listChartWeeks();
+    const baseWeeks = weekList
+        .map((entry) => entry.week)
+        .filter((week) => week >= baseWindow.startWeek && week <= baseWindow.endWeek)
+        .sort((a, b) => a - b);
+    if (!baseWeeks.length) {
+        return { ok: false, reason: `no chart history in weeks ${baseWindow.startWeek}-${baseWindow.endWeek}` };
+    }
+    const baseSnapshots = (await Promise.all(baseWeeks.map((week) => fetchChartSnapshotsForWeek(week))))
+        .flat()
+        .filter((snapshot) => {
+        if (!Number.isFinite(snapshot?.ts))
+            return false;
+        return snapshot.ts >= baseWindow.startEpoch && snapshot.ts <= baseWindow.endEpoch;
+    });
+    const baseMaps = buildAwardCandidateMaps(baseSnapshots, baseWindow);
+    const baseActPromoTypes = buildActPromoTypeMap(baseWindow);
+    const baseEligibleActs = buildEligibleActSet(baseMaps, baseWindow);
+    let extended = null;
+    const actNominationCounts = new Map();
+    show.categories = show.categories.map((category) => {
+        let pool = buildAwardNomineePool(category, baseMaps, baseWindow, baseActPromoTypes, baseEligibleActs, show.showAt);
+        let windowWeeks = AWARD_SHOW_WINDOW_WEEKS;
+        if (pool.length < AWARD_SHOW_MIN_NOMINEES) {
+            if (!extended) {
+                const extendedWindow = buildAwardNominationWindow(show.showAt, AWARD_SHOW_EXTENDED_WINDOW_WEEKS);
+                const extendedWeeks = weekList
+                    .map((entry) => entry.week)
+                    .filter((week) => week >= extendedWindow.startWeek && week <= extendedWindow.endWeek)
+                    .sort((a, b) => a - b);
+                const extendedSnapshots = (await Promise.all(extendedWeeks.map((week) => fetchChartSnapshotsForWeek(week))))
+                    .flat()
+                    .filter((snapshot) => {
+                    if (!Number.isFinite(snapshot?.ts))
+                        return false;
+                    return snapshot.ts >= extendedWindow.startEpoch && snapshot.ts <= extendedWindow.endEpoch;
+                });
+                const extendedMaps = buildAwardCandidateMaps(extendedSnapshots, extendedWindow);
+                const extendedPromoTypes = buildActPromoTypeMap(extendedWindow);
+                const extendedEligibleActs = buildEligibleActSet(extendedMaps, extendedWindow);
+                extended = {
+                    window: extendedWindow,
+                    maps: extendedMaps,
+                    promoTypes: extendedPromoTypes,
+                    eligibleActs: extendedEligibleActs
+                };
+            }
+            if (extended) {
+                pool = buildAwardNomineePool(category, extended.maps, extended.window, extended.promoTypes, extended.eligibleActs, show.showAt);
+                windowWeeks = AWARD_SHOW_EXTENDED_WINDOW_WEEKS;
+            }
+        }
+        const { nominees, scoreKey } = selectAwardNominees(category, pool, actNominationCounts);
+        return {
+            ...category,
+            nominees,
+            scoreKey,
+            windowWeeks,
+            lastUpdatedAt: state.time.epochMs
+        };
+    });
+    show.nominationWindow = baseWindow;
+    return { ok: true };
+}
+function resolveAwardShowWinners(show) {
+    if (!show || !Array.isArray(show.categories))
+        return;
+    show.categories = show.categories.map((category) => ({
+        ...category,
+        winner: resolveAwardWinner(category)
+    }));
+}
+function scheduleAwardShowsForMonth(year, monthIndex) {
+    const store = ensureAwardShowStore();
+    const monthKey = awardShowMonthKey(year, monthIndex);
+    if (!monthKey)
+        return false;
+    const existing = Array.isArray(store.shows) ? store.shows : [];
+    let added = false;
+    AWARD_SHOW_FAMILIES.forEach((family, index) => {
+        const showId = awardShowId(year, monthIndex, family.id);
+        if (!showId)
+            return;
+        if (existing.some((show) => show?.id === showId))
+            return;
+        const showAt = awardShowNthSaturday(year, monthIndex, index);
+        const timeline = awardShowTimeline(showAt);
+        const nominationWindow = buildAwardNominationWindow(showAt);
+        const show = {
+            id: showId,
+            familyId: family.id,
+            label: family.label,
+            ratingFocus: family.ratingFocus,
+            showAt,
+            nominationLockAt: timeline.lockAt,
+            nominationRevealAt: timeline.revealAt,
+            nominationWindow,
+            status: "Scheduled",
+            categories: family.categories.map((category) => ({
+                ...category,
+                nominees: [],
+                winner: null,
+                scoreKey: null,
+                windowWeeks: AWARD_SHOW_WINDOW_WEEKS,
+                lastUpdatedAt: null
+            })),
+            performances: AWARD_SHOW_PERFORMANCE_SLOTS.map((label) => ({
+                id: uid("ASP"),
+                label,
+                status: "Pending",
+                actId: null,
+                actName: null,
+                actNameKey: null,
+                trackId: null,
+                executedAt: null
+            })),
+            monthKey,
+            year,
+            monthIndex,
+            lockedAt: null,
+            revealedAt: null,
+            resolvedAt: null,
+            createdAt: state.time.epochMs
+        };
+        existing.push(show);
+        ensureAwardShowScheduledEvent(show);
+        added = true;
+    });
+    if (added)
+        store.lastScheduledMonth = monthKey;
+    return added;
+}
+function ensureAwardShowsScheduled(now = state.time.epochMs) {
+    if (!Number.isFinite(now))
+        return;
+    const date = new Date(now);
+    const year = date.getUTCFullYear();
+    const monthIndex = date.getUTCMonth();
+    scheduleAwardShowsForMonth(year, monthIndex);
+    const nextMonth = monthIndex === 11 ? 0 : monthIndex + 1;
+    const nextYear = monthIndex === 11 ? year + 1 : year;
+    scheduleAwardShowsForMonth(nextYear, nextMonth);
+}
+function listAwardShows({ includePast = false, limit = 6 } = {}) {
+    const store = ensureAwardShowStore();
+    const now = state.time.epochMs;
+    const shows = Array.isArray(store.shows) ? store.shows.slice() : [];
+    const filtered = includePast
+        ? shows
+        : shows.filter((show) => Number.isFinite(show?.showAt) && show.showAt >= now - WEEK_MS);
+    const ordered = filtered.sort((a, b) => (a.showAt || 0) - (b.showAt || 0));
+    const safeLimit = Math.max(1, Math.round(Number(limit) || 6));
+    return ordered.slice(0, safeLimit);
+}
+async function runAwardShowTimeline(now = state.time.epochMs) {
+    if (!Number.isFinite(now))
+        return;
+    ensureAwardShowsScheduled(now);
+    pruneAwardBoosts(now);
+    const store = ensureAwardShowStore();
+    const shows = Array.isArray(store.shows) ? store.shows : [];
+    for (const show of shows) {
+        if (!show || !Number.isFinite(show.showAt))
+            continue;
+        ensureAwardShowScheduledEvent(show);
+        if (show.status === "Scheduled" && Number.isFinite(show.nominationLockAt) && now >= show.nominationLockAt) {
+            const result = await lockAwardShowNominations(show);
+            if (!result.ok) {
+                show.lockNote = result.reason || "Nomination lock skipped.";
+                logEvent(`Award nominations skipped for ${show.label}: ${show.lockNote}`, "warn");
+            }
+            else {
+                logEvent(`Award nominations locked for ${show.label}.`);
+            }
+            show.status = "Locked";
+            show.lockedAt = now;
+            assignAwardShowPerformances(show);
+        }
+        if (show.status === "Locked" && Number.isFinite(show.nominationRevealAt) && now >= show.nominationRevealAt) {
+            show.status = "Revealed";
+            show.revealedAt = now;
+            logEvent(`Award nominees revealed for ${show.label}.`);
+        }
+        if (show.status !== "Resolved" && now >= show.showAt) {
+            resolveAwardShowWinners(show);
+            applyAwardShowBoosts(show);
+            applyAwardShowPerformances(show);
+            show.status = "Resolved";
+            show.resolvedAt = now;
+            const playerLabel = state.label?.name;
+            if (playerLabel) {
+                const wins = show.categories.filter((category) => category.winner?.label === playerLabel).length;
+                if (wins > 0) {
+                    logEvent(`${playerLabel} captured ${wins} award ${wins === 1 ? "win" : "wins"} at ${show.label}.`);
+                }
+            }
+            logEvent(`Award show resolved: ${show.label}.`);
+            updateQuests();
+            refreshQuestPool();
+        }
+    }
+}
 async function runScheduledWeeklyEvents(now) {
     if (isScheduledTime(now, WEEKLY_SCHEDULE.releaseProcessing)) {
         logEvent("Release day processing window open.");
@@ -15438,6 +16906,7 @@ async function runQuarterHourTick() {
     processReleaseQueue();
     processRivalReleaseQueue();
     processScheduledEvents();
+    await runAwardShowTimeline(state.time.epochMs);
     expirePromoFacilityBookings();
     runAutoRolloutStrategies();
     await runScheduledWeeklyEvents(state.time.epochMs);
@@ -16314,6 +17783,28 @@ function normalizeState() {
         const source = typeof entry.source === "string" ? entry.source : null;
         return Number.isFinite(year) ? { year, awards, releasedAt, releasedWeek, source } : null;
     }).filter(Boolean);
+    if (!state.meta.awardShows || typeof state.meta.awardShows !== "object") {
+        state.meta.awardShows = { shows: [], lastScheduledMonth: null };
+    }
+    if (!Array.isArray(state.meta.awardShows.shows))
+        state.meta.awardShows.shows = [];
+    state.meta.awardShows.shows = state.meta.awardShows.shows
+        .filter(Boolean)
+        .map((show) => normalizeAwardShowEntry(show))
+        .filter(Boolean);
+    if (typeof state.meta.awardShows.lastScheduledMonth !== "string") {
+        state.meta.awardShows.lastScheduledMonth = null;
+    }
+    if (!state.meta.awardBoosts || typeof state.meta.awardBoosts !== "object") {
+        state.meta.awardBoosts = { acts: {}, content: {} };
+    }
+    if (!state.meta.awardBoosts.acts || typeof state.meta.awardBoosts.acts !== "object") {
+        state.meta.awardBoosts.acts = {};
+    }
+    if (!state.meta.awardBoosts.content || typeof state.meta.awardBoosts.content !== "object") {
+        state.meta.awardBoosts.content = {};
+    }
+    pruneAwardBoosts(state.time?.epochMs || Date.now());
     if (!Array.isArray(state.meta.achievementsUnlocked))
         state.meta.achievementsUnlocked = [];
     if (typeof state.meta.achievements !== "number")
@@ -16325,10 +17816,17 @@ function normalizeState() {
         state.meta.bailoutUsed = false;
     if (typeof state.meta.bailoutPending !== "boolean")
         state.meta.bailoutPending = false;
-    if (state.meta.bailoutUsed)
+    if (state.meta.bailoutUsed) {
         state.meta.bailoutPending = false;
-    if (state.meta.bailoutUsed && !state.meta.achievementsLocked)
-        state.meta.achievementsLocked = true;
+        if (state.meta.achievementsLocked)
+            state.meta.achievementsLocked = false;
+    }
+    if (state.meta.winState && typeof state.meta.winState.bailoutUsed !== "boolean") {
+        state.meta.winState.bailoutUsed = Boolean(state.meta.bailoutUsed);
+    }
+    if (state.meta.gameOver && typeof state.meta.gameOver.bailoutUsed !== "boolean") {
+        state.meta.gameOver.bailoutUsed = Boolean(state.meta.bailoutUsed);
+    }
     if (typeof state.meta.exp !== "number")
         state.meta.exp = 0;
     if (typeof state.meta.promoRuns !== "number")
@@ -17837,19 +19335,24 @@ function buildCalendarSources() {
         const project = entry.targetType === "project" && entry.contentId ? parsePromoProjectKey(entry.contentId) : null;
         const act = entry.actId ? getAct(entry.actId) : track ? getAct(track.actId) : null;
         const typeLabel = rolloutEventLabel(entry.actionType);
+        const isAwardEvent = entry.eventKind === "awardShow" || entry.eventKind === "awardPerformance" || entry.source === "awardShow";
         const scheduledAt = Number.isFinite(entry.eventAt) ? entry.eventAt : entry.scheduledAt;
-        const title = track?.title || project?.projectName || typeLabel;
-        const distribution = entry.source === "manualPromo"
-            ? entry.facilityId
-                ? promoFacilityLabel(entry.facilityId)
-                : "eyeriSocial"
-            : undefined;
+        const title = isAwardEvent ? (entry.label || typeLabel) : track?.title || project?.projectName || typeLabel;
+        const distribution = isAwardEvent
+            ? "Awards Circuit"
+            : entry.source === "manualPromo"
+                ? entry.facilityId
+                    ? promoFacilityLabel(entry.facilityId)
+                    : "eyeriSocial"
+                : undefined;
+        const actName = isAwardEvent ? (entry.actName || "Awards Circuit") : act ? act.name : "Unknown";
+        const actNameKey = isAwardEvent ? null : act?.nameKey || null;
         return {
             id: entry.id,
             ts: scheduledAt,
             title,
-            actName: act ? act.name : "Unknown",
-            actNameKey: act?.nameKey || null,
+            actName,
+            actNameKey,
             label: labelName,
             kind: "labelEvent",
             typeLabel,
@@ -18093,7 +19596,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listAwardShows, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

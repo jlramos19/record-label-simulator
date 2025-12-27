@@ -13,9 +13,9 @@
 
 ## Award show circuit (monthly)
 - Three award families rotate across the first three Saturdays of each month at 20:00 UTC.
-- Week 1: Praised Content Awards (Critics-based).
-- Week 2: Pop Content Awards (Audience-based).
-- Week 3: Promo Content Awards (Promotional content only).
+- Week 1: Praised Content Awards (critics-only ratings).
+- Week 2: Pop Content Awards (audience-only ratings).
+- Week 3: Impact Circuit Awards (hybrid ratings: critics + audience).
 - Week 4: no show; reserved for calendar overflow and live performance recovery slots.
 
 ### Nomination cadence (per show)
@@ -33,35 +33,33 @@
 
 ## Categories + nominee counts
 
-### Praised Content Awards (Critics)
-- Track of the Month (12)
-- Project of the Month (8)
-- Tour of the Month (5)
+### Praised Content Awards (Critics-only)
+- Critics' Track of the Month (12)
+- Critics' Project of the Month (8)
+- Critics' Promo of the Month (8)
+- Critics' Tour of the Month (5)
 - Critics' Breakthrough Act (6)
-- Critics' Masterwork (3) - highest single FQ across any content
 
-### Pop Content Awards (Audience)
+### Pop Content Awards (Audience-only)
 - Most Streamed Track (12)
 - Best-Selling Project (8)
+- Most-Engaged Promo (8)
 - Most Attended Tour (5)
 - Fan Surge Act (6)
-- Audience Favorite (3) - highest AR across any content
 
-### Promo Content Awards (Promo CA)
-- Music Video of the Month (8)
-- Most-Engaged Music Video (8)
-- Critics' Music Video (5)
-- Live Performance of the Month (8)
-- Most-Attended Live Performance (8)
-- Critics' Live Performance (5)
-- Audience of the Month (6)
-- Most Loyal Audience (5)
-- Most Active Audience (5)
+### Impact Circuit Awards (Hybrid)
+- Track Impact of the Month (8)
+- Project Impact of the Month (6)
+- Music Video Impact (6)
+- Live Performance Impact (6)
+- Tour Impact of the Month (5)
+- Act Impact of the Month (6)
 
 ## Eligibility windows + criteria
 - Tracks/projects: released during the nomination window, with FQ >= 70.
+- Projects include Albums, EPs, and Single albums (project-level releases, not individual tracks).
 - Promos (music video/live performance): executed during the window (scheduled-only does not count).
-- Tours: at least 2 dates executed during the window; attendance totals used for Pop CA.
+- Tours: at least 2 dates executed during the window; attendance totals drive audience + hybrid scores.
 - Breakthrough Act: first release within the last 6 months and at least one eligible entry in-window.
 - Audience awards: require at least 2 promo types active during the window.
 

@@ -1,13 +1,21 @@
 # **`Music Chart Weights:`**
 
-## Base weights (default / fallback)
+## Dynamic weighting rule
+
+- Chart weights are recalculated each weekly chart update from audience chunk consumption totals by scope (region, nation, global).
+- Weight per channel = channelConsumption / totalConsumption for that scope, normalized to 100%.
+- Apply smoothing (default: rolling 4-week average) and clamp to avoid extreme swings.
+- If consumption data is missing or below a sample threshold, fall back to the baseline mix for that scope.
+- Applied weights are stored in the chart snapshot metadata for inspection and record validation.
+
+## Baseline weights (fallback + smoothing seed)
 
 - Sales: 35% (Digital & Vinyl)
 - Streaming: 20% (eyeriSocial Music, parody of streaming service)
 - Airplay: 30% (Radio, clubs, public venues)
 - eyeriSocial: 15% (counts how many times the song was used as background audio in videos uploaded to the social media Label)
 
-## Regional consumption weights (used for regional charts)
+## Regional baseline weights (fallback + smoothing seed)
 
 - Annglora Capital: Sales 33% | Streaming 22% | Airplay 30% | Social 15%
 - Annglora Elsewhere: Sales 39% | Streaming 16% | Airplay 35% | Social 10%
@@ -18,8 +26,9 @@
 
 ## Rollups
 
-- National charts blend capital + elsewhere using the capital population share.
-- Global chart blends national weights using the current population split.
+- National charts derive weights from aggregated regional consumption totals (capital + elsewhere).
+- Global chart derives weights from aggregated national consumption totals.
+- If aggregated consumption is missing, fall back to population-share blending of the baseline mixes.
 
 ## Consumption volume multipliers (metrics output)
 

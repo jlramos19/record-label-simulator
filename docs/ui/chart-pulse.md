@@ -8,7 +8,7 @@ Defines the Dashboard Chart Pulse panel as a live feed of projected Top 5 entrie
 
 ## Modes
 - Tracks: projected Top 5 tracks for the selected chart scope.
-- Projects: aggregates projected track scores into project-level rankings.
+- Projects: aggregates projected track scores into project-level rankings (Albums, EPs, and Single albums).
 - Promos: lists top promo moments scheduled inside each six-hour window.
 
 ## Scope controls
