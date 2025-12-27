@@ -103,6 +103,7 @@ import {
   getWorkOrderCreatorIds,
   hoursUntilNextScheduledTime,
   isMasteringTrack,
+  listAnnualAwardDefinitions,
   listAwardShows,
   listFromIds,
   listTourBookings,
@@ -2474,7 +2475,7 @@ function renderPromoAlerts() {
 function renderAwardsCircuit() {
   const listEl = $("awardsCircuitList");
   if (!listEl) return;
-  const shows = listAwardShows({ includePast: true, limit: 6 });
+  const shows = listAwardShows({ includePast: true });
   if (!shows.length) {
     listEl.innerHTML = `<div class="muted">No award shows scheduled yet.</div>`;
     return;

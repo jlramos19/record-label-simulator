@@ -1101,6 +1101,14 @@ body::before {
   border: var(--line-width) solid var(--line);
   transition: transform 0.12s ease, border-color 0.12s ease;
 }
+.awards-category.is-selected {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.12);
+}
+.awards-nominee.is-winner {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: rgba(var(--accent-rgb), 0.08);
+}
 .rival-achievement-item {
   background: var(--surface-2);
 }

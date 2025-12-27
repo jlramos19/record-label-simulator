@@ -48,3 +48,4 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 
 ## Awards + critics
 - DEC-20251227-001: Awards run on a monthly circuit (Praised, Pop, Promo on the first three Saturdays), with 4-week eligibility windows, 3-12 nominee counts per category, and award outcomes feeding tasks, CEO Request tie-breaks, and popularity boosts.
+- DEC-20251227-002: Awards run annually per show schedule (unique dates per show) with yearlong eligibility windows, an expanded lineup covering critics-only, audience-only, and hybrid judging, and outcomes feeding tasks, CEO Request tie-breaks, and popularity boosts (supersedes DEC-20251227-001).

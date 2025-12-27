@@ -27,13 +27,15 @@ setUiHooks({
     updateGenrePreview,
     refreshPromoTypes: () => updatePromoTypeHint(document)
 });
-const ROUTES = ["dashboard", "charts", "create", "release", "releases", "eras", "roster", "world", "logs", "tour"];
+const ROUTES = ["dashboard", "charts", "awards", "create", "release", "releases", "eras", "roster", "world", "logs", "tour"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
     promotion: "logs",
     promotions: "logs",
     era: "eras",
-    calendar: "releases"
+    calendar: "releases",
+    "year-end": "awards",
+    yearend: "awards"
 };
 const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
 const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
@@ -536,6 +538,10 @@ const VIEW_DEFAULTS = {
     },
     charts: {
         "charts": VIEW_PANEL_STATES.open
+    },
+    awards: {
+        "awards-ledger": VIEW_PANEL_STATES.open,
+        "awards-detail": VIEW_PANEL_STATES.open
     },
     create: {
         "create-track": VIEW_PANEL_STATES.open,

@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-2318Z)
+- Awards now run annually per show schedule with yearlong eligibility windows and an expanded critics/audience/hybrid lineup. [PN-20251227-AC17]
+
 ## 2025-12-27 (RLS-PATCH-20251227-2254Z)
 - Creator cards now show the most popular act beside catharsis, with a See more popover for full act memberships. [PN-20251227-AC12]
 - Track title generation now deprioritizes repeats, while act/project auto-names avoid duplicate names across player + market pools. [PN-20251227-AC13]
@@ -665,3 +668,4 @@
 - PN-20251227-AC15 (2025-12-27 22:54Z): Project release tasks now target EP/Album releases (Singles excluded).
 - PN-20251227-AC16 (2025-12-27 22:54Z): Chart history snapshots now retain project types so Projects charts label releases correctly across weeks.
 - PN-20251227-AC12 (2025-12-27 22:49Z): CEO Requests now show WON/WON xN after completed wins, and bailout runs keep progress tracking while flagging leaderboard eligibility.
+- PN-20251227-AC17 (2025-12-27 23:18Z): Awards now run annually per show schedule with yearlong eligibility windows and an expanded critics/audience/hybrid lineup.

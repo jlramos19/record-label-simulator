@@ -6,13 +6,18 @@ Each in-game calendar year, the simulation computes 12 CEO Request awards at Gai
 - Weekly chart results captured at the Saturday 00:00 UTC chart update and stored in the year-end chart ledger (`state.meta.annualAwardLedger`).
 - Chart snapshots in IndexedDB remain a backfill source if the ledger is missing.
 - Tour charts include simulated rival tour entries so touring awards stay competitive across all labels.
-- Monthly award show ledger (wins + nominations) rolled up into year totals for awards-based tie-breaks.
+- Award show circuit ledger (wins + nominations) rolled up into year totals for awards-based tie-breaks.
 - Scope weights: Regional = 1, National = 2, Global = 3.
 
 ## Cadence + release
 - Ledger updates once per weekly chart update (Saturday 00:00 UTC).
 - Year-end charts release on the first Saturday of January for the prior calendar year.
 - Award winners are stored in `state.meta.annualAwards` and used to unlock CEO Requests.
+
+## UI viewer
+- The Awards (Year-End) tab lists years from `state.meta.annualAwardLedger.years`.
+- Categories and nominee details render dynamically from the ledger for the selected year.
+- Winner highlights come from `state.meta.annualAwards`, with fallbacks when data is missing.
 
 ## Scoring rules
 - Chart-topping awards (#1, #4, #7, #10):

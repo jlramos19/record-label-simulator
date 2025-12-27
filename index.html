@@ -500,6 +500,10 @@
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">bar_chart</span>
           <span class="nav-label">Charts</span>
         </a>
+        <a href="#/awards" data-route="awards" class="nav-item" aria-label="Awards" title="Awards">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">emoji_events</span>
+          <span class="nav-label">Awards</span>
+        </a>
         <a href="#/create" data-route="create" class="nav-item" aria-label="Create" title="Create">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">edit_note</span>
           <span class="nav-label">Create</span>
@@ -672,6 +676,40 @@
         </div>
       </div>
     </section>
+  </div>
+</template>
+
+<template id="view-awards">
+  <div class="view view--awards">
+    <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="awards-ledger">
+        <div class="card-head">
+          <h2>Year-End Awards</h2>
+          <div class="panel-tools">
+            <div class="field">
+              <label for="awardsYearSelect">Year</label>
+              <select id="awardsYearSelect"></select>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="callout">Browse annual awards from the saved ledger and year-end releases.</div>
+          <div id="awardsYearWarning" class="callout callout--warn hidden"></div>
+          <div id="awardsYearEmpty" class="muted hidden"></div>
+          <div id="awardsCategoryList" class="list"></div>
+        </div>
+      </div>
+    </section>
+    <aside class="view-side">
+      <div class="panel card panel--scroll" data-panel="awards-detail">
+        <div class="card-head">
+          <h2>Category Detail</h2>
+        </div>
+        <div class="card-body">
+          <div id="awardsDetailBody" class="list"></div>
+        </div>
+      </div>
+    </aside>
   </div>
 </template>
 
