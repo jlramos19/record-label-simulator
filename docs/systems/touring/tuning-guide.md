@@ -20,7 +20,7 @@ This guide defines how touring logic, pacing, and economy should be tuned while 
 - Cadence: max 2 dates per week, minimum 1 rest day between dates.
 - Travel buffers: 1-3 days between legs in different regions.
 - Tour length caps: tier-driven max dates to prevent infinite touring loops.
-- Cooldown: 4-8 weeks between tours per Act.
+- Cooldown: 4-8 weeks between tours per Act (warning-only in v0).
 
 ## Economy and effects (draft)
 ```text
@@ -78,7 +78,7 @@ Global multipliers:
 - `promo_efficiency`: 0.35.
 
 World and gameplay effects to tune:
-- Popularity lift: post-show increase to Act popularity and Era momentum.
+- Popularity lift: post-show increase to Act popularity and Era momentum (v0 uses promoWeeks visibility boosts; Era momentum boost still pending).
 - Chart impact: temporary boost to streaming/sales momentum after show weeks.
 - Cashflow swings: touring should be lucrative but spiky, with real downside risk.
 - Rival pressure: AI tours can create regional demand shifts and crowd calendars.
@@ -96,6 +96,10 @@ World and gameplay effects to tune:
 ## Notes for v0
 - Booking projections always render; balance effects only apply when the flag is enabled.
 - Attendance-derived touring charts are computed from booked tour dates.
+- Tour dates spend pooled act stamina per show (`ACTIVITY_STAMINA_TOUR_DATE`), so high-stamina members cover low-stamina ones.
+- Tour completion posts to eyeriSocial and logs per-leg recap entries in the event log.
+- Auto-generated routes prefer staying in-region and avoid travel buffer conflicts when switching regions.
+- Tour length caps block extra bookings at the tier max; cooldown under 4 weeks surfaces warnings.
 
 ## Related
 - `docs/ui/touring-tab.md`

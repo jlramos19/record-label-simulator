@@ -7,6 +7,8 @@ This doc defines the Touring view (planned) for the future touring feature.
 - Bookings render on the Calendar and log event entries with reason codes for blocks.
 - Touring charts still rank attendance draw, now sourced from booked tour activity.
 - Touring impact on wallet/fans is gated by the touring balance flag.
+- Tour summaries group dates into regional legs with counts.
+- Tour dates spend pooled act stamina per show, so high-stamina members cover low-stamina ones.
 
 ## Development route
 - Start with real-world touring workflow steps, even when mechanics are rough.
@@ -36,11 +38,13 @@ This doc defines the Touring view (planned) for the future touring feature.
 - Acts cannot double-book dates; conflicts are blocked with a visible reason.
 - Capacity mismatch surfaces a warning instead of a hard block.
 - Lead-time and cadence targets surface as warnings when out of bounds.
+- Tour length caps block additional bookings once the tier max is reached.
 
 ## Observability
 - Invalid bookings show reason codes (no slots, missing era/content, schedule conflicts).
 - Warnings appear in the Touring tab and in the Calendar timeline.
 - Booking attempts always log an event with the tour ID and failure reason.
+- Tour completions post to eyeriSocial and log per-leg recap entries.
 
 ## Related
 - `docs/systems/touring/venues.md`

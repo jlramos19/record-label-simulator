@@ -38,6 +38,43 @@ function countryDemonym(country) {
         return "Unknown";
     return COUNTRY_DEMONYMS[country] || country;
 }
+const LABEL_ACRONYM_MAP = {
+    "Annglora Record Label": "ARL1",
+    "International Record Label": "ARL2",
+    "Hann Record Label": "ARL3",
+    "Bytenza Record Label": "BRL1",
+    "Strongbow Record Label": "BRL2",
+    "Blackmount Record Label": "BRL3",
+    "Crowlya Record Label": "CRL1",
+    "Community Record Label": "CRL2"
+};
+function labelAcronymFromName(labelName) {
+    const key = String(labelName || "").trim();
+    if (!key)
+        return "";
+    return LABEL_ACRONYM_MAP[key] || "";
+}
+function deriveLabelAcronym(labelName) {
+    const raw = String(labelName || "").trim();
+    if (!raw)
+        return "";
+    const ignore = new Set(["record", "label"]);
+    const initials = raw
+        .split(/\s+/)
+        .filter((word) => word && !ignore.has(word.toLowerCase()))
+        .map((word) => word[0]?.toUpperCase() || "")
+        .join("");
+    return initials || "";
+}
+function resolveLabelAcronym(labelName, fallback = "") {
+    const mapped = labelAcronymFromName(labelName);
+    if (mapped)
+        return mapped;
+    const fallbackText = String(fallback || "").trim();
+    if (fallbackText)
+        return fallbackText;
+    return deriveLabelAcronym(labelName);
+}
 function alignmentClass(alignment) {
     return alignment ? alignment.toLowerCase() : "neutral";
 }
@@ -47,5 +84,5 @@ function slugify(text) {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-");
 }
-export { alignmentClass, countryColor, countryDemonym, formatGenreKeyLabel, formatGenreLabel, makeGenre, moodFromGenre, slugify, themeColor, themeFromGenre };
+export { alignmentClass, countryColor, countryDemonym, resolveLabelAcronym, formatGenreKeyLabel, formatGenreLabel, makeGenre, moodFromGenre, slugify, themeColor, themeFromGenre };
 //# sourceMappingURL=label-utils.js.map

@@ -4,10 +4,11 @@ This document defines how stamina depletion, recharge, and overuse are processed
 
 ## A) Quarter-hour tick contract
 
-- The quarter-hour tick is the only place where stamina changes (regen + depletion).
+- The quarter-hour tick is the only place where work-order stamina changes (regen + depletion).
 - Each in-game hour triggers exactly four `applyQuarterHourResourceTick` calls (one per quarter-hour).
 - Idle recharge rule: creators who are not in an active work order gain `STAMINA_REGEN_PER_HOUR` per hour, distributed deterministically across the four quarter-hour ticks.
 - Depletion visibility rule: stamina spent on multi-hour work is applied per quarter-hour (not only in a lump at start or completion). The quarter slices must sum to the stage stamina cost (`totalTicks = ceil(hours * 4)`).
+- Act-level activities (tour dates, promo runs) apply pooled stamina spends instantly when resolved and still update daily usage + overuse checks.
 
 ## B) Daily usage + overuse strike contract
 

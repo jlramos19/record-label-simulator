@@ -90,6 +90,8 @@ import {
   STAMINA_OVERUSE_LIMIT,
   STAMINA_OVERUSE_STRIKES,
   STAMINA_REGEN_PER_HOUR,
+  ACTIVITY_STAMINA_PROMO,
+  ACTIVITY_STAMINA_TOUR_DATE,
   STUDIO_COLUMN_SLOT_COUNT,
   TICK_FRAME_WARN_MS,
   TRACK_CREW_RULES,
@@ -97,6 +99,15 @@ import {
   TRACK_ROLE_MATCH,
   TRACK_ROLE_TARGET_PATTERN,
   TRACK_ROLE_TARGETS,
+  TREND_DOMINANCE_DECAY_MAX,
+  TREND_DOMINANCE_MAX_WEEKS,
+  TREND_DOMINANCE_MIN_WEEKS,
+  TREND_EMERGING_ACTIVITY_DEBUFF,
+  TREND_EMERGING_WEEKS,
+  TREND_PEAKING_DISINTEREST_START,
+  TREND_PEAKING_MAX_WEEKS,
+  TREND_PEAKING_TOP_RANK,
+  TREND_RANKING_HISTORY_WEEKS,
   TREND_DETAIL_COUNT,
   TREND_WINDOW_WEEKS,
   UI_REACT_ISLANDS_ENABLED,
@@ -128,6 +139,7 @@ import {
   formatGenreLabel,
   makeGenre,
   moodFromGenre,
+  resolveLabelAcronym,
   slugify,
   themeFromGenre
 } from "./game/label-utils.js";
@@ -354,6 +366,7 @@ function makeDefaultState() {
     },
     label: {
       name: "Hann Record Label",
+      acronym: resolveLabelAcronym("Hann Record Label") || "ARL3",
       alignment: "Neutral",
       cash: startingCash,
       wallet: { cash: startingCash },
@@ -376,7 +389,7 @@ function makeDefaultState() {
     trends: [],
     trendRanking: [],
     trendAlignmentScores: {},
-    trendLedger: { weeks: [] },
+    trendLedger: { weeks: [], rankings: [], dominance: null, emerging: {} },
     audienceBias: { updatedWeek: null, nations: {}, regions: {} },
     genreRanking: [],
     charts: { global: [], nations: { Annglora: [], Bytenza: [], Crowlya: [] }, regions: {} },
@@ -882,6 +895,8 @@ const TOUR_LEAD_MAX_WEEKS = 6;
 const TOUR_WEEKLY_MAX_DATES = 2;
 const TOUR_REST_DAY_MIN = 1;
 const TOUR_TRAVEL_BUFFER_MIN = 1;
+const TOUR_COOLDOWN_MIN_WEEKS = 4;
+const TOUR_COOLDOWN_MAX_WEEKS = 8;
 const TOUR_WARNING_SELLTHROUGH_LOW = 0.5;
 const TOUR_WARNING_SELLTHROUGH_HIGH = 0.95;
 const TOUR_BOOKING_SELLTHROUGH_MIN = 0.35;
@@ -1298,12 +1313,44 @@ function namePartHangul(part) {
   return String(part.hangul || "");
 }
 
-function pickBytenzaGivenPart(parts) {
-  if (!parts) return null;
-  const given2 = Array.isArray(parts.given2) ? parts.given2 : [];
-  const given3 = Array.isArray(parts.given3) ? parts.given3 : [];
-  const given4 = Array.isArray(parts.given4) ? parts.given4 : [];
-  const fallback = Array.isArray(parts.given) ? parts.given : [];
+function namePartKey(part) {
+  if (!part) return "";
+  if (typeof part === "string") return part.trim();
+  if (typeof part === "object" && part.romanized) return String(part.romanized).trim();
+  return String(part).trim();
+}
+
+function uniqueNameParts(list) {
+  const seen = new Set();
+  const out = [];
+  (list || []).forEach((part) => {
+    const key = namePartKey(part);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(part);
+  });
+  return out;
+}
+
+function resolveGenderedNamePool(genderKey, pools, fallback = []) {
+  if (!genderKey || !pools) return fallback;
+  const man = Array.isArray(pools.man) ? pools.man : [];
+  const woman = Array.isArray(pools.woman) ? pools.woman : [];
+  const nonbinary = Array.isArray(pools.nonbinary) ? pools.nonbinary : [];
+  let merged = [];
+  if (genderKey === "nonbinary") merged = [...man, ...woman, ...nonbinary];
+  if (genderKey === "man") merged = [...man, ...nonbinary];
+  if (genderKey === "woman") merged = [...woman, ...nonbinary];
+  const unique = uniqueNameParts(merged);
+  return unique.length ? unique : fallback;
+}
+
+function pickBytenzaGivenPart(pools) {
+  if (!pools) return null;
+  const given2 = Array.isArray(pools.given2) ? pools.given2 : [];
+  const given3 = Array.isArray(pools.given3) ? pools.given3 : [];
+  const given4 = Array.isArray(pools.given4) ? pools.given4 : [];
+  const fallback = Array.isArray(pools.given) ? pools.given : [];
   const roll = Math.random();
   if (roll < 0.85 && given2.length) return pickOne(given2);
   if (roll < 0.975 && given3.length) return pickOne(given3);
@@ -1340,13 +1387,19 @@ function formatCreatorFullName(country, givenName, surname) {
   return `${given}${family ? ` ${family}` : ""}`.trim();
 }
 
-function buildCreatorNameParts(country, existingNames) {
+function buildCreatorNameParts(country, existingNames, genderIdentity) {
   const parts = CREATOR_NAME_PARTS[country] || CREATOR_NAME_PARTS.Annglora;
   const existing = new Set(existingNames.filter(Boolean));
+  const genderKey = normalizeCreatorGenderKey(genderIdentity);
+  const givenPool = resolveGenderedNamePool(genderKey, parts.givenByGender, Array.isArray(parts.given) ? parts.given : []);
+  const given2Pool = resolveGenderedNamePool(genderKey, parts.given2ByGender, Array.isArray(parts.given2) ? parts.given2 : []);
+  const given3Pool = resolveGenderedNamePool(genderKey, parts.given3ByGender, Array.isArray(parts.given3) ? parts.given3 : []);
+  const given4Pool = resolveGenderedNamePool(genderKey, parts.given4ByGender, Array.isArray(parts.given4) ? parts.given4 : []);
+  const pools = { given: givenPool, given2: given2Pool, given3: given3Pool, given4: given4Pool };
   for (let i = 0; i < 24; i += 1) {
     const givenPart = country === "Bytenza"
-      ? (pickBytenzaGivenPart(parts) || pickOne(parts.given))
-      : pickOne(parts.given);
+      ? (pickBytenzaGivenPart(pools) || pickOne(givenPool))
+      : pickOne(givenPool);
     const surnamePart = pickOne(parts.surname);
     const givenName = namePartText(givenPart);
     const surname = namePartText(surnamePart);
@@ -1367,8 +1420,8 @@ function buildCreatorNameParts(country, existingNames) {
     };
   }
   const fallbackGivenPart = country === "Bytenza"
-    ? (pickBytenzaGivenPart(parts) || pickOne(parts.given))
-    : pickOne(parts.given);
+    ? (pickBytenzaGivenPart(pools) || pickOne(givenPool))
+    : pickOne(givenPool);
   const fallbackSurnamePart = pickOne(parts.surname);
   const fallbackGiven = namePartText(fallbackGivenPart);
   const fallbackSurname = namePartText(fallbackSurnamePart);
@@ -2733,6 +2786,19 @@ function normalizeCreatorGenderKey(genderIdentity) {
   return null;
 }
 
+const CREATOR_PORTRAIT_GENDER_KEYS = ["man", "woman", "nonbinary"];
+
+function pickCreatorPortraitGender(preferredGenres, ageBin, countryKey, entries) {
+  if (!preferredGenres?.length || !ageBin || !countryKey || !entries) return null;
+  const available = CREATOR_PORTRAIT_GENDER_KEYS.filter((gender) => (
+    preferredGenres.some((genreKey) => {
+      const key = `${genreKey}/${ageBin}/${countryKey}-${gender}`;
+      return Array.isArray(entries[key]) && entries[key].length;
+    })
+  ));
+  return available.length ? pickOne(available) : null;
+}
+
 function buildCreatorPortraitGenreKey(theme, mood) {
   if (!theme || !mood) return null;
   const themeMatch = THEMES.find((entry) => entry.toLowerCase() === String(theme).toLowerCase());
@@ -2894,7 +2960,16 @@ function assignCreatorPortrait(creator) {
   const preferredGenres = listCreatorPortraitGenreKeys(creator);
   const ageBin = resolveCreatorPortraitAgeBin(creator.age);
   const countryKey = normalizeCreatorNationalityKey(creator.country);
-  const genderKey = normalizeCreatorGenderKey(creator.genderIdentity);
+  let genderKey = normalizeCreatorGenderKey(creator.genderIdentity);
+  const manifest = getCreatorPortraitManifest();
+  const entries = manifest?.entries || {};
+  if (!genderKey && manifest) {
+    const resolvedGender = pickCreatorPortraitGender(preferredGenres, ageBin, countryKey, entries);
+    if (resolvedGender) {
+      genderKey = resolvedGender;
+      creator.genderIdentity = resolvedGender;
+    }
+  }
   const issues = [];
   if (!preferredGenres.length) issues.push("theme/mood prefs");
   if (!ageBin) issues.push("age bin");
@@ -2904,13 +2979,11 @@ function assignCreatorPortrait(creator) {
     setCreatorPortraitNote(creator, `Portrait match missing ${issues.join(", ")}.`);
     return trimmedUrl || null;
   }
-  const manifest = getCreatorPortraitManifest();
   if (!manifest) {
     setCreatorPortraitNote(creator, "Portrait manifest missing. Run npm run build to refresh assets.");
     return trimmedUrl || null;
   }
   const root = manifest.root || CREATOR_PORTRAIT_ROOT;
-  const entries = manifest.entries || {};
   const normalizedStored = normalizeCreatorPortraitGenreKey(creator.portraitGenreKey);
   const preferredSet = new Set(preferredGenres);
   let genreKey = normalizedStored && preferredSet.has(normalizedStored) ? normalizedStored : null;
@@ -3909,6 +3982,31 @@ function postTrackRelease(track) {
   });
 }
 
+function postTourCompletion(booking) {
+  if (!booking) return;
+  const labelName = booking.label || state.label?.name || "Record Label";
+  if (labelName !== state.label?.name) return;
+  const labelHandle = handleFromName(labelName, "Label");
+  const actHandle = handleFromName(booking.actName || "Act", "Act");
+  const venueLabel = booking.venueLabel || "venue";
+  const tourName = booking.tourName ? `the "${booking.tourName}" tour` : "a tour date";
+  const attendance = formatCount(Math.round(Number(booking.attendance || booking.projection?.attendance || 0)));
+  const profit = Math.round(Number(booking.profit || booking.projection?.profit || 0));
+  const profitLabel = profit >= 0 ? `Net ${formatMoney(profit)}.` : `Loss ${formatMoney(Math.abs(profit))}.`;
+  const dateLabel = Number.isFinite(booking.scheduledAt) ? formatDate(booking.scheduledAt) : "scheduled date";
+  postSocial({
+    handle: "@eyeriStories",
+    title: "Tour recap",
+    lines: [
+      `${labelHandle}'s ${actHandle} wrapped ${tourName} at ${venueLabel}.`,
+      `Date: ${dateLabel} | Attendance ${attendance}.`,
+      profitLabel
+    ],
+    type: "tour",
+    order: 2
+  });
+}
+
 function postEraComplete(era) {
   const act = getAct(era.actId);
   const actHandle = act ? handleFromName(act.name, "Act") : "@Act";
@@ -4154,6 +4252,26 @@ function deriveCreatorStageName(creator) {
   return String(creator.name || "").trim();
 }
 
+function resolveCreatorGenderIdentity({
+  genderIdentity = null,
+  country = null,
+  age = null,
+  prefThemes = [],
+  prefMoods = []
+} = {}) {
+  const normalized = normalizeCreatorGenderKey(genderIdentity);
+  if (normalized) return normalized;
+  const manifest = getCreatorPortraitManifest();
+  if (manifest?.entries) {
+    const preferredGenres = listCreatorPortraitGenreKeys({ prefThemes, prefMoods });
+    const ageBin = resolveCreatorPortraitAgeBin(age);
+    const countryKey = normalizeCreatorNationalityKey(country);
+    const picked = pickCreatorPortraitGender(preferredGenres, ageBin, countryKey, manifest.entries);
+    if (picked) return picked;
+  }
+  return pickOne(CREATOR_PORTRAIT_GENDER_KEYS);
+}
+
 function makeCreator(role, existingNames, country, options = {}) {
   const alignment = ALIGNMENTS.includes(options.alignment) ? options.alignment : "";
   const hasThemePrefs = alignment || (Array.isArray(options.focusThemes) && options.focusThemes.length);
@@ -4165,10 +4283,17 @@ function makeCreator(role, existingNames, country, options = {}) {
   const existing = existingNames
     || [...state.creators.map((creator) => creator.name), ...state.marketCreators.map((creator) => creator.name)];
   const origin = country || pickOne(NATIONS);
-  const nameParts = buildCreatorNameParts(origin, existing);
-  const stageName = deriveCreatorStageName(nameParts);
   const age = normalizeCreatorAge(options.age, options.ageGroup);
   const ageGroup = resolveAudienceAgeGroupForAge(age);
+  const genderIdentity = resolveCreatorGenderIdentity({
+    genderIdentity: options.genderIdentity,
+    country: origin,
+    age,
+    prefThemes: themes,
+    prefMoods: moods
+  });
+  const nameParts = buildCreatorNameParts(origin, existing, genderIdentity);
+  const stageName = deriveCreatorStageName(nameParts);
   return {
     id: uid("CR"),
     ...nameParts,
@@ -4181,7 +4306,7 @@ function makeCreator(role, existingNames, country, options = {}) {
     country: origin,
     age,
     ageGroup: ageGroup ? ageGroup.label : null,
-    genderIdentity: null,
+    genderIdentity,
     portraitGenreKey: null,
     portraitUrl: null,
     portraitNote: null
@@ -4710,6 +4835,104 @@ function updateCreatorOveruse(creator, staminaCost, context = {}) {
   return { strikeApplied: true, departureFlagged };
 }
 
+function listUniqueCreatorsById(ids, roster = null) {
+  if (!Array.isArray(ids)) return [];
+  const seen = new Set();
+  const creators = [];
+  ids.forEach((id) => {
+    if (!id || seen.has(id)) return;
+    const creator = roster
+      ? roster.find((entry) => entry.id === id)
+      : getCreator(id);
+    if (!creator) return;
+    seen.add(id);
+    creators.push(creator);
+  });
+  return creators;
+}
+
+function allocatePooledStaminaSpend(creators, totalCost) {
+  const cost = Math.max(0, Math.round(Number(totalCost) || 0));
+  const list = Array.isArray(creators) ? creators.filter(Boolean) : [];
+  if (!list.length || !cost) {
+    return { allocations: [], totalCost: cost, totalAvailable: 0, overdraw: cost };
+  }
+  const allocations = list.map((creator) => ({
+    creator,
+    stamina: clampStamina(creator.stamina ?? 0),
+    spent: 0
+  }));
+  const totalAvailable = allocations.reduce((sum, entry) => sum + entry.stamina, 0);
+  let remaining = cost;
+
+  if (totalAvailable > 0) {
+    const baseShare = Math.floor(remaining / allocations.length);
+    allocations.forEach((entry) => {
+      if (!baseShare) return;
+      entry.spent = Math.min(baseShare, entry.stamina);
+    });
+    remaining -= allocations.reduce((sum, entry) => sum + entry.spent, 0);
+    if (remaining > 0) {
+      const sorted = allocations
+        .slice()
+        .sort((a, b) => (b.stamina - b.spent) - (a.stamina - a.spent));
+      let progressed = true;
+      while (remaining > 0 && progressed) {
+        progressed = false;
+        for (const entry of sorted) {
+          if (!remaining) break;
+          const available = entry.stamina - entry.spent;
+          if (available <= 0) continue;
+          entry.spent += 1;
+          remaining -= 1;
+          progressed = true;
+        }
+      }
+    }
+  }
+
+  if (remaining > 0) {
+    const baseOverdraw = Math.floor(remaining / allocations.length);
+    let extra = remaining - baseOverdraw * allocations.length;
+    allocations.forEach((entry) => {
+      entry.spent += baseOverdraw + (extra > 0 ? 1 : 0);
+      extra -= 1;
+    });
+    remaining = 0;
+  }
+
+  return { allocations, totalCost: cost, totalAvailable, overdraw: Math.max(0, cost - totalAvailable) };
+}
+
+function applyActStaminaSpend(
+  creatorIds,
+  totalCost,
+  { roster = null, context = {}, activityLabel = "Act activity", logOverdraw = true } = {}
+) {
+  const creators = listUniqueCreatorsById(creatorIds, roster);
+  const pooled = allocatePooledStaminaSpend(creators, totalCost);
+  if (!pooled.allocations.length || pooled.totalCost <= 0) {
+    return { ok: false, reason: "No eligible stamina spend targets." };
+  }
+  let overuseCount = 0;
+  let departuresFlagged = 0;
+  pooled.allocations.forEach((entry) => {
+    if (!entry.spent) return;
+    entry.creator.stamina = clampStamina((entry.creator.stamina ?? 0) - entry.spent);
+    const result = updateCreatorOveruse(entry.creator, entry.spent, context);
+    if (result?.strikeApplied) overuseCount += 1;
+    if (result?.departureFlagged) departuresFlagged += 1;
+  });
+  if (logOverdraw && pooled.overdraw > 0) {
+    const label = activityLabel ? ` (${activityLabel})` : "";
+    logEvent(
+      `Act stamina overdraw${label}: spent ${formatCount(pooled.totalCost)} but crew had ${formatCount(pooled.totalAvailable)}.`,
+      "warn"
+    );
+  }
+  return { ok: true, totalCost: pooled.totalCost, overdraw: pooled.overdraw, overuseCount, departuresFlagged };
+}
+
 function creatorPreferredGenres(creator) {
   const list = [];
   creator.prefThemes.forEach((theme) => {
@@ -4967,7 +5190,10 @@ function injectCheaterMarketCreators({
     }
     const resolvedRole = MARKET_ROLES.includes(role) ? role : MARKET_ROLES[0];
     const existingNames = () => [...state.creators.map((creator) => creator.name), ...state.marketCreators.map((creator) => creator.name)];
-    const creator = makeCreator(resolvedRole, existingNames(), resolvedCountry || null, { age: resolvedAge });
+    const creator = makeCreator(resolvedRole, existingNames(), resolvedCountry || null, {
+      age: resolvedAge,
+      genderIdentity: resolvedGender
+    });
     if (resolvedId) {
       creator.id = resolvedId;
       bumpIdCounterFromId(resolvedId);
@@ -7054,6 +7280,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     country: originCountry,
     actCountry,
     creatorCountries,
+    creatorIds: getTrackCreatorIds(track),
     quality: track.quality,
     genre: track.genre,
     distribution: track.distribution,
@@ -7527,7 +7754,18 @@ function applyScheduledPromoEntry(entry, now) {
     });
   }
   const promoIdList = Array.from(promoIds).filter(Boolean);
-  if (promoIdList.length) markCreatorPromo(promoIdList);
+  if (promoIdList.length) {
+    const promoLabel = details.label || "Promo";
+    applyActStaminaSpend(promoIdList, ACTIVITY_STAMINA_PROMO, {
+      context: {
+        stageName: `Promo: ${promoLabel}`,
+        trackId: track?.id || null,
+        orderId: entry.id
+      },
+      activityLabel: promoLabel
+    });
+    markCreatorPromo(promoIdList);
+  }
 
   if (track) {
     recordPromoUsage({ track, market, act, promoType, atMs: now });
@@ -8354,6 +8592,7 @@ function scoreTrack(track, regionName) {
   score += rand(-4, 4);
   const competitionMultiplier = getLabelCompetitionMultiplier(track.label);
   if (competitionMultiplier !== 1) score = Math.round(score * competitionMultiplier);
+  score = applyEmergingTrendDebuff(score, track.genre);
   const decay = Math.max(0.4, 1 - track.weeksOnChart * 0.05);
   return Math.round(score * decay);
 }
@@ -8389,6 +8628,7 @@ function scoreTrackProjected(track, regionName, seedKey) {
   score += seededRand(-4, 4, jitterRng);
   const competitionMultiplier = getLabelCompetitionMultiplier(track.label);
   if (competitionMultiplier !== 1) score = Math.round(score * competitionMultiplier);
+  score = applyEmergingTrendDebuff(score, track.genre);
   const decay = Math.max(0.4, 1 - (track.weeksOnChart || 0) * 0.05);
   return Math.round(score * decay);
 }
@@ -9088,6 +9328,93 @@ function computeTourProjection({ draft, act, era, venue, scheduledAt, anchor }) 
   };
 }
 
+function tourRegionLabel(regionId) {
+  if (!regionId) return "Unknown Region";
+  const region = REGION_DEFS.find((entry) => entry.id === regionId);
+  return region?.label || region?.id || regionId;
+}
+
+function buildTourLegs(bookings = []) {
+  const ordered = (bookings || [])
+    .filter((booking) => booking && Number.isFinite(booking.scheduledAt))
+    .slice()
+    .sort((a, b) => (a.scheduledAt || 0) - (b.scheduledAt || 0));
+  const legs = [];
+  let current = null;
+  ordered.forEach((booking) => {
+    const regionId = booking.regionId || null;
+    const nation = booking.nation || null;
+    const regionLabel = tourRegionLabel(regionId);
+    const isCompleted = booking.status === "Completed";
+    const projection = booking.projection || {};
+    const attendance = Number(isCompleted ? booking.attendance : projection.attendance || 0);
+    const revenue = Number(isCompleted ? booking.revenue : projection.revenue || 0);
+    const costs = Number(isCompleted ? booking.costs : projection.costs || 0);
+    const profit = Number(isCompleted ? booking.profit : projection.profit || 0);
+    if (!current || current.regionId !== regionId) {
+      current = {
+        id: `${regionId || "region"}::${booking.scheduledAt || 0}`,
+        regionId,
+        regionLabel,
+        nation,
+        startAt: booking.scheduledAt,
+        endAt: booking.scheduledAt,
+        count: 0,
+        attendance: 0,
+        revenue: 0,
+        costs: 0,
+        profit: 0,
+        bookingIds: []
+      };
+      legs.push(current);
+    } else if (Number.isFinite(booking.scheduledAt)) {
+      current.endAt = booking.scheduledAt;
+    }
+    current.count += 1;
+    current.attendance += attendance;
+    current.revenue += revenue;
+    current.costs += costs;
+    current.profit += profit;
+    if (booking.id) current.bookingIds.push(booking.id);
+  });
+  return legs;
+}
+
+function resolveTourLengthCap({ draftId, candidateTier } = {}) {
+  if (!draftId) return null;
+  const tiers = listTourBookings({ tourId: draftId })
+    .map((booking) => booking?.tier)
+    .filter(Boolean);
+  if (candidateTier) tiers.push(candidateTier);
+  if (!tiers.length) return null;
+  const tierOrder = listTourTiers();
+  const rank = (tier) => {
+    const index = tierOrder.indexOf(tier);
+    return index >= 0 ? index : -1;
+  };
+  const chosen = tiers.reduce((best, tier) => {
+    if (!best) return tier;
+    return rank(tier) > rank(best) ? tier : best;
+  }, null);
+  if (!chosen) return null;
+  const config = getTourTierConfig(chosen);
+  const cap = Math.round(Number(config?.maxDatesMax || 0));
+  if (!Number.isFinite(cap) || cap <= 0) return null;
+  return { tier: chosen, cap };
+}
+
+function resolveTourCooldownGap({ actId, draftId, scheduledAt }) {
+  if (!actId || !Number.isFinite(scheduledAt)) return null;
+  const priorDates = listTourBookings({ actId })
+    .filter((booking) => booking?.tourId !== draftId && Number.isFinite(booking?.scheduledAt))
+    .map((booking) => booking.scheduledAt)
+    .filter((stamp) => stamp < scheduledAt);
+  if (!priorDates.length) return null;
+  const lastDate = Math.max(...priorDates);
+  const gapWeeks = (scheduledAt - lastDate) / WEEK_MS;
+  return { lastDate, gapWeeks };
+}
+
 function buildTourWarnings({ actId, venue, scheduledAt, projection, draftId }) {
   const warnings = [];
   const sellThrough = projection?.sellThrough;
@@ -9116,10 +9443,16 @@ function buildTourWarnings({ actId, venue, scheduledAt, projection, draftId }) {
   if (neighbors.length) {
     warnings.push({ code: "TOUR_REST_DAY", message: "Less than 1 rest day between tour dates." });
   }
+  const venueRegion = venue?.regionId || null;
   const travelConflicts = listTourBookings({ tourId: draftId, actId })
-    .filter((booking) => booking.venueId !== venue?.id && Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_TRAVEL_BUFFER_MIN);
+    .filter((booking) => booking?.regionId && venueRegion && booking.regionId !== venueRegion)
+    .filter((booking) => Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_TRAVEL_BUFFER_MIN);
   if (travelConflicts.length) {
     warnings.push({ code: "TOUR_TRAVEL_BUFFER", message: "Travel buffer below 1 day between regions." });
+  }
+  const cooldown = resolveTourCooldownGap({ actId, draftId, scheduledAt });
+  if (cooldown && cooldown.gapWeeks < TOUR_COOLDOWN_MIN_WEEKS) {
+    warnings.push({ code: "TOUR_COOLDOWN", message: `Less than ${TOUR_COOLDOWN_MIN_WEEKS} weeks between tours.` });
   }
   return warnings;
 }
@@ -9204,6 +9537,17 @@ function validateTourBooking({ draft, venue, scheduledAt }) {
   if (Number.isFinite(endWeek) && weekNumber > endWeek) {
     return { ok: false, reason: "Tour date is after the tour window.", code: "TOUR_DATE_OUTSIDE_WINDOW" };
   }
+  const lengthCap = resolveTourLengthCap({ draftId: draft.id, candidateTier: venue.tier });
+  if (lengthCap?.cap) {
+    const currentCount = listTourBookings({ tourId: draft.id }).length;
+    if (currentCount >= lengthCap.cap) {
+      return {
+        ok: false,
+        reason: `Tour length cap reached (${lengthCap.cap} dates for ${lengthCap.tier} tier).`,
+        code: "TOUR_LENGTH_CAP"
+      };
+    }
+  }
   const availability = getTourVenueAvailability(venue.id, scheduledAt);
   if (availability.available <= 0) {
     return { ok: false, reason: "Venue slots are full for this date.", code: "TOUR_VENUE_FULL" };
@@ -9229,6 +9573,15 @@ function validateTourBooking({ draft, venue, scheduledAt }) {
   return { ok: true, act, era, releases, projection, anchor };
 }
 
+function refreshTourLegs(draftId) {
+  const draft = getTourDraftById(draftId);
+  if (!draft) return [];
+  const legs = buildTourLegs(listTourBookings({ tourId: draftId }));
+  draft.legs = legs;
+  draft.updatedAt = state.time?.epochMs || Date.now();
+  return legs;
+}
+
 function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
   const draft = getTourDraftById(draftId);
   const venue = getTourVenueById(venueId);
@@ -9239,7 +9592,8 @@ function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
   const validation = validateTourBooking({ draft, venue, scheduledAt });
   if (!validation.ok) {
     const draftName = draft?.name || "Tour";
-    logEvent(`Tour booking blocked (${draftName}): ${validation.reason} (${validation.code}).`, "warn");
+    const draftLabel = draft?.id ? `${draftName} ${draft.id}` : draftName;
+    logEvent(`Tour booking blocked (${draftLabel}): ${validation.reason} (${validation.code}).`, "warn");
     return validation;
   }
   const { act, era } = validation;
@@ -9285,7 +9639,8 @@ function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
   };
   ensureTouringStore().bookings.push(booking);
   draft.status = "Booked";
-  logEvent(`Tour booked: ${act.name} at ${venue.label} (Week ${week}, ${DAYS[day]}).`);
+  refreshTourLegs(draft.id);
+  logEvent(`Tour booked (${draft.id}): ${act.name} at ${venue.label} (Week ${week}, ${DAYS[day]}).`);
   return { ok: true, booking };
 }
 
@@ -9301,8 +9656,10 @@ function removeTourBooking(bookingId) {
       if (draft && !listTourBookings({ tourId: removed.tourId }).length) {
         draft.status = "Draft";
       }
+      refreshTourLegs(removed.tourId);
     }
-    logEvent(`Tour date removed: ${removed.actName || "Act"} at ${removed.venueLabel || "venue"}.`, "info");
+    const tourLabel = removed.tourId ? ` (${removed.tourId})` : "";
+    logEvent(`Tour date removed${tourLabel}: ${removed.actName || "Act"} at ${removed.venueLabel || "venue"}.`, "info");
   }
   return changed;
 }
@@ -9323,13 +9680,20 @@ function autoGenerateTourDates({
   if (!era || era.status !== "Active") return { ok: false, reason: "Touring requires an active Era." };
   const releases = listMarketTracksForAct(act.id, era.id);
   if (!releases.length) return { ok: false, reason: "Touring requires released Project or Track content." };
+  const lengthCap = resolveTourLengthCap({ draftId: draft.id });
+  const existingCount = listTourBookings({ tourId: draft.id }).length;
+  if (lengthCap?.cap && existingCount >= lengthCap.cap) {
+    return { ok: false, reason: `Tour length cap reached (${lengthCap.cap} dates for ${lengthCap.tier} tier).` };
+  }
 
   const fallbackStart = Number.isFinite(draft.window?.startWeek) ? draft.window.startWeek : weekIndex() + 1;
   const fallbackEnd = Number.isFinite(draft.window?.endWeek) ? draft.window.endWeek : fallbackStart + 5;
   const windowStart = Math.max(1, Math.round(Number.isFinite(startWeek) ? startWeek : fallbackStart));
   const windowEnd = Math.max(windowStart, Math.round(Number.isFinite(endWeek) ? endWeek : fallbackEnd));
   const maxCandidates = Math.max(1, (windowEnd - windowStart + 1) * TOUR_WEEKLY_MAX_DATES);
-  const targetCount = Math.min(Math.max(1, Math.round(Number(count) || Math.min(8, maxCandidates))), maxCandidates);
+  const remainingCap = lengthCap?.cap ? Math.max(0, lengthCap.cap - existingCount) : null;
+  const cappedMax = Number.isFinite(remainingCap) ? Math.max(1, Math.min(maxCandidates, remainingCap)) : maxCandidates;
+  const targetCount = Math.min(Math.max(1, Math.round(Number(count) || Math.min(8, cappedMax))), cappedMax);
 
   const filterNation = filters.nation || (filters.nation !== "" ? filters.nation : null);
   const filterRegion = filters.regionId || (filters.regionId !== "" ? filters.regionId : null);
@@ -9355,50 +9719,83 @@ function autoGenerateTourDates({
   const dayOrder = [5, 6, 4, 3, 2, 1, 0];
   const booked = [];
   const weekCounts = {};
+  let currentLegRegionId = null;
+  let capReached = false;
   const hasRestConflict = (scheduledAt) => {
     const dayKey = tourDayKey(scheduledAt);
     return listTourBookings({ actId: act.id })
       .concat(booked)
       .some((booking) => Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_REST_DAY_MIN);
   };
+  const hasTravelConflict = (scheduledAt, regionId) => {
+    if (!regionId) return false;
+    const dayKey = tourDayKey(scheduledAt);
+    return listTourBookings({ actId: act.id })
+      .concat(booked)
+      .some((booking) => {
+        if (!booking?.regionId || booking.regionId === regionId) return false;
+        return Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_TRAVEL_BUFFER_MIN;
+      });
+  };
 
-  for (let week = windowStart; week <= windowEnd && booked.length < targetCount; week += 1) {
+  for (let week = windowStart; week <= windowEnd && booked.length < targetCount && !capReached; week += 1) {
     if (!Number.isFinite(weekCounts[week])) {
       const existingWeekCount = listTourBookings({ tourId: draft.id })
         .filter((booking) => weekIndexForEpochMs(booking.scheduledAt) + 1 === week).length;
       weekCounts[week] = existingWeekCount;
     }
     for (const day of dayOrder) {
+      if (capReached) break;
       if (booked.length >= targetCount) break;
       if (weekCounts[week] >= TOUR_WEEKLY_MAX_DATES) break;
       const scheduledAt = weekStartEpochMs(week) + day * DAY_MS;
       if (scheduledAt <= state.time.epochMs) continue;
       if (hasRestConflict(scheduledAt)) continue;
-      let best = null;
-      venues.forEach((venue) => {
-        const validation = validateTourBooking({ draft, venue, scheduledAt });
-        if (!validation.ok) return;
-        const projection = validation.projection;
-        if (!projection) return;
-        const score = Number(projection.profit || 0);
-        if (!best || score > best.score) {
-          best = { venue, score };
-        }
-      });
+      const selectBestVenue = (venueList) => {
+        let best = null;
+        venueList.forEach((venue) => {
+          if (hasTravelConflict(scheduledAt, venue?.regionId)) return;
+          const validation = validateTourBooking({ draft, venue, scheduledAt });
+          if (!validation.ok) return;
+          const projection = validation.projection;
+          if (!projection) return;
+          const score = Number(projection.profit || 0);
+          if (!best || score > best.score) {
+            best = { venue, score };
+          }
+        });
+        return best;
+      };
+      const regionPool = currentLegRegionId
+        ? venues.filter((venue) => venue.regionId === currentLegRegionId)
+        : venues;
+      let best = selectBestVenue(regionPool);
+      if (!best && currentLegRegionId) {
+        best = selectBestVenue(venues);
+      }
       if (!best) continue;
       const result = bookTourDate({ draftId: draft.id, venueId: best.venue.id, weekNumber: week, dayIndex: day });
       if (result.ok && result.booking) {
         booked.push(result.booking);
         weekCounts[week] += 1;
+        currentLegRegionId = result.booking.regionId || currentLegRegionId;
+        const updatedCap = resolveTourLengthCap({ draftId: draft.id });
+        if (updatedCap?.cap && listTourBookings({ tourId: draft.id }).length >= updatedCap.cap) {
+          capReached = true;
+        }
+      } else if (result.code === "TOUR_LENGTH_CAP") {
+        capReached = true;
       }
     }
   }
 
   if (!booked.length) {
+    const draftLabel = draft.id ? ` (${draft.id})` : "";
+    logEvent(`Tour auto-generate${draftLabel} blocked: no eligible dates found.`, "warn");
     return { ok: false, reason: "No eligible tour dates found in the selected window." };
   }
   const projectionSummary = booked.reduce((sum, booking) => sum + Number(booking.projection?.revenue || 0), 0);
-  logEvent(`Auto-generated ${booked.length} tour date${booked.length === 1 ? "" : "s"} (Projected revenue ${formatMoney(projectionSummary)}).`);
+  logEvent(`Auto-generated ${booked.length} tour date${booked.length === 1 ? "" : "s"} (${draft.id}) (Projected revenue ${formatMoney(projectionSummary)}).`);
   return { ok: true, booked, projectedRevenue: projectionSummary };
 }
 
@@ -9444,6 +9841,7 @@ function resolveTourBookings(now = state.time.epochMs) {
     fanGain: 0,
     count: 0
   };
+  const resolvedBookings = [];
   touring.bookings.forEach((booking) => {
     if (!booking || booking.status !== "Booked") return;
     if (!Number.isFinite(booking.scheduledAt) || booking.scheduledAt > now) return;
@@ -9463,7 +9861,21 @@ function resolveTourBookings(now = state.time.epochMs) {
     pending.costs += costs;
     pending.profit += profit;
     pending.count += 1;
+    const act = booking.actId ? getAct(booking.actId) : null;
+    if (act?.memberIds?.length) {
+      applyActStaminaSpend(act.memberIds, ACTIVITY_STAMINA_TOUR_DATE, {
+        context: {
+          stageName: "Tour Date",
+          trackId: booking.anchorTrackId || null,
+          orderId: booking.tourId || booking.id
+        },
+        activityLabel: booking.tourName ? `Tour: ${booking.tourName}` : "Tour Date"
+      });
+      act.memberIds.forEach((id) => markCreatorActivityById(id, now));
+    }
     logEvent(`Tour completed: ${booking.actName} at ${booking.venueLabel} (${formatMoney(profit)} net).`);
+    postTourCompletion(booking);
+    resolvedBookings.push(booking);
     if (balanceEnabled) {
       const gainRate = TOUR_FAN_GAIN_BALANCED;
       const gain = Math.round(attendance * gainRate);
@@ -9491,17 +9903,38 @@ function resolveTourBookings(now = state.time.epochMs) {
       logEvent(`Touring balance is disabled; ${pending.count} date${pending.count === 1 ? "" : "s"} resolved without wallet impact.`, "info");
     }
   }
+  if (resolvedBookings.length) {
+    const byTour = new Map();
+    resolvedBookings.forEach((booking) => {
+      const key = booking.tourId || "tour";
+      if (!byTour.has(key)) byTour.set(key, []);
+      byTour.get(key).push(booking);
+    });
+    byTour.forEach((bookings, tourId) => {
+      const tourName = bookings[0]?.tourName || "Tour";
+      const legs = buildTourLegs(bookings);
+      legs.forEach((leg, index) => {
+        const legLabel = `Leg ${index + 1} | ${leg.regionLabel}`;
+        logEvent(
+          `Tour leg recap (${tourId}): ${tourName} | ${legLabel} | Dates ${leg.count} | Attendance ${formatCount(leg.attendance)} | Net ${formatMoney(leg.profit)}.`
+        );
+      });
+    });
+  }
   return pending;
 }
 
 function computeTourDraftSummary(draftId) {
   const bookings = listTourBookings({ tourId: draftId });
+  const legs = buildTourLegs(bookings);
   const summary = {
     attendance: 0,
     revenue: 0,
     costs: 0,
     profit: 0,
     count: 0,
+    legCount: legs.length,
+    legs,
     warnings: []
   };
   bookings.forEach((booking) => {
@@ -10680,6 +11113,34 @@ function buildGenreRanking(totals) {
   return entries.map((entry) => entry.genre);
 }
 
+function ensureTrendLedger() {
+  if (!state.trendLedger || typeof state.trendLedger !== "object") {
+    state.trendLedger = { weeks: [], rankings: [], dominance: null, emerging: {} };
+  }
+  if (!Array.isArray(state.trendLedger.weeks)) state.trendLedger.weeks = [];
+  if (!Array.isArray(state.trendLedger.rankings)) state.trendLedger.rankings = [];
+  if (!state.trendLedger.emerging || typeof state.trendLedger.emerging !== "object") {
+    state.trendLedger.emerging = {};
+  }
+  if (!state.trendLedger.dominance || typeof state.trendLedger.dominance !== "object") {
+    state.trendLedger.dominance = {
+      genre: "",
+      streak: 0,
+      cap: 0,
+      startWeek: null,
+      lastWeek: null,
+      resetWeek: null
+    };
+  }
+  return state.trendLedger;
+}
+
+function buildTrendRankingFromTotals(totals) {
+  return Object.entries(totals || {})
+    .sort((a, b) => b[1] - a[1])
+    .map((entry) => entry[0]);
+}
+
 function buildTrendSnapshot(entries) {
   const totals = {};
   const alignmentScores = {};
@@ -10699,9 +11160,7 @@ function buildTrendSnapshot(entries) {
     const weight = Math.max(0, score);
     alignmentScores[track.genre][alignment] += weight;
   });
-  const ranking = Object.entries(totals)
-    .sort((a, b) => b[1] - a[1])
-    .map((entry) => entry[0]);
+  const ranking = buildTrendRankingFromTotals(totals);
   return { ranking, totals, alignmentScores };
 }
 
@@ -10725,16 +11184,25 @@ function buildTrendLedgerSnapshot(entries, week) {
 }
 
 function recordTrendLedgerSnapshot(entries) {
-  if (!state.trendLedger || typeof state.trendLedger !== "object") {
-    state.trendLedger = { weeks: [] };
-  }
+  const ledger = ensureTrendLedger();
   const week = weekIndex() + 1;
   const nextSnapshot = buildTrendLedgerSnapshot(entries, week);
-  const weeks = Array.isArray(state.trendLedger.weeks) ? state.trendLedger.weeks : [];
+  const weeks = Array.isArray(ledger.weeks) ? ledger.weeks : [];
   const deduped = weeks.filter((snapshot) => snapshot && snapshot.week !== week);
   deduped.push(nextSnapshot);
   deduped.sort((a, b) => a.week - b.week);
-  state.trendLedger.weeks = deduped.slice(-TREND_WINDOW_WEEKS);
+  ledger.weeks = deduped.slice(-TREND_WINDOW_WEEKS);
+}
+
+function recordTrendRankingSnapshot(ranking) {
+  const ledger = ensureTrendLedger();
+  const week = weekIndex() + 1;
+  const normalized = Array.isArray(ranking) ? ranking.filter(Boolean) : [];
+  const snapshots = Array.isArray(ledger.rankings) ? ledger.rankings : [];
+  const deduped = snapshots.filter((snapshot) => snapshot && snapshot.week !== week);
+  deduped.push({ week, updatedAt: state.time.epochMs, ranking: normalized });
+  deduped.sort((a, b) => a.week - b.week);
+  ledger.rankings = deduped.slice(-TREND_RANKING_HISTORY_WEEKS);
 }
 
 function aggregateTrendLedger(weeks) {
@@ -10764,10 +11232,242 @@ function aggregateTrendLedger(weeks) {
   return { totals, alignmentScores, chartGenres: Array.from(chartGenres) };
 }
 
+function buildTrendRankHistoryFromRankings(rankings) {
+  const ordered = (rankings || [])
+    .filter((snapshot) => snapshot && Array.isArray(snapshot.ranking))
+    .slice()
+    .sort((a, b) => a.week - b.week);
+  return ordered.map((snapshot) => {
+    const ranks = {};
+    snapshot.ranking.forEach((genre, index) => {
+      if (!genre) return;
+      ranks[genre] = index + 1;
+    });
+    return { week: snapshot.week, ranking: snapshot.ranking, ranks };
+  });
+}
+
+function buildTrendRankHistoryFromWeeks(weeks) {
+  const ordered = (weeks || []).filter(Boolean).slice().sort((a, b) => a.week - b.week);
+  return ordered.map((snapshot) => {
+    const ranking = buildTrendRankingFromTotals(snapshot?.totals || {});
+    const ranks = {};
+    ranking.forEach((genre, index) => {
+      if (!genre) return;
+      ranks[genre] = index + 1;
+    });
+    return { week: snapshot.week, ranking, ranks };
+  });
+}
+
 function getTrendLedgerWindow() {
-  const weeks = state.trendLedger?.weeks;
-  if (!Array.isArray(weeks)) return [];
-  return weeks.slice(-TREND_WINDOW_WEEKS);
+  const ledger = ensureTrendLedger();
+  return ledger.weeks.slice(-TREND_WINDOW_WEEKS);
+}
+
+function getTrendRankingWindow() {
+  const ledger = ensureTrendLedger();
+  return ledger.rankings.slice(-TREND_RANKING_HISTORY_WEEKS);
+}
+
+function getTrendRankHistory() {
+  const rankingSnapshots = getTrendRankingWindow();
+  if (rankingSnapshots.length) return buildTrendRankHistoryFromRankings(rankingSnapshots);
+  return buildTrendRankHistoryFromWeeks(getTrendLedgerWindow());
+}
+
+function getTrendTopFiveStreak(genre, history) {
+  if (!genre || !Array.isArray(history) || !history.length) return 0;
+  let streak = 0;
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const entry = history[i];
+    if (!entry?.ranks) break;
+    if (getEmergingTrendWindow(genre, entry.week)) break;
+    const rank = entry.ranks[genre];
+    if (!Number.isFinite(rank) || rank > TREND_PEAKING_TOP_RANK) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+function getTrendPeakingDisinterest(genre, history) {
+  const streak = getTrendTopFiveStreak(genre, history);
+  if (!streak || streak <= TREND_PEAKING_DISINTEREST_START) return 0;
+  const maxWeeks = Math.max(TREND_PEAKING_DISINTEREST_START + 1, TREND_PEAKING_MAX_WEEKS);
+  const capped = Math.min(streak, maxWeeks);
+  const ratio = (capped - TREND_PEAKING_DISINTEREST_START) / (maxWeeks - TREND_PEAKING_DISINTEREST_START);
+  return clamp(ratio, 0, 1);
+}
+
+function buildTrendDisinterestWeights(trends, history) {
+  const weighted = [];
+  (trends || []).forEach((genre) => {
+    if (!genre) return;
+    const disinterest = getTrendPeakingDisinterest(genre, history);
+    const weightRatio = Math.max(0, 1 - disinterest);
+    if (weightRatio <= 0) return;
+    weighted.push({ genre, weight: Math.max(1, Math.round(weightRatio * 100)) });
+  });
+  return weighted;
+}
+
+function pickWeightedEntryWithRng(list, rng) {
+  if (!Array.isArray(list) || !list.length) return null;
+  const total = list.reduce((sum, entry) => sum + (entry.weight || 0), 0);
+  if (total <= 0) return list[0];
+  const roll = typeof rng === "function"
+    ? Math.floor(rng() * total) + 1
+    : rand(1, total);
+  let remaining = roll;
+  for (const entry of list) {
+    remaining -= entry.weight || 0;
+    if (remaining <= 0) return entry;
+  }
+  return list[list.length - 1];
+}
+
+function pickTrendGenreWithDisinterest(trends, history, rng = null) {
+  if (!Array.isArray(trends) || !trends.length) return "";
+  const weighted = buildTrendDisinterestWeights(trends, history);
+  if (!weighted.length) {
+    return typeof rng === "function" ? seededPick(trends, rng) : pickOne(trends);
+  }
+  const pick = pickWeightedEntryWithRng(weighted, rng);
+  return pick?.genre || weighted[0]?.genre || trends[0];
+}
+
+function pickTrendDominanceCap(genre, currentWeek) {
+  const minWeeks = Math.min(TREND_DOMINANCE_MIN_WEEKS, TREND_DOMINANCE_MAX_WEEKS);
+  const maxWeeks = Math.max(TREND_DOMINANCE_MIN_WEEKS, TREND_DOMINANCE_MAX_WEEKS);
+  if (!genre) return minWeeks;
+  const seed = makeStableSeed([genre, currentWeek, "trend-dominance-cap"]);
+  const rng = makeSeededRng(seed);
+  return seededRand(minWeeks, maxWeeks, rng);
+}
+
+function computeTrendDominanceDecay(streak, cap) {
+  if (!Number.isFinite(streak) || !Number.isFinite(cap) || cap <= 1) return 1;
+  const ratio = clamp((streak - 1) / Math.max(1, cap - 1), 0, 1);
+  return clamp(1 - ratio * TREND_DOMINANCE_DECAY_MAX, 1 - TREND_DOMINANCE_DECAY_MAX, 1);
+}
+
+function applyTrendDominanceAdjustments(totals, ranking) {
+  const ledger = ensureTrendLedger();
+  const currentWeek = weekIndex() + 1;
+  const topGenre = ranking[0] || "";
+  if (!topGenre) return { ranking, decayedTotals: { ...(totals || {}) }, resetGenre: null };
+  const previous = ledger.dominance || {};
+  let nextDominance = { ...previous };
+  if (nextDominance.genre === topGenre) {
+    if (!Number.isFinite(nextDominance.streak)) nextDominance.streak = 0;
+    if (!Number.isFinite(nextDominance.cap) || nextDominance.cap <= 0) {
+      nextDominance.cap = pickTrendDominanceCap(topGenre, currentWeek);
+    }
+    if (nextDominance.lastWeek !== currentWeek) {
+      nextDominance.streak += 1;
+    }
+  } else {
+    nextDominance = {
+      genre: topGenre,
+      streak: 1,
+      cap: pickTrendDominanceCap(topGenre, currentWeek),
+      startWeek: currentWeek,
+      lastWeek: currentWeek,
+      resetWeek: null
+    };
+  }
+  nextDominance.lastWeek = currentWeek;
+  const decayedTotals = { ...(totals || {}) };
+  if (Number.isFinite(decayedTotals[topGenre])) {
+    const decay = computeTrendDominanceDecay(nextDominance.streak, nextDominance.cap);
+    decayedTotals[topGenre] = decayedTotals[topGenre] * decay;
+  }
+  let nextRanking = buildTrendRankingFromTotals(decayedTotals);
+  let resetGenre = null;
+  const shouldReset = nextDominance.cap
+    && Number.isFinite(nextDominance.streak)
+    && nextDominance.streak >= nextDominance.cap
+    && nextDominance.resetWeek !== currentWeek;
+  if (shouldReset) {
+    resetGenre = topGenre;
+    nextRanking = nextRanking.filter((genre) => genre !== topGenre);
+    nextRanking.push(topGenre);
+    ledger.emerging[topGenre] = {
+      resetWeek: currentWeek,
+      startWeek: null,
+      endWeek: null
+    };
+    const nextTop = nextRanking[0] || "";
+    if (nextTop && nextTop !== resetGenre) {
+      nextDominance = {
+        genre: nextTop,
+        streak: 1,
+        cap: pickTrendDominanceCap(nextTop, currentWeek),
+        startWeek: currentWeek,
+        lastWeek: currentWeek,
+        resetWeek: null
+      };
+    } else {
+      nextDominance = {
+        genre: "",
+        streak: 0,
+        cap: 0,
+        startWeek: null,
+        lastWeek: currentWeek,
+        resetWeek: currentWeek
+      };
+    }
+  }
+  ledger.dominance = nextDominance;
+  if (resetGenre) {
+    const label = formatGenreKeyLabel(resetGenre);
+    logEvent(`Cultural reset: ${label} cooled off and dropped to the bottom of the trend list.`, "warn");
+  }
+  return { ranking: nextRanking, decayedTotals, resetGenre };
+}
+
+function updateEmergingTrendWindows(trends) {
+  const ledger = ensureTrendLedger();
+  const currentWeek = weekIndex() + 1;
+  const visible = new Set((trends || []).filter(Boolean));
+  Object.entries(ledger.emerging || {}).forEach(([genre, entry]) => {
+    if (!entry || typeof entry !== "object") {
+      delete ledger.emerging[genre];
+      return;
+    }
+    const startWeek = Number.isFinite(entry.startWeek) ? entry.startWeek : null;
+    const endWeek = Number.isFinite(entry.endWeek) ? entry.endWeek : null;
+    if (startWeek && endWeek && currentWeek > endWeek) {
+      delete ledger.emerging[genre];
+      return;
+    }
+    if (!startWeek && visible.has(genre)) {
+      entry.startWeek = currentWeek;
+      entry.endWeek = currentWeek + TREND_EMERGING_WEEKS - 1;
+    }
+  });
+  return ledger.emerging;
+}
+
+function getEmergingTrendWindow(genre, currentWeek = weekIndex() + 1) {
+  if (!genre) return null;
+  const ledger = ensureTrendLedger();
+  const entry = ledger.emerging?.[genre];
+  if (!entry) return null;
+  const startWeek = Number.isFinite(entry.startWeek) ? entry.startWeek : null;
+  const endWeek = Number.isFinite(entry.endWeek) ? entry.endWeek : null;
+  if (!startWeek || !endWeek) return null;
+  if (currentWeek < startWeek || currentWeek > endWeek) return null;
+  return { startWeek, endWeek, remainingWeeks: endWeek - currentWeek + 1 };
+}
+
+function applyEmergingTrendDebuff(score, genre, currentWeek = weekIndex() + 1) {
+  if (!Number.isFinite(score)) return score;
+  const window = getEmergingTrendWindow(genre, currentWeek);
+  if (!window) return score;
+  const penalty = clamp(TREND_EMERGING_ACTIVITY_DEBUFF, 0, 1);
+  const multiplier = clamp(1 - penalty, 0, 1);
+  return Math.round(score * multiplier);
 }
 
 function refreshTrendsFromLedger() {
@@ -10779,14 +11479,18 @@ function refreshTrendsFromLedger() {
     return;
   }
   const aggregate = aggregateTrendLedger(windowWeeks);
-  const ranking = Object.entries(aggregate.totals)
-    .sort((a, b) => b[1] - a[1])
-    .map((entry) => entry[0]);
+  const baseRanking = buildTrendRankingFromTotals(aggregate.totals);
+  if (!baseRanking.length) return;
+  const { ranking } = applyTrendDominanceAdjustments(aggregate.totals, baseRanking);
   if (!ranking.length) return;
   state.trendRanking = ranking;
   state.trends = ranking.slice(0, TREND_DETAIL_COUNT);
   state.trendAlignmentScores = aggregate.alignmentScores;
   state.genreRanking = buildGenreRanking(aggregate.totals);
+  const chartPresence = new Set(aggregate.chartGenres || []);
+  const visible = ranking.filter((trend) => (aggregate.totals?.[trend] || 0) > 0 && chartPresence.has(trend));
+  updateEmergingTrendWindows(visible);
+  recordTrendRankingSnapshot(ranking);
 }
 
 function resolveTrendSeedEntries(globalScores) {
@@ -10912,6 +11616,54 @@ function trendAlignmentLeader(genre, alignmentScores) {
   });
   if (!topAlignment || topScore <= 0 || total <= 0) return null;
   return { alignment: topAlignment, share: Math.round((topScore / total) * 100) };
+}
+
+function resolveTrendStatusMeta(genre, history) {
+  const currentWeek = Array.isArray(history) && history.length
+    ? history[history.length - 1]?.week
+    : weekIndex() + 1;
+  const emerging = getEmergingTrendWindow(genre, currentWeek);
+  if (emerging) return { key: "EMERGING", label: "EMERGING", className: "" };
+  if (!genre || !Array.isArray(history) || !history.length) {
+    return { key: "STABLE", label: "STABLE", className: "" };
+  }
+  const topFiveStreak = getTrendTopFiveStreak(genre, history);
+  if (topFiveStreak > 0) {
+    const weekLabel = topFiveStreak >= 2 ? `WK ${topFiveStreak}` : "";
+    return {
+      key: "PEAKING",
+      label: "PEAKING",
+      className: "warn",
+      weekLabel
+    };
+  }
+  const current = history[history.length - 1]?.ranks?.[genre];
+  const previous = history[history.length - 2]?.ranks?.[genre];
+  const twoBack = history[history.length - 3]?.ranks?.[genre];
+  const jump = Number.isFinite(previous) && Number.isFinite(current) ? previous - current : null;
+  if (Number.isFinite(jump) && jump > 10) return { key: "HOT", label: "HOT", className: "warn" };
+  if (Number.isFinite(jump) && jump > 5) return { key: "RISING", label: "RISING", className: "warn" };
+  const drop = Number.isFinite(twoBack) && Number.isFinite(current) ? current - twoBack : null;
+  if (Number.isFinite(drop) && drop >= 10) return { key: "FALLING", label: "FALLING", className: "danger" };
+  let stable = false;
+  if (Number.isFinite(current) && Number.isFinite(previous) && Number.isFinite(twoBack)) {
+    const max = Math.max(current, previous, twoBack);
+    const min = Math.min(current, previous, twoBack);
+    stable = max - min <= 5;
+  } else if (Number.isFinite(current) && Number.isFinite(previous)) {
+    stable = Math.abs(current - previous) <= 5;
+  }
+  if (stable) return { key: "STABLE", label: "STABLE", className: "" };
+  return { key: "STABLE", label: "STABLE", className: "" };
+}
+
+function buildTrendStatusMap(trends, history) {
+  const statusByGenre = {};
+  (trends || []).forEach((genre) => {
+    if (!genre) return;
+    statusByGenre[genre] = resolveTrendStatusMeta(genre, history);
+  });
+  return statusByGenre;
 }
 
 
@@ -12768,10 +13520,23 @@ function collectRivalProjectMarkets(rival, anchorMarket) {
   return matches.length ? matches : [anchorMarket];
 }
 
+function resolveRivalPromoCreatorIds(rival, market, entry = null) {
+  if (!rival || !Array.isArray(rival.creators) || !rival.creators.length) return [];
+  const fromEntry = Array.isArray(entry?.creatorIds) ? entry.creatorIds.filter(Boolean) : [];
+  if (fromEntry.length) return fromEntry;
+  const fromMarket = Array.isArray(market?.creatorIds) ? market.creatorIds.filter(Boolean) : [];
+  if (fromMarket.length) return fromMarket;
+  const fallbackCrew = pickRivalReleaseCrew(rival, market?.theme || null, market?.mood || null);
+  if (fallbackCrew.length) return fallbackCrew.map((creator) => creator.id);
+  const fallback = pickOne(rival.creators)?.id;
+  return fallback ? [fallback] : [];
+}
+
 function processRivalPromoEntry(entry) {
   const rival = getRivalByName(entry.label);
   if (!rival) return false;
   const promoType = entry.promoType || AUTO_PROMO_RIVAL_TYPE;
+  const promoDetails = getPromoTypeDetails(promoType);
   const market = pickRivalAutoPromoTrack(rival);
   if (!market || (market.promoWeeks || 0) > 0) return false;
   const projectMarkets = collectRivalProjectMarkets(rival, market);
@@ -12807,7 +13572,20 @@ function processRivalPromoEntry(entry) {
     isPlayer: false,
     targetType: isProjectPromo ? "project" : "track"
   });
-  markRivalPromoActivity(rival.name, state.time.epochMs);
+  const promoCrewIds = resolveRivalPromoCreatorIds(rival, market, entry);
+  if (promoCrewIds.length) {
+    applyActStaminaSpend(promoCrewIds, ACTIVITY_STAMINA_PROMO, {
+      roster: rival.creators,
+      context: {
+        stageName: `Promo: ${promoDetails.label || "Promo"}`,
+        trackId: market?.trackId || null,
+        orderId: entry.id
+      },
+      activityLabel: promoDetails.label || "Promo",
+      logOverdraw: false
+    });
+  }
+  markRivalPromoActivity(rival.name, state.time.epochMs, promoCrewIds);
   return true;
 }
 
@@ -12851,6 +13629,7 @@ function processRivalReleaseQueue() {
         country: entry.country || actCountry || "Annglora",
         actCountry,
         creatorCountries,
+        creatorIds: Array.isArray(entry.creatorIds) ? entry.creatorIds.filter(Boolean) : [],
         quality: entry.quality,
         genre: entry.genre,
         distribution: entry.distribution || "Digital",
@@ -13252,7 +14031,7 @@ function runAutoPromoForPlayer() {
     }
     if (act) act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
     state.meta.promoRuns = (state.meta.promoRuns || 0) + resolvedTypes.length;
-    const promoIds = new Set();
+    const promoIds = new Set([...(act?.memberIds || [])]);
     if (track) {
       (track.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
       (track.creators?.performerIds || []).forEach((id) => promoIds.add(id));
@@ -13265,7 +14044,21 @@ function runAutoPromoForPlayer() {
       });
     }
     const promoIdList = Array.from(promoIds).filter(Boolean);
-    if (promoIdList.length) markCreatorPromo(promoIdList);
+    if (promoIdList.length) {
+      const promoLabel = resolvedTypes.length === 1
+        ? getPromoTypeDetails(resolvedTypes[0]).label
+        : `${resolvedTypes.length} promo types`;
+      const staminaCost = ACTIVITY_STAMINA_PROMO * resolvedTypes.length;
+      applyActStaminaSpend(promoIdList, staminaCost, {
+        context: {
+          stageName: `Promo: ${promoLabel}`,
+          trackId: track?.id || null,
+          orderId: `auto-promo-${target.index + 1}`
+        },
+        activityLabel: promoLabel
+      });
+      markCreatorPromo(promoIdList);
+    }
     const promoStamp = state.time.epochMs;
     const promoLabel = market?.label || state.label?.name || "";
     const promoProjectName = track?.projectName || projectSpec?.projectName || null;
@@ -13360,6 +14153,7 @@ function runAutoPromoForRivals() {
     const budget = computeAutoPromoBudget(walletCash, pct);
     if (!budget || walletCash < budget || rival.cash < budget) return;
     const promoType = AUTO_PROMO_RIVAL_TYPE;
+    const promoDetails = getPromoTypeDetails(promoType);
     const facilityId = getPromoFacilityForType(promoType);
     if (facilityId) {
       const reservation = reservePromoFacilitySlot(facilityId, promoType, market.trackId);
@@ -13388,7 +14182,20 @@ function runAutoPromoForRivals() {
       isPlayer: false,
       targetType: isProjectPromo ? "project" : "track"
     });
-    markRivalPromoActivity(rival.name, state.time.epochMs);
+    const promoCrewIds = resolveRivalPromoCreatorIds(rival, market);
+    if (promoCrewIds.length) {
+      applyActStaminaSpend(promoCrewIds, ACTIVITY_STAMINA_PROMO, {
+        roster: rival.creators,
+        context: {
+          stageName: `Promo: ${promoDetails.label || "Promo"}`,
+          trackId: market?.trackId || null,
+          orderId: market?.id || null
+        },
+        activityLabel: promoDetails.label || "Promo",
+        logOverdraw: false
+      });
+    }
+    markRivalPromoActivity(rival.name, state.time.epochMs, promoCrewIds);
   });
 }
 
@@ -14574,7 +15381,7 @@ function seedNewGame(options = {}) {
   state.trends = seedTrends();
   state.trendRanking = state.trends.slice();
   state.trendAlignmentScores = {};
-  state.trendLedger = { weeks: [] };
+  state.trendLedger = { weeks: [], rankings: [], dominance: null, emerging: {} };
   refreshRivalAmbition();
   ensureRivalCashFloor();
   recruitRivalCreators();
@@ -15039,11 +15846,9 @@ function normalizeState() {
   if (!state.trendAlignmentScores || typeof state.trendAlignmentScores !== "object") {
     state.trendAlignmentScores = {};
   }
-  if (!state.trendLedger || typeof state.trendLedger !== "object") {
-    state.trendLedger = { weeks: [] };
-  }
-  if (!Array.isArray(state.trendLedger.weeks)) state.trendLedger.weeks = [];
-  state.trendLedger.weeks = state.trendLedger.weeks.filter(Boolean).slice(-TREND_WINDOW_WEEKS);
+  const trendLedger = ensureTrendLedger();
+  trendLedger.weeks = trendLedger.weeks.filter(Boolean).slice(-TREND_WINDOW_WEEKS);
+  trendLedger.rankings = trendLedger.rankings.filter(Boolean).slice(-TREND_RANKING_HISTORY_WEEKS);
   if (!state.acts.length && state.creators.length) seedActs();
   if (!state.meta) state.meta = { savedAt: null, version: STATE_VERSION, questIdCounter: 0 };
   state.meta.version = STATE_VERSION;
@@ -15458,6 +16263,12 @@ function normalizeState() {
   ensureAudienceBiasStore();
   if (state.label && !state.label.country) state.label.country = "Annglora";
   if (state.label) {
+    if (typeof state.label.acronym !== "string" || !state.label.acronym.trim()) {
+      const fallbackAcronym = resolveLabelAcronym("Hann Record Label") || "ARL3";
+      state.label.acronym = resolveLabelAcronym(state.label.name, fallbackAcronym);
+    } else {
+      state.label.acronym = state.label.acronym.trim().toUpperCase();
+    }
     if (!Array.isArray(state.label.focusThemes)) state.label.focusThemes = [];
     if (!Array.isArray(state.label.focusMoods)) state.label.focusMoods = [];
   }
@@ -16549,13 +17360,13 @@ function collectTrendRanking() {
   const aggregate = aggregateTrendLedger(getTrendLedgerWindow());
   let ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : [];
   if (!ranking.length) {
-    ranking = Object.entries(aggregate.totals || {})
-      .sort((a, b) => b[1] - a[1])
-      .map((entry) => entry[0]);
+    ranking = buildTrendRankingFromTotals(aggregate.totals || {});
   }
   const chartPresence = new Set(aggregate.chartGenres || []);
   const visible = ranking.filter((trend) => (aggregate.totals?.[trend] || 0) > 0 && chartPresence.has(trend));
-  return { visible, aggregate };
+  const history = getTrendRankHistory();
+  const statusByGenre = buildTrendStatusMap(visible, history);
+  return { visible, aggregate, statusByGenre };
 }
 
 
@@ -16709,6 +17520,7 @@ export {
   computeTourProjection,
   countryColor,
   countryDemonym,
+  resolveLabelAcronym,
   createRolloutStrategyFromTemplate,
   createRolloutStrategyForEra,
   createTrack,

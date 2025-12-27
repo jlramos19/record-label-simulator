@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -121,6 +121,19 @@ function renderNationalityPill(country) {
     const demonym = countryDemonym(country);
     return `<span class="pill country-pill" style="color:${color};">${demonym}</span>`;
 }
+function renderCreatorLabelPill({ labelName, labelCountry, labelAcronym, unsigned = false } = {}) {
+    if (unsigned) {
+        return `<span class="pill creator-label-pill creator-label-pill--unsigned">Unsigned</span>`;
+    }
+    const fallbackAcronym = String(labelAcronym || "").trim();
+    const resolvedAcronym = fallbackAcronym || resolveLabelAcronym(labelName);
+    if (!resolvedAcronym)
+        return "";
+    const color = countryColor(labelCountry);
+    const textColor = pickAccessibleTextColor(color);
+    const title = labelName ? ` title="${escapeAttribute(labelName)}"` : "";
+    return `<span class="pill creator-label-pill" style="background:${color};color:${textColor};"${title}>${resolvedAcronym}</span>`;
+}
 function getCreatorHangulName(creator) {
     if (!creator)
         return "";
@@ -134,7 +147,7 @@ function renderCreatorName(creator, { stacked = true } = {}) {
     const hangul = getCreatorHangulName(creator);
     if (!hangul || !stacked)
         return romanized;
-    return `<span class="name-stack"><span class="name-ko" lang="ko">${hangul}</span><span class="name-romanized">${romanized}</span></span>`;
+    return `<span class="name-stack name-stack--inline"><span class="name-ko" lang="ko">${hangul}</span><span class="name-romanized">${romanized}</span></span>`;
 }
 const HANGUL_REGEX = /[\uAC00-\uD7A3]/;
 function splitNameSuffix(name) {
@@ -314,18 +327,34 @@ function renderCreatorSkillProgress(creator) {
     const exp = getCreatorSkillExp(creator);
     return `Skill Level ${level} | EXP ${exp.toFixed(2)} / ${SKILL_EXP_PER_LEVEL_LABEL}`;
 }
+function formatCreatorGenderIdentity(creator) {
+    if (!creator)
+        return "";
+    const raw = String(creator.genderIdentity || "").trim().toLowerCase();
+    if (!raw)
+        return "";
+    if (raw === "man")
+        return "Man";
+    if (raw === "woman")
+        return "Woman";
+    if (raw === "nonbinary" || raw === "non-binary")
+        return "Non-binary";
+    return "";
+}
 function formatCreatorAgeMeta(creator) {
     if (!creator)
         return "Age -";
     const age = Number.isFinite(creator.age) ? creator.age : null;
     const group = creator.ageGroup || "";
+    let base = "Age -";
     if (age !== null && group)
-        return `Age ${age} (${group})`;
-    if (age !== null)
-        return `Age ${age}`;
-    if (group)
-        return `Age Group ${group}`;
-    return "Age -";
+        base = `Age ${age} (${group})`;
+    if (age !== null && !group)
+        base = `Age ${age}`;
+    if (age === null && group)
+        base = `Age Group ${group}`;
+    const genderLabel = formatCreatorGenderIdentity(creator);
+    return genderLabel ? `${base} | ${genderLabel}` : base;
 }
 function getCreatorCatharsisScore(creator) {
     return computeCreatorCatharsisScore(creator);
@@ -386,11 +415,14 @@ function renderModifierFocus(modifier) {
     return `<div class="muted">Focus: ${tags.join(" ")}</div>`;
 }
 /** @deprecated Replaced by React Pill/Tag components. */
-function renderGenrePills(theme, mood, { fallback = "-", alignment } = {}) {
+function renderGenrePills(theme, mood, { fallback = "-", alignment, inline = false } = {}) {
     if (!theme || !mood)
         return fallback;
     const themeTag = renderThemeTag(theme, { label: `${theme} but` });
     const moodTag = renderMoodTag(mood, alignment, { label: `it's ${mood}` });
+    if (inline) {
+        return `<span class="genre-pills genre-pills--inline">${themeTag}${moodTag}</span>`;
+    }
     return `<span class="genre-pills"><span class="genre-line">${themeTag}</span><span class="genre-line">${moodTag}</span></span>`;
 }
 /** @deprecated Replaced by React Pill/Tag components. */
@@ -1441,11 +1473,11 @@ function formatAudienceActiveHours(chunk) {
         return `${label} ${start}-${end}`;
     return label;
 }
-function renderDashboardAudienceChunks() {
-    const listEl = $("dashboardAudienceList");
+function renderAudienceChunks({ listId, metaId, limit = 8 } = {}) {
+    const listEl = $(listId || "dashboardAudienceList");
     if (!listEl)
         return;
-    const metaEl = $("dashboardAudienceMeta");
+    const metaEl = $(metaId || "dashboardAudienceMeta");
     const snapshot = getAudienceChunksSnapshot();
     const chunks = Array.isArray(snapshot?.chunks) ? snapshot.chunks : [];
     const year = Number.isFinite(snapshot?.lastUpdateYear) ? snapshot.lastUpdateYear : currentYear();
@@ -1462,7 +1494,7 @@ function renderDashboardAudienceChunks() {
     const ordered = chunks
         .slice()
         .sort((a, b) => (a.nation || "").localeCompare(b.nation || "") || (b.age || 0) - (a.age || 0));
-    const display = ordered.slice(0, 8);
+    const display = ordered.slice(0, limit);
     listEl.innerHTML = display.map((chunk) => {
         const community = formatGenreKeyLabel(chunk.communityId || "");
         const age = Number.isFinite(chunk.age) ? `Age ${chunk.age}` : "Age -";
@@ -1767,7 +1799,6 @@ function renderDashboard() {
       `).join("");
         }
     }
-    renderDashboardAudienceChunks();
     renderQuests();
     renderRivalAchievementRace();
 }
@@ -3159,6 +3190,10 @@ function renderCreators() {
         return;
     const busyIds = getBusyCreatorIds("In Progress");
     const pool = state.creators || [];
+    const labelName = state.label?.name || "";
+    const labelCountry = state.label?.country || "";
+    const labelAcronym = state.label?.acronym || "";
+    const labelPill = renderCreatorLabelPill({ labelName, labelCountry, labelAcronym });
     const columns = MARKET_ROLES.map((role) => {
         const roleLabelText = roleLabel(role);
         const roleCreators = pool.filter((creator) => creator.role === role);
@@ -3180,7 +3215,7 @@ function renderCreators() {
           <div class="list-row">
             <div class="creator-card">
               <div class="creator-card-header">
-                <div class="creator-card-header-left">${nationalityPill}</div>
+                <div class="creator-card-header-left">${nationalityPill}${labelPill}</div>
                 <div class="creator-card-header-right">
                   <div class="creator-card-occupation">${roleText}</div>
                   <div class="creator-card-id">ID ${creator.id}</div>
@@ -3309,6 +3344,7 @@ function renderMarket() {
     const pool = state.marketCreators || [];
     const now = state.time.epochMs;
     pruneCreatorSignLockouts(now);
+    const unsignedPill = renderCreatorLabelPill({ unsigned: true });
     const sortCreators = (list) => {
         if (!sortMode || sortMode === "default")
             return list;
@@ -3398,7 +3434,7 @@ function renderMarket() {
           <div class="list-row">
             <div class="creator-card">
               <div class="creator-card-header">
-                <div class="creator-card-header-left">${nationalityPill}</div>
+                <div class="creator-card-header-left">${nationalityPill}${unsignedPill}</div>
                 <div class="creator-card-header-right">
                   <div class="creator-card-occupation">${roleLabelText}</div>
                   <div class="creator-card-id">ID ${creator.id}</div>
@@ -4780,10 +4816,14 @@ function renderTouringDesk() {
                 summaryList.innerHTML = `<div class="muted">No tour dates booked yet.</div>`;
             }
             else {
+                const legLine = (summary.legs || [])
+                    .map((leg) => `${leg.regionLabel} (${leg.count})`)
+                    .join(" | ");
                 summaryList.innerHTML = `
           <div class="list-item">
             <div class="item-title">Tour summary</div>
             <div class="muted">Dates ${formatCount(summary.count)} | Attendance ${formatCount(summary.attendance)}</div>
+            ${legLine ? `<div class="muted">Legs ${summary.legCount} | ${legLine}</div>` : ""}
             <div class="muted">Revenue ${formatMoney(summary.revenue)} | Costs ${formatMoney(summary.costs)} | Profit ${formatMoney(summary.profit)}</div>
           </div>
         `;
@@ -4867,8 +4907,8 @@ function collectProjectChartEntries(entries) {
         .sort((a, b) => b.score - a.score)
         .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
-function buildTrendRankingList({ limit = null, showMore = false } = {}) {
-    const { visible, aggregate } = collectTrendRanking();
+function buildTrendRankingList({ limit = null, showMore = false, inlineGenre = false } = {}) {
+    const { visible, aggregate, statusByGenre } = collectTrendRanking();
     const displayed = typeof limit === "number" ? visible.slice(0, limit) : visible;
     if (!displayed.length) {
         return { markup: `<div class="muted">No trends yet.</div>`, visibleCount: 0, totalCount: visible.length };
@@ -4877,6 +4917,11 @@ function buildTrendRankingList({ limit = null, showMore = false } = {}) {
     const list = displayed.map((trend, index) => {
         const theme = themeFromGenre(trend);
         const mood = moodFromGenre(trend);
+        const status = statusByGenre?.[trend] || { label: "STABLE", className: "", weekLabel: "" };
+        const statusClass = status.className ? `badge ${status.className}` : "badge";
+        const weekBadge = status.weekLabel ? `<div class="badge">${status.weekLabel}</div>` : "";
+        const points = Math.round(aggregate.totals?.[trend] || 0);
+        const pointsLabel = `${formatCount(points)} pts`;
         const isTop = index < TREND_DETAIL_COUNT;
         const leader = isTop ? trendAlignmentLeader(trend, alignmentScores) : null;
         const detail = isTop
@@ -4898,10 +4943,12 @@ function buildTrendRankingList({ limit = null, showMore = false } = {}) {
       <div class="list-item trend-item${isTop ? " trend-item--top" : ""}">
         <div class="list-row">
           <div>
-            <div class="item-title">#${index + 1} ${renderGenrePills(theme, mood)}</div>
+            <div class="item-title">#${index + 1} ${renderGenrePills(theme, mood, { inline: inlineGenre })}</div>
           </div>
           <div class="ranking-actions">
-            <div class="badge warn">Hot</div>
+            <div class="${statusClass}">${status.label}</div>
+            ${weekBadge}
+            <div class="pill trend-points">${pointsLabel}</div>
             ${moreAction}
           </div>
         </div>
@@ -5001,7 +5048,7 @@ function renderRankingWindow(category) {
         }
         return;
     }
-    const { markup, visibleCount, totalCount } = buildTrendRankingList({ limit: 40 });
+    const { markup, visibleCount, totalCount } = buildTrendRankingList({ limit: 40, inlineGenre: true });
     titleEl.textContent = "Top Trends";
     listEl.innerHTML = markup;
     if (metaEl) {
@@ -5020,17 +5067,26 @@ function renderCreateTrends() {
     const listEl = $("createTrendList");
     if (!listEl)
         return;
-    const ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : (state.trends || []);
-    const list = ranking.slice(0, TREND_DETAIL_COUNT).map((trend, index) => {
+    const { visible, aggregate, statusByGenre } = collectTrendRanking();
+    const list = visible.slice(0, TREND_DETAIL_COUNT).map((trend, index) => {
         const theme = themeFromGenre(trend);
         const mood = moodFromGenre(trend);
+        const status = statusByGenre?.[trend] || { label: "STABLE", className: "", weekLabel: "" };
+        const statusClass = status.className ? `badge ${status.className}` : "badge";
+        const weekBadge = status.weekLabel ? `<div class="badge">${status.weekLabel}</div>` : "";
+        const points = Math.round(aggregate.totals?.[trend] || 0);
+        const pointsLabel = `${formatCount(points)} pts`;
         return `
       <div class="list-item">
         <div class="list-row">
           <div>
             <div class="item-title">#${index + 1} ${renderGenrePills(theme, mood)}</div>
           </div>
-          <div class="badge warn">Hot</div>
+          <div class="ranking-actions">
+            <div class="${statusClass}">${status.label}</div>
+            ${weekBadge}
+            <div class="pill trend-points">${pointsLabel}</div>
+          </div>
         </div>
       </div>
     `;
@@ -5362,6 +5418,12 @@ function renderCharts() {
         </div>
       `;
         }).join("") || "";
+        const audienceSection = `
+      <div class="subhead">Audience Chunks</div>
+      <div class="tiny muted">Sampled 1K-member chunks with yearly age + preference evolution.</div>
+      <div id="demographicsAudienceMeta" class="tiny muted"></div>
+      <div id="demographicsAudienceList" class="list"></div>
+    `;
         $("chartList").innerHTML = `
       <div class="callout">
         Demographics uses the seeded age pyramid per nation. Higher engagement flags streaming pressure, while higher budgets hint at future sales lift as cohorts age.
@@ -5383,7 +5445,9 @@ function renderCharts() {
       <div class="demographics-grid">
         ${ageCards}
       </div>
+      ${audienceSection}
     `;
+        renderAudienceChunks({ listId: "demographicsAudienceList", metaId: "demographicsAudienceMeta" });
         return;
     }
     const chartSource = contentType === "promotions"

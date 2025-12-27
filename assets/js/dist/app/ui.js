@@ -516,6 +516,9 @@ const sideLayout = {
     leftCollapsed: false,
     rightCollapsed: false
 };
+const SPLIT_LAYOUT_STATE_KEY = "rls_split_layout_v1";
+let splitLayoutState = null;
+const splitLayouts = new Set();
 const PANEL_STATES = {
     collapsed: "collapsed",
     expanded: "expanded",
@@ -529,9 +532,7 @@ const VIEW_PANEL_STATES = {
 const VIEW_DEFAULTS = {
     dashboard: {
         "dashboard-overview": VIEW_PANEL_STATES.open,
-        "dashboard-pipeline": VIEW_PANEL_STATES.open,
-        "dashboard-focus": VIEW_PANEL_STATES.open,
-        "dashboard-audience": VIEW_PANEL_STATES.open
+        "dashboard-focus": VIEW_PANEL_STATES.open
     },
     charts: {
         "charts": VIEW_PANEL_STATES.open
@@ -1422,6 +1423,7 @@ function mountView(route) {
     applyPanelStates(route, root);
     syncSidePanelsButton(root);
     setupPanelResizers(root);
+    setupSplitLayouts(root);
     bindViewHandlers(route, root);
     renderAll();
 }
@@ -6091,7 +6093,10 @@ export async function initUI() {
     ensureSocialDetailModal();
     setupOverlayDismissals();
     setupHorizontalWheelScroll();
-    window.addEventListener("resize", () => clampAllPanels());
+    window.addEventListener("resize", () => {
+        clampAllPanels();
+        clampSplitLayouts();
+    });
     bindGlobalHandlers();
     setupRankingWindowDrag();
     setupRankingWindowDismissal();
@@ -6497,6 +6502,108 @@ function bindQuickSkipButtons(root) {
         button.addEventListener("click", () => {
             const closeModal = Boolean(button.closest("#skipTimeModal"));
             runQuickSkipFromButton(button, { closeModal });
+        });
+    });
+}
+function loadSplitLayoutState() {
+    const raw = localStorage.getItem(SPLIT_LAYOUT_STATE_KEY);
+    if (!raw)
+        return {};
+    try {
+        return JSON.parse(raw) || {};
+    }
+    catch {
+        return {};
+    }
+}
+function getSplitLayoutState() {
+    if (!splitLayoutState)
+        splitLayoutState = loadSplitLayoutState();
+    return splitLayoutState;
+}
+function saveSplitLayoutState() {
+    if (!splitLayoutState)
+        return;
+    localStorage.setItem(SPLIT_LAYOUT_STATE_KEY, JSON.stringify(splitLayoutState));
+}
+function clampSplitLayout(layout) {
+    if (!layout?.isConnected)
+        return;
+    const left = layout.querySelector(".split-panel.is-left");
+    const right = layout.querySelector(".split-panel.is-right");
+    if (!left || !right)
+        return;
+    const rect = layout.getBoundingClientRect();
+    if (!rect.width)
+        return;
+    const minLeft = Number(layout.dataset.splitMinLeft || 260);
+    const minRight = Number(layout.dataset.splitMinRight || 260);
+    const maxLeft = Math.max(minLeft, rect.width - minRight);
+    const leftWidth = left.getBoundingClientRect().width;
+    const nextLeft = clamp(leftWidth, minLeft, maxLeft);
+    const pct = (nextLeft / rect.width) * 100;
+    layout.style.setProperty("--split-left", `${pct}%`);
+}
+function clampSplitLayouts() {
+    Array.from(splitLayouts).forEach((layout) => {
+        if (!layout.isConnected) {
+            splitLayouts.delete(layout);
+            return;
+        }
+        clampSplitLayout(layout);
+    });
+}
+function setupSplitLayouts(root) {
+    const scope = root || document;
+    scope.querySelectorAll(".split-layout").forEach((layout) => {
+        if (layout.dataset.splitBound)
+            return;
+        const left = layout.querySelector(".split-panel.is-left");
+        const right = layout.querySelector(".split-panel.is-right");
+        const handle = layout.querySelector(".split-handle");
+        if (!left || !right || !handle)
+            return;
+        layout.dataset.splitBound = "true";
+        splitLayouts.add(layout);
+        const key = layout.dataset.splitKey || "";
+        const defaults = Number(layout.dataset.splitDefault || 50);
+        const state = getSplitLayoutState();
+        const stored = key ? Number(state[key]) : NaN;
+        if (Number.isFinite(stored)) {
+            layout.style.setProperty("--split-left", `${stored}%`);
+        }
+        else if (Number.isFinite(defaults)) {
+            layout.style.setProperty("--split-left", `${defaults}%`);
+        }
+        clampSplitLayout(layout);
+        handle.addEventListener("pointerdown", (event) => {
+            if (event.button !== 0)
+                return;
+            event.preventDefault();
+            const rect = layout.getBoundingClientRect();
+            const startX = event.clientX;
+            const startWidth = left.getBoundingClientRect().width;
+            const minLeft = Number(layout.dataset.splitMinLeft || 260);
+            const minRight = Number(layout.dataset.splitMinRight || 260);
+            const maxLeft = Math.max(minLeft, rect.width - minRight);
+            let lastPct = null;
+            const onMove = (moveEvent) => {
+                const dx = moveEvent.clientX - startX;
+                const nextLeft = clamp(startWidth + dx, minLeft, maxLeft);
+                const pct = rect.width ? (nextLeft / rect.width) * 100 : defaults;
+                lastPct = pct;
+                layout.style.setProperty("--split-left", `${pct}%`);
+            };
+            const onUp = () => {
+                window.removeEventListener("pointermove", onMove);
+                window.removeEventListener("pointerup", onUp);
+                if (key && Number.isFinite(lastPct)) {
+                    state[key] = Number(lastPct.toFixed(2));
+                    saveSplitLayoutState();
+                }
+            };
+            window.addEventListener("pointermove", onMove);
+            window.addEventListener("pointerup", onUp);
         });
     });
 }

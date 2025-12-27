@@ -82,6 +82,23 @@ export const ANGLORAN_GIVEN_NAMES = [
   "Maya",
 ];
 
+const ANGLORAN_GIVEN_NAMES_WOMAN_START = 40;
+
+export const ANGLORAN_GIVEN_NAMES_MAN = ANGLORAN_GIVEN_NAMES.slice(0, ANGLORAN_GIVEN_NAMES_WOMAN_START);
+export const ANGLORAN_GIVEN_NAMES_WOMAN = ANGLORAN_GIVEN_NAMES.slice(ANGLORAN_GIVEN_NAMES_WOMAN_START);
+export const ANGLORAN_GIVEN_NAMES_NONBINARY = [
+  "Harper",
+  "Riley",
+  "Addison",
+  "Aubrey",
+  "Brooklyn",
+  "Dylan",
+  "Logan",
+  "Jayden",
+  "Carter",
+  "Hunter",
+];
+
 export const ANGLORAN_SURNAMES = [
   "Smith",
   "Johnson",

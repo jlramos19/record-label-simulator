@@ -60,6 +60,12 @@ export const CROWLYA_GIVEN_NAMES = [
     "Beatriz",
     "Teresa",
 ];
+const CROWLYA_GIVEN_NAMES_WOMAN_START = 30;
+export const CROWLYA_GIVEN_NAMES_MAN = CROWLYA_GIVEN_NAMES.slice(0, CROWLYA_GIVEN_NAMES_WOMAN_START);
+export const CROWLYA_GIVEN_NAMES_WOMAN = CROWLYA_GIVEN_NAMES.slice(CROWLYA_GIVEN_NAMES_WOMAN_START);
+export const CROWLYA_GIVEN_NAMES_NONBINARY = [
+    "Angel",
+];
 export const CROWLYA_SURNAMES = [
     "Garcia",
     "Rodriguez",

@@ -1,5 +1,28 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-2039Z)
+- Tour dates and promo runs now spend pooled act stamina (members cover for each other), applied to player + rival labels with overdraw warnings. [PN-20251227-AC05]
+
+## 2025-12-27 (RLS-PATCH-20251227-2037Z)
+- Cultural reset genres now return with an EMERGING tag for 4 weeks, including a 75% activity debuff to reflect audience resistance.
+
+## 2025-12-27 (RLS-PATCH-20251227-2021Z)
+- Trend rankings now show status pills (Hot/Rising/Peaking/Falling/Stable) with trend point totals.
+- Trend leaders now decay with audience fatigue, and extended dominance triggers a cultural reset drop to the bottom.
+- Top Trends expanded view now shows theme + mood inline, with theme/mood pill widths kept consistent by type.
+- Creator given-name pools now respect gender identity filters, and creator cards show gender identity beside age. [PN-20251227-AC04]
+
+## 2025-12-27 (RLS-PATCH-20251227-2002Z)
+- Tour auto-generation now clusters dates by region, respects travel-buffer gaps, and stops at tier length caps. [PN-20251227-AC01]
+- Tour booking logs now include tour IDs; leg recap logs and eyeriSocial posts fire when dates resolve. [PN-20251227-AC02]
+- Tour summaries now list regional leg counts, and cooldown warnings surface when tours stack too tightly. [PN-20251227-AC03]
+
+## 2025-12-27 (RLS-PATCH-20251227-1949Z)
+- Dashboard now splits Dashboard + Pipeline (left) and Road to the Top (right) with a resizable divider.
+- Road to the Top scope filters now sit to the right of content tabs for cleaner chart-pulse navigation.
+- Eras view now uses a resizable side-by-side split between Era Desk and Era Performance.
+- Audience chunks moved into Charts > Demographics, and Bytenza creator names now show Hangul + romanized inline.
+
 ## 2025-12-27 (RLS-PATCH-20251227-0420Z)
 - Creator ID cards now use a 3:2 layout with header/body/footer regions, a 2:3 portrait on the left, and footer-aligned stamina + action pills.
 - Creator ID stats now drop the redundant skill value line while keeping skill level/EXP, catharsis, and stamina.
@@ -601,3 +624,10 @@
 - Calendar view now projects scheduling into a grid from existing release queues; Releases is labeled Calendar, and the Eras calendar panel is merged into the Calendar view (list modal retained).
 - Calendar grid now renders a 6-week window with preview weeks and snap navigation (wheel/drag/touch) that only shifts the calendar anchor.
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
+
+## Patch Note Codes
+- PN-20251227-AC01 (2025-12-27 20:02Z): Tour auto-generation now clusters dates by region, respects travel-buffer gaps, and stops at tier length caps.
+- PN-20251227-AC02 (2025-12-27 20:02Z): Tour booking logs now include tour IDs; leg recap logs and eyeriSocial posts fire when dates resolve.
+- PN-20251227-AC03 (2025-12-27 20:02Z): Tour summaries now list regional leg counts, and cooldown warnings surface when tours stack too tightly.
+- PN-20251227-AC04 (2025-12-27 20:21Z): Creator given-name pools now respect gender identity filters, and creator cards show gender identity beside age.
+- PN-20251227-AC05 (2025-12-27 20:39Z): Tour dates and promo runs now spend pooled act stamina (members cover for each other), applied to player + rival labels with overdraw warnings.

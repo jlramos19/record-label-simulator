@@ -6,6 +6,7 @@
 - Conflicts are resolved case-by-case with GitHub as the tie-breaker.
 - Unity-era content is retconned into web equivalents; keep concepts, rewrite Unity tooling language.
 - Workflow: TODO -> Docs -> Code -> Patch Notes.
+- Patch notes: append a short change code to each new patch note bullet (example: `[PN-YYYYMMDD-AC01]`) and add a matching expansion entry under a `Patch Note Codes` section at the end of `docs/PATCH_NOTES.md`.
 - README upkeep: verify `README.md` is current; update content as needed and refresh a `Last updated: YYYY-MM-DD HH:mm:ss +/-HH:MM` timestamp. If your timestamp is more recent, override the existing one.
 - When you stage changes in git, draft a commit message for me to push to main on GitHub.
 - When making code changes, run `npm run build` and confirm the build succeeds; always request a test run when code is touched.

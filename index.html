@@ -548,96 +548,83 @@
 </div>
 
 <template id="view-dashboard">
-  <div class="view view--dashboard">
+  <div class="view view--dashboard view--single">
     <section class="view-main">
-      <div class="panel card panel--scroll" data-panel="dashboard-focus">
-        <div class="card-head">
-          <h2>Road to the Top</h2>
-        </div>
-        <div class="card-body">
-          <div class="tabs dashboard-focus-tabs" id="dashboardFocusTabs" role="tablist" aria-label="Road to the Top">
-            <button type="button" class="tab active" data-dashboard-focus="charts">Charts</button>
-            <button type="button" class="tab" data-dashboard-focus="quests">Tasks</button>
-            <button type="button" class="tab" data-dashboard-focus="requests">Requests</button>
-            <button type="button" class="tab" data-dashboard-focus="eras">Eras</button>
-          </div>
-          <section class="dashboard-focus-panel is-active" data-dashboard-focus-panel="charts">
-            <div class="chart-pulse-controls">
-              <div class="tabs" id="chartPulseContentTabs">
-                <button type="button" class="tab active" data-chart-pulse-content="tracks">Tracks</button>
-                <button type="button" class="tab" data-chart-pulse-content="projects">Projects</button>
-                <button type="button" class="tab" data-chart-pulse-content="promos">Promos</button>
-              </div>
-              <div class="chart-pulse-scope">
-                <div class="tabs" id="chartPulseScopeTabs">
-                  <button type="button" class="tab active" data-chart-pulse-scope="global">Global</button>
-                  <button type="button" class="tab" data-chart-pulse-scope="nation">Nation</button>
-                  <button type="button" class="tab" data-chart-pulse-scope="region">Region</button>
-                </div>
-                <div class="chart-pulse-target">
-                  <label id="chartPulseTargetLabel" class="tiny muted" for="chartPulseTarget">Target</label>
-                  <select id="chartPulseTarget"></select>
-                </div>
-              </div>
+      <div class="split-layout" data-split-key="dashboard" data-split-min-left="360" data-split-min-right="320" data-split-default="50">
+        <div class="panel card panel--scroll panel-fixed split-panel is-left" data-panel="dashboard-overview">
+          <div class="card-head">
+            <h2>Dashboard</h2>
+            <div class="panel-tools">
+              <div id="dashboardWeekLabel" class="tiny muted">Week -</div>
+              <div id="dashboardDateLabel" class="tiny muted">-</div>
             </div>
-            <div id="dashboardChartsList" class="list chart-pulse-slots"></div>
-            <div id="chartPulseMeta" class="tiny muted"></div>
-          </section>
-          <section class="dashboard-focus-panel" data-dashboard-focus-panel="quests">
-            <div id="questSummary" class="tiny muted"></div>
-            <div id="questList" class="list"></div>
-          </section>
-          <section class="dashboard-focus-panel" data-dashboard-focus-panel="requests">
-            <div id="achievementSummary" class="tiny muted"></div>
-            <div id="achievementList" class="list"></div>
-            <div class="subhead">Rival Race</div>
-            <div id="rivalAchievementList" class="list rival-achievement-list"></div>
-          </section>
-          <section class="dashboard-focus-panel" data-dashboard-focus-panel="eras">
-            <div id="dashboardEraList" class="list"></div>
-          </section>
-        </div>
-      </div>
-    </section>
-    <section class="dashboard-footer">
-      <div class="panel card panel--scroll" data-panel="dashboard-overview">
-        <div class="card-head">
-          <h2>Dashboard</h2>
-          <div class="panel-tools">
-            <div id="dashboardWeekLabel" class="tiny muted">Week -</div>
-            <div id="dashboardDateLabel" class="tiny muted">-</div>
+          </div>
+          <div class="card-body">
+            <div id="dashboardStats" class="dashboard-grid"></div>
+            <div class="subhead">Quick Actions</div>
+            <div class="dashboard-actions">
+              <a href="#/create" class="ghost mini">New Track</a>
+              <a href="#/releases" class="ghost mini">Calendar</a>
+              <a href="#/roster" class="ghost mini">Roster</a>
+              <a href="#/eras" class="ghost mini">Eras</a>
+            </div>
+            <div class="subhead">Pipeline</div>
+            <div class="dashboard-pipeline-block">
+              <div class="subhead">In Production</div>
+              <div id="dashboardWorkOrders" class="list"></div>
+              <div class="subhead">Upcoming Releases</div>
+              <div id="dashboardReleaseQueue" class="list"></div>
+            </div>
           </div>
         </div>
-        <div class="card-body">
-          <div id="dashboardStats" class="dashboard-grid"></div>
-          <div class="subhead">Quick Actions</div>
-          <div class="dashboard-actions">
-            <a href="#/create" class="ghost mini">New Track</a>
-            <a href="#/releases" class="ghost mini">Calendar</a>
-            <a href="#/roster" class="ghost mini">Roster</a>
-            <a href="#/eras" class="ghost mini">Eras</a>
+        <div class="split-handle" role="separator" aria-label="Resize dashboard panels" aria-orientation="vertical"></div>
+        <div class="panel card panel--scroll panel-fixed split-panel is-right" data-panel="dashboard-focus">
+          <div class="card-head">
+            <h2>Road to the Top</h2>
           </div>
-        </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="dashboard-pipeline">
-        <h2>Pipeline</h2>
-        <div class="card-body">
-          <div class="subhead">In Production</div>
-          <div id="dashboardWorkOrders" class="list"></div>
-          <div class="subhead">Upcoming Releases</div>
-          <div id="dashboardReleaseQueue" class="list"></div>
-        </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="dashboard-audience">
-        <div class="card-head">
-          <h2>Audience Chunks</h2>
-          <div class="panel-tools">
-            <div id="dashboardAudienceMeta" class="tiny muted">-</div>
+          <div class="card-body">
+            <div class="tabs dashboard-focus-tabs" id="dashboardFocusTabs" role="tablist" aria-label="Road to the Top">
+              <button type="button" class="tab active" data-dashboard-focus="charts">Charts</button>
+              <button type="button" class="tab" data-dashboard-focus="quests">Tasks</button>
+              <button type="button" class="tab" data-dashboard-focus="requests">Requests</button>
+              <button type="button" class="tab" data-dashboard-focus="eras">Eras</button>
+            </div>
+            <section class="dashboard-focus-panel is-active" data-dashboard-focus-panel="charts">
+              <div class="chart-pulse-controls">
+                <div class="tabs" id="chartPulseContentTabs">
+                  <button type="button" class="tab active" data-chart-pulse-content="tracks">Tracks</button>
+                  <button type="button" class="tab" data-chart-pulse-content="projects">Projects</button>
+                  <button type="button" class="tab" data-chart-pulse-content="promos">Promos</button>
+                </div>
+                <div class="chart-pulse-scope">
+                  <div class="tabs" id="chartPulseScopeTabs">
+                    <button type="button" class="tab active" data-chart-pulse-scope="global">Global</button>
+                    <button type="button" class="tab" data-chart-pulse-scope="nation">Nation</button>
+                    <button type="button" class="tab" data-chart-pulse-scope="region">Region</button>
+                  </div>
+                  <div class="chart-pulse-target">
+                    <label id="chartPulseTargetLabel" class="tiny muted" for="chartPulseTarget">Target</label>
+                    <select id="chartPulseTarget"></select>
+                  </div>
+                </div>
+              </div>
+              <div id="dashboardChartsList" class="list chart-pulse-slots"></div>
+              <div id="chartPulseMeta" class="tiny muted"></div>
+            </section>
+            <section class="dashboard-focus-panel" data-dashboard-focus-panel="quests">
+              <div id="questSummary" class="tiny muted"></div>
+              <div id="questList" class="list"></div>
+            </section>
+            <section class="dashboard-focus-panel" data-dashboard-focus-panel="requests">
+              <div id="achievementSummary" class="tiny muted"></div>
+              <div id="achievementList" class="list"></div>
+              <div class="subhead">Rival Race</div>
+              <div id="rivalAchievementList" class="list rival-achievement-list"></div>
+            </section>
+            <section class="dashboard-focus-panel" data-dashboard-focus-panel="eras">
+              <div id="dashboardEraList" class="list"></div>
+            </section>
           </div>
-        </div>
-        <div class="card-body">
-          <div class="tiny muted">Sampled 1K-member chunks with yearly age + preference evolution.</div>
-          <div id="dashboardAudienceList" class="list"></div>
         </div>
       </div>
     </section>
@@ -1017,120 +1004,121 @@
 </template>
 
 <template id="view-eras">
-  <div class="view view--eras">
+  <div class="view view--eras view--single">
     <section class="view-main">
-      <div class="panel card panel--scroll" data-panel="era-desk">
-        <h2>Era Desk</h2>
-        <div class="card-body">
-          <div class="callout">
-            Eras run in four stages: Direction, Creation, Promotion, Legacy. Use the calendar to track internal schedules; use eyeriSocial to publish public updates.
-          </div>
-          <div class="slot-grid slot-grid--multi">
-            <div class="id-slot" data-slot-target="era-act" data-slot-type="act">
-              <div class="slot-label">Act ID</div>
-              <div id="eraActSlot" class="slot-value">?</div>
-              <button type="button" class="ghost mini" data-slot-clear="era-act">Clear</button>
+      <div class="split-layout" data-split-key="eras" data-split-min-left="360" data-split-min-right="320" data-split-default="50">
+        <div class="panel card panel--scroll panel-fixed split-panel is-left" data-panel="era-desk">
+          <h2>Era Desk</h2>
+          <div class="card-body">
+            <div class="callout">
+              Eras run in four stages: Direction, Creation, Promotion, Legacy. Use the calendar to track internal schedules; use eyeriSocial to publish public updates.
             </div>
-            <div class="field">
-              <label for="eraNameInput">Era Name</label>
-              <div class="input-row">
-                <input id="eraNameInput" type="text" placeholder="e.g. Neon Signal: Dawn Phase">
-                <button id="eraNameRandom" type="button" class="ghost mini">Rnd</button>
+            <div class="slot-grid slot-grid--multi">
+              <div class="id-slot" data-slot-target="era-act" data-slot-type="act">
+                <div class="slot-label">Act ID</div>
+                <div id="eraActSlot" class="slot-value">?</div>
+                <button type="button" class="ghost mini" data-slot-clear="era-act">Clear</button>
+              </div>
+              <div class="field">
+                <label for="eraNameInput">Era Name</label>
+                <div class="input-row">
+                  <input id="eraNameInput" type="text" placeholder="e.g. Neon Signal: Dawn Phase">
+                  <button id="eraNameRandom" type="button" class="ghost mini">Rnd</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="eraRolloutSelect">Rollout Strategy</label>
+                <select id="eraRolloutSelect"></select>
               </div>
             </div>
-            <div class="field">
-              <label for="eraRolloutSelect">Rollout Strategy</label>
-              <select id="eraRolloutSelect"></select>
+            <div class="actions">
+              <button id="startEraBtn" type="button">Start Era</button>
+              <button id="endEraBtn" type="button" class="ghost">End Era</button>
+            </div>
+            <div class="subhead">Rollout Strategy</div>
+            <div class="rollout-strategy-grid">
+              <div class="field">
+                <label for="rolloutStrategySelect">Strategy</label>
+                <div class="input-row">
+                  <select id="rolloutStrategySelect"></select>
+                  <button id="rolloutStrategyCreate" type="button" class="ghost mini">New</button>
+                </div>
+                <div class="tiny muted">Plan weekly drops/events, then expand into the Calendar.</div>
+              </div>
+              <div class="field">
+                <label for="rolloutStrategyTemplateSelect">Template</label>
+                <div class="input-row">
+                  <select id="rolloutStrategyTemplateSelect"></select>
+                  <button id="rolloutStrategyTemplateCreate" type="button" class="ghost mini">New from Template</button>
+                </div>
+                <div class="tiny muted">Seeds drop/event slots before you assign track IDs.</div>
+              </div>
+              <div class="field">
+                <label for="rolloutStrategyWeek">Week</label>
+                <input id="rolloutStrategyWeek" type="number" min="1" value="1">
+              </div>
+              <div class="field">
+                <label for="rolloutStrategyDropId">Drop Track ID</label>
+                <div class="input-row">
+                  <input id="rolloutStrategyDropId" type="text" placeholder="Track ID">
+                  <button id="rolloutStrategyAddDrop" type="button" class="ghost mini">Add Drop</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="rolloutStrategyEventType">Event Type</label>
+                <div class="input-row">
+                  <select id="rolloutStrategyEventType"></select>
+                  <button id="rolloutStrategyAddEvent" type="button" class="ghost mini">Add Event</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="rolloutStrategyEventContent">Event Content ID (optional)</label>
+                <input id="rolloutStrategyEventContent" type="text" placeholder="Track or Project ID">
+              </div>
+              <div class="field">
+                <label class="toggle-pill">
+                  <input id="rolloutStrategyAutoRun" type="checkbox">
+                  <span>Auto-run Strategy</span>
+                </label>
+                <div class="tiny">Auto-schedule items when ready and within calendar rules.</div>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="rolloutStrategyExpand" type="button" class="ghost">Expand to Calendar</button>
+            </div>
+            <div id="rolloutStrategySummary" class="list"></div>
+            <div class="subhead">Focus Era</div>
+            <div class="list-item">
+              <div class="list-row">
+                <div>
+                  <div id="eraFocusLabel" class="item-title">No active eras</div>
+                  <div class="muted">Creation and promo pushes will prefer this era when possible.</div>
+                </div>
+                <button id="eraFocusClear" type="button" class="ghost mini">Clear</button>
+              </div>
+            </div>
+            <div id="eraStatus" class="list"></div>
+          </div>
+        </div>
+        <div class="split-handle" role="separator" aria-label="Resize era panels" aria-orientation="vertical"></div>
+        <div class="panel card panel--scroll panel-fixed split-panel is-right" data-panel="era-performance">
+          <h2>Era Performance</h2>
+          <div class="card-body">
+            <div class="callout">
+              Focus an active Era to review results: chart points, sales momentum, costs, and recommended vinyl runs.
+            </div>
+            <div id="eraPerformanceMeta" class="tiny muted"></div>
+            <div id="eraPerformanceTableWrap" class="chart-table-wrap era-performance-table-wrap"></div>
+            <div class="subhead">Chart History</div>
+            <div id="eraHistoryPanel" class="track-history-panel">
+              <div id="eraHistoryMeta" class="tiny muted"></div>
+              <div class="tiny muted">DNC = did not chart. - = not released.</div>
+              <div id="eraHistoryList" class="list"></div>
             </div>
           </div>
-          <div class="actions">
-            <button id="startEraBtn" type="button">Start Era</button>
-            <button id="endEraBtn" type="button" class="ghost">End Era</button>
-          </div>
-          <div class="subhead">Rollout Strategy</div>
-          <div class="rollout-strategy-grid">
-            <div class="field">
-              <label for="rolloutStrategySelect">Strategy</label>
-              <div class="input-row">
-                <select id="rolloutStrategySelect"></select>
-                <button id="rolloutStrategyCreate" type="button" class="ghost mini">New</button>
-              </div>
-              <div class="tiny muted">Plan weekly drops/events, then expand into the Calendar.</div>
-            </div>
-            <div class="field">
-              <label for="rolloutStrategyTemplateSelect">Template</label>
-              <div class="input-row">
-                <select id="rolloutStrategyTemplateSelect"></select>
-                <button id="rolloutStrategyTemplateCreate" type="button" class="ghost mini">New from Template</button>
-              </div>
-              <div class="tiny muted">Seeds drop/event slots before you assign track IDs.</div>
-            </div>
-            <div class="field">
-              <label for="rolloutStrategyWeek">Week</label>
-              <input id="rolloutStrategyWeek" type="number" min="1" value="1">
-            </div>
-            <div class="field">
-              <label for="rolloutStrategyDropId">Drop Track ID</label>
-              <div class="input-row">
-                <input id="rolloutStrategyDropId" type="text" placeholder="Track ID">
-                <button id="rolloutStrategyAddDrop" type="button" class="ghost mini">Add Drop</button>
-              </div>
-            </div>
-            <div class="field">
-              <label for="rolloutStrategyEventType">Event Type</label>
-              <div class="input-row">
-                <select id="rolloutStrategyEventType"></select>
-                <button id="rolloutStrategyAddEvent" type="button" class="ghost mini">Add Event</button>
-              </div>
-            </div>
-            <div class="field">
-              <label for="rolloutStrategyEventContent">Event Content ID (optional)</label>
-              <input id="rolloutStrategyEventContent" type="text" placeholder="Track or Project ID">
-            </div>
-            <div class="field">
-              <label class="toggle-pill">
-                <input id="rolloutStrategyAutoRun" type="checkbox">
-                <span>Auto-run Strategy</span>
-              </label>
-              <div class="tiny">Auto-schedule items when ready and within calendar rules.</div>
-            </div>
-          </div>
-          <div class="actions">
-            <button id="rolloutStrategyExpand" type="button" class="ghost">Expand to Calendar</button>
-          </div>
-          <div id="rolloutStrategySummary" class="list"></div>
-          <div class="subhead">Focus Era</div>
-          <div class="list-item">
-            <div class="list-row">
-              <div>
-                <div id="eraFocusLabel" class="item-title">No active eras</div>
-                <div class="muted">Creation and promo pushes will prefer this era when possible.</div>
-              </div>
-              <button id="eraFocusClear" type="button" class="ghost mini">Clear</button>
-            </div>
-          </div>
-          <div id="eraStatus" class="list"></div>
         </div>
       </div>
     </section>
-    <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="era-performance">
-        <h2>Era Performance</h2>
-        <div class="card-body">
-          <div class="callout">
-            Focus an active Era to review results: chart points, sales momentum, costs, and recommended vinyl runs.
-          </div>
-          <div id="eraPerformanceMeta" class="tiny muted"></div>
-          <div id="eraPerformanceTableWrap" class="chart-table-wrap era-performance-table-wrap"></div>
-          <div class="subhead">Chart History</div>
-          <div id="eraHistoryPanel" class="track-history-panel">
-            <div id="eraHistoryMeta" class="tiny muted"></div>
-            <div class="tiny muted">DNC = did not chart. - = not released.</div>
-            <div id="eraHistoryList" class="list"></div>
-          </div>
-        </div>
-      </div>
-    </aside>
   </div>
 </template>
 

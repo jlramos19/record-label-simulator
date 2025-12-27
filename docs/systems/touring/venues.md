@@ -38,7 +38,8 @@ Venue records live in `assets/js/data/constants.js` and expose:
 - Cadence: max 2 dates per week; minimum 1 rest day between dates.
 - Travel: 1-3 buffer days between legs in different regions.
 - Length caps: tier-driven max dates (Club 8-12, Theater 10-16, Amphitheater 12-20, Arena 14-24, Stadium 10-18).
-- Cooldown: 4-8 weeks between tours per Act to limit stacking.
+- Length caps enforce the tier max (`maxDatesMax`) once the tour books that tier.
+- Cooldown: 4-8 weeks between tours per Act to limit stacking (warning-only for now).
 
 ## Reason codes (booking)
 - `TOUR_NO_ACTIVE_ERA`: act lacks an active Era.
@@ -49,6 +50,7 @@ Venue records live in `assets/js/data/constants.js` and expose:
 - `TOUR_TIER_LOCKED`: act has not met the charting threshold for the venue tier.
 - `TOUR_BUDGET_SHORT`: insufficient cash to cover projected date costs.
 - `TOUR_DEMAND_LOW`: projected sell-through falls below the booking threshold.
+- `TOUR_LENGTH_CAP`: tour length cap reached for the active tier.
 
 ## Projection model (draft)
 ```text

@@ -51,7 +51,7 @@
 - [x] RLS-TOUR-BALANCE-001: Add feature flag to keep touring effects disabled until tuning is approved. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
 - [x] RLS-TOUR-OBS-001: Surface warnings in Touring tab + Calendar for missing requirements or capacity mismatch. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
 - [x] RLS-TOUR-TEST-001: Add manual testing checklist for tour planning, booking, and conflict warnings. (Agent Codex, started 2025-12-26 16:07:05 -04:00, completed 2025-12-26 16:07:51 -04:00)
-- [ ] RLS-TOUR-REVAMP-001: Align touring workflow with booking eligibility, regional chart modifiers, and auto-generated dates.
+- [x] RLS-TOUR-REVAMP-001: Align touring workflow with booking eligibility, regional chart modifiers, and auto-generated dates. (Agent Codex, started 2025-12-27 15:57:42 -04:00, completed 2025-12-27 15:57:42 -04:00)
 - [ ] RLS-PROMO-SCHEDULE-001: Allow promo booking windows to be reserved in advance (including eyeriSocial).
 - [ ] RLS-CALENDAR-UX-002: Add calendar day overflow details and show event execution times.
 - [ ] RLS-AUDIENCE-CHUNKS-001: Add age group segmentation + concert-demand baselines to audience snapshots. (Age-group distribution exists; creator age/portrait bins now derive from it, concert baselines still pending.)
