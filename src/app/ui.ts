@@ -71,6 +71,7 @@ const {
   state,
   session,
   rankCandidates,
+  MARKET_ROLES,
   logEvent,
   saveToActiveSlot,
   makeTrackTitle,
@@ -135,6 +136,7 @@ const {
   scheduleRelease,
   getReleaseAsapHours,
   buildMarketCreators,
+  injectCheaterMarketCreators,
   buildPromoProjectKey,
   buildPromoProjectKeyFromTrack,
   normalizeCreator,
@@ -716,7 +718,8 @@ const VIEW_DEFAULTS = {
   dashboard: {
     "dashboard-overview": VIEW_PANEL_STATES.open,
     "dashboard-pipeline": VIEW_PANEL_STATES.open,
-    "dashboard-focus": VIEW_PANEL_STATES.open
+    "dashboard-focus": VIEW_PANEL_STATES.open,
+    "dashboard-audience": VIEW_PANEL_STATES.open
   },
   charts: {
     "charts": VIEW_PANEL_STATES.open
@@ -742,7 +745,9 @@ const VIEW_DEFAULTS = {
     "label-settings": VIEW_PANEL_STATES.open
   },
   world: {
-    "ccc-market": VIEW_PANEL_STATES.open
+    "ccc-market": VIEW_PANEL_STATES.open,
+    "community-tools": VIEW_PANEL_STATES.open,
+    "community-cheats": VIEW_PANEL_STATES.open
   },
   logs: {
     "eyerisocial": VIEW_PANEL_STATES.open,
@@ -3947,6 +3952,57 @@ function bindViewHandlers(route, root) {
       state.ui.cccFilters[key] = e.target.checked;
       renderAll();
     });
+  });
+
+  on("cheatCccInjectBtn", "click", () => {
+    if (!state.meta?.cheaterMode) {
+      logEvent("Enable Cheater Mode in Settings to inject Creator IDs.", "warn");
+      renderMarket();
+      return;
+    }
+    const ids = $("cheatCccIds")?.value || "";
+    const role = $("cheatCccRole")?.value || "Songwriter";
+    const ageValue = Number($("cheatCccAge")?.value || "");
+    const age = Number.isFinite(ageValue) && ageValue > 0 ? ageValue : null;
+    const country = $("cheatCccCountry")?.value || null;
+    const genderIdentity = $("cheatCccGender")?.value || null;
+    const theme = $("cheatCccTheme")?.value || null;
+    const mood = $("cheatCccMood")?.value || null;
+    const portraitKey = $("cheatCccPortraitKey")?.value || null;
+    const portraitFile = $("cheatCccPortraitFile")?.value || null;
+    const result = injectCheaterMarketCreators({
+      ids,
+      role,
+      age,
+      country,
+      genderIdentity,
+      theme,
+      mood,
+      portraitKey,
+      portraitFile
+    });
+    const status = $("cheatCccStatus");
+    if (status) status.textContent = result.message || "";
+    if (result.ok) saveToActiveSlot();
+    renderMarket();
+  });
+  on("cheatCccClearBtn", "click", () => {
+    const setValue = (id, value) => {
+      const input = $(id);
+      if (input) input.value = value;
+    };
+    setValue("cheatCccIds", "");
+    setValue("cheatCccAge", "");
+    setValue("cheatCccCountry", "");
+    setValue("cheatCccGender", "");
+    setValue("cheatCccTheme", "");
+    setValue("cheatCccMood", "");
+    setValue("cheatCccPortraitKey", "");
+    setValue("cheatCccPortraitFile", "");
+    const roleSelect = $("cheatCccRole");
+    if (roleSelect) roleSelect.value = MARKET_ROLES?.[0] || "Songwriter";
+    const status = $("cheatCccStatus");
+    if (status) status.textContent = "";
   });
 
   const actList = root.querySelector("#actList");

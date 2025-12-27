@@ -1,5 +1,12 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-0246Z)
+- Dashboard now includes an Audience Chunks panel that surfaces age, generation, budget, engagement, and preference snapshots from the simulated chunk sample.
+- Audience chunks now simulate yearly evolution (age, budget, engagement, time profile, preference drift) with reproduction/emigration events tied to age brackets.
+- Creator cards now show age + age-group metadata across roster, CCC, and auto-assign views.
+- Cheater mode now exposes CCC injection tools so you can spawn specific Creator IDs with portrait keys/files for testing.
+- Dashboard footer panels now scroll to keep multi-row layouts visible.
+
 ## 2025-12-27 (RLS-PATCH-20251227-0155Z)
 - Creator IDs now store age (20-119) and ageGroup (4-year bin) sourced from audience age-group distribution.
 - Creator portraits now auto-assign from the manifest using theme-mood, portrait age bin, nationality, and gender identity; avatar tooltips flag missing tags or empty folders.

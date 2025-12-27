@@ -9,7 +9,7 @@ import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistor
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, injectCheaterMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -530,7 +530,8 @@ const VIEW_DEFAULTS = {
     dashboard: {
         "dashboard-overview": VIEW_PANEL_STATES.open,
         "dashboard-pipeline": VIEW_PANEL_STATES.open,
-        "dashboard-focus": VIEW_PANEL_STATES.open
+        "dashboard-focus": VIEW_PANEL_STATES.open,
+        "dashboard-audience": VIEW_PANEL_STATES.open
     },
     charts: {
         "charts": VIEW_PANEL_STATES.open
@@ -556,7 +557,9 @@ const VIEW_DEFAULTS = {
         "label-settings": VIEW_PANEL_STATES.open
     },
     world: {
-        "ccc-market": VIEW_PANEL_STATES.open
+        "ccc-market": VIEW_PANEL_STATES.open,
+        "community-tools": VIEW_PANEL_STATES.open,
+        "community-cheats": VIEW_PANEL_STATES.open
     },
     logs: {
         "eyerisocial": VIEW_PANEL_STATES.open,
@@ -3898,6 +3901,61 @@ function bindViewHandlers(route, root) {
             state.ui.cccFilters[key] = e.target.checked;
             renderAll();
         });
+    });
+    on("cheatCccInjectBtn", "click", () => {
+        if (!state.meta?.cheaterMode) {
+            logEvent("Enable Cheater Mode in Settings to inject Creator IDs.", "warn");
+            renderMarket();
+            return;
+        }
+        const ids = $("cheatCccIds")?.value || "";
+        const role = $("cheatCccRole")?.value || "Songwriter";
+        const ageValue = Number($("cheatCccAge")?.value || "");
+        const age = Number.isFinite(ageValue) && ageValue > 0 ? ageValue : null;
+        const country = $("cheatCccCountry")?.value || null;
+        const genderIdentity = $("cheatCccGender")?.value || null;
+        const theme = $("cheatCccTheme")?.value || null;
+        const mood = $("cheatCccMood")?.value || null;
+        const portraitKey = $("cheatCccPortraitKey")?.value || null;
+        const portraitFile = $("cheatCccPortraitFile")?.value || null;
+        const result = injectCheaterMarketCreators({
+            ids,
+            role,
+            age,
+            country,
+            genderIdentity,
+            theme,
+            mood,
+            portraitKey,
+            portraitFile
+        });
+        const status = $("cheatCccStatus");
+        if (status)
+            status.textContent = result.message || "";
+        if (result.ok)
+            saveToActiveSlot();
+        renderMarket();
+    });
+    on("cheatCccClearBtn", "click", () => {
+        const setValue = (id, value) => {
+            const input = $(id);
+            if (input)
+                input.value = value;
+        };
+        setValue("cheatCccIds", "");
+        setValue("cheatCccAge", "");
+        setValue("cheatCccCountry", "");
+        setValue("cheatCccGender", "");
+        setValue("cheatCccTheme", "");
+        setValue("cheatCccMood", "");
+        setValue("cheatCccPortraitKey", "");
+        setValue("cheatCccPortraitFile", "");
+        const roleSelect = $("cheatCccRole");
+        if (roleSelect)
+            roleSelect.value = MARKET_ROLES?.[0] || "Songwriter";
+        const status = $("cheatCccStatus");
+        if (status)
+            status.textContent = "";
     });
     const actList = root.querySelector("#actList");
     if (actList) {

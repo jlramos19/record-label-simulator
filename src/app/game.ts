@@ -516,6 +516,7 @@ function makeDefaultState() {
     },
     lastWeekIndex: 0,
     population: { snapshot: null, lastUpdateYear: 0, lastUpdateAt: null, campaignSplit: null, campaignSplitStage: null },
+    audienceChunks: { chunks: [], lastUpdateYear: null, lastUpdateAt: null },
     social: { posts: [] },
     promoFacilities: {
       broadcast: { bookings: [] },
@@ -2209,6 +2210,338 @@ function buildAudienceAgeGroupDistribution(total) {
   }));
 }
 
+const AUDIENCE_CHUNK_SIZE = 1000;
+const AUDIENCE_CHUNK_TARGET_DEFAULT = 60;
+const AUDIENCE_CHUNK_TARGET_MIN = 45;
+const AUDIENCE_CHUNK_TARGET_MAX = 90;
+const AUDIENCE_CHUNK_REPRO_RATE_STEP = 0.04;
+const AUDIENCE_CHUNK_PREF_DRIFT_CHANCE = 0.12;
+const AUDIENCE_CHUNK_TIME_PROFILES = [
+  { id: "diurnal", label: "Diurnal", startHour: 6, endHour: 18 },
+  { id: "nocturnal", label: "Nocturnal", startHour: 18, endHour: 6 }
+];
+
+function resolveAudienceChunkTarget(totalPopulation) {
+  if (!Number.isFinite(totalPopulation)) return AUDIENCE_CHUNK_TARGET_DEFAULT;
+  if (totalPopulation < 2000000000) return AUDIENCE_CHUNK_TARGET_MIN;
+  if (totalPopulation < 6000000000) return clamp(60, AUDIENCE_CHUNK_TARGET_MIN, AUDIENCE_CHUNK_TARGET_MAX);
+  if (totalPopulation < 9000000000) return clamp(75, AUDIENCE_CHUNK_TARGET_MIN, AUDIENCE_CHUNK_TARGET_MAX);
+  return AUDIENCE_CHUNK_TARGET_MAX;
+}
+
+function buildAudienceNationWeights(snapshot) {
+  if (!snapshot || !Array.isArray(snapshot.nations)) {
+    return NATIONS.map((nation) => ({ nation, weight: 1 }));
+  }
+  const totals = NATIONS.map((nation) => snapshot.nations.find((entry) => entry.nation === nation)?.total || 0);
+  const sum = totals.reduce((acc, value) => acc + value, 0) || totals.length;
+  return NATIONS.map((nation, index) => {
+    const share = totals[index] ? totals[index] / sum : 1 / NATIONS.length;
+    return { nation, weight: Math.max(1, Math.round(share * 1000)) };
+  });
+}
+
+function pickAudienceNation(snapshot) {
+  const weights = buildAudienceNationWeights(snapshot);
+  const pick = pickWeightedEntry(weights);
+  return pick?.nation || NATIONS[0];
+}
+
+function pickAudienceAgeGroup() {
+  const weights = buildAudienceAgeGroupWeights();
+  const weighted = AUDIENCE_AGE_GROUPS.map((group, index) => ({
+    group,
+    weight: Math.max(1, Math.round((weights[index] || 0.1) * 100))
+  }));
+  const pick = pickWeightedEntry(weighted) || weighted[0];
+  return pick?.group || AUDIENCE_AGE_GROUPS[0];
+}
+
+function buildAudienceLifeExpectancy(age) {
+  const baseline = rand(68, 92);
+  const target = Math.max(baseline, age + 4);
+  let minAge = Math.min(116, Math.floor(target / 4) * 4);
+  if (minAge < age + 4) minAge = Math.min(116, Math.floor((age + 4) / 4) * 4);
+  const maxAge = Math.min(120, minAge + 3);
+  return { minAge, maxAge, label: `${minAge}-${maxAge}` };
+}
+
+function computeAudienceWeeklyBudget(age) {
+  const ageCurve = Math.exp(-Math.pow((age - 32) / 18, 2));
+  const base = 180 + ageCurve * 320;
+  const jitter = rand(-40, 60);
+  return clamp(Math.round(base + jitter), 80, 900);
+}
+
+function computeAudienceEngagementRate(age) {
+  const ageCurve = Math.exp(-Math.pow((age - 26) / 22, 2));
+  const base = 0.2 + ageCurve * 0.5;
+  const jitter = (rand(-8, 8) / 100);
+  return clamp(Number((base + jitter).toFixed(2)), 0.05, 0.85);
+}
+
+function computeAudienceWeeklyHours(age) {
+  const ageCurve = Math.exp(-Math.pow((age - 28) / 26, 2));
+  const base = 12 + ageCurve * 20;
+  const jitter = rand(-3, 5);
+  return clamp(Math.round(base + jitter), 8, 48);
+}
+
+function computeAudienceEmigrationRate(age) {
+  const ageCurve = Math.exp(-Math.pow((age - 24) / 18, 2));
+  const base = 0.03 + ageCurve * 0.12;
+  const jitter = rand(0, 4) / 100;
+  return clamp(Number((base + jitter).toFixed(2)), 0.01, 0.2);
+}
+
+function computeAudienceReproductionRate(age) {
+  if (age < 16 || age > 40) return 0;
+  const peak = Math.exp(-Math.pow((age - 26) / 10, 2));
+  const base = 1 + Math.round(peak * 3);
+  return clamp(base, 0, 4);
+}
+
+function pickAudienceTimeProfile(age) {
+  const nocturnalBias = age < 26 ? 0.6 : age > 45 ? 0.35 : 0.45;
+  const pickNocturnal = Math.random() < nocturnalBias;
+  return pickNocturnal ? AUDIENCE_CHUNK_TIME_PROFILES[1] : AUDIENCE_CHUNK_TIME_PROFILES[0];
+}
+
+function buildAudiencePreferences() {
+  const prefThemes = pickDistinct(THEMES, 2);
+  const prefMoods = pickDistinct(MOODS, 2);
+  return buildAudiencePreferencesFromSeeds(prefThemes, prefMoods);
+}
+
+function buildAudiencePreferencesFromSeeds(prefThemes, prefMoods) {
+  const themes = fillDistinct(uniqueList(prefThemes), THEMES, 2);
+  const moods = fillDistinct(uniqueList(prefMoods), MOODS, 2);
+  const prefGenres = themes.flatMap((theme) => moods.map((mood) => makeGenre(theme, mood))).filter(Boolean);
+  const communityId = prefGenres[0] || makeGenre(themes[0], moods[0]);
+  return { prefThemes: themes, prefMoods: moods, prefGenres, communityId };
+}
+
+function driftPreferenceList(list, pool) {
+  const next = fillDistinct(uniqueList(list), pool, 2);
+  const index = rand(0, Math.max(0, next.length - 1));
+  const options = pool.filter((item) => !next.includes(item));
+  if (options.length) next[index] = pickOne(options);
+  return fillDistinct(next, pool, 2);
+}
+
+function driftAudiencePreferences(chunk) {
+  const themes = driftPreferenceList(chunk.prefThemes, THEMES);
+  const moods = driftPreferenceList(chunk.prefMoods, MOODS);
+  const next = buildAudiencePreferencesFromSeeds(themes, moods);
+  chunk.prefThemes = next.prefThemes;
+  chunk.prefMoods = next.prefMoods;
+  chunk.prefGenres = next.prefGenres;
+  chunk.communityId = next.communityId;
+}
+
+function makeAudienceChunk({ nation, year, age, parent = null } = {}) {
+  const snapshot = computePopulationSnapshot();
+  const resolvedNation = nation || pickAudienceNation(snapshot);
+  const ageGroup = typeof age === "number" ? resolveAudienceAgeGroupForAge(age) : pickAudienceAgeGroup();
+  const resolvedAge = Number.isFinite(age)
+    ? clamp(Math.floor(age), 0, AUDIENCE_AGE_GROUPS[AUDIENCE_AGE_GROUPS.length - 1]?.maxAge ?? 119)
+    : rand(ageGroup.minAge, ageGroup.maxAge);
+  const generation = ageGroup?.generationLabel || resolveAudienceAgeGroupForAge(resolvedAge)?.generationLabel || "";
+  const preferences = parent
+    ? buildAudiencePreferencesFromSeeds(parent.prefThemes, parent.prefMoods)
+    : buildAudiencePreferences();
+  if (parent) driftAudiencePreferences(preferences);
+  const profile = pickAudienceTimeProfile(resolvedAge);
+  return {
+    id: uid("AU"),
+    nation: resolvedNation,
+    originNation: parent?.originNation || resolvedNation,
+    age: resolvedAge,
+    ageGroup: ageGroup?.label || resolveAudienceAgeGroupForAge(resolvedAge)?.label || null,
+    generation,
+    weeklyBudget: computeAudienceWeeklyBudget(resolvedAge),
+    engagementRate: computeAudienceEngagementRate(resolvedAge),
+    weeklyHours: computeAudienceWeeklyHours(resolvedAge),
+    timeProfile: profile.id,
+    activeHours: { startHour: profile.startHour, endHour: profile.endHour, label: profile.label },
+    lifeExpectancy: buildAudienceLifeExpectancy(resolvedAge),
+    reproductionRate: computeAudienceReproductionRate(resolvedAge),
+    emigrationRate: computeAudienceEmigrationRate(resolvedAge),
+    prefThemes: preferences.prefThemes,
+    prefMoods: preferences.prefMoods,
+    prefGenres: preferences.prefGenres,
+    communityId: preferences.communityId,
+    size: AUDIENCE_CHUNK_SIZE,
+    createdYear: Number.isFinite(year) ? year : currentYear()
+  };
+}
+
+function normalizeAudienceChunk(chunk) {
+  if (!chunk || typeof chunk !== "object") return null;
+  const normalized = { ...chunk };
+  if (!normalized.id) normalized.id = uid("AU");
+  if (!normalized.nation || !NATIONS.includes(normalized.nation)) {
+    normalized.nation = pickOne(NATIONS);
+  }
+  if (!normalized.originNation || !NATIONS.includes(normalized.originNation)) {
+    normalized.originNation = normalized.nation;
+  }
+  normalized.age = clamp(Math.floor(Number(normalized.age) || 0), 0, AUDIENCE_AGE_GROUPS[AUDIENCE_AGE_GROUPS.length - 1]?.maxAge ?? 119);
+  const ageGroup = resolveAudienceAgeGroupForAge(normalized.age);
+  normalized.ageGroup = normalized.ageGroup || ageGroup?.label || null;
+  normalized.generation = normalized.generation || ageGroup?.generationLabel || null;
+  const preferences = buildAudiencePreferencesFromSeeds(normalized.prefThemes, normalized.prefMoods);
+  normalized.prefThemes = preferences.prefThemes;
+  normalized.prefMoods = preferences.prefMoods;
+  normalized.prefGenres = preferences.prefGenres;
+  normalized.communityId = normalized.communityId || preferences.communityId;
+  if (!normalized.lifeExpectancy || typeof normalized.lifeExpectancy !== "object") {
+    normalized.lifeExpectancy = buildAudienceLifeExpectancy(normalized.age);
+  } else {
+    const minAge = Number(normalized.lifeExpectancy.minAge);
+    const maxAge = Number(normalized.lifeExpectancy.maxAge);
+    const fallback = buildAudienceLifeExpectancy(normalized.age);
+    normalized.lifeExpectancy.minAge = Number.isFinite(minAge) ? minAge : fallback.minAge;
+    normalized.lifeExpectancy.maxAge = Number.isFinite(maxAge) ? maxAge : fallback.maxAge;
+    normalized.lifeExpectancy.label = normalized.lifeExpectancy.label || `${normalized.lifeExpectancy.minAge}-${normalized.lifeExpectancy.maxAge}`;
+  }
+  if (!Number.isFinite(normalized.weeklyBudget)) normalized.weeklyBudget = computeAudienceWeeklyBudget(normalized.age);
+  if (!Number.isFinite(normalized.engagementRate)) normalized.engagementRate = computeAudienceEngagementRate(normalized.age);
+  if (!Number.isFinite(normalized.weeklyHours)) normalized.weeklyHours = computeAudienceWeeklyHours(normalized.age);
+  if (!Number.isFinite(normalized.reproductionRate)) normalized.reproductionRate = computeAudienceReproductionRate(normalized.age);
+  if (!Number.isFinite(normalized.emigrationRate)) normalized.emigrationRate = computeAudienceEmigrationRate(normalized.age);
+  if (!normalized.timeProfile) {
+    const profile = pickAudienceTimeProfile(normalized.age);
+    normalized.timeProfile = profile.id;
+    normalized.activeHours = { startHour: profile.startHour, endHour: profile.endHour, label: profile.label };
+  }
+  if (!normalized.activeHours || typeof normalized.activeHours !== "object") {
+    const profile = AUDIENCE_CHUNK_TIME_PROFILES.find((entry) => entry.id === normalized.timeProfile) || AUDIENCE_CHUNK_TIME_PROFILES[0];
+    normalized.activeHours = { startHour: profile.startHour, endHour: profile.endHour, label: profile.label };
+  }
+  if (!Number.isFinite(normalized.size)) normalized.size = AUDIENCE_CHUNK_SIZE;
+  if (!Number.isFinite(normalized.createdYear)) normalized.createdYear = currentYear();
+  return normalized;
+}
+
+function ensureAudienceChunksStore() {
+  if (!state.audienceChunks || typeof state.audienceChunks !== "object") {
+    state.audienceChunks = { chunks: [], lastUpdateYear: null, lastUpdateAt: null };
+  }
+  if (!Array.isArray(state.audienceChunks.chunks)) state.audienceChunks.chunks = [];
+  if (!Number.isFinite(state.audienceChunks.lastUpdateYear)) state.audienceChunks.lastUpdateYear = null;
+  if (!Number.isFinite(state.audienceChunks.lastUpdateAt)) state.audienceChunks.lastUpdateAt = null;
+  return state.audienceChunks;
+}
+
+function buildAudienceChunksSample(year = currentYear()) {
+  const snapshot = computePopulationSnapshot();
+  const targetCount = resolveAudienceChunkTarget(snapshot.total);
+  const weights = buildAudienceNationWeights(snapshot);
+  const totalWeight = weights.reduce((sum, entry) => sum + entry.weight, 0) || weights.length;
+  const shares = weights.map((entry) => entry.weight / totalWeight);
+  const counts = allocateByShare(targetCount, shares);
+  const chunks = [];
+  counts.forEach((count, index) => {
+    const nation = NATIONS[index] || weights[index]?.nation;
+    for (let i = 0; i < count; i += 1) {
+      chunks.push(makeAudienceChunk({ nation, year }));
+    }
+  });
+  return chunks;
+}
+
+function ensureAudienceChunksReady(year = currentYear()) {
+  const store = ensureAudienceChunksStore();
+  if (!store.chunks.length) {
+    store.chunks = buildAudienceChunksSample(year).filter(Boolean);
+    store.lastUpdateYear = year;
+    store.lastUpdateAt = state.time?.epochMs || Date.now();
+  }
+  store.chunks = store.chunks.map((chunk) => normalizeAudienceChunk(chunk)).filter(Boolean);
+  return store;
+}
+
+function evolveAudienceChunk(chunk, year) {
+  if (!chunk) return;
+  const budgetTarget = computeAudienceWeeklyBudget(chunk.age);
+  const budget = Math.round((chunk.weeklyBudget || budgetTarget) * 0.7 + budgetTarget * 0.3);
+  chunk.weeklyBudget = clamp(budget + rand(-20, 20), 60, 900);
+  const engagementTarget = computeAudienceEngagementRate(chunk.age);
+  const engagement = (chunk.engagementRate ?? engagementTarget) * 0.7 + engagementTarget * 0.3;
+  chunk.engagementRate = clamp(Number((engagement + rand(-3, 3) / 100).toFixed(2)), 0.05, 0.85);
+  chunk.weeklyHours = computeAudienceWeeklyHours(chunk.age);
+  if (Math.random() < 0.12) {
+    const profile = pickAudienceTimeProfile(chunk.age);
+    chunk.timeProfile = profile.id;
+    chunk.activeHours = { startHour: profile.startHour, endHour: profile.endHour, label: profile.label };
+  }
+  chunk.reproductionRate = computeAudienceReproductionRate(chunk.age);
+  chunk.emigrationRate = computeAudienceEmigrationRate(chunk.age);
+  if (Math.random() < AUDIENCE_CHUNK_PREF_DRIFT_CHANCE) {
+    driftAudiencePreferences(chunk);
+  }
+  if (!chunk.lifeExpectancy || typeof chunk.lifeExpectancy !== "object") {
+    chunk.lifeExpectancy = buildAudienceLifeExpectancy(chunk.age);
+  }
+  if (Number.isFinite(year)) chunk.lastEvolvedYear = year;
+}
+
+function advanceAudienceChunksYear(year = currentYear()) {
+  const store = ensureAudienceChunksReady(year);
+  const targetYear = Number.isFinite(year) ? year : currentYear();
+  const snapshot = computePopulationSnapshot();
+  const targetCount = resolveAudienceChunkTarget(snapshot.total);
+  const births = [];
+  const survivors = [];
+  store.chunks.forEach((chunk) => {
+    const prevAge = Number.isFinite(chunk.age) ? chunk.age : 0;
+    chunk.age = clamp(prevAge + 1, 0, AUDIENCE_AGE_GROUPS[AUDIENCE_AGE_GROUPS.length - 1]?.maxAge ?? 119);
+    const ageGroup = resolveAudienceAgeGroupForAge(chunk.age);
+    if (ageGroup) {
+      chunk.ageGroup = ageGroup.label;
+      chunk.generation = ageGroup.generationLabel;
+    }
+    const ageBandChanged = Math.floor(prevAge / 4) !== Math.floor(chunk.age / 4);
+    if (ageBandChanged) {
+      evolveAudienceChunk(chunk, targetYear);
+      if (chunk.reproductionRate > 0 && chunk.age >= 16 && chunk.age <= 40) {
+        const chance = clamp(chunk.reproductionRate * AUDIENCE_CHUNK_REPRO_RATE_STEP, 0, 0.25);
+        if (Math.random() < chance) {
+          births.push(makeAudienceChunk({ nation: chunk.nation, year: targetYear, age: rand(0, 3), parent: chunk }));
+        }
+      }
+    }
+    if (Math.random() < (chunk.emigrationRate || 0)) {
+      const options = NATIONS.filter((nation) => nation !== chunk.nation);
+      if (options.length) chunk.nation = pickOne(options);
+    }
+    const lifeMax = chunk.lifeExpectancy?.maxAge;
+    if (Number.isFinite(lifeMax) && chunk.age > lifeMax) {
+      return;
+    }
+    survivors.push(chunk);
+  });
+  let nextChunks = survivors.concat(births).map((chunk) => normalizeAudienceChunk(chunk)).filter(Boolean);
+  if (nextChunks.length > targetCount) {
+    nextChunks = nextChunks
+      .slice()
+      .sort((a, b) => (a.age || 0) - (b.age || 0))
+      .slice(0, targetCount);
+  }
+  while (nextChunks.length < targetCount) {
+    nextChunks.push(makeAudienceChunk({ year: targetYear }));
+  }
+  store.chunks = nextChunks;
+  store.lastUpdateYear = targetYear;
+  store.lastUpdateAt = state.time?.epochMs || Date.now();
+  return store;
+}
+
+function getAudienceChunksSnapshot(year = currentYear()) {
+  return ensureAudienceChunksReady(year);
+}
+
 const CREATOR_AGE_MIN = 20;
 const CREATOR_AGE_MAX = 119;
 const CREATOR_PORTRAIT_ROOT = "assets/png/portraits/creator-ids";
@@ -2310,6 +2643,45 @@ function buildCreatorPortraitKey(creator) {
   const genderKey = normalizeCreatorGenderKey(creator.genderIdentity);
   if (!genre || !ageBin || !countryKey || !genderKey) return null;
   return `${genre.theme}-${genre.mood}/${ageBin}/${countryKey}-${genderKey}`;
+}
+
+function parseCreatorPortraitKey(rawKey) {
+  const trimmed = String(rawKey || "").trim().replace(/^\/+|\/+$/g, "");
+  if (!trimmed) return null;
+  const parts = trimmed.split("/").filter(Boolean);
+  if (parts.length < 3) return null;
+  const [genrePart, agePart, identityPart] = parts;
+  const genreBits = genrePart.split("-").filter(Boolean);
+  if (genreBits.length < 2) return null;
+  const themeKey = genreBits[0];
+  const moodKey = genreBits.slice(1).join("-");
+  const theme = THEMES.find((item) => item.toLowerCase() === themeKey.toLowerCase()) || null;
+  const mood = MOODS.find((item) => item.toLowerCase() === moodKey.toLowerCase()) || null;
+  const ageMatch = agePart.match(/age-(\d+)-(\d+)/i);
+  const ageRange = ageMatch
+    ? { min: Number(ageMatch[1]), max: Number(ageMatch[2]) }
+    : null;
+  const identityBits = identityPart.split("-").filter(Boolean);
+  const nationKey = identityBits[0] || null;
+  const genderKey = identityBits.slice(1).join("-") || null;
+  const nationNorm = normalizeCreatorNationalityKey(nationKey);
+  const nation = nationNorm
+    ? NATIONS.find((entry) => entry.toLowerCase() === nationNorm) || null
+    : null;
+  const genderIdentity = normalizeCreatorGenderKey(genderKey);
+  return { theme, mood, ageRange, nation, genderIdentity };
+}
+
+function buildCreatorPortraitUrlFromKey(portraitKey, portraitFile) {
+  if (!portraitKey || !portraitFile) return null;
+  const manifest = getCreatorPortraitManifest();
+  const root = manifest?.root || CREATOR_PORTRAIT_ROOT;
+  const key = String(portraitKey).trim().replace(/^\/+|\/+$/g, "");
+  if (!key) return null;
+  if (manifest?.entries?.[key] && !manifest.entries[key].includes(portraitFile)) {
+    return null;
+  }
+  return `${root}/${key}/${portraitFile}`;
 }
 
 function getCreatorPortraitManifest() {
@@ -4313,6 +4685,119 @@ function refreshDailyMarket() {
   if (state.ui?.activeView === "world") {
     uiHooks.renderMarket?.();
   }
+}
+
+function normalizeCheaterCreatorId(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  if (/^CR\d+$/i.test(raw)) return raw.toUpperCase();
+  if (/^\d+$/.test(raw)) return `CR${raw}`;
+  return raw;
+}
+
+function bumpIdCounterFromId(value) {
+  const match = String(value || "").match(/(\d+)$/);
+  if (!match) return;
+  const num = Number(match[1]);
+  if (Number.isFinite(num) && num > idCounter) idCounter = num;
+}
+
+function injectCheaterMarketCreators({
+  ids = [],
+  role = "Songwriter",
+  age = null,
+  country = null,
+  genderIdentity = null,
+  theme = null,
+  mood = null,
+  portraitKey = null,
+  portraitFile = null
+} = {}) {
+  if (!state.meta?.cheaterMode) {
+    return { ok: false, message: "Cheater mode is required for CCC injection." };
+  }
+  if (!Array.isArray(state.marketCreators)) state.marketCreators = [];
+  if (!Array.isArray(state.creators)) state.creators = [];
+  const parsedKey = portraitKey ? parseCreatorPortraitKey(portraitKey) : null;
+  const portraitKeyWarning = portraitKey && !parsedKey
+    ? `Portrait key "${portraitKey}" is not recognized.`
+    : null;
+  const resolvedTheme = THEMES.includes(theme) ? theme : parsedKey?.theme || null;
+  const resolvedMood = MOODS.includes(mood) ? mood : parsedKey?.mood || null;
+  const resolvedCountry = NATIONS.includes(country) ? country : parsedKey?.nation || null;
+  const resolvedGender = normalizeCreatorGenderKey(genderIdentity) || parsedKey?.genderIdentity || null;
+  const resolvedAge = Number.isFinite(age)
+    ? clamp(Math.floor(age), CREATOR_AGE_MIN, CREATOR_AGE_MAX)
+    : parsedKey?.ageRange
+      ? rand(parsedKey.ageRange.min, parsedKey.ageRange.max)
+      : null;
+  const portraitUrl = portraitKey && portraitFile
+    ? buildCreatorPortraitUrlFromKey(portraitKey, portraitFile)
+    : null;
+  const portraitFileWarning = portraitKey && portraitFile && !portraitUrl
+    ? `Portrait file "${portraitFile}" not found for ${portraitKey}.`
+    : null;
+  const idInputs = Array.isArray(ids)
+    ? ids
+    : String(ids || "").split(/[,\s]+/).map((entry) => entry.trim()).filter(Boolean);
+  const idList = idInputs.length ? idInputs : [null];
+  const created = [];
+  const skipped = [];
+  idList.forEach((rawId) => {
+    const resolvedId = normalizeCheaterCreatorId(rawId);
+    if (resolvedId) {
+      const exists = state.creators.some((creator) => creator.id === resolvedId)
+        || state.marketCreators.some((creator) => creator.id === resolvedId);
+      if (exists) {
+        skipped.push(resolvedId);
+        return;
+      }
+    }
+    const resolvedRole = MARKET_ROLES.includes(role) ? role : MARKET_ROLES[0];
+    const existingNames = () => [...state.creators.map((creator) => creator.name), ...state.marketCreators.map((creator) => creator.name)];
+    const creator = makeCreator(resolvedRole, existingNames(), resolvedCountry || null, { age: resolvedAge });
+    if (resolvedId) {
+      creator.id = resolvedId;
+      bumpIdCounterFromId(resolvedId);
+    }
+    if (resolvedCountry) creator.country = resolvedCountry;
+    if (Number.isFinite(resolvedAge)) creator.age = resolvedAge;
+    if (resolvedTheme) creator.prefThemes = fillDistinct([resolvedTheme], THEMES, 2);
+    if (resolvedMood) creator.prefMoods = fillDistinct([resolvedMood], MOODS, 2);
+    if (resolvedGender) creator.genderIdentity = resolvedGender;
+    if (portraitUrl) {
+      creator.portraitUrl = portraitUrl;
+      creator.portraitNote = null;
+    } else if (portraitKeyWarning || portraitFileWarning) {
+      creator.portraitNote = portraitFileWarning || portraitKeyWarning;
+    }
+    const normalized = normalizeCreator(creator);
+    applyMarketCreatorSkill(normalized);
+    normalized.signCost = computeSignCost(normalized);
+    state.marketCreators.unshift(normalized);
+    created.push(normalized);
+  });
+  ensureMarketCreators({}, { replenish: false });
+  if (state.ui?.activeView === "world") {
+    uiHooks.renderMarket?.();
+  }
+  if (portraitKeyWarning) logEvent(portraitKeyWarning, "warn");
+  if (portraitFileWarning) logEvent(portraitFileWarning, "warn");
+  if (created.length) {
+    logEvent(`Cheater CCC inject: ${created.length} Creator ID${created.length === 1 ? "" : "s"} added.`);
+  } else if (skipped.length) {
+    logEvent(`Cheater CCC inject skipped: Creator IDs already exist (${skipped.join(", ")}).`, "warn");
+  }
+  return {
+    ok: created.length > 0,
+    created,
+    skipped,
+    message: created.length
+      ? `Injected ${created.length} Creator ID${created.length === 1 ? "" : "s"} into CCC.`
+      : skipped.length
+        ? `Skipped existing Creator ID${skipped.length === 1 ? "" : "s"}.`
+        : "No Creator IDs injected."
+  };
 }
 
 function buildRivals() {
@@ -13360,6 +13845,8 @@ async function onYearTick(year) {
   logEvent(`Year ${year} tick.`);
   refreshPopulationSnapshot(year);
   logEvent(`Population update: Year ${year}.`);
+  advanceAudienceChunksYear(year);
+  logEvent(`Audience chunks updated for Year ${year}.`);
   // Recompute charts and label scores to determine annual leader
   const { globalScores } = await computeCharts();
   const labelScores = computeLabelScoresFromCharts();
@@ -14728,6 +15215,13 @@ function normalizeState() {
   }
   if (typeof state.population.lastUpdateAt !== "number") state.population.lastUpdateAt = null;
   if (!state.population.campaignSplitStage) state.population.campaignSplitStage = null;
+  const audienceChunks = ensureAudienceChunksStore();
+  audienceChunks.chunks = audienceChunks.chunks
+    .map((chunk) => normalizeAudienceChunk(chunk))
+    .filter(Boolean);
+  if (!Number.isFinite(audienceChunks.lastUpdateYear)) {
+    audienceChunks.lastUpdateYear = audienceChunks.chunks.length ? currentYear() : null;
+  }
   ensureAudienceBiasStore();
   if (state.label && !state.label.country) state.label.country = "Annglora";
   if (state.label) {
@@ -15977,6 +16471,7 @@ export {
   ensureAutoPromoSlots,
   computeChartProjectionForScope,
   computeCharts,
+  getAudienceChunksSnapshot,
   computePopulationSnapshot,
   computeTourDraftSummary,
   computeTourProjection,
@@ -15994,6 +16489,7 @@ export {
   deleteTourDraft,
   endEraById,
   ensureMarketCreators,
+  injectCheaterMarketCreators,
   ensureTrackSlotArrays,
   ensureTrackSlotVisibility,
   expandRolloutStrategy,

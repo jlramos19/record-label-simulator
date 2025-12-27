@@ -628,6 +628,18 @@
           <div id="dashboardReleaseQueue" class="list"></div>
         </div>
       </div>
+      <div class="panel card panel--scroll" data-panel="dashboard-audience">
+        <div class="card-head">
+          <h2>Audience Chunks</h2>
+          <div class="panel-tools">
+            <div id="dashboardAudienceMeta" class="tiny muted">-</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="tiny muted">Sampled 1K-member chunks with yearly age + preference evolution.</div>
+          <div id="dashboardAudienceList" class="list"></div>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -1298,6 +1310,60 @@
             Modifiers are consumable tools that boost production outcomes. Purchase them here to unlock in Create; each track consumes one on sheet creation.
           </div>
           <div id="communityToolsList" class="list"></div>
+        </div>
+      </div>
+      <div class="panel card panel--scroll" data-panel="community-cheats">
+        <div class="card-head">
+          <h2>CCC Cheater Tools</h2>
+        </div>
+        <div class="card-body">
+          <div class="callout">
+            Inject specific Creator IDs into the CCC pool for portrait testing. Requires Cheater Mode.
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="cheatCccIds">Creator ID(s)</label>
+              <input id="cheatCccIds" type="text" placeholder="CR9001, CR9002" data-cheat-ccc>
+            </div>
+            <div class="field">
+              <label for="cheatCccRole">Role</label>
+              <select id="cheatCccRole" data-cheat-ccc></select>
+            </div>
+            <div class="field">
+              <label for="cheatCccAge">Age</label>
+              <input id="cheatCccAge" type="number" min="20" max="119" placeholder="23" data-cheat-ccc>
+            </div>
+            <div class="field">
+              <label for="cheatCccCountry">Nation</label>
+              <select id="cheatCccCountry" data-cheat-ccc></select>
+            </div>
+            <div class="field">
+              <label for="cheatCccGender">Gender Identity</label>
+              <select id="cheatCccGender" data-cheat-ccc></select>
+            </div>
+            <div class="field">
+              <label for="cheatCccTheme">Primary Theme</label>
+              <select id="cheatCccTheme" data-cheat-ccc></select>
+            </div>
+            <div class="field">
+              <label for="cheatCccMood">Primary Mood</label>
+              <select id="cheatCccMood" data-cheat-ccc></select>
+            </div>
+            <div class="field">
+              <label for="cheatCccPortraitKey">Portrait Key (optional)</label>
+              <input id="cheatCccPortraitKey" type="text" placeholder="morality-calming/age-20-23/crowlya-man" data-cheat-ccc>
+              <div class="tiny muted">Format: theme-mood/age-XX-YY/nation-gender</div>
+            </div>
+            <div class="field">
+              <label for="cheatCccPortraitFile">Portrait File (optional)</label>
+              <input id="cheatCccPortraitFile" type="text" placeholder="filename.png" data-cheat-ccc>
+            </div>
+          </div>
+          <div class="actions">
+            <button id="cheatCccInjectBtn" type="button" class="ghost" data-cheat-ccc>Inject into CCC</button>
+            <button id="cheatCccClearBtn" type="button" class="ghost mini" data-cheat-ccc>Clear</button>
+          </div>
+          <div id="cheatCccStatus" class="tiny muted"></div>
         </div>
       </div>
     </aside>

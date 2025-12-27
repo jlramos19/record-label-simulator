@@ -56,6 +56,7 @@ import {
   lookupActNameDetails,
   getActPopularityLeaderboard,
   getActiveEras,
+  getAudienceChunksSnapshot,
   getBusyCreatorIds,
   getCommunityLabelRankingLimit,
   getCommunityTrendRankingLimit,
@@ -462,6 +463,16 @@ function renderCreatorSkillProgress(creator) {
   const level = getCreatorSkillLevel(creator);
   const exp = getCreatorSkillExp(creator);
   return `Skill Level ${level} | EXP ${exp.toFixed(2)} / ${SKILL_EXP_PER_LEVEL_LABEL}`;
+}
+
+function formatCreatorAgeMeta(creator) {
+  if (!creator) return "Age -";
+  const age = Number.isFinite(creator.age) ? creator.age : null;
+  const group = creator.ageGroup || "";
+  if (age !== null && group) return `Age ${age} (${group})`;
+  if (age !== null) return `Age ${age}`;
+  if (group) return `Age Group ${group}`;
+  return "Age -";
 }
 
 function getCreatorCatharsisScore(creator) {
@@ -956,6 +967,7 @@ function renderAutoAssignModal() {
                 <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
                 <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">${formatCreatorAgeMeta(creator)}</div>
                 <div class="muted">ID ${creator.id} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
                 <div class="muted">${renderCreatorSkillProgress(creator)}</div>
                 <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
@@ -1501,6 +1513,66 @@ function renderDashboardFocusPanels() {
   });
 }
 
+function formatAudienceHour(hour) {
+  if (!Number.isFinite(hour)) return "--";
+  return `${String(Math.round(hour)).padStart(2, "0")}:00`;
+}
+
+function formatAudienceActiveHours(chunk) {
+  const hours = chunk?.activeHours || null;
+  const label = hours?.label || chunk?.timeProfile || "Active";
+  const start = Number.isFinite(hours?.startHour) ? formatAudienceHour(hours.startHour) : null;
+  const end = Number.isFinite(hours?.endHour) ? formatAudienceHour(hours.endHour) : null;
+  if (start && end) return `${label} ${start}-${end}`;
+  return label;
+}
+
+function renderDashboardAudienceChunks() {
+  const listEl = $("dashboardAudienceList");
+  if (!listEl) return;
+  const metaEl = $("dashboardAudienceMeta");
+  const snapshot = getAudienceChunksSnapshot();
+  const chunks = Array.isArray(snapshot?.chunks) ? snapshot.chunks : [];
+  const year = Number.isFinite(snapshot?.lastUpdateYear) ? snapshot.lastUpdateYear : currentYear();
+  if (metaEl) {
+    const updated = Number.isFinite(snapshot?.lastUpdateAt) ? formatShortDate(snapshot.lastUpdateAt) : null;
+    metaEl.textContent = updated
+      ? `${formatCount(chunks.length)} chunks | Year ${year} | Updated ${updated}`
+      : `${formatCount(chunks.length)} chunks | Year ${year}`;
+  }
+  if (!chunks.length) {
+    listEl.innerHTML = `<div class="muted">No audience chunks yet.</div>`;
+    return;
+  }
+  const ordered = chunks
+    .slice()
+    .sort((a, b) => (a.nation || "").localeCompare(b.nation || "") || (b.age || 0) - (a.age || 0));
+  const display = ordered.slice(0, 8);
+  listEl.innerHTML = display.map((chunk) => {
+    const community = formatGenreKeyLabel(chunk.communityId || "");
+    const age = Number.isFinite(chunk.age) ? `Age ${chunk.age}` : "Age -";
+    const ageGroup = chunk.ageGroup ? `(${chunk.ageGroup})` : "";
+    const generation = chunk.generation ? `Gen ${chunk.generation}` : "Gen -";
+    const budget = Number.isFinite(chunk.weeklyBudget) ? `${formatMoney(chunk.weeklyBudget)}/wk` : "-";
+    const engagement = Number.isFinite(chunk.engagementRate) ? `${Math.round(chunk.engagementRate * 100)}%` : "-";
+    const hours = Number.isFinite(chunk.weeklyHours) ? `${chunk.weeklyHours}h/wk` : "-";
+    const life = chunk.lifeExpectancy?.label || "-";
+    const repro = Number.isFinite(chunk.reproductionRate) ? chunk.reproductionRate : "-";
+    const emigrate = Number.isFinite(chunk.emigrationRate) ? `${Math.round(chunk.emigrationRate * 100)}%` : "-";
+    const themes = Array.isArray(chunk.prefThemes) && chunk.prefThemes.length ? chunk.prefThemes.join(", ") : "-";
+    const moods = Array.isArray(chunk.prefMoods) && chunk.prefMoods.length ? chunk.prefMoods.join(", ") : "-";
+    return `
+      <div class="list-item">
+        <div class="item-title">${community}</div>
+        <div class="muted">${chunk.nation || "Unknown"} | ${age} ${ageGroup} | ${generation}</div>
+        <div class="muted">Budget (int.) ${budget} | Engage ${engagement} | Time ${hours} | ${formatAudienceActiveHours(chunk)}</div>
+        <div class="tiny muted">Life ${life} | Repro ${repro} | Emigrate ${emigrate}</div>
+        <div class="tiny muted">Prefs: Themes ${themes} | Moods ${moods}</div>
+      </div>
+    `;
+  }).join("");
+}
+
 function renderDashboard() {
   const statsEl = $("dashboardStats");
   if (!statsEl) return;
@@ -1779,6 +1851,7 @@ function renderDashboard() {
     }
   }
 
+  renderDashboardAudienceChunks();
   renderQuests();
   renderRivalAchievementRace();
 }
@@ -3194,6 +3267,7 @@ function renderCreators() {
                 <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
                 <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">${formatCreatorAgeMeta(creator)}</div>
                 <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
                 <div class="muted">${renderCreatorSkillProgress(creator)}</div>
                 <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
@@ -3228,8 +3302,56 @@ function renderCreators() {
   creatorList.innerHTML = columns.join("");
 }
 
+function renderCheaterCccControls() {
+  const roleSelect = $("cheatCccRole");
+  if (roleSelect && !roleSelect.dataset.built) {
+    roleSelect.innerHTML = MARKET_ROLES.map((role) => `<option value="${role}">${roleLabel(role)}</option>`).join("");
+    roleSelect.dataset.built = "1";
+  }
+  const themeSelect = $("cheatCccTheme");
+  if (themeSelect && !themeSelect.dataset.built) {
+    themeSelect.innerHTML = buildThemeOptions([{ value: "", label: "Any Theme" }]);
+    bindThemeSelectAccent(themeSelect);
+    themeSelect.dataset.built = "1";
+  }
+  const moodSelect = $("cheatCccMood");
+  if (moodSelect && !moodSelect.dataset.built) {
+    moodSelect.innerHTML = buildMoodOptions([{ value: "", label: "Any Mood" }]);
+    moodSelect.dataset.built = "1";
+  }
+  const countrySelect = $("cheatCccCountry");
+  if (countrySelect && !countrySelect.dataset.built) {
+    const options = [`<option value="">Any Nation</option>`]
+      .concat(NATIONS.map((nation) => `<option value="${nation}">${nation}</option>`));
+    countrySelect.innerHTML = options.join("");
+    countrySelect.dataset.built = "1";
+  }
+  const genderSelect = $("cheatCccGender");
+  if (genderSelect && !genderSelect.dataset.built) {
+    genderSelect.innerHTML = [
+      `<option value="">Any Gender</option>`,
+      `<option value="man">Man</option>`,
+      `<option value="woman">Woman</option>`,
+      `<option value="nonbinary">Non-binary</option>`
+    ].join("");
+    genderSelect.dataset.built = "1";
+  }
+  const cheaterActive = Boolean(state.meta?.cheaterMode);
+  document.querySelectorAll("[data-cheat-ccc]").forEach((input) => {
+    if (!input) return;
+    input.disabled = !cheaterActive;
+  });
+  const status = $("cheatCccStatus");
+  if (status) {
+    status.textContent = cheaterActive
+      ? "Cheater mode active. Inject Creator IDs into the CCC pool."
+      : "Enable Cheater Mode in Settings to use CCC injection.";
+  }
+}
+
 function renderMarket() {
   ensureMarketCreators({}, { replenish: false });
+  renderCheaterCccControls();
   const listEl = $("marketList");
   if (!listEl) return;
   const filters = state.ui.cccFilters || {};
@@ -3347,6 +3469,7 @@ function renderMarket() {
                 <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
                 <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">${formatCreatorAgeMeta(creator)}</div>
                 <div class="muted">ID ${creator.id} | ${roleLabelText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
                 <div class="muted">${renderCreatorSkillProgress(creator)}</div>
                 <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>

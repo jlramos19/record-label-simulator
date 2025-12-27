@@ -357,7 +357,9 @@ body::before {
   gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
+  align-content: start;
+  grid-auto-rows: minmax(0, 1fr);
 }
 .view.view--dashboard .dashboard-footer .panel.card {
   min-height: 0;
