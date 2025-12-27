@@ -16412,7 +16412,9 @@ async function lockAwardShowNominations(show) {
   let extended = null;
   const actNominationCounts = new Map();
 
-  show.categories = show.categories.map((category) => {
+  const nextCategories = [];
+  const categories = Array.isArray(show.categories) ? show.categories : [];
+  for (const category of categories) {
     let pool = buildAwardNomineePool(category, baseMaps, baseWindow, baseActPromoTypes, baseEligibleActs, show.showAt);
     let windowWeeks = AWARD_SHOW_WINDOW_WEEKS;
     if (pool.length < AWARD_SHOW_MIN_NOMINEES) {
@@ -16444,14 +16446,15 @@ async function lockAwardShowNominations(show) {
       }
     }
     const { nominees, scoreKey } = selectAwardNominees(category, pool, actNominationCounts);
-    return {
+    nextCategories.push({
       ...category,
       nominees,
       scoreKey,
       windowWeeks,
       lastUpdatedAt: state.time.epochMs
-    };
-  });
+    });
+  }
+  show.categories = nextCategories;
   show.nominationWindow = baseWindow;
   return { ok: true };
 }
@@ -17236,7 +17239,10 @@ function normalizeState() {
   if (!state.ui.socialSlots) state.ui.socialSlots = { trackId: null };
   if (typeof state.ui.chartHistoryWeek !== "number") state.ui.chartHistoryWeek = null;
   if (typeof state.ui.chartHistorySnapshot === "undefined") state.ui.chartHistorySnapshot = null;
-  if (!Number.isFinite(state.ui.awardsYear)) state.ui.awardsYear = null;
+  if (!Number.isFinite(state.ui.awardsYear)) {
+    const parsedYear = Number(state.ui.awardsYear);
+    state.ui.awardsYear = Number.isFinite(parsedYear) ? parsedYear : null;
+  }
   if (typeof state.ui.awardsCategoryId !== "string") state.ui.awardsCategoryId = null;
   if (!state.meta) state.meta = makeDefaultState().meta;
   if (typeof state.meta.chartHistoryLastWeek === "undefined") state.meta.chartHistoryLastWeek = null;

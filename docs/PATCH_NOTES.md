@@ -9,6 +9,8 @@
 - Tour drafts now auto-name from the active era/project anchor to keep tour names aligned with release branding. [PN-20251227-AC14]
 - Project release tasks now target EP/Album releases (Singles excluded). [PN-20251227-AC15]
 - Chart history snapshots now retain project types so Projects charts label releases correctly across weeks. [PN-20251227-AC16]
+- Added an Awards tab with year selectors, dynamic categories, and nominee detail views that highlight winners. [PN-20251227-AC17]
+- Fixed award show nomination locking to avoid a runtime crash during extended-window nominee checks. [PN-20251227-AC18]
 
 ## 2025-12-27 (RLS-PATCH-20251227-2245Z)
 - Tour charts now include simulated rival tour entries so touring awards stay competitive across all labels. [PN-20251227-AC07]
@@ -668,4 +670,6 @@
 - PN-20251227-AC15 (2025-12-27 22:54Z): Project release tasks now target EP/Album releases (Singles excluded).
 - PN-20251227-AC16 (2025-12-27 22:54Z): Chart history snapshots now retain project types so Projects charts label releases correctly across weeks.
 - PN-20251227-AC12 (2025-12-27 22:49Z): CEO Requests now show WON/WON xN after completed wins, and bailout runs keep progress tracking while flagging leaderboard eligibility.
+- PN-20251227-AC17 (2025-12-27 23:27Z): Added an Awards tab with year selectors, dynamic categories, and nominee detail views that highlight winners.
+- PN-20251227-AC18 (2025-12-27 23:37Z): Fixed award show nomination locking to avoid a runtime crash during extended-window nominee checks.
 - PN-20251227-AC17 (2025-12-27 23:18Z): Awards now run annually per show schedule with yearlong eligibility windows and an expanded critics/audience/hybrid lineup.

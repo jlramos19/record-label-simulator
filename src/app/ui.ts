@@ -3365,6 +3365,37 @@ function bindViewHandlers(route, root) {
     });
   }
 
+  if (route === "awards") {
+    const yearSelect = root.querySelector("#awardsYearSelect");
+    if (yearSelect) {
+      yearSelect.addEventListener("change", (e) => {
+        const nextYear = Number(e.target.value || 0);
+        state.ui.awardsYear = Number.isFinite(nextYear) && nextYear > 0 ? nextYear : null;
+        state.ui.awardsCategoryId = null;
+        renderActiveView("awards");
+        saveToActiveSlot();
+      });
+    }
+    const selectCategory = (categoryId) => {
+      if (!categoryId) return;
+      state.ui.awardsCategoryId = categoryId;
+      renderActiveView("awards");
+      saveToActiveSlot();
+    };
+    root.addEventListener("click", (e) => {
+      const row = e.target.closest("[data-award-category]");
+      if (!row) return;
+      selectCategory(row.dataset.awardCategory);
+    });
+    root.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const row = e.target.closest("[data-award-category]");
+      if (!row) return;
+      e.preventDefault();
+      selectCategory(row.dataset.awardCategory);
+    });
+  }
+
   if (route === "logs") {
     on("externalStoragePickBtn", "click", () => {
       void handleExternalStoragePick(root);

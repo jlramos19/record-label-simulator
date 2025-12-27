@@ -2523,6 +2523,309 @@ function renderAwardsCircuit() {
   listEl.innerHTML = items.join("");
 }
 
+function listAnnualAwardYearsFromLedger() {
+  const years = Object.keys(state.meta?.annualAwardLedger?.years || {})
+    .map((key) => Number.parseInt(key, 10))
+    .filter((value) => Number.isFinite(value))
+    .sort((a, b) => b - a);
+  return years;
+}
+
+function resolveAnnualAwardsEntryForYear(year) {
+  if (!Number.isFinite(year)) return null;
+  const list = Array.isArray(state.meta?.annualAwards) ? state.meta.annualAwards : [];
+  return list.find((entry) => Number(entry?.year) === year) || null;
+}
+
+function buildAnnualAwardLabelLookup() {
+  const lookup = new Map();
+  ACHIEVEMENTS.forEach((entry) => {
+    if (!entry || !entry.id) return;
+    lookup.set(entry.id, entry.label || entry.id);
+  });
+  return lookup;
+}
+
+function resolveAnnualAwardLabel(id, lookup) {
+  if (!id) return "Unknown category";
+  return lookup?.get(id) || id;
+}
+
+function buildAnnualAwardCategoryList(yearEntry, awardsEntry, definitions) {
+  const list = [];
+  const seen = new Set();
+  const awards = awardsEntry?.awards && typeof awardsEntry.awards === "object" ? awardsEntry.awards : {};
+  (definitions || []).forEach((definition) => {
+    if (!definition?.id) return;
+    const store = yearEntry?.stores?.[definition.store];
+    const metricMap = store?.[definition.metric];
+    const hasMetricData = metricMap && typeof metricMap === "object" && Object.keys(metricMap).length > 0;
+    const hasCandidates = store?.candidates && typeof store.candidates === "object" && Object.keys(store.candidates).length > 0;
+    const hasAward = Boolean(awards?.[definition.id]);
+    if (hasMetricData || hasCandidates || hasAward) {
+      list.push({
+        id: definition.id,
+        definition,
+        hasMetricData,
+        hasCandidates,
+        hasAward
+      });
+      seen.add(definition.id);
+    }
+  });
+  Object.keys(awards || {}).forEach((awardId) => {
+    if (seen.has(awardId)) return;
+    list.push({
+      id: awardId,
+      definition: null,
+      hasMetricData: false,
+      hasCandidates: false,
+      hasAward: true
+    });
+  });
+  return list;
+}
+
+function resolveAnnualAwardNomineeDisplay(candidate) {
+  const projectName = candidate?.projectName ? renderProjectName(candidate.projectName) : "";
+  if (projectName) {
+    return { primary: projectName, meta: candidate?.label ? `Label: ${candidate.label}` : "" };
+  }
+  const title = candidate?.title || candidate?.trackTitle || "";
+  if (title) {
+    const renderedTitle = renderTrackTitle(title);
+    const actLabel = renderActName(candidate);
+    const metaParts = [];
+    if (actLabel) metaParts.push(`Act: ${actLabel}`);
+    if (candidate?.label) metaParts.push(`Label: ${candidate.label}`);
+    return { primary: renderedTitle, meta: metaParts.join(" | ") };
+  }
+  const tourName = candidate?.tourName ? String(candidate.tourName) : "";
+  if (tourName) {
+    const metaParts = [];
+    if (candidate?.label) metaParts.push(`Label: ${candidate.label}`);
+    return { primary: tourName, meta: metaParts.join(" | ") };
+  }
+  const actName = renderActName(candidate);
+  const metaParts = [];
+  if (candidate?.label) metaParts.push(`Label: ${candidate.label}`);
+  return { primary: actName || "Unknown entity", meta: metaParts.join(" | ") };
+}
+
+function buildAnnualAwardNominees(definition, yearEntry) {
+  if (!definition || !yearEntry?.stores) return [];
+  const store = yearEntry.stores[definition.store];
+  if (!store || typeof store !== "object") return [];
+  const metricKey = definition.metric;
+  const metricMap = store[metricKey];
+  if (!metricMap || typeof metricMap !== "object") return [];
+  const candidates = store.candidates && typeof store.candidates === "object" ? store.candidates : {};
+  const nominees = Object.keys(metricMap).map((key) => {
+    const candidate = candidates[key] || { actKey: key, actName: "Unknown Act", label: "" };
+    const score = Number(metricMap[key] || 0);
+    const leadWeek = store?.firstLeadWeek?.[metricKey]?.[key];
+    return {
+      key,
+      candidate,
+      score,
+      leadWeek: Number.isFinite(leadWeek) ? leadWeek : null
+    };
+  });
+  nominees.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const aLead = Number.isFinite(a.leadWeek) ? a.leadWeek : Number.POSITIVE_INFINITY;
+    const bLead = Number.isFinite(b.leadWeek) ? b.leadWeek : Number.POSITIVE_INFINITY;
+    if (aLead !== bLead) return aLead - bLead;
+    return String(a.key).localeCompare(String(b.key));
+  });
+  return nominees;
+}
+
+function normalizeAwardMatchValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function awardWinnerMatches(nominee, winner) {
+  if (!nominee || !winner) return false;
+  if (winner.actKey && nominee.key && String(winner.actKey) === String(nominee.key)) return true;
+  if (winner.actId && nominee.candidate?.actId && String(winner.actId) === String(nominee.candidate.actId)) return true;
+  const winnerName = normalizeAwardMatchValue(winner.actName);
+  const nomineeName = normalizeAwardMatchValue(nominee.candidate?.actName);
+  if (winnerName && nomineeName && winnerName === nomineeName) {
+    const winnerLabel = normalizeAwardMatchValue(winner.label);
+    const nomineeLabel = normalizeAwardMatchValue(nominee.candidate?.label);
+    if (!winnerLabel || !nomineeLabel) return true;
+    return winnerLabel === nomineeLabel;
+  }
+  return false;
+}
+
+function renderAnnualAwardsPanel() {
+  const listEl = $("awardsCategoryList");
+  if (!listEl) return;
+  const yearSelect = $("awardsYearSelect");
+  const emptyEl = $("awardsYearEmpty");
+  const warningEl = $("awardsYearWarning");
+  const years = listAnnualAwardYearsFromLedger();
+  if (yearSelect) {
+    if (!years.length) {
+      yearSelect.innerHTML = `<option value="">No years available</option>`;
+      yearSelect.disabled = true;
+    } else {
+      yearSelect.disabled = false;
+      yearSelect.innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join("");
+    }
+  }
+  if (!years.length) {
+    if (emptyEl) {
+      emptyEl.textContent = "No year-end awards recorded yet.";
+      emptyEl.classList.remove("hidden");
+    }
+    if (warningEl) warningEl.classList.add("hidden");
+    listEl.innerHTML = "";
+    state.ui.awardsYear = null;
+    state.ui.awardsCategoryId = null;
+    return;
+  }
+  const selectedYear = years.includes(state.ui.awardsYear) ? state.ui.awardsYear : years[0];
+  state.ui.awardsYear = selectedYear;
+  if (yearSelect) yearSelect.value = String(selectedYear);
+  if (emptyEl) emptyEl.classList.add("hidden");
+  const yearEntry = state.meta?.annualAwardLedger?.years?.[String(selectedYear)] || null;
+  const awardsEntry = resolveAnnualAwardsEntryForYear(selectedYear);
+  const hasLedger = Boolean(yearEntry && typeof yearEntry === "object"
+    && yearEntry.stores && typeof yearEntry.stores === "object");
+  if (warningEl) {
+    if (!hasLedger) {
+      warningEl.textContent = "Ledger data is missing for this year. Nominees may be unavailable.";
+      warningEl.classList.remove("hidden");
+    } else {
+      warningEl.classList.add("hidden");
+    }
+  }
+  const definitions = typeof listAnnualAwardDefinitions === "function" ? listAnnualAwardDefinitions() : [];
+  const categories = buildAnnualAwardCategoryList(yearEntry, awardsEntry, definitions);
+  if (!categories.length) {
+    listEl.innerHTML = `<div class="muted">No award categories available for ${selectedYear}.</div>`;
+    state.ui.awardsCategoryId = null;
+    return;
+  }
+  const selectedCategoryId = categories.some((entry) => entry.id === state.ui.awardsCategoryId)
+    ? state.ui.awardsCategoryId
+    : categories[0].id;
+  state.ui.awardsCategoryId = selectedCategoryId;
+  const labelLookup = buildAnnualAwardLabelLookup();
+  const awards = awardsEntry?.awards && typeof awardsEntry.awards === "object" ? awardsEntry.awards : {};
+  listEl.innerHTML = categories.map((category) => {
+    const label = resolveAnnualAwardLabel(category.id, labelLookup);
+    const isSelected = category.id === selectedCategoryId;
+    const definition = category.definition;
+    const store = definition ? yearEntry?.stores?.[definition.store] : null;
+    const metricMap = definition ? store?.[definition.metric] : null;
+    const nomineeCount = metricMap && typeof metricMap === "object" ? Object.keys(metricMap).length : 0;
+    const nomineeLine = nomineeCount ? `Nominees: ${nomineeCount}` : "Nominees: 0";
+    const winnerEntry = awards?.[category.id] || null;
+    const winnerLabel = winnerEntry?.actName || winnerEntry?.actKey || "TBD";
+    const winnerLine = winnerEntry ? `Winner: ${winnerLabel}` : "Winner: TBD";
+    const metaLine = `${nomineeLine} | ${winnerLine}`;
+    return `
+      <div class="list-item awards-category ${isSelected ? "is-selected" : ""}" data-award-category="${category.id}" role="button" tabindex="0" aria-pressed="${isSelected ? "true" : "false"}">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${label}</div>
+            <div class="muted">${metaLine}</div>
+          </div>
+          <div class="actions">
+            <span class="badge">${isSelected ? "Selected" : "View"}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderAnnualAwardsDetail() {
+  const detailEl = $("awardsDetailBody");
+  if (!detailEl) return;
+  const years = listAnnualAwardYearsFromLedger();
+  if (!years.length) {
+    detailEl.innerHTML = `<div class="muted">No year-end awards recorded yet.</div>`;
+    return;
+  }
+  const year = state.ui.awardsYear;
+  if (!Number.isFinite(year)) {
+    detailEl.innerHTML = `<div class="muted">Select a year to view awards.</div>`;
+    return;
+  }
+  const yearEntry = state.meta?.annualAwardLedger?.years?.[String(year)] || null;
+  const awardsEntry = resolveAnnualAwardsEntryForYear(year);
+  const definitions = typeof listAnnualAwardDefinitions === "function" ? listAnnualAwardDefinitions() : [];
+  const categories = buildAnnualAwardCategoryList(yearEntry, awardsEntry, definitions);
+  if (!categories.length) {
+    detailEl.innerHTML = `<div class="muted">No award categories available for ${year}.</div>`;
+    return;
+  }
+  const category = categories.find((entry) => entry.id === state.ui.awardsCategoryId) || categories[0];
+  const labelLookup = buildAnnualAwardLabelLookup();
+  const categoryLabel = resolveAnnualAwardLabel(category.id, labelLookup);
+  const winnerEntry = awardsEntry?.awards && typeof awardsEntry.awards === "object"
+    ? awardsEntry.awards[category.id]
+    : null;
+  const nominees = category.definition ? buildAnnualAwardNominees(category.definition, yearEntry) : [];
+  const winnerIndex = winnerEntry ? nominees.findIndex((nominee) => awardWinnerMatches(nominee, winnerEntry)) : -1;
+  const headerLines = [];
+  headerLines.push(`<div class="item-title">${categoryLabel}</div>`);
+  headerLines.push(`<div class="muted">Year ${year}</div>`);
+  if (winnerIndex >= 0 && winnerEntry) {
+    const winnerName = winnerEntry.actName || winnerEntry.actKey || "Winner";
+    headerLines.push(`<div class="muted">Winner: ${winnerName}</div>`);
+  } else {
+    headerLines.push(`<div class="muted">Winner not available.</div>`);
+  }
+  const items = [
+    `
+      <div class="list-item">
+        ${headerLines.join("")}
+      </div>
+    `
+  ];
+  if (!category.definition) {
+    items.push(`<div class="muted">Nominee data unavailable for this category.</div>`);
+    detailEl.innerHTML = items.join("");
+    return;
+  }
+  if (!nominees.length) {
+    items.push(`<div class="muted">No nominees recorded for this category.</div>`);
+    detailEl.innerHTML = items.join("");
+    return;
+  }
+  nominees.forEach((nominee, index) => {
+    const display = resolveAnnualAwardNomineeDisplay(nominee.candidate);
+    const metaLine = display.meta ? `<div class="muted">${display.meta}</div>` : "";
+    const isWinner = index === winnerIndex;
+    items.push(`
+      <div class="list-item awards-nominee ${isWinner ? "is-winner" : ""}">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${display.primary}</div>
+            ${metaLine}
+          </div>
+          <div class="actions">
+            <span class="badge">#${index + 1}</span>
+            ${isWinner ? `<span class="badge">Winner</span>` : ""}
+          </div>
+        </div>
+      </div>
+    `);
+  });
+  detailEl.innerHTML = items.join("");
+}
+
+function renderAnnualAwardsView() {
+  renderAnnualAwardsPanel();
+  renderAnnualAwardsDetail();
+}
+
 function renderWallet() {
   const items = [
     `
@@ -6737,6 +7040,8 @@ function renderActiveView(view) {
   } else if (active === "charts") {
     renderCharts();
     renderSlots();
+  } else if (active === "awards") {
+    renderAnnualAwardsView();
   } else if (active === "release") {
     renderReleaseDesk();
   } else if (active === "create") {
