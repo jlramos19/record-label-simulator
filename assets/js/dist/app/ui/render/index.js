@@ -3167,7 +3167,6 @@ function renderCreators() {
             const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
             const catharsisScore = getCreatorCatharsisScore(creator);
             const catharsisGrade = scoreGrade(catharsisScore);
-            const skillGrade = scoreGrade(creator.skill);
             const roleText = roleLabel(creator.role);
             const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
             const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
@@ -3180,25 +3179,38 @@ function renderCreators() {
         <div class="list-item" data-entity-type="creator" data-entity-id="${creator.id}" data-entity-name="${creator.name}" draggable="true">
           <div class="list-row">
             <div class="creator-card">
-              ${renderCreatorAvatar(creator)}
-              <div>
-                <div class="item-title">${renderCreatorName(creator)}</div>
-                <div class="bar"><span style="width:${staminaPct}%"></span></div>
-                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
-                <div class="muted">${formatCreatorAgeMeta(creator)}</div>
-                <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
-                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
-                <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
-                <div class="muted">Acts: ${actText}</div>
-                <div class="time-row">${nationalityPill}</div>
-                <div class="muted">Preferred Themes:</div>
-                <div class="creator-pref-tags">${themeCells}</div>
-                <div class="muted">Preferred Moods:</div>
-                <div class="creator-pref-tags">${moodCells}</div>
+              <div class="creator-card-header">
+                <div class="creator-card-header-left">${nationalityPill}</div>
+                <div class="creator-card-header-right">
+                  <div class="creator-card-occupation">${roleText}</div>
+                  <div class="creator-card-id">ID ${creator.id}</div>
+                </div>
+              </div>
+              <div class="creator-card-body">
+                <div class="creator-card-portrait">${renderCreatorAvatar(creator)}</div>
+                <div class="creator-card-info">
+                  <div class="item-title">${renderCreatorName(creator)}</div>
+                  <div class="muted">${formatCreatorAgeMeta(creator)}</div>
+                  <div class="muted">${renderCreatorSkillProgress(creator)}</div>
+                  <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
+                  <div class="muted">Acts: ${actText}</div>
+                  <div class="muted">Preferred Themes:</div>
+                  <div class="creator-pref-tags">${themeCells}</div>
+                  <div class="muted">Preferred Moods:</div>
+                  <div class="creator-pref-tags">${moodCells}</div>
+                </div>
+              </div>
+              <div class="creator-card-footer">
+                <div class="creator-card-stamina">
+                  <div class="bar"><span style="width:${staminaPct}%"></span></div>
+                  <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                </div>
+                <div class="creator-card-actions">
+                  <div class="pill">${busy ? "Busy" : "Ready"}</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="pill">${busy ? "Busy" : "Ready"}</div>
-        </div>
         </div>
       `;
         });
@@ -3357,7 +3369,6 @@ function renderMarket() {
         const list = sortedCreators.map((creator) => {
             const catharsisScore = getCreatorCatharsisScore(creator);
             const catharsisGrade = scoreGrade(catharsisScore);
-            const skillGrade = scoreGrade(creator.skill);
             const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
             const nationalityPill = renderNationalityPill(creator.country);
             const lockout = getCreatorSignLockout(creator.id, now);
@@ -3370,7 +3381,9 @@ function renderMarket() {
                 ? "Locked until refresh"
                 : `Sign ${formatMoney(signCost)}${canAfford ? "" : " (not enough money)"}`;
             const lockoutReason = isLocked && lockout?.reason ? ` - ${lockout.reason}` : "";
-            const lockoutHint = isLocked ? `<div class="tiny muted">Locked until 12AM refresh${lockoutReason}</div>` : "";
+            const lockoutHint = isLocked
+                ? `<div class="tiny muted creator-card-hint">Locked until 12AM refresh${lockoutReason}</div>`
+                : "";
             const lockoutTitle = isLocked && lockout
                 ? ` title="Locked until ${formatDate(lockout.lockedUntilEpochMs)}${lockout?.reason ? ` | ${lockout.reason}` : ""}"`
                 : "";
@@ -3384,25 +3397,36 @@ function renderMarket() {
         <div class="${itemClass}" data-ccc-creator="${creator.id}">
           <div class="list-row">
             <div class="creator-card">
-              ${renderCreatorAvatar(creator)}
-              <div>
-                <div class="item-title">${renderCreatorName(creator)}</div>
-                <div class="bar"><span style="width:${staminaPct}%"></span></div>
-                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
-                <div class="muted">${formatCreatorAgeMeta(creator)}</div>
-                <div class="muted">ID ${creator.id} | ${roleLabelText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
-                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
-                <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
-                <div class="time-row">${nationalityPill}</div>
-                <div class="muted">Preferred Themes:</div>
-                <div class="creator-pref-tags">${themeCells}</div>
-                <div class="muted">Preferred Moods:</div>
-                <div class="creator-pref-tags">${moodCells}</div>
+              <div class="creator-card-header">
+                <div class="creator-card-header-left">${nationalityPill}</div>
+                <div class="creator-card-header-right">
+                  <div class="creator-card-occupation">${roleLabelText}</div>
+                  <div class="creator-card-id">ID ${creator.id}</div>
+                </div>
               </div>
-            </div>
-            <div>
-              <button type="button" data-sign="${creator.id}"${buttonState}${buttonTitle}>${buttonLabel}</button>
-              ${lockoutHint}
+              <div class="creator-card-body">
+                <div class="creator-card-portrait">${renderCreatorAvatar(creator)}</div>
+                <div class="creator-card-info">
+                  <div class="item-title">${renderCreatorName(creator)}</div>
+                  <div class="muted">${formatCreatorAgeMeta(creator)}</div>
+                  <div class="muted">${renderCreatorSkillProgress(creator)}</div>
+                  <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
+                  <div class="muted">Preferred Themes:</div>
+                  <div class="creator-pref-tags">${themeCells}</div>
+                  <div class="muted">Preferred Moods:</div>
+                  <div class="creator-pref-tags">${moodCells}</div>
+                </div>
+              </div>
+              <div class="creator-card-footer">
+                <div class="creator-card-stamina">
+                  <div class="bar"><span style="width:${staminaPct}%"></span></div>
+                  <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                </div>
+                <div class="creator-card-actions">
+                  <button type="button" data-sign="${creator.id}"${buttonState}${buttonTitle}>${buttonLabel}</button>
+                  ${lockoutHint}
+                </div>
+              </div>
             </div>
           </div>
         </div>

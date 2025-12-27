@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-0420Z)
+- Creator ID cards now use a 3:2 layout with header/body/footer regions, a 2:3 portrait on the left, and footer-aligned stamina + action pills.
+- Creator ID stats now drop the redundant skill value line while keeping skill level/EXP, catharsis, and stamina.
+
 ## 2025-12-27 (RLS-PATCH-20251227-0406Z)
 - Creator portraits now pick from any preferred theme+mood pairing with available images, then keep the chosen genre for future age-bin updates while rechecking on preference changes.
 
