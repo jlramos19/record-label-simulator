@@ -48,6 +48,7 @@ import {
   formatCount,
   formatDate,
   formatHourCountdown,
+  formatGenreKeyLabel,
   formatMoney,
   formatShortDate,
   formatWeekRangeLabel,
