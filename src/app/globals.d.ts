@@ -146,6 +146,7 @@ declare const THEME_COLORS: Record<string, string>;
 declare const COUNTRY_COLORS: Record<string, string>;
 declare const COUNTRY_DEMONYMS: Record<string, string>;
 declare const COUNTRY_LANGUAGE_WEIGHTS: Record<string, { lang: string; weight: number }[]>;
+declare const CREATOR_PORTRAIT_MANIFEST: { root: string; entries: Record<string, string[]> };
 declare const AI_LABELS: { id: string; name: string; alignment: string; country: string; focusThemes: string[]; focusMoods: string[] }[];
 declare const TRACKLIST: { title: string; act: string; theme: string; mood: string }[];
 declare const TRACK_TITLES_EN: string[];

@@ -1,5 +1,6 @@
 # TODO
 
+- [x] RLS-YEAREND-CHARTS-001: Track year-end charts across the year and release CEO Request winners on the first Saturday of January. (Agent Codex, started 2025-12-26 21:19:29 -04:00, completed 2025-12-26 21:19:29 -04:00)
 - [x] RLS-CCC-CATHARSIS-001: Add catharsis score (skill + stamina) to creator cards and cap CCC skill levels at 5 with weighted distribution. (Agent Codex, started 2025-12-26 20:27:58 -04:00, completed 2025-12-26 20:27:58 -04:00)
 - [x] RLS-UI-DASHBOARD-LAYOUT-001: Rename Dashboard Focus to Road to the Top and move the overview + pipeline into a footer layout. (Agent Codex, started 2025-12-26 20:02:57 -04:00, completed 2025-12-26 20:02:57 -04:00)
 - [x] RLS-ENDGAME-RIVAL-WIN-001: Track rival CEO Request victory as a loss condition (AI wins the race) and document win/loss tracking. (Agent Codex, started 2025-12-26 19:06:57 -04:00, completed 2025-12-26 19:06:57 -04:00)
@@ -51,7 +52,7 @@
 - [ ] RLS-TOUR-REVAMP-001: Align touring workflow with booking eligibility, regional chart modifiers, and auto-generated dates.
 - [ ] RLS-PROMO-SCHEDULE-001: Allow promo booking windows to be reserved in advance (including eyeriSocial).
 - [ ] RLS-CALENDAR-UX-002: Add calendar day overflow details and show event execution times.
-- [ ] RLS-AUDIENCE-CHUNKS-001: Add age group segmentation + concert-demand baselines to audience snapshots.
+- [ ] RLS-AUDIENCE-CHUNKS-001: Add age group segmentation + concert-demand baselines to audience snapshots. (Age-group distribution exists; creator age/portrait bins now derive from it, concert baselines still pending.)
 - [x] RLS-UI-COMMUNITY-RANKINGS-001: Split Community rankings toggles (Labels: Top 3/Top 8, Trends: Top 3/Top 40), with a full-list "More" action on #1.
 - [ ] Quarter-hour ticks: show stamina depletion + recharge every in-game hour across UI surfaces.
 - [ ] Producer overuse: add observability (why overused; when overuse strikes happen; when/why departure triggers).

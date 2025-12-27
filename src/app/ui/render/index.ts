@@ -725,6 +725,7 @@ function renderSlots() {
           avatarEl.style.backgroundImage = "";
           avatarEl.innerHTML = renderCreatorFallbackSymbols({ unassigned: !creator });
         }
+        avatarEl.title = creator?.portraitNote || "";
       }
     } else if (type === "act") {
       const act = value ? getAct(value) : null;
@@ -3157,8 +3158,9 @@ function renderCreatorAvatar(creator) {
   const hasImage = Boolean(portraitUrl);
   const imageStyle = hasImage ? ` style="background-image: url('${safeAvatarUrl(portraitUrl)}')"` : "";
   const className = hasImage ? "creator-avatar has-image" : "creator-avatar has-symbols";
+  const note = creator?.portraitNote ? ` title="${escapeAttribute(creator.portraitNote)}"` : "";
   const content = hasImage ? initials : renderCreatorFallbackSymbols();
-  return `<div class="${className}" aria-hidden="true"${imageStyle}>${content}</div>`;
+  return `<div class="${className}" aria-hidden="true"${imageStyle}${note}>${content}</div>`;
 }
 
 function renderCreators() {

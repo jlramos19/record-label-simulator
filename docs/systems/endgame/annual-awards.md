@@ -3,8 +3,14 @@
 Each in-game calendar year, the simulation computes 12 CEO Request awards at Gaia scope. Winners are Acts (not individual tracks), and a label earns the request when any of its Acts wins the category that year.
 
 ## Data sources
-- Weekly chart snapshots (tracks/projects, promotions, tours) stored in IndexedDB.
+- Weekly chart results captured at the Saturday 00:00 UTC chart update and stored in the year-end chart ledger (`state.meta.annualAwardLedger`).
+- Chart snapshots in IndexedDB remain a backfill source if the ledger is missing.
 - Scope weights: Regional = 1, National = 2, Global = 3.
+
+## Cadence + release
+- Ledger updates once per weekly chart update (Saturday 00:00 UTC).
+- Year-end charts release on the first Saturday of January for the prior calendar year.
+- Award winners are stored in `state.meta.annualAwards` and used to unlock CEO Requests.
 
 ## Scoring rules
 - Chart-topping awards (#1, #4, #7, #10):

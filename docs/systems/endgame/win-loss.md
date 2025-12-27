@@ -13,3 +13,4 @@
 ## Tracking
 - Win/loss checks run during weekly updates and after annual awards resolve.
 - Rival CEO Request completion is evaluated from the same annual awards ledger and compared against the 12-request target.
+- Annual awards resolve on the first Saturday of January for the prior calendar year.

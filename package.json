@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/build-creator-portrait-manifest.mjs && tsc -p tsconfig.json",
     "report:lines": "node scripts/report-line-counts.mjs",
     "watch": "tsc -p tsconfig.json --watch",
     "start": "powershell -Command \"python -m http.server 5173\"",

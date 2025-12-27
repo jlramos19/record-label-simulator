@@ -1,5 +1,22 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-0155Z)
+- Creator IDs now store age (20-119) and ageGroup (4-year bin) sourced from audience age-group distribution.
+- Creator portraits now auto-assign from the manifest using theme-mood, portrait age bin, nationality, and gender identity; avatar tooltips flag missing tags or empty folders.
+- Added a creator portrait manifest generator plus a `creator-portraits.js` data asset to sync dropped images.
+
+## 2025-12-27 (RLS-PATCH-20251227-0131Z)
+- Creator portrait age bins now use 20-23, 24-27, 28-31, 32-35, 36-43, 44-51, 52-75, and 76-120.
+- Portrait genre reference now lives in `content-genres.md` under the PNG portraits root.
+
+## 2025-12-27 (RLS-PATCH-20251227-0118Z)
+- Year-end charts now track weekly results in save data and release on the first Saturday of January for the prior year.
+- Annual awards now resolve from the saved ledger with chart snapshot fallback, keeping CEO Requests and tasks synced to the release.
+
+## 2025-12-27 (RLS-PATCH-20251227-0116Z)
+- Creator portrait folders now use `<theme>-<mood>/age-XX-YY/<nationality>-<gender>` for clearer image drop-ins.
+- Replaced gNN mapping with explicit theme-mood folder names under the portraits genre map.
+
 ## 2025-12-27 (RLS-PATCH-20251227-0033Z)
 - Creator cards now show catharsis (skill + stamina) alongside skill level/EXP and stamina.
 - CCC market creators now spawn with skill levels capped at 5, weighted toward lower levels.

@@ -527,6 +527,7 @@ function makeDefaultState() {
       version: STATE_VERSION,
       annualWinners: [],
       annualAwards: [],
+      annualAwardLedger: { years: {}, lastUpdateYear: null, lastUpdateWeek: null },
       questIdCounter: 0,
       chartHistoryLastWeek: null,
       achievements: 0,
@@ -2093,6 +2094,14 @@ function isScheduledTime(epochMs, schedule) {
   return current.day === schedule.day && current.hour === schedule.hour && current.minute === targetMinute;
 }
 
+function isFirstSaturdayOfJanuary(epochMs = state.time.epochMs) {
+  if (!Number.isFinite(epochMs)) return false;
+  const date = new Date(epochMs);
+  if (date.getUTCMonth() !== 0) return false;
+  if (date.getUTCDay() !== 6) return false;
+  return date.getUTCDate() <= 7;
+}
+
 function hoursUntilNextScheduledTime(schedule, epochMs = state.time.epochMs) {
   const current = getUtcDayHourMinute(epochMs);
   const targetMinute = Number.isFinite(schedule.minute) ? schedule.minute : 0;
@@ -2198,6 +2207,181 @@ function buildAudienceAgeGroupDistribution(total) {
     share: shares[index] || 0,
     count: counts[index] || 0
   }));
+}
+
+const CREATOR_AGE_MIN = 20;
+const CREATOR_AGE_MAX = 119;
+const CREATOR_PORTRAIT_ROOT = "assets/png/portraits/creator-ids";
+const CREATOR_PORTRAIT_AGE_BINS = [
+  { min: 20, max: 23, label: "age-20-23" },
+  { min: 24, max: 27, label: "age-24-27" },
+  { min: 28, max: 31, label: "age-28-31" },
+  { min: 32, max: 35, label: "age-32-35" },
+  { min: 36, max: 43, label: "age-36-43" },
+  { min: 44, max: 51, label: "age-44-51" },
+  { min: 52, max: 75, label: "age-52-75" },
+  { min: 76, max: 120, label: "age-76-120" }
+];
+
+function parseAgeGroupLabel(label) {
+  if (!label) return null;
+  const match = String(label).trim().match(/^(\d+)\s*-\s*(\d+)$/);
+  if (!match) return null;
+  const minAge = Number(match[1]);
+  const maxAge = Number(match[2]);
+  if (!Number.isFinite(minAge) || !Number.isFinite(maxAge)) return null;
+  return { minAge, maxAge };
+}
+
+function resolveAudienceAgeGroupForAge(age) {
+  const safeAge = Number.isFinite(age)
+    ? clamp(Math.floor(age), 0, AUDIENCE_AGE_GROUPS[AUDIENCE_AGE_GROUPS.length - 1]?.maxAge ?? 119)
+    : null;
+  if (safeAge === null) return null;
+  return AUDIENCE_AGE_GROUPS.find((group) => safeAge >= group.minAge && safeAge <= group.maxAge) || null;
+}
+
+function pickCreatorAge() {
+  const weights = buildAudienceAgeGroupWeights();
+  const candidates = AUDIENCE_AGE_GROUPS
+    .filter((group) => group.minAge >= CREATOR_AGE_MIN && group.minAge <= CREATOR_AGE_MAX)
+    .map((group) => {
+      const rawWeight = weights[group.index] || 1;
+      const weight = Math.max(1, Math.round(rawWeight * 100));
+      return { group, weight };
+    });
+  const pick = pickWeightedEntry(candidates) || candidates[0];
+  if (!pick) return CREATOR_AGE_MIN;
+  const min = Math.max(CREATOR_AGE_MIN, pick.group.minAge);
+  const max = Math.min(CREATOR_AGE_MAX, pick.group.maxAge);
+  return rand(min, max);
+}
+
+function normalizeCreatorAge(value, fallbackGroupLabel) {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed)) {
+    return clamp(Math.floor(parsed), CREATOR_AGE_MIN, CREATOR_AGE_MAX);
+  }
+  const fallback = parseAgeGroupLabel(fallbackGroupLabel);
+  if (fallback) {
+    const min = Math.max(CREATOR_AGE_MIN, fallback.minAge);
+    const max = Math.min(CREATOR_AGE_MAX, fallback.maxAge);
+    return rand(min, max);
+  }
+  return pickCreatorAge();
+}
+
+function resolveCreatorPortraitAgeBin(age) {
+  if (!Number.isFinite(age)) return null;
+  const safeAge = clamp(Math.floor(age), CREATOR_AGE_MIN, CREATOR_AGE_MAX);
+  return CREATOR_PORTRAIT_AGE_BINS.find((entry) => safeAge >= entry.min && safeAge <= entry.max)?.label || null;
+}
+
+function normalizeCreatorNationalityKey(country) {
+  if (!country) return null;
+  const raw = String(country).trim().toLowerCase();
+  if (!raw) return null;
+  const match = NATIONS.find((nation) => nation.toLowerCase() === raw);
+  return match ? match.toLowerCase() : null;
+}
+
+function normalizeCreatorGenderKey(genderIdentity) {
+  if (!genderIdentity) return null;
+  const raw = String(genderIdentity).trim().toLowerCase();
+  if (!raw) return null;
+  if (["man", "male", "m"].includes(raw)) return "man";
+  if (["woman", "female", "f"].includes(raw)) return "woman";
+  if (["nonbinary", "non-binary", "nb", "enby"].includes(raw)) return "nonbinary";
+  return null;
+}
+
+function resolveCreatorPortraitGenre(creator) {
+  const theme = Array.isArray(creator?.prefThemes) ? creator.prefThemes[0] : null;
+  const mood = Array.isArray(creator?.prefMoods) ? creator.prefMoods[0] : null;
+  if (!theme || !THEMES.includes(theme) || !mood || !MOODS.includes(mood)) return null;
+  return { theme: theme.toLowerCase(), mood: mood.toLowerCase() };
+}
+
+function buildCreatorPortraitKey(creator) {
+  if (!creator) return null;
+  const genre = resolveCreatorPortraitGenre(creator);
+  const ageBin = resolveCreatorPortraitAgeBin(creator.age);
+  const countryKey = normalizeCreatorNationalityKey(creator.country);
+  const genderKey = normalizeCreatorGenderKey(creator.genderIdentity);
+  if (!genre || !ageBin || !countryKey || !genderKey) return null;
+  return `${genre.theme}-${genre.mood}/${ageBin}/${countryKey}-${genderKey}`;
+}
+
+function getCreatorPortraitManifest() {
+  if (typeof CREATOR_PORTRAIT_MANIFEST !== "undefined" && CREATOR_PORTRAIT_MANIFEST) {
+    return CREATOR_PORTRAIT_MANIFEST;
+  }
+  return null;
+}
+
+function collectAssignedCreatorPortraits() {
+  const assigned = new Set();
+  const lists = [state.creators, state.marketCreators];
+  lists.forEach((list) => {
+    if (!Array.isArray(list)) return;
+    list.forEach((creator) => {
+      const url = creator?.portraitUrl;
+      if (url) assigned.add(url);
+    });
+  });
+  return assigned;
+}
+
+function setCreatorPortraitNote(creator, note) {
+  if (!creator) return;
+  const trimmed = typeof note === "string" ? note.trim() : "";
+  const next = trimmed ? trimmed : null;
+  if (creator.portraitNote !== next) creator.portraitNote = next;
+}
+
+function assignCreatorPortrait(creator) {
+  if (!creator) return null;
+  if (creator.portraitUrl) {
+    setCreatorPortraitNote(creator, null);
+    return creator.portraitUrl;
+  }
+  const genre = resolveCreatorPortraitGenre(creator);
+  const ageBin = resolveCreatorPortraitAgeBin(creator.age);
+  const countryKey = normalizeCreatorNationalityKey(creator.country);
+  const genderKey = normalizeCreatorGenderKey(creator.genderIdentity);
+  const issues = [];
+  if (!genre) issues.push("theme/mood prefs");
+  if (!ageBin) issues.push("age bin");
+  if (!countryKey) issues.push("nationality");
+  if (!genderKey) issues.push("gender identity");
+  if (issues.length) {
+    setCreatorPortraitNote(creator, `Portrait match missing ${issues.join(", ")}.`);
+    return null;
+  }
+  const key = `${genre.theme}-${genre.mood}/${ageBin}/${countryKey}-${genderKey}`;
+  const manifest = getCreatorPortraitManifest();
+  if (!manifest) {
+    setCreatorPortraitNote(creator, "Portrait manifest missing. Run npm run build to refresh assets.");
+    return null;
+  }
+  const root = manifest.root || CREATOR_PORTRAIT_ROOT;
+  const entries = manifest.entries || {};
+  const files = entries[key];
+  if (!Array.isArray(files) || !files.length) {
+    setCreatorPortraitNote(creator, `No portraits found for ${key}.`);
+    return null;
+  }
+  const assigned = collectAssignedCreatorPortraits();
+  const available = files.filter((file) => !assigned.has(`${root}/${key}/${file}`));
+  const pick = pickOne(available.length ? available : files);
+  if (!pick) {
+    setCreatorPortraitNote(creator, `No portraits available for ${key}.`);
+    return null;
+  }
+  const url = `${root}/${key}/${pick}`;
+  creator.portraitUrl = url;
+  setCreatorPortraitNote(creator, null);
+  return url;
 }
 
 function rolloutReleaseTimestampForWeek(weekNumber) {
@@ -3410,6 +3594,8 @@ function makeCreator(role, existingNames, country, options = {}) {
   const origin = country || pickOne(NATIONS);
   const nameParts = buildCreatorNameParts(origin, existing);
   const stageName = deriveCreatorStageName(nameParts);
+  const age = normalizeCreatorAge(options.age, options.ageGroup);
+  const ageGroup = resolveAudienceAgeGroupForAge(age);
   return {
     id: uid("CR"),
     ...nameParts,
@@ -3420,8 +3606,11 @@ function makeCreator(role, existingNames, country, options = {}) {
     prefThemes: themes,
     prefMoods: moods,
     country: origin,
+    age,
+    ageGroup: ageGroup ? ageGroup.label : null,
     genderIdentity: null,
-    portraitUrl: null
+    portraitUrl: null,
+    portraitNote: null
   };
 }
 
@@ -3431,6 +3620,9 @@ function normalizeCreator(creator) {
   if (!creator.prefThemes?.length) creator.prefThemes = pickDistinct(THEMES, 2);
   if (!creator.prefMoods?.length) creator.prefMoods = pickDistinct(MOODS, 2);
   if (!creator.country) creator.country = pickOne(NATIONS);
+  creator.age = normalizeCreatorAge(creator.age, creator.ageGroup);
+  const ageGroup = resolveAudienceAgeGroupForAge(creator.age);
+  creator.ageGroup = ageGroup ? ageGroup.label : null;
   if (!creator.givenName || !creator.surname) {
     const parsed = splitCreatorNameParts(creator.name, creator.country);
     if (!creator.givenName) creator.givenName = parsed.givenName;
@@ -3473,6 +3665,11 @@ function normalizeCreator(creator) {
     creator.genderIdentity = creator.genderIdentity ? String(creator.genderIdentity) : null;
   }
   if (creator.genderIdentity && !creator.genderIdentity.trim()) creator.genderIdentity = null;
+  if (typeof creator.portraitNote !== "string") {
+    creator.portraitNote = creator.portraitNote ? String(creator.portraitNote) : null;
+  }
+  if (creator.portraitNote && !creator.portraitNote.trim()) creator.portraitNote = null;
+  assignCreatorPortrait(creator);
   return creator;
 }
 
@@ -12509,6 +12706,7 @@ function weeklyUpdate() {
   recordTrendLedgerSnapshot(globalScores);
   updateEconomy(globalScores);
   updateActPopularityLedger();
+  updateAnnualAwardLedger();
   awardExp(Math.min(300, Math.round(state.economy.lastRevenue / 500)), null, true);
   updateLabelReach();
   updateQuests();
@@ -12536,6 +12734,32 @@ function awardYearWeekRange(year) {
   return { startWeek, endWeek, startEpoch, endEpoch };
 }
 
+function buildAwardSnapshotsFromCharts() {
+  const snapshots = [];
+  snapshots.push(buildChartSnapshot("global", state.charts.global || []));
+  NATIONS.forEach((nation) => {
+    snapshots.push(buildChartSnapshot(`nation:${nation}`, state.charts.nations?.[nation] || []));
+  });
+  REGION_DEFS.forEach((region) => {
+    snapshots.push(buildChartSnapshot(`region:${region.id}`, state.charts.regions?.[region.id] || []));
+  });
+  snapshots.push(buildChartSnapshot("promo:global", state.promoCharts?.global || []));
+  NATIONS.forEach((nation) => {
+    snapshots.push(buildChartSnapshot(`promo:nation:${nation}`, state.promoCharts?.nations?.[nation] || []));
+  });
+  REGION_DEFS.forEach((region) => {
+    snapshots.push(buildChartSnapshot(`promo:region:${region.id}`, state.promoCharts?.regions?.[region.id] || []));
+  });
+  snapshots.push(buildChartSnapshot("tour:global", state.tourCharts?.global || []));
+  NATIONS.forEach((nation) => {
+    snapshots.push(buildChartSnapshot(`tour:nation:${nation}`, state.tourCharts?.nations?.[nation] || []));
+  });
+  REGION_DEFS.forEach((region) => {
+    snapshots.push(buildChartSnapshot(`tour:region:${region.id}`, state.tourCharts?.regions?.[region.id] || []));
+  });
+  return snapshots;
+}
+
 function buildAwardMetricStore() {
   return {
     candidates: {},
@@ -12545,6 +12769,119 @@ function buildAwardMetricStore() {
     awards: {},
     firstLeadWeek: { chartPoints: {}, sales: {}, critics: {} }
   };
+}
+
+function normalizeAwardMetricStore(store) {
+  if (!store || typeof store !== "object") return buildAwardMetricStore();
+  if (!store.candidates || typeof store.candidates !== "object") store.candidates = {};
+  if (!store.chartPoints || typeof store.chartPoints !== "object") store.chartPoints = {};
+  if (!store.sales || typeof store.sales !== "object") store.sales = {};
+  if (!store.critics || typeof store.critics !== "object") store.critics = {};
+  if (!store.awards || typeof store.awards !== "object") store.awards = {};
+  if (!store.firstLeadWeek || typeof store.firstLeadWeek !== "object") store.firstLeadWeek = {};
+  ["chartPoints", "sales", "critics"].forEach((metric) => {
+    if (!store.firstLeadWeek[metric] || typeof store.firstLeadWeek[metric] !== "object") {
+      store.firstLeadWeek[metric] = {};
+    }
+  });
+  return store;
+}
+
+const ANNUAL_AWARD_DEFS = [
+  { id: "REQ-01", metric: "chartPoints", store: "tracks" },
+  { id: "REQ-02", metric: "sales", store: "tracks" },
+  { id: "REQ-03", metric: "critics", store: "tracks" },
+  { id: "REQ-04", metric: "chartPoints", store: "projects" },
+  { id: "REQ-05", metric: "sales", store: "projects" },
+  { id: "REQ-06", metric: "critics", store: "projects" },
+  { id: "REQ-07", metric: "chartPoints", store: "promotions" },
+  { id: "REQ-08", metric: "sales", store: "promotions" },
+  { id: "REQ-09", metric: "critics", store: "promotions" },
+  { id: "REQ-10", metric: "chartPoints", store: "tours" },
+  { id: "REQ-11", metric: "sales", store: "tours" },
+  { id: "REQ-12", metric: "critics", store: "tours" }
+];
+
+function buildAnnualAwardsFromStores(stores) {
+  const awards = {};
+  ANNUAL_AWARD_DEFS.forEach((definition) => {
+    const store = stores?.[definition.store];
+    if (!store) return;
+    const result = resolveAnnualAwardWinner(store, definition.metric);
+    if (!result) return;
+    awards[definition.id] = {
+      actKey: result.actKey,
+      actId: result.actId,
+      actName: result.actName,
+      actNameKey: result.actNameKey || null,
+      label: result.label,
+      primaryValue: result.primaryValue,
+      resolvedBy: result.resolvedBy
+    };
+  });
+  return awards;
+}
+
+function ensureAnnualAwardLedger() {
+  if (!state.meta) state.meta = makeDefaultState().meta;
+  if (!state.meta.annualAwardLedger || typeof state.meta.annualAwardLedger !== "object") {
+    state.meta.annualAwardLedger = { years: {}, lastUpdateYear: null, lastUpdateWeek: null };
+  }
+  const ledger = state.meta.annualAwardLedger;
+  if (!ledger.years || typeof ledger.years !== "object") ledger.years = {};
+  if (typeof ledger.lastUpdateYear !== "number") ledger.lastUpdateYear = null;
+  if (typeof ledger.lastUpdateWeek !== "number") ledger.lastUpdateWeek = null;
+  return ledger;
+}
+
+function ensureAnnualAwardLedgerYear(year) {
+  const ledger = ensureAnnualAwardLedger();
+  const key = String(year);
+  if (!ledger.years[key] || typeof ledger.years[key] !== "object") {
+    ledger.years[key] = {
+      year,
+      totalWeeks: 0,
+      lastUpdateWeek: null,
+      lastUpdatedAt: null,
+      stores: {
+        tracks: buildAwardMetricStore(),
+        projects: buildAwardMetricStore(),
+        promotions: buildAwardMetricStore(),
+        tours: buildAwardMetricStore()
+      }
+    };
+  }
+  const entry = ledger.years[key];
+  if (!entry.stores || typeof entry.stores !== "object") entry.stores = {};
+  entry.stores.tracks = normalizeAwardMetricStore(entry.stores.tracks);
+  entry.stores.projects = normalizeAwardMetricStore(entry.stores.projects);
+  entry.stores.promotions = normalizeAwardMetricStore(entry.stores.promotions);
+  entry.stores.tours = normalizeAwardMetricStore(entry.stores.tours);
+  if (typeof entry.totalWeeks !== "number") entry.totalWeeks = 0;
+  if (typeof entry.lastUpdateWeek !== "number") entry.lastUpdateWeek = null;
+  if (typeof entry.lastUpdatedAt !== "number") entry.lastUpdatedAt = null;
+  return entry;
+}
+
+function updateAnnualAwardLedger({ year = currentYear(), week = weekIndex() + 1 } = {}) {
+  if (!Number.isFinite(year) || !Number.isFinite(week)) return;
+  const ledger = ensureAnnualAwardLedger();
+  if (ledger.lastUpdateYear === year && ledger.lastUpdateWeek === week) return;
+  const entry = ensureAnnualAwardLedgerYear(year);
+  if (entry.lastUpdateWeek === week) {
+    ledger.lastUpdateYear = year;
+    ledger.lastUpdateWeek = week;
+    return;
+  }
+  const snapshots = buildAwardSnapshotsFromCharts();
+  applyTrackSnapshotsForAwards(week, snapshots, entry.stores.tracks, entry.stores.projects);
+  applyPromoSnapshotsForAwards(week, snapshots, entry.stores.promotions);
+  applyTourSnapshotsForAwards(week, snapshots, entry.stores.tours);
+  entry.totalWeeks = Math.max(entry.totalWeeks || 0, week);
+  entry.lastUpdateWeek = week;
+  entry.lastUpdatedAt = state.time?.epochMs || Date.now();
+  ledger.lastUpdateYear = year;
+  ledger.lastUpdateWeek = week;
 }
 
 function resolveAwardActKey(entry) {
@@ -12892,6 +13229,24 @@ function ensureAnnualAwardsStore() {
   return state.meta.annualAwards;
 }
 
+function annualAwardsEntry(year) {
+  if (!Number.isFinite(year)) return null;
+  const awards = ensureAnnualAwardsStore();
+  return awards.find((entry) => entry.year === year) || null;
+}
+
+function annualAwardsResolvedCount(entry) {
+  if (!entry || typeof entry !== "object") return 0;
+  return Object.keys(entry.awards || {}).length;
+}
+
+function hasAnnualAwardsForYear(year, { requireComplete = true } = {}) {
+  const entry = annualAwardsEntry(year);
+  if (!entry) return false;
+  if (!requireComplete) return true;
+  return annualAwardsResolvedCount(entry) >= ANNUAL_AWARD_DEFS.length;
+}
+
 function countAnnualAwardWins(awardId, labelName) {
   if (!awardId || !labelName) return 0;
   const awards = ensureAnnualAwardsStore();
@@ -12902,7 +13257,33 @@ function countAnnualAwardWins(awardId, labelName) {
   }, 0);
 }
 
-async function evaluateAnnualAwards(year) {
+function annualAwardLedgerHasData(entry) {
+  if (!entry || typeof entry !== "object") return false;
+  if (!entry.stores || typeof entry.stores !== "object") return false;
+  if (!entry.totalWeeks || entry.totalWeeks <= 0) return false;
+  return ["tracks", "projects", "promotions", "tours"].some((key) => {
+    const store = entry.stores[key];
+    return store && typeof store.candidates === "object" && Object.keys(store.candidates).length > 0;
+  });
+}
+
+function evaluateAnnualAwardsFromLedger(year) {
+  if (!Number.isFinite(year)) return null;
+  const ledger = ensureAnnualAwardLedger();
+  const entry = ledger.years?.[String(year)];
+  if (!annualAwardLedgerHasData(entry)) return null;
+  const stores = {
+    tracks: normalizeAwardMetricStore(entry.stores?.tracks),
+    projects: normalizeAwardMetricStore(entry.stores?.projects),
+    promotions: normalizeAwardMetricStore(entry.stores?.promotions),
+    tours: normalizeAwardMetricStore(entry.stores?.tours)
+  };
+  const awards = buildAnnualAwardsFromStores(stores);
+  if (!Object.keys(awards).length) return null;
+  return { awards, source: "ledger" };
+}
+
+async function evaluateAnnualAwardsFromSnapshots(year) {
   const { startWeek, endWeek, startEpoch, endEpoch } = awardYearWeekRange(year);
   const weekList = await listChartWeeks();
   const weeks = weekList
@@ -12934,46 +13315,43 @@ async function evaluateAnnualAwards(year) {
     applyPromoSnapshotsForAwards(week, snapshots, stores.promotions);
     applyTourSnapshotsForAwards(week, snapshots, stores.tours);
   });
-  const awards = {};
-  const awardDefs = [
-    { id: "REQ-01", metric: "chartPoints", store: "tracks" },
-    { id: "REQ-02", metric: "sales", store: "tracks" },
-    { id: "REQ-03", metric: "critics", store: "tracks" },
-    { id: "REQ-04", metric: "chartPoints", store: "projects" },
-    { id: "REQ-05", metric: "sales", store: "projects" },
-    { id: "REQ-06", metric: "critics", store: "projects" },
-    { id: "REQ-07", metric: "chartPoints", store: "promotions" },
-    { id: "REQ-08", metric: "sales", store: "promotions" },
-    { id: "REQ-09", metric: "critics", store: "promotions" },
-    { id: "REQ-10", metric: "chartPoints", store: "tours" },
-    { id: "REQ-11", metric: "sales", store: "tours" },
-    { id: "REQ-12", metric: "critics", store: "tours" }
-  ];
-  awardDefs.forEach((definition) => {
-    const store = stores[definition.store];
-    const result = resolveAnnualAwardWinner(store, definition.metric);
-    if (!result) return;
-    awards[definition.id] = {
-      actKey: result.actKey,
-      actId: result.actId,
-      actName: result.actName,
-      actNameKey: result.actNameKey || null,
-      label: result.label,
-      primaryValue: result.primaryValue,
-      resolvedBy: result.resolvedBy
-    };
-  });
-  if (Object.keys(awards).length !== awardDefs.length) {
-    logEvent(`Annual awards ${year}: ${Object.keys(awards).length}/${awardDefs.length} categories resolved.`, "warn");
+  const awards = buildAnnualAwardsFromStores(stores);
+  if (!Object.keys(awards).length) {
+    logEvent(`Annual awards skipped for ${year}: no eligible entries resolved.`, "warn");
+    return null;
+  }
+  return { awards, source: "snapshots" };
+}
+
+async function evaluateAnnualAwards(year, { source = "auto" } = {}) {
+  if (!Number.isFinite(year)) return null;
+  let resolved = null;
+  let sourceUsed = null;
+  if (source === "ledger" || source === "auto") {
+    resolved = evaluateAnnualAwardsFromLedger(year);
+    if (resolved) sourceUsed = "ledger";
+  }
+  if (!resolved && (source === "snapshots" || source === "auto")) {
+    resolved = await evaluateAnnualAwardsFromSnapshots(year);
+    if (resolved) sourceUsed = "snapshots";
+  }
+  if (!resolved) return null;
+  const awards = resolved.awards || {};
+  const resolvedCount = Object.keys(awards).length;
+  if (resolvedCount !== ANNUAL_AWARD_DEFS.length) {
+    logEvent(`Annual awards ${year}: ${resolvedCount}/${ANNUAL_AWARD_DEFS.length} categories resolved.`, "warn");
   }
   const annualAwards = ensureAnnualAwardsStore();
   const existing = annualAwards.find((entry) => entry.year === year);
+  const releasedAt = state.time?.epochMs || Date.now();
+  const releasedWeek = weekIndex() + 1;
+  const nextEntry = { year, awards, releasedAt, releasedWeek, source: sourceUsed };
   if (existing) {
-    existing.awards = awards;
+    Object.assign(existing, nextEntry);
   } else {
-    annualAwards.push({ year, awards });
+    annualAwards.push(nextEntry);
   }
-  logEvent(`Annual awards computed for ${year}.`);
+  logEvent(`Annual awards computed for ${year}${sourceUsed ? ` (${sourceUsed})` : ""}.`);
   return awards;
 }
 
@@ -13012,9 +13390,6 @@ async function onYearTick(year) {
   state.meta.annualWinners.push({ year, label: winner, points: topPoints, resolvedBy });
   logEvent(`Annual Winner ${year}: ${winner} (${formatCount(topPoints)} points) [${resolvedBy}].`);
   postSocial({ handle: chartScopeHandle("global"), title: `Annual Winner ${year}`, lines: [`${winner} secured the year with ${formatCount(topPoints)} points.`, `Tie-break: ${resolvedBy}`], type: "system", order: 1 });
-  await evaluateAnnualAwards(year);
-  evaluateAchievements();
-  evaluateRivalAchievements();
   // Run end-of-year economy/housekeeping: award EXP, refresh tasks
   awardExp(1200, `Year ${year} Season End` , true);
   // Reconcile win/loss state
@@ -13040,6 +13415,35 @@ async function runYearTicksIfNeeded(year) {
   state.time.lastYear = current;
 }
 
+async function maybeReleaseAnnualAwards(now = state.time.epochMs) {
+  if (!isFirstSaturdayOfJanuary(now)) return null;
+  const targetYear = new Date(now).getUTCFullYear() - 1;
+  if (targetYear < 1) return null;
+  if (hasAnnualAwardsForYear(targetYear, { requireComplete: true })) return null;
+  const awards = await evaluateAnnualAwards(targetYear, { source: "auto" });
+  if (!awards) {
+    logEvent(`Year-end charts skipped for ${targetYear}: awards unavailable.`, "warn");
+    return null;
+  }
+  logEvent(`Year-end charts released for ${targetYear}.`);
+  const playerLabel = state.label?.name;
+  if (playerLabel) {
+    const wins = Object.values(awards).filter((entry) => entry?.label === playerLabel).length;
+    if (wins > 0) {
+      logEvent(`${playerLabel} captured ${wins} CEO Request ${wins === 1 ? "win" : "wins"} in ${targetYear}.`);
+    }
+  }
+  evaluateAchievements();
+  evaluateRivalAchievements();
+  updateQuests();
+  refreshQuestPool();
+  const labelScores = computeLabelScoresFromCharts();
+  checkWinLoss(labelScores);
+  saveToActiveSlot();
+  uiHooks.renderAll?.();
+  return awards;
+}
+
 async function runScheduledWeeklyEvents(now) {
   if (isScheduledTime(now, WEEKLY_SCHEDULE.releaseProcessing)) {
     logEvent("Release day processing window open.");
@@ -13053,6 +13457,7 @@ async function runScheduledWeeklyEvents(now) {
   if (isScheduledTime(now, WEEKLY_SCHEDULE.chartUpdate)) {
     state.lastWeekIndex = weekIndex();
     await weeklyUpdate();
+    await maybeReleaseAnnualAwards(now);
   }
 }
 
@@ -13930,7 +14335,10 @@ function normalizeState() {
     if (!entry || typeof entry !== "object") return null;
     const year = Number(entry.year);
     const awards = entry.awards && typeof entry.awards === "object" ? entry.awards : {};
-    return Number.isFinite(year) ? { year, awards } : null;
+    const releasedAt = Number.isFinite(entry.releasedAt) ? entry.releasedAt : null;
+    const releasedWeek = Number.isFinite(entry.releasedWeek) ? entry.releasedWeek : null;
+    const source = typeof entry.source === "string" ? entry.source : null;
+    return Number.isFinite(year) ? { year, awards, releasedAt, releasedWeek, source } : null;
   }).filter(Boolean);
   if (!Array.isArray(state.meta.achievementsUnlocked)) state.meta.achievementsUnlocked = [];
   if (typeof state.meta.achievements !== "number") state.meta.achievements = state.meta.achievementsUnlocked.length;
@@ -13951,6 +14359,25 @@ function normalizeState() {
   }
   if (typeof state.meta.actPopularity.lastUpdateYear !== "number") state.meta.actPopularity.lastUpdateYear = null;
   if (typeof state.meta.actPopularity.lastUpdateWeek !== "number") state.meta.actPopularity.lastUpdateWeek = null;
+  const awardLedger = ensureAnnualAwardLedger();
+  Object.keys(awardLedger.years).forEach((yearKey) => {
+    const year = Number(yearKey);
+    if (!Number.isFinite(year)) {
+      delete awardLedger.years[yearKey];
+      return;
+    }
+    const entry = awardLedger.years[yearKey];
+    if (!entry || typeof entry !== "object") {
+      delete awardLedger.years[yearKey];
+      return;
+    }
+    entry.year = Number.isFinite(entry.year) ? entry.year : year;
+    if (!Number.isFinite(entry.year)) {
+      delete awardLedger.years[yearKey];
+      return;
+    }
+    ensureAnnualAwardLedgerYear(entry.year);
+  });
   if (!state.meta.labelShare || typeof state.meta.labelShare !== "object") state.meta.labelShare = {};
   if (!state.meta.labelCompetition || typeof state.meta.labelCompetition !== "object") {
     state.meta.labelCompetition = {};
@@ -15338,10 +15765,13 @@ function safeAvatarUrl(url) {
 }
 
 function getCreatorPortraitUrl(creator) {
-  const raw = creator?.portraitUrl;
-  if (!raw) return null;
-  const trimmed = String(raw).trim();
-  return trimmed ? trimmed : null;
+  if (!creator) return null;
+  const raw = creator.portraitUrl;
+  if (raw) {
+    const trimmed = String(raw).trim();
+    return trimmed ? trimmed : null;
+  }
+  return assignCreatorPortrait(creator);
 }
 
 
