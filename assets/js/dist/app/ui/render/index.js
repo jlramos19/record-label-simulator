@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -292,29 +292,30 @@ function buildWorkOrderCrewLabel(crew) {
         secondary: realName ? `[${realName}]` : ""
     };
 }
-const CATHARSIS_LEVEL_COUNT = 10;
-const CATHARSIS_CHARGE_PER_LEVEL = Math.max(1, Math.floor(STAMINA_MAX / CATHARSIS_LEVEL_COUNT));
-const CATHARSIS_CHARGE_PER_LEVEL_LABEL = String(CATHARSIS_CHARGE_PER_LEVEL);
+const SKILL_LEVEL_COUNT = 10;
+const SKILL_EXP_PER_LEVEL = Math.max(1, (SKILL_MAX - SKILL_MIN + 1) / SKILL_LEVEL_COUNT);
+const SKILL_EXP_PER_LEVEL_LABEL = Number.isInteger(SKILL_EXP_PER_LEVEL)
+    ? String(SKILL_EXP_PER_LEVEL)
+    : SKILL_EXP_PER_LEVEL.toFixed(2);
+function getCreatorSkillLevel(creator) {
+    const skill = Number.isFinite(creator?.skill) ? creator.skill : SKILL_MIN;
+    const bounded = clamp(skill, SKILL_MIN, SKILL_MAX) - SKILL_MIN;
+    return clamp(Math.floor(bounded / SKILL_EXP_PER_LEVEL) + 1, 1, SKILL_LEVEL_COUNT);
+}
+function getCreatorSkillExp(creator) {
+    const skill = Number.isFinite(creator?.skill) ? creator.skill : SKILL_MIN;
+    const progress = Number.isFinite(creator?.skillProgress) ? creator.skillProgress : 0;
+    const bounded = clamp(skill, SKILL_MIN, SKILL_MAX) - SKILL_MIN;
+    const exp = (bounded % SKILL_EXP_PER_LEVEL) + progress;
+    return clamp(exp, 0, SKILL_EXP_PER_LEVEL);
+}
+function renderCreatorSkillProgress(creator) {
+    const level = getCreatorSkillLevel(creator);
+    const exp = getCreatorSkillExp(creator);
+    return `Skill Level ${level} | EXP ${exp.toFixed(2)} / ${SKILL_EXP_PER_LEVEL_LABEL}`;
+}
 function getCreatorCatharsisScore(creator) {
-    const stamina = Number.isFinite(creator?.stamina) ? creator.stamina : 0;
-    const ratio = STAMINA_MAX ? clamp(stamina / STAMINA_MAX, 0, 1) : 0;
-    return Math.round(ratio * 100);
-}
-function getCreatorCatharsisLevel(creator) {
-    const stamina = Number.isFinite(creator?.stamina) ? creator.stamina : 0;
-    const bounded = clamp(stamina, 0, STAMINA_MAX);
-    return clamp(Math.floor(bounded / CATHARSIS_CHARGE_PER_LEVEL) + 1, 1, CATHARSIS_LEVEL_COUNT);
-}
-function getCreatorCatharsisCharge(creator) {
-    const stamina = Number.isFinite(creator?.stamina) ? creator.stamina : 0;
-    const bounded = clamp(stamina, 0, STAMINA_MAX);
-    const charge = CATHARSIS_CHARGE_PER_LEVEL ? (bounded % CATHARSIS_CHARGE_PER_LEVEL) : bounded;
-    return clamp(charge, 0, CATHARSIS_CHARGE_PER_LEVEL);
-}
-function renderCreatorCatharsisProgress(creator) {
-    const level = getCreatorCatharsisLevel(creator);
-    const charge = getCreatorCatharsisCharge(creator);
-    return `Catharsis Level ${level} | Charge ${charge} / ${CATHARSIS_CHARGE_PER_LEVEL_LABEL}`;
+    return computeCreatorCatharsisScore(creator);
 }
 function splitRecordLabelName(label) {
     const raw = String(label || "").trim();
@@ -823,6 +824,7 @@ function renderAutoAssignModal() {
             const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
             const catharsisScore = getCreatorCatharsisScore(creator);
             const catharsisGrade = scoreGrade(catharsisScore);
+            const skillGrade = scoreGrade(creator.skill);
             const overuseSafe = getCreatorStaminaSpentToday(creator) + req <= STAMINA_OVERUSE_LIMIT;
             const canAssign = creator.ready && overuseSafe;
             return `
@@ -831,9 +833,10 @@ function renderAutoAssignModal() {
               <div>
                 <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
-                <div class="muted">Catharsis ${creator.stamina} / ${STAMINA_MAX}</div>
-                <div class="muted">ID ${creator.id} | Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
-                <div class="muted">${renderCreatorCatharsisProgress(creator)}</div>
+                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">ID ${creator.id} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
+                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
+                <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
               </div>
               <div class="actions">
                 ${creator.ready ? "" : `<span class="tag low">Low stamina</span>`}
@@ -3087,6 +3090,7 @@ function renderCreators() {
             const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
             const catharsisScore = getCreatorCatharsisScore(creator);
             const catharsisGrade = scoreGrade(catharsisScore);
+            const skillGrade = scoreGrade(creator.skill);
             const roleText = roleLabel(creator.role);
             const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
             const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
@@ -3103,9 +3107,10 @@ function renderCreators() {
               <div>
                 <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
-                <div class="muted">Catharsis ${creator.stamina} / ${STAMINA_MAX}</div>
-                <div class="muted">ID ${creator.id} | ${roleText} | Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
-                <div class="muted">${renderCreatorCatharsisProgress(creator)}</div>
+                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
+                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
+                <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
                 <div class="muted">Acts: ${actText}</div>
                 <div class="time-row">${nationalityPill}</div>
                 <div class="muted">Preferred Themes:</div>
@@ -3226,6 +3231,7 @@ function renderMarket() {
         const list = sortedCreators.map((creator) => {
             const catharsisScore = getCreatorCatharsisScore(creator);
             const catharsisGrade = scoreGrade(catharsisScore);
+            const skillGrade = scoreGrade(creator.skill);
             const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
             const nationalityPill = renderNationalityPill(creator.country);
             const lockout = getCreatorSignLockout(creator.id, now);
@@ -3256,9 +3262,10 @@ function renderMarket() {
               <div>
                 <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
-                <div class="muted">Catharsis ${creator.stamina} / ${STAMINA_MAX}</div>
-                <div class="muted">ID ${creator.id} | ${roleLabelText} | Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
-                <div class="muted">${renderCreatorCatharsisProgress(creator)}</div>
+                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">ID ${creator.id} | ${roleLabelText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
+                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
+                <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
                 <div class="time-row">${nationalityPill}</div>
                 <div class="muted">Preferred Themes:</div>
                 <div class="creator-pref-tags">${themeCells}</div>

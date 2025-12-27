@@ -1,5 +1,18 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-0033Z)
+- Creator cards now show catharsis (skill + stamina) alongside skill level/EXP and stamina.
+- CCC market creators now spawn with skill levels capped at 5, weighted toward lower levels.
+- Catharsis scoring now uses a skill-weighted stamina floor to keep high-skill creators steadier at low stamina.
+
+## 2025-12-27 (RLS-PATCH-20251227-0025Z)
+- Fixed the Calendar day detail click handler throwing a `root` reference error on load.
+
+## 2025-12-27 (RLS-PATCH-20251227-0021Z)
+- Creator IDs now carry a `genderIdentity` field (default null) to support portrait filtering.
+- Added Creator ID portrait folder scaffolding with gender identity, nationality, theme, mood, genre, and 20+ age-group buckets for image drop-ins.
+
+
 ## 2025-12-27 (RLS-PATCH-20251227-0008Z)
 - Creator ID portraits now render in a fixed 2:3 frame, with stacked fallback symbols to fit the tall placeholder.
 

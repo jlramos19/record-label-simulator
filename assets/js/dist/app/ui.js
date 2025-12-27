@@ -2603,7 +2603,7 @@ function bindGlobalHandlers() {
     }
     on("calendarClose", "click", () => closeOverlay("calendarModal"));
     on("calendarDayClose", "click", () => closeOverlay("calendarDayModal"));
-    root.addEventListener("click", (e) => {
+    document.addEventListener("click", (e) => {
         const trigger = e.target.closest("[data-calendar-day-more]");
         if (!trigger)
             return;

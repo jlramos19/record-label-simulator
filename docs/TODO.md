@@ -1,6 +1,6 @@
 # TODO
 
-- [x] RLS-CCC-CATHARSIS-001: Replace creator skill display with catharsis levels + charge and cap CCC catharsis levels at 5 with weighted distribution. (Agent Codex, started 2025-12-26 20:05:54 -04:00, completed 2025-12-26 20:05:54 -04:00)
+- [x] RLS-CCC-CATHARSIS-001: Add catharsis score (skill + stamina) to creator cards and cap CCC skill levels at 5 with weighted distribution. (Agent Codex, started 2025-12-26 20:27:58 -04:00, completed 2025-12-26 20:27:58 -04:00)
 - [x] RLS-UI-DASHBOARD-LAYOUT-001: Rename Dashboard Focus to Road to the Top and move the overview + pipeline into a footer layout. (Agent Codex, started 2025-12-26 20:02:57 -04:00, completed 2025-12-26 20:02:57 -04:00)
 - [x] RLS-ENDGAME-RIVAL-WIN-001: Track rival CEO Request victory as a loss condition (AI wins the race) and document win/loss tracking. (Agent Codex, started 2025-12-26 19:06:57 -04:00, completed 2025-12-26 19:06:57 -04:00)
 - [ ] RLS-TASKS-AUTO-001: Repurpose quests into Tasks with an auto-fulfill button, enable it when criteria are met, and align task templates to CEO Requests/milestones.

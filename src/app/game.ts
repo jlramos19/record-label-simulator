@@ -801,10 +801,29 @@ function staminaRatio(creator) {
   return STAMINA_MAX ? clamp(stamina / STAMINA_MAX, 0, 1) : 0;
 }
 
+function skillRatio(creator) {
+  if (!creator) return 0;
+  const skill = clampSkill(creator.skill ?? SKILL_MIN);
+  const denom = SKILL_MAX - SKILL_MIN;
+  if (!denom) return 1;
+  return clamp((skill - SKILL_MIN) / denom, 0, 1);
+}
+
+function catharsisFactor(creator) {
+  const stamina = staminaRatio(creator);
+  const skill = skillRatio(creator);
+  const floor = 0.45 + 0.35 * skill;
+  return floor + (1 - floor) * stamina;
+}
+
+function computeCreatorCatharsisScore(creator) {
+  if (!creator) return 0;
+  const skill = clampSkill(creator.skill ?? SKILL_MIN);
+  return clamp(Math.round(skill * catharsisFactor(creator)), SKILL_MIN, SKILL_MAX);
+}
+
 function skillWithStamina(creator) {
-  const ratio = staminaRatio(creator);
-  const factor = 0.7 + 0.3 * ratio;
-  return (creator?.skill ?? 0) * factor;
+  return computeCreatorCatharsisScore(creator);
 }
 
 function averageSkill(list, { staminaAdjusted = false } = {}) {
@@ -885,9 +904,9 @@ const STAGE_COST_SKILL_MAX = 1.45;
 const MARKET_MIN_PER_ROLE = 10;
 const RIVAL_MIN_PER_ROLE = 10;
 const MARKET_ROLES = ["Songwriter", "Performer", "Producer"];
-const CATHARSIS_LEVEL_COUNT = 10;
-const MARKET_CATHARSIS_LEVEL_CAP = 5;
-const MARKET_CATHARSIS_LEVEL_WEIGHTS = [
+const SKILL_LEVEL_COUNT = 10;
+const MARKET_SKILL_LEVEL_CAP = 5;
+const MARKET_SKILL_LEVEL_WEIGHTS = [
   { level: 1, weight: 30 },
   { level: 2, weight: 25 },
   { level: 3, weight: 20 },
@@ -3401,6 +3420,7 @@ function makeCreator(role, existingNames, country, options = {}) {
     prefThemes: themes,
     prefMoods: moods,
     country: origin,
+    genderIdentity: null,
     portraitUrl: null
   };
 }
@@ -3449,6 +3469,10 @@ function normalizeCreator(creator) {
     creator.portraitUrl = creator.portraitUrl ? String(creator.portraitUrl) : null;
   }
   if (creator.portraitUrl && !creator.portraitUrl.trim()) creator.portraitUrl = null;
+  if (typeof creator.genderIdentity !== "string") {
+    creator.genderIdentity = creator.genderIdentity ? String(creator.genderIdentity) : null;
+  }
+  if (creator.genderIdentity && !creator.genderIdentity.trim()) creator.genderIdentity = null;
   return creator;
 }
 
@@ -4007,15 +4031,6 @@ function seedActs() {
   }));
 }
 
-function catharsisPointsPerLevel() {
-  return Math.max(1, Math.floor(STAMINA_MAX / CATHARSIS_LEVEL_COUNT));
-}
-
-function marketCatharsisCap() {
-  const step = catharsisPointsPerLevel();
-  return Math.min(STAMINA_MAX, step * MARKET_CATHARSIS_LEVEL_CAP - 1);
-}
-
 function pickWeightedEntry(list) {
   if (!Array.isArray(list) || !list.length) return null;
   const total = list.reduce((sum, entry) => sum + (entry.weight || 0), 0);
@@ -4028,23 +4043,32 @@ function pickWeightedEntry(list) {
   return list[list.length - 1];
 }
 
-function randomMarketCatharsisStamina() {
-  const step = catharsisPointsPerLevel();
-  const pick = pickWeightedEntry(MARKET_CATHARSIS_LEVEL_WEIGHTS) || { level: 1 };
-  const min = Math.max(1, (pick.level - 1) * step);
-  const max = Math.min(pick.level * step - 1, marketCatharsisCap());
+function skillPointsPerLevel() {
+  return Math.max(1, Math.floor((SKILL_MAX - SKILL_MIN + 1) / SKILL_LEVEL_COUNT));
+}
+
+function marketSkillCap() {
+  const step = skillPointsPerLevel();
+  return Math.min(SKILL_MAX, SKILL_MIN + step * MARKET_SKILL_LEVEL_CAP - 1);
+}
+
+function randomMarketSkill() {
+  const step = skillPointsPerLevel();
+  const pick = pickWeightedEntry(MARKET_SKILL_LEVEL_WEIGHTS) || { level: 1 };
+  const min = SKILL_MIN + (pick.level - 1) * step;
+  const max = Math.min(SKILL_MAX, min + step - 1);
   return rand(min, Math.max(min, max));
 }
 
-function applyMarketCreatorCatharsis(creator) {
+function applyMarketCreatorSkill(creator) {
   if (!creator) return;
-  const cap = marketCatharsisCap();
-  const current = Number.isFinite(creator.stamina) ? creator.stamina : null;
+  const cap = marketSkillCap();
+  const current = Number.isFinite(creator.skill) ? creator.skill : null;
   if (!Number.isFinite(current) || current > cap) {
-    creator.stamina = randomMarketCatharsisStamina();
+    creator.skill = randomMarketSkill();
     return;
   }
-  creator.stamina = clampStamina(current);
+  creator.skill = clampSkill(current);
 }
 
 function buildMarketCreators(options = {}) {
@@ -4053,7 +4077,7 @@ function buildMarketCreators(options = {}) {
   MARKET_ROLES.forEach((role) => {
     for (let i = 0; i < MARKET_MIN_PER_ROLE; i += 1) {
       const creator = normalizeCreator(makeCreator(role, existing(), null, options));
-      applyMarketCreatorCatharsis(creator);
+      applyMarketCreatorSkill(creator);
       creator.signCost = computeSignCost(creator);
       list.push(creator);
     }
@@ -4067,7 +4091,7 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
   state.marketCreators = state.marketCreators.filter((creator) => creator && typeof creator === "object" && creator.role);
   state.marketCreators = state.marketCreators.map((creator) => {
     const next = normalizeCreator(creator);
-    applyMarketCreatorCatharsis(next);
+    applyMarketCreatorSkill(next);
     next.signCost = computeSignCost(next);
     return next;
   });
@@ -4078,7 +4102,7 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
     const missing = Math.max(0, MARKET_MIN_PER_ROLE - current);
     for (let i = 0; i < missing; i += 1) {
       const creator = normalizeCreator(makeCreator(role, existing(), null, options));
-      applyMarketCreatorCatharsis(creator);
+      applyMarketCreatorSkill(creator);
       creator.signCost = computeSignCost(creator);
       state.marketCreators.push(creator);
     }
@@ -14661,7 +14685,7 @@ function scoreActGenreMatch(act, theme, mood, alignment, targetGrade) {
   const matchScore = canExact ? exactHits * 3 + (partialHits - exactHits) : partialHits;
   const matchRate = matchScore / (memberCount * maxPerMember);
   const avgSkill = Math.round(averageSkill(members));
-  // Catharsis reflects stamina-adjusted skill on the 0-100 scale.
+  // Catharsis reflects skill-weighted stamina on the 0-100 scale.
   const avgCatharsis = Math.round(averageSkill(members, { staminaAdjusted: true }));
   const catharsisGrade = scoreGrade(avgCatharsis);
   const targetIndex = targetGrade ? gradeIndex(targetGrade) : null;
@@ -15518,6 +15542,7 @@ export {
   commitSlotChange,
   computeAutoCreateBudget,
   computeAutoPromoBudget,
+  computeCreatorCatharsisScore,
   ensureAutoPromoBudgetSlots,
   ensureAutoPromoSlots,
   computeChartProjectionForScope,

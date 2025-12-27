@@ -655,10 +655,29 @@ function staminaRatio(creator) {
     const stamina = clampStamina(creator.stamina ?? 0);
     return STAMINA_MAX ? clamp(stamina / STAMINA_MAX, 0, 1) : 0;
 }
+function skillRatio(creator) {
+    if (!creator)
+        return 0;
+    const skill = clampSkill(creator.skill ?? SKILL_MIN);
+    const denom = SKILL_MAX - SKILL_MIN;
+    if (!denom)
+        return 1;
+    return clamp((skill - SKILL_MIN) / denom, 0, 1);
+}
+function catharsisFactor(creator) {
+    const stamina = staminaRatio(creator);
+    const skill = skillRatio(creator);
+    const floor = 0.45 + 0.35 * skill;
+    return floor + (1 - floor) * stamina;
+}
+function computeCreatorCatharsisScore(creator) {
+    if (!creator)
+        return 0;
+    const skill = clampSkill(creator.skill ?? SKILL_MIN);
+    return clamp(Math.round(skill * catharsisFactor(creator)), SKILL_MIN, SKILL_MAX);
+}
 function skillWithStamina(creator) {
-    const ratio = staminaRatio(creator);
-    const factor = 0.7 + 0.3 * ratio;
-    return (creator?.skill ?? 0) * factor;
+    return computeCreatorCatharsisScore(creator);
 }
 function averageSkill(list, { staminaAdjusted = false } = {}) {
     if (!list.length)
@@ -737,9 +756,9 @@ const STAGE_COST_SKILL_MAX = 1.45;
 const MARKET_MIN_PER_ROLE = 10;
 const RIVAL_MIN_PER_ROLE = 10;
 const MARKET_ROLES = ["Songwriter", "Performer", "Producer"];
-const CATHARSIS_LEVEL_COUNT = 10;
-const MARKET_CATHARSIS_LEVEL_CAP = 5;
-const MARKET_CATHARSIS_LEVEL_WEIGHTS = [
+const SKILL_LEVEL_COUNT = 10;
+const MARKET_SKILL_LEVEL_CAP = 5;
+const MARKET_SKILL_LEVEL_WEIGHTS = [
     { level: 1, weight: 30 },
     { level: 2, weight: 25 },
     { level: 3, weight: 20 },
@@ -3262,6 +3281,7 @@ function makeCreator(role, existingNames, country, options = {}) {
         prefThemes: themes,
         prefMoods: moods,
         country: origin,
+        genderIdentity: null,
         portraitUrl: null
     };
 }
@@ -3327,6 +3347,11 @@ function normalizeCreator(creator) {
     }
     if (creator.portraitUrl && !creator.portraitUrl.trim())
         creator.portraitUrl = null;
+    if (typeof creator.genderIdentity !== "string") {
+        creator.genderIdentity = creator.genderIdentity ? String(creator.genderIdentity) : null;
+    }
+    if (creator.genderIdentity && !creator.genderIdentity.trim())
+        creator.genderIdentity = null;
     return creator;
 }
 function addCreatorSkillProgress(creator, amount) {
@@ -3863,13 +3888,6 @@ function seedActs() {
         memberIds: members
     }));
 }
-function catharsisPointsPerLevel() {
-    return Math.max(1, Math.floor(STAMINA_MAX / CATHARSIS_LEVEL_COUNT));
-}
-function marketCatharsisCap() {
-    const step = catharsisPointsPerLevel();
-    return Math.min(STAMINA_MAX, step * MARKET_CATHARSIS_LEVEL_CAP - 1);
-}
 function pickWeightedEntry(list) {
     if (!Array.isArray(list) || !list.length)
         return null;
@@ -3884,23 +3902,30 @@ function pickWeightedEntry(list) {
     }
     return list[list.length - 1];
 }
-function randomMarketCatharsisStamina() {
-    const step = catharsisPointsPerLevel();
-    const pick = pickWeightedEntry(MARKET_CATHARSIS_LEVEL_WEIGHTS) || { level: 1 };
-    const min = Math.max(1, (pick.level - 1) * step);
-    const max = Math.min(pick.level * step - 1, marketCatharsisCap());
+function skillPointsPerLevel() {
+    return Math.max(1, Math.floor((SKILL_MAX - SKILL_MIN + 1) / SKILL_LEVEL_COUNT));
+}
+function marketSkillCap() {
+    const step = skillPointsPerLevel();
+    return Math.min(SKILL_MAX, SKILL_MIN + step * MARKET_SKILL_LEVEL_CAP - 1);
+}
+function randomMarketSkill() {
+    const step = skillPointsPerLevel();
+    const pick = pickWeightedEntry(MARKET_SKILL_LEVEL_WEIGHTS) || { level: 1 };
+    const min = SKILL_MIN + (pick.level - 1) * step;
+    const max = Math.min(SKILL_MAX, min + step - 1);
     return rand(min, Math.max(min, max));
 }
-function applyMarketCreatorCatharsis(creator) {
+function applyMarketCreatorSkill(creator) {
     if (!creator)
         return;
-    const cap = marketCatharsisCap();
-    const current = Number.isFinite(creator.stamina) ? creator.stamina : null;
+    const cap = marketSkillCap();
+    const current = Number.isFinite(creator.skill) ? creator.skill : null;
     if (!Number.isFinite(current) || current > cap) {
-        creator.stamina = randomMarketCatharsisStamina();
+        creator.skill = randomMarketSkill();
         return;
     }
-    creator.stamina = clampStamina(current);
+    creator.skill = clampSkill(current);
 }
 function buildMarketCreators(options = {}) {
     const list = [];
@@ -3908,7 +3933,7 @@ function buildMarketCreators(options = {}) {
     MARKET_ROLES.forEach((role) => {
         for (let i = 0; i < MARKET_MIN_PER_ROLE; i += 1) {
             const creator = normalizeCreator(makeCreator(role, existing(), null, options));
-            applyMarketCreatorCatharsis(creator);
+            applyMarketCreatorSkill(creator);
             creator.signCost = computeSignCost(creator);
             list.push(creator);
         }
@@ -3923,7 +3948,7 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
     state.marketCreators = state.marketCreators.filter((creator) => creator && typeof creator === "object" && creator.role);
     state.marketCreators = state.marketCreators.map((creator) => {
         const next = normalizeCreator(creator);
-        applyMarketCreatorCatharsis(next);
+        applyMarketCreatorSkill(next);
         next.signCost = computeSignCost(next);
         return next;
     });
@@ -3935,7 +3960,7 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
         const missing = Math.max(0, MARKET_MIN_PER_ROLE - current);
         for (let i = 0; i < missing; i += 1) {
             const creator = normalizeCreator(makeCreator(role, existing(), null, options));
-            applyMarketCreatorCatharsis(creator);
+            applyMarketCreatorSkill(creator);
             creator.signCost = computeSignCost(creator);
             state.marketCreators.push(creator);
         }
@@ -15144,7 +15169,7 @@ function scoreActGenreMatch(act, theme, mood, alignment, targetGrade) {
     const matchScore = canExact ? exactHits * 3 + (partialHits - exactHits) : partialHits;
     const matchRate = matchScore / (memberCount * maxPerMember);
     const avgSkill = Math.round(averageSkill(members));
-    // Catharsis reflects stamina-adjusted skill on the 0-100 scale.
+    // Catharsis reflects skill-weighted stamina on the 0-100 scale.
     const avgCatharsis = Math.round(averageSkill(members, { staminaAdjusted: true }));
     const catharsisGrade = scoreGrade(avgCatharsis);
     const targetIndex = targetGrade ? gradeIndex(targetGrade) : null;
@@ -15885,7 +15910,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;
