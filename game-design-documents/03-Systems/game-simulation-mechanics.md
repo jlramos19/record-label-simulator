@@ -16,7 +16,7 @@ This document captures the current MVP simulation rules implemented in the web b
   - 2025-2100 Rebuild Era: 100% Annglora.
   - 2100-2200 Two-Country Era: 50% Annglora, 50% Bytenza.
   - 2200-2400 Three-Country Era: 50% Annglora, 25% Bytenza, 25% Crowlya.
-  - 2400-4000 Campaign Era: target 52.5% / 33.3% / 14.2% with +/-5pp variance applied per snapshot.
+  - 2400-4000 Campaign Era: target 52.5% / 33.3% / 14.2% with +/-5pp variance generated once per Campaign Era and held stable for that era.
   - 4000+: Post-Campaign Stabilization: 50% / 30% / 20%.
 - Regions split into Capital vs Elsewhere using a 35% / 65% rule.
 

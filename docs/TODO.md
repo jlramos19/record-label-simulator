@@ -1,44 +1,46 @@
 # TODO
 
-- [ ] RLS-CHARTS-DEMOGRAPHICS-001: Add Charts demographics view + per-nation age pyramid seeding for audience/creator ages. (Agent Codex, started 2025-12-26 23:18:10 -04:00)
-- [ ] RLS-AUDIENCE-CHUNKS-002: Simulate audience chunks with age/evolution properties, surface them on the Dashboard, and add cheater CCC injection for creator ID testing. (Agent Codex, started 2025-12-26 22:25:23 -04:00)
+- [x] RLS-CHARTS-DEMOGRAPHICS-001: Add Charts demographics view + per-nation age pyramid seeding for audience/creator ages. (Agent Codex, started 2025-12-26 23:18:10 -04:00, completed 2025-12-27 17:02:54 -04:00)
+- [x] RLS-AUDIENCE-CHUNKS-002: Simulate audience chunks with age/evolution properties, surface them on the Dashboard, and add cheater CCC injection for creator ID testing. (Agent Codex, started 2025-12-26 22:25:23 -04:00, completed 2025-12-27 17:02:54 -04:00)
 - [x] RLS-YEAREND-CHARTS-001: Track year-end charts across the year and release CEO Request winners on the first Saturday of January. (Agent Codex, started 2025-12-26 21:19:29 -04:00, completed 2025-12-26 21:19:29 -04:00)
+- [ ] RLS-AWARDS-CIRCUIT-001: Implement monthly award show scheduling, nomination pipeline, award ledger, live performance slots, task linkage, and popularity boosts per `docs/systems/awards/award-shows.md`.
 - [x] RLS-CCC-CATHARSIS-001: Add catharsis score (skill + stamina) to creator cards and cap CCC skill levels at 5 with weighted distribution. (Agent Codex, started 2025-12-26 20:27:58 -04:00, completed 2025-12-26 20:27:58 -04:00)
 - [x] RLS-UI-DASHBOARD-LAYOUT-001: Rename Dashboard Focus to Road to the Top and move the overview + pipeline into a footer layout. (Agent Codex, started 2025-12-26 20:02:57 -04:00, completed 2025-12-26 20:02:57 -04:00)
 - [x] RLS-ENDGAME-RIVAL-WIN-001: Track rival CEO Request victory as a loss condition (AI wins the race) and document win/loss tracking. (Agent Codex, started 2025-12-26 19:06:57 -04:00, completed 2025-12-26 19:06:57 -04:00)
 - [ ] RLS-TASKS-AUTO-001: Repurpose quests into Tasks with an auto-fulfill button, enable it when criteria are met, and align task templates to CEO Requests/milestones.
 - [ ] RLS-REFACTOR-MODULES-001: Split remaining large modules (`src/app/game.ts`, `src/app/ui.ts`, `src/app/ui/render/index.ts`) into feature-focused files; keep `src/app/game/config.ts` + `src/app/game/names/` as the pattern.
-- [ ] RLS-ERA-PERF-001: Replace the Eras side panel with a performance table + chart history, including per-track costs, earnings, and recommended physical runs.
-- [ ] RLS-ECONOMY-PHYSICAL-RUN-001: Define and implement the vinyl run estimator (fan/quality/trend/project-type factors, unit cost conversion) plus surfaced recommendations.
+- [x] RLS-ERA-PERF-001: Replace the Eras side panel with a performance table + chart history, including per-track costs, earnings, and recommended physical runs.
+- [x] RLS-ECONOMY-PHYSICAL-RUN-001: Define and implement the vinyl run estimator (fan/quality/trend/project-type factors, unit cost conversion) plus surfaced recommendations.
 - [x] RLS-DASH-QUESTS-001: Align quests with CEO Requests and add Dashboard focus tabs for charts, quests, requests, and eras. (Agent Codex, started 2025-12-26 19:18:43 -04:00, completed 2025-12-26 19:18:43 -04:00)
 - [x] RLS-ACT-NAME-POOL-002: Expand act name pools to 15 adjective + 15 noun categories (20 entries each) with semantic IDs, nation weights, solo/group grammar, and Bytenza Hangul + RR support. (Agent Codex, started 2025-12-26 19:43:28 -04:00, completed 2025-12-26 19:43:28 -04:00)
 - [x] RLS-DOC-CHART-NAMING-001: Document chart scope naming (Gaia/Global, Nation/National, Region/Regional) and update chart/handle labels. (Agent Codex, started 2025-12-26 16:13:48 -04:00, completed 2025-12-26 16:16:51 -04:00)
-- [ ] RLS-UI-CHARTS-SCOPE-001: Replace Charts scope tabs with nation -> region drilldown and keep content-type filters accessible in the Charts view.
-- [ ] RLS-CCC-DECLINE-001: Add decline reason logic + player-facing feedback for CCC signing, and update tutorial to split loops vs concepts.
-- [ ] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
-- [ ] RLS-AI-COMPETE-001: Remove the anchor rival guarantee so all rivals use identical rollout eligibility rules (no forced participant).
+- [x] RLS-UI-CHARTS-SCOPE-001: Replace Charts scope tabs with nation -> region drilldown and keep content-type filters accessible in the Charts view.
+- [x] RLS-CCC-DECLINE-001: Add decline reason logic + player-facing feedback for CCC signing, and update tutorial to split loops vs concepts.
+- [x] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
+- [x] RLS-AI-COMPETE-001: Remove the anchor rival guarantee so all rivals use identical rollout eligibility rules (no forced participant).
 - [x] RLS-AI-ACHIEVEMENTS-001: Track CEO Requests for rival labels, surface the race on the Dashboard, and tune AI ambition to keep all 7 labels competitive through Year 3000. (Agent Codex, started 2025-12-26 16:14:27 -04:00, completed 2025-12-26 16:14:27 -04:00)
+- [x] RLS-REQ-RACE-002: Expand CEO Requests label race with per-label progress drilldowns and rival tour chart support for annual awards. (Agent Codex, started 2025-12-27 18:45:00 -04:00, completed 2025-12-27 18:45:00 -04:00)
 - [x] RLS-PROMO-AUTO-001: Define auto promo wallet-percentage budgeting for player + rivals and document the rule. (Agent Codex, started 2025-12-26 16:19:17 -04:00, completed 2025-12-26 16:20:34 -04:00)
 - [x] RLS-AUTO-CREATE-001: Add auto-create rules (cash reserve + budget percent, weekly cadence, max tracks, solo/collab) with Create view controls and status disclosure.
 - [ ] RLS-ROLE-RECORDER-001: Replace Performer naming with Recorder across UI copy + docs, keeping role labels consistent in gameplay surfaces.
-- [ ] RLS-PROMO-ACT-001: Add Act promo targeting (act-only or act+content) with visible active act promo tracking.
-- [ ] RLS-PROMO-GAPS-001: Surface promo-gap alerts per type for active-era content, plus stale-act warnings tied to popularity/drop risk.
-- [ ] RLS-PROMO-BROADCAST-001: Define EyeriS broadcast studio profiles + program tiers (scope, age, theme, mood, alignment) with high-stakes eligibility criteria.
-- [ ] RLS-OPS-LIVEEDIT-001: Define live-edit guardrails, release patch stamping, and cache/version rules for hosted builds.
-- [ ] RLS-PROMO-LOGS-001: Remove Loss Archives and Debug Bundle panels from Promotions view; keep internal logging for balance review.
-- [ ] RLS-CALENDAR-PROJ-001: Add the Calendar projection view (Releases -> Calendar), merge the Eras calendar panel, and keep scheduling data backward compatible.
-- [ ] RLS-ERA-ROLLOUT-001: Implement rollout strategies (data model + Era planning + calendar expansion + auto-run + era completion husk).
-- [ ] RLS-DOC-PATCH-001: Cross-link new docs, update testing checklist, and add consolidated patch note summary.
-- [ ] RLS-ECONOMY-COSTS-001: Balance sheet/demo/master costs with quality scaling, creator supply-demand pressure, and skill progression/decay.
-- [ ] RLS-BALANCE-LABEL-DOMINANCE-001: Add label competition pressure and reduce seed bias to prevent runaway dominance.
-- [ ] RLS-ERA-FOCUS-001: Define Focus Era purpose, mechanics, and UX guardrails for quick decisions.
-- [ ] Update chart metrics to use regional consumption weights and refresh chart documentation.
+- [x] RLS-PROMO-ACT-001: Add Act promo targeting (act-only or act+content) with visible active act promo tracking.
+- [x] RLS-PROMO-GAPS-001: Surface promo-gap alerts per type for active-era content, plus stale-act warnings tied to popularity/drop risk.
+- [x] RLS-PROMO-BROADCAST-001: Define EyeriS broadcast studio profiles + program tiers (scope, age, theme, mood, alignment) with high-stakes eligibility criteria.
+- [x] RLS-OPS-LIVEEDIT-001: Define live-edit guardrails, release patch stamping, and cache/version rules for hosted builds.
+- [x] RLS-PROMO-LOGS-001: Remove Loss Archives and Debug Bundle panels from Promotions view; keep internal logging for balance review.
+- [x] RLS-CALENDAR-PROJ-001: Add the Calendar projection view (Releases -> Calendar), merge the Eras calendar panel, and keep scheduling data backward compatible.
+- [x] RLS-ERA-ROLLOUT-001: Implement rollout strategies (data model + Era planning + calendar expansion + auto-run + era completion husk).
+- [x] RLS-DOC-PATCH-001: Cross-link new docs, update testing checklist, and add consolidated patch note summary.
+- [x] RLS-ECONOMY-COSTS-001: Balance sheet/demo/master costs with quality scaling, creator supply-demand pressure, and skill progression/decay.
+- [x] RLS-BALANCE-LABEL-DOMINANCE-001: Add label competition pressure and reduce seed bias to prevent runaway dominance.
+- [x] RLS-ERA-FOCUS-001: Define Focus Era purpose, mechanics, and UX guardrails for quick decisions.
+- [ ] Update chart metrics to use regional consumption weights and refresh chart documentation. (Regional weight changes landed; chart docs still need a refresh.)
 - [ ] RLS-UI-ACTIONS-001: Specify the Music Executive action buttons surface (panel/section), button copy, and status behavior (Live vs Simulated vs Placeholder).
 - [ ] RLS-UI-ACTIONS-002: Create an action registry mapping verbs -> route/panel target + tooltip + status; align with `ROLE_ACTIONS` in `src/app/game.ts`.
 - [ ] RLS-UI-ACTIONS-003: Render Music Executive action buttons with status badges and disabled states for simulated/placeholder actions.
 - [ ] RLS-UI-ACTIONS-004: Wire live action buttons to navigation + focus behavior (CCC sign, Harmony Hub form, slot placement, Release Desk scheduling, Era Desk conduct, Calendar tours) and log UI events.
 - [ ] RLS-UI-ACTIONS-005: Add a "not live yet" modal or toast for simulated/placeholder actions with the current behavior note (ex: negotiate auto-resolves on sign).
-- [ ] RLS-UI-TRACK-HISTORY-001: Add an Eras tracks panel chart history table with DNC for non-charting weeks.
+- [x] RLS-UI-TRACK-HISTORY-001: Add an Eras tracks panel chart history table with DNC for non-charting weeks.
 - [x] RLS-TOUR-NAV-001: Add Touring tab in nav (right of Promotions) with route stub and empty state. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
 - [x] RLS-TOUR-UI-001: Build Touring layout shell (planner, venue finder, route timeline, budget panels) with placeholders. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
 - [x] RLS-TOUR-STATE-001: Add touring draft state + persistence in save slots (no gameplay impact). (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
@@ -52,12 +54,12 @@
 - [x] RLS-TOUR-OBS-001: Surface warnings in Touring tab + Calendar for missing requirements or capacity mismatch. (Agent Codex, started 2025-12-26 17:15:00 -04:00, completed 2025-12-26 17:41:46 -04:00)
 - [x] RLS-TOUR-TEST-001: Add manual testing checklist for tour planning, booking, and conflict warnings. (Agent Codex, started 2025-12-26 16:07:05 -04:00, completed 2025-12-26 16:07:51 -04:00)
 - [x] RLS-TOUR-REVAMP-001: Align touring workflow with booking eligibility, regional chart modifiers, and auto-generated dates. (Agent Codex, started 2025-12-27 15:57:42 -04:00, completed 2025-12-27 15:57:42 -04:00)
-- [ ] RLS-PROMO-SCHEDULE-001: Allow promo booking windows to be reserved in advance (including eyeriSocial).
-- [ ] RLS-CALENDAR-UX-002: Add calendar day overflow details and show event execution times.
+- [x] RLS-PROMO-SCHEDULE-001: Allow promo booking windows to be reserved in advance (including eyeriSocial).
+- [x] RLS-CALENDAR-UX-002: Add calendar day overflow details and show event execution times.
 - [ ] RLS-AUDIENCE-CHUNKS-001: Add age group segmentation + concert-demand baselines to audience snapshots. (Age-group distribution exists; creator age/portrait bins now derive from it, concert baselines still pending.)
 - [x] RLS-UI-COMMUNITY-RANKINGS-001: Split Community rankings toggles (Labels: Top 3/Top 8, Trends: Top 3/Top 40), with a full-list "More" action on #1.
-- [ ] Quarter-hour ticks: show stamina depletion + recharge every in-game hour across UI surfaces.
-- [ ] Producer overuse: add observability (why overused; when overuse strikes happen; when/why departure triggers).
-- [ ] Fix Producer overuse sensitivity: prevent accidental overuse via recommendations/auto-assign; ensure overuse/strikes are computed correctly and not double-counted.
+- [x] Quarter-hour ticks: show stamina depletion + recharge every in-game hour across UI surfaces.
+- [x] Producer overuse: add observability (why overused; when overuse strikes happen; when/why departure triggers).
+- [x] Fix Producer overuse sensitivity: prevent accidental overuse via recommendations/auto-assign; ensure overuse/strikes are computed correctly and not double-counted.
 
 Note: Items stay here until you confirm they are fulfilled.

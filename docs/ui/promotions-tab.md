@@ -6,9 +6,9 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 - Promotions is the primary surface for promo pushes plus the eyeriSocial feed.
 - Touring is a separate tab to the right of Promotions and is the final promotion step of an Era.
 - The tab label is "Promotions"; the feed itself remains branded as eyeriSocial.
-- Promo Types support multi-select; the budget applies per selected type.
-- Total spend equals budget times the number of selected promo types.
-- Promo runs spend pooled Act stamina per promo type; members share the cost.
+- Promo Types support multi-select; each type has its own budget input.
+- Total spend equals the sum of the selected promo type budgets.
+- Promo runs spend pooled Act stamina per promo type (default 20 each); members share the cost.
 - Budgets live per promo type card and roll into a summed total when multiple promos are selected.
 - Budget helpers show efficiency vs typical spend plus an audience-variance lift range (trend/alignment-dependent).
 - Promo pushes target an Act (required) with optional Project + Track targeting (Project sits between Act and Track).
@@ -28,11 +28,13 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 - Facility gating applies per promo type; if required slots are unavailable, the push is blocked.
 - Broadcast program eligibility (quality + charting) blocks high-stakes programs when unmet.
 - Promo booking windows can be reserved in advance (including eyeriSocial posts); scheduled promos appear in the Calendar.
+- Awards circuit panel shows upcoming award shows, nomination windows, and live performance slots; award show events also appear in the Calendar.
 - Internal Log surfaces system updates for balance/debug review.
 - Loss Archives and Debug Bundle export stay internal-only and are not shown in Promotions.
 
 ## Related
 - `docs/systems/promo/broadcast-studios.md`
 - `docs/systems/promo/filming-studios.md`
+- `docs/systems/awards/award-shows.md`
 - `docs/ui/touring-tab.md`
 - `docs/systems/touring/venues.md`

@@ -45,3 +45,6 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 
 ## Game start defaults
 - DEC-20251226-007: New games default to Modern Mode (2400), Medium difficulty, Fast speed (1h = 1s), and auto-save enabled every 2 minutes.
+
+## Awards + critics
+- DEC-20251227-001: Awards run on a monthly circuit (Praised, Pop, Promo on the first three Saturdays), with 4-week eligibility windows, 3-12 nominee counts per category, and award outcomes feeding tasks, CEO Request tie-breaks, and popularity boosts.

@@ -1108,6 +1108,45 @@ body::before {
   min-width: 72px;
   text-align: center;
 }
+.rival-achievement-card {
+  border-radius: 12px;
+  padding: 6px;
+  background: var(--surface-2);
+  border: var(--line-width) solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+.rival-achievement-card[open] {
+  border-color: rgba(var(--accent-rgb), 0.5);
+  background: var(--surface-2-mid);
+}
+.rival-achievement-summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+}
+.rival-achievement-summary::-webkit-details-marker {
+  display: none;
+}
+.rival-achievement-summary .progress-bar {
+  height: 8px;
+}
+.rival-achievement-details {
+  display: grid;
+  gap: 8px;
+}
+.rival-achievement-detail {
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  border: var(--line-width) solid var(--line);
+}
+.rival-achievement-detail .progress-bar {
+  height: 8px;
+}
 .trend-item--top {
   border-color: rgba(var(--accent-rgb), 0.5);
   background: var(--surface-3-strong);

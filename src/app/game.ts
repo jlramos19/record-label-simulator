@@ -153,10 +153,12 @@ const session = {
   prevSpeed: null,
   uiLogStart: 0,
   lastSlotPayload: null,
-  lastLiveSyncAt: 0
+  lastLiveSyncAt: 0,
+  lastPerfThrottleAt: 0
 };
 
 const AUTO_PROMO_SLOT_LIMIT = 4;
+const PERF_THROTTLE_LOG_COOLDOWN_MS = 30000;
 
 function buildAutoPromoSlotList() {
   return Array.from({ length: AUTO_PROMO_SLOT_LIMIT }, () => null);
@@ -10415,15 +10417,124 @@ function buildTourChartEntry(booking, now) {
   };
 }
 
+function pickRivalTourAnchorRelease(rival, weekNumber) {
+  if (!rival) return null;
+  const releases = labelReleasePool(rival.name);
+  if (!releases.length) return null;
+  const targetWeek = Number.isFinite(weekNumber) ? weekNumber : weekIndex() + 1;
+  const cutoffWeek = Math.max(1, targetWeek - 52);
+  const eligible = releases.filter((entry) => {
+    if (!Number.isFinite(entry?.releasedAt)) return false;
+    const releaseWeek = weekIndexForEpochMs(entry.releasedAt) + 1;
+    if (releaseWeek > targetWeek) return false;
+    return releaseWeek >= cutoffWeek;
+  });
+  const pool = eligible.length ? eligible : releases.filter((entry) => Number.isFinite(entry?.releasedAt));
+  const sorted = pool.length ? pool.slice() : releases.slice();
+  sorted.sort((a, b) => {
+    const qualityA = Number.isFinite(a?.qualityFinal) ? a.qualityFinal : Number.isFinite(a?.quality) ? a.quality : 0;
+    const qualityB = Number.isFinite(b?.qualityFinal) ? b.qualityFinal : Number.isFinite(b?.quality) ? b.quality : 0;
+    if (qualityA !== qualityB) return qualityB - qualityA;
+    return (b?.releasedAt || 0) - (a?.releasedAt || 0);
+  });
+  return sorted[0] || null;
+}
+
+function buildRivalTourChartEntry(rival, weekNumber, now = state.time.epochMs) {
+  if (!rival) return null;
+  const targetWeek = Number.isFinite(weekNumber) ? weekNumber : weekIndex() + 1;
+  const anchor = pickRivalTourAnchorRelease(rival, targetWeek);
+  if (!anchor) return null;
+  const seed = makeStableSeed([targetWeek, rival.id || rival.name || "", anchor.id || anchor.trackId || anchor.title || "", "tour"]);
+  const rng = makeSeededRng(seed);
+  const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
+  const momentum = clamp(rival.momentum ?? 0.35, 0.35, 0.95);
+  const focusBoost = ["REQ-10", "REQ-11", "REQ-12"].includes(rival.achievementFocus) ? 0.12 : 0;
+  const chance = clamp(0.25 + ambition * 0.45 + momentum * 0.25 + focusBoost, 0.2, 0.95);
+  if (rng() > chance) return null;
+
+  const quality = Number.isFinite(anchor.qualityFinal)
+    ? anchor.qualityFinal
+    : Number.isFinite(anchor.quality)
+      ? anchor.quality
+      : 60;
+  const releaseWeek = Number.isFinite(anchor.releasedAt)
+    ? weekIndexForEpochMs(anchor.releasedAt) + 1
+    : targetWeek;
+  const ageWeeks = Math.max(0, targetWeek - releaseWeek);
+  const freshness = clamp(1 - ageWeeks / 104, 0.35, 1);
+  const promoBoost = clamp(Number(anchor.promoWeeks || 0) / 6, 0, 1);
+  const base = 700 + quality * 40 + momentum * 2800 + ambition * 1200;
+  const variance = 0.75 + rng() * 0.5 + promoBoost * 0.2;
+  const attendance = Math.round(clamp(base * variance * freshness, 500, 120000));
+  const ticketPrice = clamp(Math.round(18 + quality * 0.5 + momentum * 32), 18, 120);
+  const grossTicket = Math.round(attendance * ticketPrice);
+  const merch = Math.round(attendance * (6 + quality * 0.12));
+  const sponsorship = Math.round(grossTicket * (0.08 + ambition * 0.12));
+  const revenue = grossTicket + merch + sponsorship;
+  const costs = Math.round(revenue * (0.45 + (1 - momentum) * 0.15));
+  const profit = revenue - costs;
+  const nation = NATIONS.includes(rival.country) ? rival.country : (anchor.country || NATIONS[0]);
+  const regions = REGION_DEFS.filter((region) => region.nation === nation);
+  const region = regions.length ? seededPick(regions, rng) : null;
+  const actId = rival.id ? `rival-${rival.id}` : `rival-${slugify(rival.name || "label")}`;
+  const actName = anchor.actName || rival.name || "Rival Act";
+  const actNameKey = anchor.actNameKey || null;
+  const primaryTrack = {
+    ...anchor,
+    actName,
+    actNameKey,
+    label: rival.name
+  };
+
+  return {
+    actId,
+    actName,
+    actNameKey,
+    label: rival.name,
+    alignment: rival.alignment || anchor.alignment || "Neutral",
+    country: rival.country || anchor.country || "Annglora",
+    nation,
+    regionId: region?.id || null,
+    isPlayer: false,
+    primaryTrack,
+    primaryTrackId: anchor.trackId || anchor.id || null,
+    trackId: anchor.trackId || anchor.id || null,
+    marketId: anchor.id || anchor.trackId || null,
+    score: attendance,
+    metrics: {
+      attendance,
+      revenue,
+      costs,
+      profit,
+      grossTicket,
+      merch,
+      sponsorship
+    }
+  };
+}
+
+function listRivalTourChartEntries(weekNumber, now = state.time.epochMs) {
+  if (!Array.isArray(state.rivals) || !state.rivals.length) return [];
+  const entries = [];
+  state.rivals.forEach((rival) => {
+    const entry = buildRivalTourChartEntry(rival, weekNumber, now);
+    if (entry) entries.push(entry);
+  });
+  return entries;
+}
+
 function listTourChartEntries(weekNumber, now = state.time.epochMs) {
   const targetWeek = Number.isFinite(weekNumber) ? weekNumber : weekIndex() + 1;
-  return listTourBookings().filter((booking) => {
+  const labelEntries = listTourBookings().filter((booking) => {
     if (!booking || !Number.isFinite(booking.scheduledAt)) return false;
     const bookingWeek = weekIndexForEpochMs(booking.scheduledAt) + 1;
     if (bookingWeek !== targetWeek) return false;
     if (booking.status === "Completed") return true;
     return booking.status === "Booked" && booking.scheduledAt <= now;
   }).map((booking) => buildTourChartEntry(booking, now)).filter(Boolean);
+  const rivalEntries = listRivalTourChartEntries(targetWeek, now);
+  return labelEntries.concat(rivalEntries).filter(Boolean);
 }
 
 function buildTourChartList(entries, scopeKey, size, prevEntries) {
@@ -11329,9 +11440,7 @@ function pickWeightedEntryWithRng(list, rng) {
 function pickTrendGenreWithDisinterest(trends, history, rng = null) {
   if (!Array.isArray(trends) || !trends.length) return "";
   const weighted = buildTrendDisinterestWeights(trends, history);
-  if (!weighted.length) {
-    return typeof rng === "function" ? seededPick(trends, rng) : pickOne(trends);
-  }
+  if (!weighted.length) return "";
   const pick = pickWeightedEntryWithRng(weighted, rng);
   return pick?.genre || weighted[0]?.genre || trends[0];
 }
@@ -12921,13 +13030,19 @@ function scoreHuskForRival(husk, rival, trends) {
   const operatingCost = estimateRivalOperatingCost(rival, reserveCash);
   const availableCash = Math.max(0, walletCash - operatingCost);
   const trendList = Array.isArray(trends) ? trends : [];
+  const history = trendList.length ? getTrendRankHistory() : [];
   let trendScore = 0.35;
   if (trendList.length) {
     if (context.trendTags.length) {
-      const matches = context.trendTags.filter((tag) => trendList.includes(tag)).length;
+      const matches = context.trendTags.reduce((sum, tag) => {
+        if (!trendList.includes(tag)) return sum;
+        return sum + (1 - getTrendPeakingDisinterest(tag, history));
+      }, 0);
       trendScore = context.trendTags.length ? matches / context.trendTags.length : 0.35;
     } else {
-      trendScore = 0.45;
+      const weights = trendList.map((tag) => 1 - getTrendPeakingDisinterest(tag, history));
+      const avgWeight = weights.length ? weights.reduce((sum, value) => sum + value, 0) / weights.length : 1;
+      trendScore = 0.45 * avgWeight;
     }
   }
   let alignmentScore = 0.5;
@@ -13022,13 +13137,14 @@ function pickRivalThemeMood(rival, husk, rng) {
   let theme = safeSeededPick(focusThemes, rng, THEMES);
   let mood = safeSeededPick(focusMoods, rng, MOODS);
   const trendList = Array.isArray(state.trends) ? state.trends : [];
+  const history = trendList.length ? getTrendRankHistory() : [];
   if (trendList.length) {
     const context = normalizeHuskContext(husk);
     const trendPool = context.trendTags.length
       ? trendList.filter((genre) => context.trendTags.includes(genre))
       : trendList;
     if (trendPool.length) {
-      const trendGenre = seededPick(trendPool, rng);
+      const trendGenre = pickTrendGenreWithDisinterest(trendPool, history, rng);
       const trendTheme = themeFromGenre(trendGenre);
       const trendMood = moodFromGenre(trendGenre);
       const wantsTrend = focusTrendBias && rng() < 0.75;
@@ -14119,10 +14235,16 @@ function pickRivalAutoPromoTrack(rival) {
     && entry.label === rival.name
     && (entry.promoWeeks || 0) <= 0);
   if (!candidates.length) return null;
-  return candidates.reduce((latest, entry) => {
-    const latestStamp = latest?.releasedAt || 0;
+  const history = getTrendRankHistory();
+  return candidates.reduce((best, entry) => {
+    const bestDisinterest = getTrendPeakingDisinterest(best?.genre, history);
+    const entryDisinterest = getTrendPeakingDisinterest(entry?.genre, history);
+    if (entryDisinterest !== bestDisinterest) {
+      return entryDisinterest < bestDisinterest ? entry : best;
+    }
+    const bestStamp = best?.releasedAt || 0;
     const entryStamp = entry?.releasedAt || 0;
-    return entryStamp >= latestStamp ? entry : latest;
+    return entryStamp >= bestStamp ? entry : best;
   }, candidates[0]);
 }
 
@@ -14781,6 +14903,26 @@ function countAnnualAwardWins(awardId, labelName) {
   }, 0);
 }
 
+function buildLabelAchievementProgress(labelName) {
+  const safeLabel = String(labelName || "");
+  const entries = ACHIEVEMENTS.map((achievement) => {
+    const wins = countAnnualAwardWins(achievement.id, safeLabel);
+    const target = Number.isFinite(achievement.target) ? achievement.target : 1;
+    const ratio = target > 0 ? clamp(wins / target, 0, 1) : 0;
+    return {
+      id: achievement.id,
+      label: achievement.label,
+      desc: achievement.desc,
+      exp: achievement.exp,
+      wins,
+      target,
+      ratio
+    };
+  });
+  const total = entries.filter((entry) => entry.wins >= entry.target).length;
+  return { label: safeLabel, total, entries };
+}
+
 function annualAwardLedgerHasData(entry) {
   if (!entry || typeof entry !== "object") return false;
   if (!entry.stores || typeof entry.stores !== "object") return false;
@@ -15040,17 +15182,23 @@ function recordQuarterHourSummary(summary, quarterIndex) {
 }
 
 function applyQuarterHourResourceTick(activeOrders = [], dayIndex = null) {
+  const orders = Array.isArray(activeOrders) ? activeOrders : [];
   const busyIds = new Set();
-  activeOrders.forEach((order) => {
-    getWorkOrderCreatorIds(order).forEach((id) => busyIds.add(id));
-  });
+  const ordersWithCreators = orders.length
+    ? orders.map((order) => {
+      const creatorIds = getWorkOrderCreatorIds(order);
+      creatorIds.forEach((id) => busyIds.add(id));
+      return { order, creatorIds };
+    })
+    : [];
+  const hasBusyCreators = busyIds.size > 0;
 
   const quarterIndex = ((state.time.totalQuarters || 0) - 1 + QUARTERS_PER_HOUR) % QUARTERS_PER_HOUR;
   const regenSlice = getQuarterHourRegenSlice(quarterIndex);
   let regenTotal = 0;
   let regenCount = 0;
   state.creators.forEach((creator) => {
-    if (busyIds.has(creator.id)) return;
+    if (hasBusyCreators && busyIds.has(creator.id)) return;
     const before = creator.stamina;
     creator.stamina = clampStamina(creator.stamina + regenSlice);
     const delta = creator.stamina - before;
@@ -15064,7 +15212,7 @@ function applyQuarterHourResourceTick(activeOrders = [], dayIndex = null) {
   let spendCount = 0;
   let overuseCount = 0;
   let departuresFlagged = 0;
-  activeOrders.forEach((order) => {
+  ordersWithCreators.forEach(({ order, creatorIds }) => {
     const stage = STAGES[order.stageIndex];
     if (!stage) return;
     if (!order.staminaTickMeta) {
@@ -15072,7 +15220,6 @@ function applyQuarterHourResourceTick(activeOrders = [], dayIndex = null) {
       initWorkOrderStaminaMeta(order, stage, { legacyPaid });
     }
     if (order.staminaTickMeta?.legacyPaid) return;
-    const creatorIds = getWorkOrderCreatorIds(order);
     creatorIds.forEach((id) => {
       const creator = getCreator(id);
       if (!creator) return;
@@ -15205,17 +15352,28 @@ async function tick(now) {
   if (state.time.speed === "play") secPerQuarter = state.time.secPerQuarterPlay;
   if (state.time.speed === "fast") secPerQuarter = state.time.secPerQuarterFast;
   if (secPerQuarter !== Infinity) {
+    state.time.acc += dt;
     const queuedIterations = Math.floor(state.time.acc / secPerQuarter);
     if (queuedIterations > QUARTER_TICK_WARNING_THRESHOLD) {
       console.warn(
         `[perf] tick queued ${queuedIterations} quarter-hour iterations (speed=${state.time.speed}, acc=${state.time.acc.toFixed(3)}, secPerQuarter=${secPerQuarter}).`
       );
     }
-    state.time.acc += dt;
-    let iterationsThisFrame = 0;
-    while (state.time.acc >= secPerQuarter && iterationsThisFrame < QUARTER_TICK_FRAME_LIMIT) {
-      state.time.acc -= secPerQuarter;
-      advanceQuarters(1);
+    if (queuedIterations > QUARTER_TICK_FRAME_LIMIT) {
+      const warnNow = nowMs();
+      if (warnNow - session.lastPerfThrottleAt >= PERF_THROTTLE_LOG_COOLDOWN_MS) {
+        session.lastPerfThrottleAt = warnNow;
+        console.warn(
+          `[perf] tick backlog ${queuedIterations} quarter-hour iterations; throttling to ${QUARTER_TICK_FRAME_LIMIT} per frame.`
+        );
+        logEvent("Simulation is catching up; UI updates may appear delayed while ticks process.", "warn");
+      }
+    }
+    if (queuedIterations > 0) {
+      const iterationsThisFrame = Math.min(queuedIterations, QUARTER_TICK_FRAME_LIMIT);
+      state.time.acc = Math.max(0, state.time.acc - iterationsThisFrame * secPerQuarter);
+      const renderQuarterly = iterationsThisFrame === 1;
+      advanceQuarters(iterationsThisFrame, { renderQuarterly });
     }
   }
   await maybeSyncPausedLiveChanges(now);
@@ -17491,6 +17649,7 @@ export {
   assignTrackAct,
   attemptSignCreator,
   buildCalendarProjection,
+  buildLabelAchievementProgress,
   bookTourDate,
   buildPromoProjectKey,
   buildPromoProjectKeyFromTrack,

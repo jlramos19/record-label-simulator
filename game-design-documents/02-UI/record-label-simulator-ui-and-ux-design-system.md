@@ -24,33 +24,15 @@
 
 * `Time Speed Controls (►, ►►, ⏸) pause or accelerate simulation.`
 
-`Left-Side Panels`
+`Primary Navigation`
 
-* `Collapsible, scrollable panels with icons for:`
+* `App nav lists routed views: Dashboard, Charts, Create, Release, Calendar, Eras, Roster, Community, Promotions, Tour.`
+* `Only one view is mounted at a time.`
 
-  * `Areas`
+`View Panels`
 
-  * `Creators`
-
-  * `Acts`
-
-  * `Inventory`
-
-  * `Items`
-
-  * `Modifiers`
-
-  * `Collabs`
-
-* `Panel state is driven by UIPanelStateComponents.`
-
-`Right-Side Panels`
-
-* `Calendar panel: scheduling timeline for releases, production, and promotions.`
-
-* `Quests panel: task tracking and deadlines.`
-
-* `Timeline bars visualize upcoming events and pipeline constraints.`
+* `Each view owns its main panel and optional side panels; there are no persistent left/right columns in the web MVP.`
+* `Panel state is driven by UIPanelStateComponents and stored per view.`
 
 `ECS Context`
 
@@ -62,18 +44,19 @@
 
 - `UI uses routed views so only one view is mounted at a time.`
 - `Default view: Charts.`
-- `Views: Charts, Create, Releases, Promotion, Roster, Creator Community Chamber (CCC), Logs/Debug.`
+- `Views: Dashboard, Charts, Create, Release, Calendar, Eras, Roster, Community (CCC), Promotions, Tour.`
 - `Create view uses stage buttons (Sheet/Demo/Master) with studio slot columns (5 slots per column; 3/2/1 for Songwriter/Recorder/Producer).`
 - `Roster view groups Creator IDs into Songwriter/Recorder/Producer columns, mirroring the CCC layout.`
+- `Release view hosts Release Desk scheduling + project planning; Calendar reads the same queues for projections.`
+- `Community view houses CCC signing alongside community ranking surfaces.`
+- `Promotions view houses promo pushes and the eyeriSocial feed; Touring is its own route to the right of Promotions.`
 - `Hidden panels have zero layout footprint.`
 - `Mini panels collapse into a dock (tab/pill), not a full panel shell.`
 - `Charts view shows a week-range selector; clicking it opens a chart-history calendar/modal.`
-- `Label rankings (record labels chart scores) live in a right-side panel, not inline beneath the chart list.`
 
 ### **`Menu Pipeline Order (core loop)`**
 
-- `Creators -> Acts -> Era Planner -> Studio -> Promotion (Release gate) -> Charts/Legacy -> Logs`
-- `Release is an explicit gate inside Promotion so unreleased content is not promoted by default.`
+- `Community (CCC) -> Roster/Acts -> Create -> Release Desk -> Promotions -> Touring -> Charts/Trends -> Eras/Calendar.`
 
 ---
 
@@ -93,15 +76,15 @@
 
 * `Countries use Country colors (Nation identity).`
 
-* `Moods are icon-coded first (Mood identity). Default display: {MoodName} {MotifIcon}.`
-* `Colored-heart emojis are secondary/alt and are reserved for alignment-style signaling/overlays.`
+* `Moods are text-coded first (Mood identity). Default display: {MoodName} as a label/pill.`
+* `Mood icons are not used in the web MVP; iconography is reserved for future identity sets.`
 * `Mood color-coding is optional only if a dedicated Mood palette exists and does not conflict with Theme/Country/Alignment.`
 
 ### **`Content Genre Display`**
 
 * `Content Genre (Theme + Mood) displays as:`
 
-  * `Theme color + Mood icon`
+  * `Theme color + text label (Theme / Mood)`
 
   * `optional compact label for readability`
 

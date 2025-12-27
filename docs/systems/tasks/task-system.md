@@ -18,6 +18,7 @@
 ## Alignment rules
 - Task templates should map to CEO Requests categories (chart wins, sales/streams, promos, tours).
 - Prefer tasks that move the player toward annual awards and 12-request victory tracking.
+- Award show nominations and wins can satisfy or advance tasks when linked to the same CEO Request IDs.
 
 ## Observability
 - Log auto-fulfill attempts and outcomes (success, skipped, blocked reason).
@@ -26,3 +27,6 @@
 
 ## Notes
 - Internal data may still use "quest" keys for backward compatibility; UI copy should use "Task".
+
+## Related
+- `docs/systems/awards/award-shows.md`

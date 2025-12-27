@@ -5,6 +5,8 @@ Each in-game calendar year, the simulation computes 12 CEO Request awards at Gai
 ## Data sources
 - Weekly chart results captured at the Saturday 00:00 UTC chart update and stored in the year-end chart ledger (`state.meta.annualAwardLedger`).
 - Chart snapshots in IndexedDB remain a backfill source if the ledger is missing.
+- Tour charts include simulated rival tour entries so touring awards stay competitive across all labels.
+- Monthly award show ledger (wins + nominations) rolled up into year totals for awards-based tie-breaks.
 - Scope weights: Regional = 1, National = 2, Global = 3.
 
 ## Cadence + release
@@ -27,10 +29,14 @@ Each in-game calendar year, the simulation computes 12 CEO Request awards at Gai
 ## Tie-break ladder (no ties)
 1. Sales/Streams (global yearly totals, streaming weighted to sales-equivalent).
 2. Critics (weighted by scope).
-3. Awards (Critics Pick threshold = 90, weighted by scope).
+3. Awards (award show wins + Critics Pick threshold = 90, weighted by scope).
 4. First lead week (earliest week leading the primary metric).
 
 If ties still remain after First Lead Week, the simulation falls back to deterministic alphabetical ordering to guarantee a single winner.
 
 ## Achievement unlocks
 Each CEO Request unlocks when the player label wins that category in any year. Wins accumulate across years toward the 12-request victory condition.
+
+## Related
+- `docs/systems/awards/award-shows.md`
+- `docs/systems/tasks/task-system.md`

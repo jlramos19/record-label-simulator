@@ -1,5 +1,18 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-2245Z)
+- Tour charts now include simulated rival tour entries so touring awards stay competitive across all labels. [PN-20251227-AC07]
+- CEO Requests now show expandable label race rows with per-request progress bars for all labels. [PN-20251227-AC08]
+- Win-track HUD copy now reflects the monopoly-loss rule through the full timeline. [PN-20251227-AC09]
+- GitHub Pages deployment now builds the root + UI React bundles and publishes the assembled `site/` folder on main pushes. [PN-20251227-AC10]
+
+## 2025-12-27 (RLS-PATCH-20251227-2110Z)
+- Simulation ticks now batch quarter-hour processing and surface a catch-up warning to keep fast-forward runs responsive. [PN-20251227-AC06]
+
+## 2025-12-27 (RLS-PATCH-20251227-2104Z)
+- PEAKING status now tracks top-5 streaks with a WK badge starting at week 2, while EMERGING pauses the streak counter.
+- AI trend-chasing now ramps down after 8 top-5 weeks, reaching full disinterest by week 16 for creation and promo choices.
+
 ## 2025-12-27 (RLS-PATCH-20251227-2039Z)
 - Tour dates and promo runs now spend pooled act stamina (members cover for each other), applied to player + rival labels with overdraw warnings. [PN-20251227-AC05]
 
@@ -631,3 +644,8 @@
 - PN-20251227-AC03 (2025-12-27 20:02Z): Tour summaries now list regional leg counts, and cooldown warnings surface when tours stack too tightly.
 - PN-20251227-AC04 (2025-12-27 20:21Z): Creator given-name pools now respect gender identity filters, and creator cards show gender identity beside age.
 - PN-20251227-AC05 (2025-12-27 20:39Z): Tour dates and promo runs now spend pooled act stamina (members cover for each other), applied to player + rival labels with overdraw warnings.
+- PN-20251227-AC06 (2025-12-27 21:10Z): Simulation ticks now batch quarter-hour processing and surface a catch-up warning to keep fast-forward runs responsive.
+- PN-20251227-AC07 (2025-12-27 22:45Z): Tour charts now include simulated rival tour entries so touring awards stay competitive across all labels.
+- PN-20251227-AC08 (2025-12-27 22:45Z): CEO Requests now show expandable label race rows with per-request progress bars for all labels.
+- PN-20251227-AC09 (2025-12-27 22:45Z): Win-track HUD copy now reflects the monopoly-loss rule through the full timeline.
+- PN-20251227-AC10 (2025-12-27 22:45Z): GitHub Pages deployment now builds the root + UI React bundles and publishes the assembled `site/` folder on main pushes.

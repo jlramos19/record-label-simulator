@@ -9,6 +9,9 @@ This document defines how stamina depletion, recharge, and overuse are processed
 - Idle recharge rule: creators who are not in an active work order gain `STAMINA_REGEN_PER_HOUR` per hour, distributed deterministically across the four quarter-hour ticks.
 - Depletion visibility rule: stamina spent on multi-hour work is applied per quarter-hour (not only in a lump at start or completion). The quarter slices must sum to the stage stamina cost (`totalTicks = ceil(hours * 4)`).
 - Act-level activities (tour dates, promo runs) apply pooled stamina spends instantly when resolved and still update daily usage + overuse checks.
+- Promo pushes spend `ACTIVITY_STAMINA_PROMO` per promo type (default 20).
+- Tour dates spend `ACTIVITY_STAMINA_TOUR_DATE` per booked show (default 40).
+- If pooled stamina is insufficient, an overdraw warning is logged while the spend still applies.
 
 ## B) Daily usage + overuse strike contract
 

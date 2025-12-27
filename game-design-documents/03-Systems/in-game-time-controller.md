@@ -6,7 +6,7 @@ The web app uses a deterministic time controller that advances in-game time on a
 ## Features
 - Frame-rate independent updates (time loop is not tied to rendering).
 - Real-time to in-game time conversion (default: 1s = 1 in-game hour).
-- Event-driven hooks for weekly charts and 4-week population refresh.
+- Event-driven hooks for weekly charts and yearly population refresh.
 - Configurable start date for the simulation calendar.
 
 ## Implementation Notes

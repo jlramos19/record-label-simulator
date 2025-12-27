@@ -1,6 +1,6 @@
 # Touring Tab
 
-This doc defines the Touring view (planned) for the future touring feature.
+This doc defines the Touring view (MVP v0) for the current touring feature.
 
 ## Status
 - Touring Desk includes draft planning, venue browsing, booking actions, and projection summaries.

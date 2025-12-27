@@ -8,7 +8,7 @@
 
 ## **`Creator Recruitment & Management`**
 
-`Signing Creators: Your label signs Creators from the market roster (Songwriters, Recorders, Producers). Signing costs scale with skill and role, and roster size is limited by cash, stamina, and studio capacity rather than a hard cap. Signed Creators become managed UI entries and can be assigned to Acts or production slots.`
+`Signing Creators: Your label signs Creators from the CCC market roster (Songwriters, Recorders, Producers). Signing costs scale with skill and role, and roster size is capped at 125. Accepted offers deduct cash and move the Creator into the roster; rejected offers lock the Sign button until the next 12AM refresh (precondition failures do not lock out). Signed Creators become managed UI entries and can be assigned to Acts or production slots.`
 
 `Roles & Functions:`
 
@@ -18,7 +18,7 @@
 
 * `Producers - Master the track, confirming Alignment and finalizing the Theme+Mood genre. Their skill has the largest impact on quality potential.`
 
-`Stamina (Catharsis) & Scheduling: Creators have stamina (max 400). Each stage consumes stamina (Sheet 25, Demo 50, Master 100). Idle Creators regenerate 50 stamina per in-game hour. If a Creator exceeds 200 stamina used in a day, they accrue an overuse strike and may enter a departure state. Studio slots gate how many work orders can run at once, so scheduling and rest management are core pacing tools.`
+`Stamina & Catharsis: Creators have stamina (max 400) for throughput and catharsis for quality (a skill-weighted stamina score). Each stage consumes stamina (Sheet 25, Demo 50, Master 100). Idle Creators regenerate 50 stamina per in-game hour. Catharsis is derived from skill and current stamina, keeping higher-skill Creators steadier at low stamina. If a Creator exceeds 200 stamina used in a day, they accrue an overuse strike and may enter a departure state. Studio slots gate how many work orders can run at once, so scheduling and rest management are core pacing tools.`
 
 ## **`Content Creation Pipeline`**
 
@@ -38,15 +38,15 @@
 
 ## **`Projects, Release & Distribution`**
 
-`Tracks vs Projects: In the MVP, each track is the primary release unit. Tracks can be tagged with a Project name and type (Single/EP/Album) for grouping and recommendations, but multi-track project assembly and pricing are not yet simulated.`
+`Tracks vs Projects: Tracks are the primary release unit but can be tagged with a Project name and type (Single 1-4, EP 5-7, Album 8-32) for grouping, scheduling, and recommendations. Project tags roll up promo coverage and physical run estimates across the grouped tracks.`
 
 `Release Scheduling: Releases can be scheduled as Digital, Physical, or Both. The Release Desk supports immediate release or queueing +7d / +14d; recommendations prefer immediate digital drops for trend matches or a two-week lead for high-quality physical rollouts (Both follows the physical lead). When the scheduled hour arrives, the track is released to the market and begins charting.`
 
-`Distribution Pricing & Tradeoffs: Digital releases are fastest and low-overhead (baseline single $0.69), ideal for trend chasing. Physical releases command higher unit prices (baseline single $4.99, with projects scaling via the 30-70 rule) but require manufacturing/distribution lead times and per-format fees (example: $500 per format, $2,500 for five formats). "Both" captures both channels but uses the physical timeline and costs.`
+`Distribution Pricing & Tradeoffs: Digital releases are fastest and low-overhead (baseline single $0.69), ideal for trend chasing. Physical releases command higher unit prices (baseline single $4.99 with project-type multipliers: Single 1.00x, EP 1.55x, Album 2.25x) plus per-format fees ($500). "Both" captures both channels but uses the physical timeline and costs. The 30-70 per-track pricing pattern is a legacy target and is not active in the web MVP.`
 
 `Rival Distribution Logic: AI labels follow the same release guidance as the player: trend matches favor immediate digital releases, high-quality projects take the 2-week physical lead, and mid-tier releases use the 1-week digital prep window.`
 
-`Promotion: Promo pushes are budgeted spends that add 1-4 promo weeks to a released track. Promotion types include Music Video, Live Performance, eyeriSocial Post, and Interview; each can post to eyeriSocial templates and boosts chart scores while promo weeks last. Tours are not implemented in the current MVP.`
+`Promotion: Promo pushes are budgeted spends that add 1-4 promo weeks to a released track. Promotion types include Music Video, Live Performance, eyeriSocial Post, and Interview; each can post to eyeriSocial templates and boosts chart scores while promo weeks last. Touring is implemented with booking, projections, and chart surfaces, while wallet impact remains gated by the touring balance flag.`
 
 ## **`Audience, Trends & Regions`**
 
@@ -84,17 +84,11 @@
 
 `Time & Pace: The UI features a top bar with the current in-game date/time and controls to adjust time flow. You can pause, run at normal speed, fast-forward, or skip ahead (24h, 7d, or a custom date/time). Game mode determines the start year: Founding Mode begins in 2025; Modern Mode begins in 2400 with a seeded market. The date is displayed in a format like SAT - JAN 01, 2400 - 12AM (UTC).`
 
-`Main Panels: The interface is divided into panels:`
-
-* `Left Panel – Community & Roster Management: Here you handle Community and Creators. Functions include leasing new Areas/Structures (e.g. studios, residences), signing or training Creators, and accessing an inventory of Items/Modifiers . Essentially, this is your “management hub” for resources and personnel.`
-
-* `Right Panel – Quests & Calendar: This side displays the CEO’s Requests (main objectives) and any side-quests or tasks, as well as the Calendar where you schedule production, releases, and other events . You can drag-and-drop or allocate time slots for creators here, booking studio time or setting a release date on the timeline. It provides an overview of what’s coming up and any deadlines (for example, a reminder that a track needs to be sent to manufacturing by a certain date to meet its release target).`
-
-* `Bottom Panel – Promotions & Actions: The bottom UI usually contains actionable buttons or tabs, such as launching Promotional Campaigns , organizing a tour, adjusting pricing for a project, or other context-specific actions (e.g. a “Promote” button appears when a track is released and eligible for marketing boosts). This serves as a shortcut to engage with the audience – clicking “Promote” might open a sub-menu of marketing options to invest in, or “Tour” might let you plan a concert series.`
+`Main Panels: The interface uses routed views rather than persistent side panels. The top nav switches between Dashboard, Charts, Create, Release, Calendar, Eras, Roster, Community (CCC), Promotions, and Tour. Each view owns its main panel and optional side panels, which can be toggled per view. CEO Requests and status surfaces live on the Dashboard, while scheduling lives in Release and Calendar views.`
 
 * `(Additionally, context menus and overlay windows pop up for detailed information: e.g. clicking a Creator opens their Creator Card with stats, skills, and preferences; clicking a Track shows its quality, theme, mood, and critic feedback.)`
 
-`Visual Style: The game emphasizes a dense, readable UI surface for the web app. In early gameplay, Members (general population NPCs) can be represented as simple UI avatars or list entries on a map-like panel (movement is simulated by timers and state changes). When those members become Creators (e.g. you sign a songwriter), they are removed from the public map/list and represented in the UI as an ID or card. This indicates a shift from the simulation world to the management interface - a deliberate design to prevent clutter and focus the player on managing through the UI once individuals "join" your organization. The UI conveys a lot of data in text and icon form (for instance, icons for Theme/Mood on a track, colored letters for Quality grade, arrows for chart movement). Tooltips and highlight colors are used to guide the player; for example, a track trending upward on a chart might be highlighted green with an upward arrow, and hovering it would show "+5 positions (Critics' Choice award bonus)". Similarly, if a Creator is low on stamina/catharsis, their portrait might flash or a tooltip might warn "Needs rest". These interface choices ensure that while the simulation data is complex, the player can quickly scan and understand the status and make informed decisions without needing to read raw numbers continuously.`
+`Visual Style: The game emphasizes a dense, readable UI surface for the web app. In early gameplay, Members (general population NPCs) can be represented as simple UI avatars or list entries on a map-like panel (movement is simulated by timers and state changes). When those members become Creators (e.g. you sign a songwriter), they are removed from the public map/list and represented in the UI as an ID or card. This indicates a shift from the simulation world to the management interface - a deliberate design to prevent clutter and focus the player on managing through the UI once individuals "join" your organization. The UI conveys a lot of data in text and pill labels (for instance, Theme/Mood labels on a track, colored letters for Quality grade, arrows for chart movement). Tooltips and highlight colors are used to guide the player; for example, a track trending upward on a chart might be highlighted green with an upward arrow, and hovering it would show "+5 positions (Critics' Choice award bonus)". Similarly, if a Creator is low on stamina/catharsis, their portrait might flash or a tooltip might warn "Needs rest". These interface choices ensure that while the simulation data is complex, the player can quickly scan and understand the status and make informed decisions without needing to read raw numbers continuously.`
 
 ## **`Conclusion & Future Expansion`**
 

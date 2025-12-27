@@ -10,7 +10,7 @@ This doc lists every surface that renders trend data and the display rules for t
 - Header (global top bar): Top 3 trends, rendered beside Top Labels, with a "More" button opening the Top 40 window.
 - Dashboard stat card: Top 1 trend (from `trendRanking[0]`).
 - Create view: Uses the header summary (no separate Top Trends side panel).
-- Floating ranking window: opened from the header "More" button to show the Top 40 list (see `docs/ui/community-trends.md`).
+- Floating ranking window: opened from the header "More" button to show the Top 40 list with status pills, points, and alignment push (see `docs/ui/community-trends.md`).
 
 ## Related
 - `docs/systems/time/weekly-timing.md`

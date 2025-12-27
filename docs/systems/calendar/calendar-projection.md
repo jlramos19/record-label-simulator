@@ -5,7 +5,7 @@ The Calendar is a projection layer over existing scheduling data. It does not re
 
 ## Sources (Read-Only)
 - Label scheduled drops: `state.releaseQueue`.
-- Label scheduled events: `state.scheduledEvents`.
+- Label scheduled events: `state.scheduledEvents` (includes award show + award performance events).
 - Label released drops: `state.marketTracks` where `isPlayer` is true.
 - Rival scheduled drops and promos: `state.rivalReleaseQueue` (entries may include release or promo kinds).
 - Rival released drops: `state.marketTracks` where `isPlayer` is false.
@@ -22,6 +22,7 @@ Calendar events use execution timestamps (ex: `releaseAt`, `scheduledAt`, or `ev
 - Release view (route `release`) hosts Release Desk scheduling + project planning.
 - Calendar view (route `releases`, labeled "Calendar") shows a grid projection with Label/Public/Eras tabs and filters.
 - A list view may be used for detail or overflow, but shares the same projection data.
+- Award shows and award performance slots render as calendar events with their execution timestamps.
 
 ## Defaults
 - Week anchoring uses the current `weekIndex()` for the active week.

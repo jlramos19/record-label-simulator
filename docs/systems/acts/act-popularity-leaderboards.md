@@ -46,9 +46,14 @@ Tours:
 - Charts view includes an "Acts" tab.
 - The tab shows the current year YTD leaderboard with totals and splits.
 
+## Award boosts
+- Award show wins and nominations apply temporary popularity boosts after weekly chart points are tallied.
+- Boosts expire on their award timer and do not stack beyond one active award boost.
+
 ## Observability
 - Empty leaderboard message appears until the first weekly chart update runs.
 
 ## References
 - `src/app/game.ts` (updateActPopularityLedger, getActPopularityLeaderboard)
 - `docs/ui/charts-view.md`
+- `docs/systems/awards/award-shows.md`

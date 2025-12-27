@@ -27,6 +27,6 @@ These rules keep the hosted web build runnable while the team iterates quickly.
 - Usage sessions now track session IDs, action trails, and captured errors; debug exports include the active session log.
 
 ## External storage (File System Access API)
-- Optional: logs, saves, and chart history can mirror to a user-selected folder via the Logs view.
+- Optional: logs, saves, and chart history can mirror to a user-selected folder via the Promotions view (route `logs`).
 - Data is written under `usage-logs/`, `saves/`, and `database/` subfolders in the selected directory.
 - Imports pull saves and chart history back into local storage/IndexedDB for recovery.

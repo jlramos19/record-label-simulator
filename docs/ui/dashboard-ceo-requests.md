@@ -13,7 +13,8 @@ Defines the Dashboard focus tab that surfaces CEO Requests (achievements) and th
 ## Panel layout
 - Summary line: player unlock count vs target, plus notes for bailout lock or cheater mode.
 - Request list: each CEO Request with progress text and EXP reward.
-- Rival race list: each label, unlocked count, and current focus request (if set).
+- Label race list: each label (player + rivals) with a total progress bar and focus line.
+- Expandable details: clicking a label reveals all 12 Requests with per-request progress bars.
 
 ## Observability
 - Empty states when no requests are available.

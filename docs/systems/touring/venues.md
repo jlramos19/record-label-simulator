@@ -1,4 +1,4 @@
-# Touring Venues (Planned)
+# Touring Venues (MVP v0)
 
 This document introduces venues for the touring feature and the booking rules that support live events.
 
@@ -34,16 +34,22 @@ Venue records live in `assets/js/data/constants.js` and expose:
 - Under-booking and over-booking both show warnings with projected impact.
 
 ## Pacing rules (draft)
-- Lead time: tours must be announced 2-6 weeks before the first date.
-- Cadence: max 2 dates per week; minimum 1 rest day between dates.
-- Travel: 1-3 buffer days between legs in different regions.
+- Lead time target: 2-6 weeks before the first date (warning if outside).
+- Cadence target: max 2 dates per week; minimum 1 rest day between dates (warning if outside).
+- Travel buffer target: 1-3 days between legs in different regions (warning if outside).
 - Length caps: tier-driven max dates (Club 8-12, Theater 10-16, Amphitheater 12-20, Arena 14-24, Stadium 10-18).
 - Length caps enforce the tier max (`maxDatesMax`) once the tour books that tier.
 - Cooldown: 4-8 weeks between tours per Act to limit stacking (warning-only for now).
 
 ## Reason codes (booking)
+- `TOUR_NO_DRAFT`: no tour draft selected.
+- `TOUR_NO_ACT`: draft missing Act or Act not found.
 - `TOUR_NO_ACTIVE_ERA`: act lacks an active Era.
 - `TOUR_NO_RELEASED_CONTENT`: no released Project/Track anchor available.
+- `TOUR_NO_VENUE`: venue not selected or not found.
+- `TOUR_INVALID_WEEK`: invalid week selection for booking.
+- `TOUR_INVALID_DATE`: invalid date.
+- `TOUR_PAST_DATE`: date is not in the future.
 - `TOUR_SLOT_CONFLICT`: act already booked on the same date.
 - `TOUR_VENUE_FULL`: venue slots are exhausted for the date.
 - `TOUR_DATE_OUTSIDE_WINDOW`: booking date not inside the tour window.
@@ -51,6 +57,16 @@ Venue records live in `assets/js/data/constants.js` and expose:
 - `TOUR_BUDGET_SHORT`: insufficient cash to cover projected date costs.
 - `TOUR_DEMAND_LOW`: projected sell-through falls below the booking threshold.
 - `TOUR_LENGTH_CAP`: tour length cap reached for the active tier.
+
+## Warning codes (pacing + projections)
+- `TOUR_UNDERBOOKED`: projected sell-through below 50%.
+- `TOUR_OVERBOOKED`: projected sell-through above 95%.
+- `TOUR_LEAD_SHORT`: lead time below 2 weeks.
+- `TOUR_LEAD_LONG`: lead time above 6 weeks.
+- `TOUR_WEEKLY_CAP`: more than 2 dates scheduled in the same week.
+- `TOUR_REST_DAY`: less than 1 rest day between dates.
+- `TOUR_TRAVEL_BUFFER`: less than 1 day buffer between regions.
+- `TOUR_COOLDOWN`: less than 4 weeks between tours.
 
 ## Projection model (draft)
 ```text

@@ -3,7 +3,7 @@
 **Lifecycle of Community Members:**
 
 * **Birth and Initial Years:** Members are born or immigrate, with birth dates tracked by the in-game calendar.  
-* **Aging Process:** Age progress follows 4-year cycles; for every 2.5 real-life seconds, one hour passes in-game.  
+* **Aging Process:** Ages increment yearly; age groups are tracked in 4-year bins. One hour passes every ~2.5 real-life seconds at normal speed.  
 * **Age Groups:** 30 groups span from 0-3 to 116-119 years old. Members aged 16-40 can have kids.  
 * **Death:** Random chance of dying increases by 4% every 4 years starting at 24-27. They die at 120 if still alive.
 
@@ -12,7 +12,7 @@
 * **Location:** Determines the regional music market impacted by their activity.  
 * **Age Group:** Affects music preferences and the capacity to generate new audience chunks.  
 * **Generation:** Grouped by 16-year periods influencing long-term music tastes.  
-* **Budget:** Economic means for spending on music; changes every four years.  
+* **Budget:** Economic means for spending on music; recalculated on age-band changes (every 4 years).  
 * **Engagement Rate:** Response likelihood to marketing.  
 * **Time Available:** Weekly hours available for music-related activities.  
 * **Life Expectancy:** Typical duration participating in the music market.  
@@ -20,7 +20,7 @@
 * **Preferred content Genre/Mood/Theme:** Determines favored musical styles, emotional responses, and narrative appeals.  
 * **Communities:** Groups audience chunks by shared preferences.  
 * **Nationality:** Cultural background affecting music preferences and demographics.  
-* **Emigration Rate:** Likelihood of relocating, mixing music tastes.
+* **Emigration Rate:** Likelihood of relocating; evaluated on yearly ticks.
 
 **Sectors and Structures:**
 
@@ -60,4 +60,3 @@
 * **Ownership:** Areas are owned by organizations, like Record Labels, managing the structures.
 
  
-

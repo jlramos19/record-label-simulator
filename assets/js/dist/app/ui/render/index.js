@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -1044,12 +1044,10 @@ function renderStats() {
         }
         else {
             const year = currentYear();
-            if (year < 3000)
-                $("winTrackDisplay").textContent = "12 Requests (no monopoly)";
-            else if (year < 4000)
-                $("winTrackDisplay").textContent = "12 Requests or Monopoly";
+            if (year < 4000)
+                $("winTrackDisplay").textContent = "12 Requests (avoid monopoly)";
             else
-                $("winTrackDisplay").textContent = "Top Label or Monopoly";
+                $("winTrackDisplay").textContent = "Final Year 4000 verdict";
         }
     }
     renderFocusEraStatus();
@@ -5822,32 +5820,67 @@ function renderRivalAchievementRace() {
     if (!listEl)
         return;
     const rivals = Array.isArray(state.rivals) ? state.rivals.slice() : [];
-    if (!rivals.length) {
-        listEl.innerHTML = `<div class="muted">No rival labels yet.</div>`;
+    const entries = [];
+    if (state.label?.name)
+        entries.push({ name: state.label.name, isPlayer: true, rival: null });
+    rivals.forEach((rival) => {
+        if (rival?.name)
+            entries.push({ name: rival.name, isPlayer: false, rival });
+    });
+    if (!entries.length) {
+        listEl.innerHTML = `<div class="muted">No label progress yet.</div>`;
         return;
     }
     const labelMap = new Map(ACHIEVEMENTS.map((entry) => [entry.id, entry.label]));
-    const sorted = rivals
-        .map((rival) => {
-        const unlocked = Array.isArray(rival.achievementsUnlocked) ? rival.achievementsUnlocked.length : 0;
-        const count = Math.max(unlocked, rival.achievements || 0);
-        return { rival, count };
-    })
-        .sort((a, b) => b.count - a.count || String(a.rival.name).localeCompare(String(b.rival.name)));
-    listEl.innerHTML = sorted.map(({ rival, count }) => {
-        const focusId = rival.achievementFocus;
+    const ranked = entries.map((entry) => {
+        const progress = buildLabelAchievementProgress(entry.name);
+        return { entry, progress };
+    }).sort((a, b) => b.progress.total - a.progress.total || String(a.entry.name).localeCompare(String(b.entry.name)));
+    listEl.innerHTML = ranked.map(({ entry, progress }) => {
+        const focusId = entry.rival?.achievementFocus || null;
         const focusLabel = focusId ? labelMap.get(focusId) || "Unknown Request" : "None";
         const focusText = focusId ? `${focusId} ${focusLabel}` : "No focus set";
-        return `
-      <div class="list-item rival-achievement-item">
-        <div class="list-row">
-          <div>
-            <div class="item-title">${rival.name || "Rival Label"}</div>
-            <div class="muted">Focus ${focusText}</div>
+        const summaryLine = entry.isPlayer ? "Player label" : `Focus ${focusText}`;
+        const totalPct = ACHIEVEMENT_TARGET > 0 ? Math.round((progress.total / ACHIEVEMENT_TARGET) * 100) : 0;
+        const requestMarkup = progress.entries.map((request) => {
+            const done = request.wins >= request.target;
+            const badgeClass = done ? "badge" : "badge warn";
+            const percent = Math.round(request.ratio * 100);
+            return `
+        <div class="rival-achievement-detail">
+          <div class="list-row">
+            <div>
+              <div class="item-title">${request.id} ${request.label}</div>
+              <div class="muted">${request.desc}</div>
+            </div>
+            <div class="${badgeClass}">${formatCount(request.wins)} / ${formatCount(request.target)}</div>
           </div>
-          <div class="badge">${count} / ${ACHIEVEMENT_TARGET}</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${percent}%"></div>
+          </div>
+          <div class="tiny muted">Wins ${formatCount(request.wins)} / ${formatCount(request.target)}</div>
         </div>
-      </div>
+      `;
+        }).join("");
+        return `
+      <details class="rival-achievement-card">
+        <summary class="rival-achievement-summary">
+          <div class="list-row">
+            <div>
+              <div class="item-title">${entry.name}${entry.isPlayer ? " <span class=\"pill\">You</span>" : ""}</div>
+              <div class="muted">${summaryLine}</div>
+            </div>
+            <div class="badge">${progress.total} / ${ACHIEVEMENT_TARGET}</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${totalPct}%"></div>
+          </div>
+          <div class="tiny muted">${totalPct}% complete</div>
+        </summary>
+        <div class="rival-achievement-details">
+          ${requestMarkup}
+        </div>
+      </details>
     `;
     }).join("");
 }
