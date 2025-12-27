@@ -31,6 +31,7 @@ import {
   refreshSelectOptions,
   renderActs,
   renderAll,
+  renderActiveView,
   renderAutoAssignModal,
   renderCalendarDayDetail,
   renderCalendarList,

@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-2352Z)
+- Awards category selection now re-renders safely to prevent the Best-Selling Track click crash. [PN-20251227-AC19]
+- Main nav notification badges now sit below labels instead of inline. [PN-20251227-AC20]
+
 ## 2025-12-27 (RLS-PATCH-20251227-2318Z)
 - Awards now run annually per show schedule with yearlong eligibility windows and an expanded critics/audience/hybrid lineup. [PN-20251227-AC17]
 
@@ -673,3 +677,5 @@
 - PN-20251227-AC17 (2025-12-27 23:27Z): Added an Awards tab with year selectors, dynamic categories, and nominee detail views that highlight winners.
 - PN-20251227-AC18 (2025-12-27 23:37Z): Fixed award show nomination locking to avoid a runtime crash during extended-window nominee checks.
 - PN-20251227-AC17 (2025-12-27 23:18Z): Awards now run annually per show schedule with yearlong eligibility windows and an expanded critics/audience/hybrid lineup.
+- PN-20251227-AC19 (2025-12-27 23:52Z): Fixed awards category selection crashing on missing active view render.
+- PN-20251227-AC20 (2025-12-27 23:52Z): Main nav notification badges now stack below labels.
