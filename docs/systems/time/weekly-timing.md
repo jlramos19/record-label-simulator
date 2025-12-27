@@ -28,6 +28,7 @@ Thu 23:00  Fri 00:00           Fri 12:00           Sat 00:00
 - Schedule checks include a minute gate (minute 0) so weekly events fire once at the top of the hour even with quarter-hour ticks.
 - Charts update is explicitly not Friday 00:00.
 - Release Desk "Release ASAP" schedules to the next Friday 00:00 (midnight) in-game time; clicking at Friday 00:00 schedules the following week.
+- Release Desk scheduling (+7d/+14d) snaps queued releases to the Friday 00:00 release window so calendar dates match release day.
 - Week boundaries (Week X ranges and calendar weeks) anchor to Sunday 00:00 UTC.
 
 ## Related

@@ -9,8 +9,8 @@ This guide defines how touring logic, pacing, and economy should be tuned while 
 - Observability first: every block or warning includes a reason code and a user-facing message.
 
 ## Core game loop (target)
-1) Plan: pick Act + active Era + anchor release/track, choose goal (visibility vs revenue).
-2) Route: build regional legs with auto travel/rest buffers and conflict previews.
+1) Plan: pick Act + active Era + anchor release/track, set window + route targets.
+2) Route: build regional legs with auto travel/rest buffers, conflict previews, and auto-generate options.
 3) Book: reserve venue slots, validate availability, and lock dates on the Calendar.
 4) Execute: resolve attendance + finances per date, post to eyeriSocial and event log.
 5) Settle: summarize leg outcomes and update Era momentum and Act popularity.
@@ -72,7 +72,8 @@ Cost floors (per date):
 Global multipliers:
 - `region_price_index`: 0.9 to 1.15 (default 1.0).
 - `quality_premium`: 0.9 to 1.2 (default 1.0).
-- `visibility_factor`: 0.8 to 1.2 (default 1.0).
+- `regional_chart_boost`: 0.9 to 1.2 (default 1.0).
+- `concert_interest`: 0.85 to 1.15 (default 1.0).
 - `promo_scale`: 5000.
 - `promo_efficiency`: 0.35.
 
@@ -90,7 +91,7 @@ World and gameplay effects to tune:
 
 ## Feature flag path
 - `RLS-TOUR-BALANCE-001`: disable all wallet and momentum effects; log only.
-- Gradually enable effects by tier or by goal (visibility first, revenue second).
+- Gradually enable effects by tier once tuning looks stable.
 
 ## Notes for v0
 - Booking projections always render; balance effects only apply when the flag is enabled.

@@ -57,5 +57,9 @@ runPopulationABTest({ startYear: 2025, endYear: 2075, runs: 10 })
 - Choose a venue tier that mismatches projected attendance; confirm a warning appears but booking is not blocked.
 - Toggle the touring balance flag off; confirm wallet/fan totals do not change while bookings still resolve and log.
 
+10) Act name generator checks
+- Run `npm run build`.
+- Run `node scripts/test-act-name-generator.mjs` and confirm all checks pass.
+
 Notes:
 - Population constants live in `assets/js/data/constants.js`, app logic in `src/app/game.ts`.

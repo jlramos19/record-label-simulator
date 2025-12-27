@@ -2,17 +2,29 @@
 
 ## Definitions
 - Creators Community Chamber (CCC): A world-owned signing hub where labels browse and attempt to sign Creator IDs.
-- Creator ID: A creator card with role, skill (level + EXP progress), stamina, and theme/mood preferences available for signing.
+- Creator ID: A creator card with role, catharsis (level + charge), and theme/mood preferences available for signing.
 - Signing attempt: An executed offer that can be accepted or rejected by the Creator.
 - Precondition failure: A failed attempt that does not consume a signing attempt (insufficient funds, roster full, or invalid state).
 - Wallet (cash balance): `state.label.cash`, the funds available for signing costs.
 - Signing cost: A deterministic cost computed from creator role + skill + market pressure and stored as `creator.signCost`.
+- Skill: An internal creator stat used for quality, signing cost, and acceptance logic; it is not displayed on CCC cards.
 
 ## CCC Market View
 - CCC pool persists until the next 12AM refresh or a manual refresh action.
 - Filters: role, preferred Theme, preferred Mood.
-- Sorting: preferred Theme/Mood (A-Z or Z-A) and quality (creator skill) high/low.
+- Sorting: preferred Theme/Mood (A-Z or Z-A) and quality (creator skill, hidden on cards) high/low.
 - Sign buttons disable when wallet cash is short and show "(not enough money)" in the label.
+- Creator cards reserve a fixed 2:3 portrait placeholder for head-and-shoulders art.
+
+## Catharsis levels (CCC)
+- Creator cards show Catharsis (stamina) with a 1-10 level derived from current charge.
+- Unsigned creators spawn with Catharsis capped at level 5 and weighted toward lower levels:
+  - Level 1: 30% (1-39)
+  - Level 2: 25% (40-79)
+  - Level 3: 20% (80-119)
+  - Level 4: 15% (120-159)
+  - Level 5: 10% (160-199)
+- Signed creators can recover above level 5 once on the roster.
 
 ## Acceptance Criteria (MVP Rule)
 Creators resolve offers instantly using a single acceptance roll:

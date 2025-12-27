@@ -26,9 +26,10 @@ Venue records live in `assets/js/data/constants.js` and expose:
 - Booked dates appear on the Calendar and block overlapping events for the Act.
   - Capacity is tracked by venue + day; if `slotsPerDay` is exhausted, booking is blocked.
   - Act double-booking on the same day is blocked with a reason code.
+- Booking eligibility checks tier requirements and budget coverage before confirming a date.
 
 ## Demand and outcomes
-- Attendance projection uses Act popularity, Era momentum, Trends, and promo spend.
+- Attendance projection uses Act popularity, Era momentum, regional chart momentum, Trends, and promo spend.
 - Revenue is derived from attendance, ticket price bands, and merch attach rates.
 - Under-booking and over-booking both show warnings with projected impact.
 
@@ -45,16 +46,18 @@ Venue records live in `assets/js/data/constants.js` and expose:
 - `TOUR_SLOT_CONFLICT`: act already booked on the same date.
 - `TOUR_VENUE_FULL`: venue slots are exhausted for the date.
 - `TOUR_DATE_OUTSIDE_WINDOW`: booking date not inside the tour window.
+- `TOUR_TIER_LOCKED`: act has not met the charting threshold for the venue tier.
+- `TOUR_BUDGET_SHORT`: insufficient cash to cover projected date costs.
+- `TOUR_DEMAND_LOW`: projected sell-through falls below the booking threshold.
 
 ## Projection model (draft)
 ```text
-base_demand = popularity * era_momentum * trend_fit * region_affinity
+base_demand = popularity * era_momentum * trend_fit * region_affinity * regional_chart_boost * concert_interest
 promo_lift = 1 + log1p(promo_spend / promo_scale) * promo_efficiency
 announce_lead = clamp(lead_weeks / 6, 0.5, 1.2)
 tier_draw = tier_draw_multiplier[tier]
-goal_weight = goal_visibility ? 1.1 : 0.95
 
-desired_attendance = base_demand * promo_lift * announce_lead * tier_draw * goal_weight
+desired_attendance = base_demand * promo_lift * announce_lead * tier_draw
 sell_through = clamp(desired_attendance / capacity, 0.2, 1.1)
 attendance = min(capacity, round(capacity * sell_through))
 ```
@@ -64,7 +67,7 @@ attendance = min(capacity, round(capacity * sell_through))
 ticket_price = tier_base_price[tier] * region_price_index * quality_premium
 gross_ticket = attendance * ticket_price
 merch = attendance * merch_attach_rate * merch_spend_per_fan
-sponsorship = tier_sponsor_base[tier] * era_momentum * visibility_factor
+sponsorship = tier_sponsor_base[tier] * era_momentum
 
 revenue = gross_ticket + merch + sponsorship
 costs = venue_fee + staffing + travel + production + marketing

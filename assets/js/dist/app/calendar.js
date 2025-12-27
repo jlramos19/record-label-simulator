@@ -12,6 +12,14 @@ function formatDayLabel(epochMs) {
     const dayName = DAYS[date.getUTCDay()] || "Day";
     return dayName.slice(0, 3);
 }
+function formatEventTimeLabel(epochMs) {
+    if (!Number.isFinite(epochMs))
+        return "";
+    const date = new Date(epochMs);
+    const hours = String(date.getUTCHours()).padStart(2, "0");
+    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+    return hours === "00" && minutes === "00" ? "" : `${hours}:${minutes}`;
+}
 function formatRangeLabel(startWeek, endWeek, startEpochMs, endEpochMs) {
     const weekLabel = startWeek === endWeek ? `Week ${startWeek}` : `Weeks ${startWeek}-${endWeek}`;
     return `${weekLabel} | ${formatShortDate(startEpochMs)} - ${formatShortDate(endEpochMs)}`;
@@ -111,24 +119,27 @@ export function CalendarDayCell(day) {
         const title = event.title || "Untitled";
         const actName = event.actName || "Unknown";
         const labelName = event.label || "Label";
+        const timeLabel = formatEventTimeLabel(event.ts);
         const distribution = event.distribution ? `, ${event.distribution}` : "";
-        const detail = `${labelName} | ${actName} | ${title} (${typeLabel}${distribution})`;
+        const timeDetail = timeLabel ? ` @ ${timeLabel}` : "";
+        const detail = `${labelName} | ${actName} | ${title} (${typeLabel}${timeDetail}${distribution})`;
         const kindClass = event.className || toKebabCase(event.kind || "event");
         const showLabel = event.showLabel && labelName;
         const labelColor = showLabel ? event.labelColor || "" : "";
         const labelStyle = labelColor ? ` style="--label-color:${escapeAttr(labelColor)}"` : "";
         const labelClass = labelColor ? " has-label-color" : "";
         const labelLine = showLabel ? `<span class="calendar-event-label">${labelName}</span>` : "";
+        const typeLine = timeLabel ? `${typeLabel} @ ${timeLabel}` : typeLabel;
         return `
       <div class="calendar-event calendar-event--${kindClass}${labelClass}"${labelStyle} title="${escapeAttr(detail)}">
-        <span class="calendar-event-type">${typeLabel}</span>
+        <span class="calendar-event-type">${typeLine}</span>
         ${labelLine}
         <span class="calendar-event-title">${title}</span>
       </div>
     `;
     }).join("");
     const overflowHtml = overflow > 0
-        ? `<div class="calendar-event calendar-event--more">+${overflow} more</div>`
+        ? `<div class="calendar-event calendar-event--more" data-calendar-day-more data-day-ts="${day.start}" role="button" tabindex="0">+${overflow} more</div>`
         : "";
     return `
     <div class="${dayClass}" data-day-ts="${day.start}">

@@ -80,7 +80,7 @@
       <div class="toggle-row">
         <input id="cheaterModeToggle" type="checkbox" aria-label="Cheater mode toggle">
       </div>
-      <div class="tiny">Unlocks economy tuning in Tutorial. Disables achievements and quests while active.</div>
+      <div class="tiny">Unlocks economy tuning in Tutorial. Disables achievements and tasks while active.</div>
     </div>
     <div class="actions">
       <button id="menuSaveBtn" type="button">Save Game Slot</button>
@@ -298,6 +298,17 @@
         <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
       </div>
       <div id="calendarFullList" class="list"></div>
+    </div>
+  </div>
+</div>
+<div id="calendarDayModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2 id="calendarDayTitle">Day Details</h2>
+      <button id="calendarDayClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="card-body">
+      <div id="calendarDayList" class="list"></div>
     </div>
   </div>
 </div>
@@ -539,6 +550,56 @@
 <template id="view-dashboard">
   <div class="view view--dashboard">
     <section class="view-main">
+      <div class="panel card panel--scroll" data-panel="dashboard-focus">
+        <div class="card-head">
+          <h2>Road to the Top</h2>
+        </div>
+        <div class="card-body">
+          <div class="tabs dashboard-focus-tabs" id="dashboardFocusTabs" role="tablist" aria-label="Road to the Top">
+            <button type="button" class="tab active" data-dashboard-focus="charts">Charts</button>
+            <button type="button" class="tab" data-dashboard-focus="quests">Tasks</button>
+            <button type="button" class="tab" data-dashboard-focus="requests">Requests</button>
+            <button type="button" class="tab" data-dashboard-focus="eras">Eras</button>
+          </div>
+          <section class="dashboard-focus-panel is-active" data-dashboard-focus-panel="charts">
+            <div class="chart-pulse-controls">
+              <div class="tabs" id="chartPulseContentTabs">
+                <button type="button" class="tab active" data-chart-pulse-content="tracks">Tracks</button>
+                <button type="button" class="tab" data-chart-pulse-content="projects">Projects</button>
+                <button type="button" class="tab" data-chart-pulse-content="promos">Promos</button>
+              </div>
+              <div class="chart-pulse-scope">
+                <div class="tabs" id="chartPulseScopeTabs">
+                  <button type="button" class="tab active" data-chart-pulse-scope="global">Global</button>
+                  <button type="button" class="tab" data-chart-pulse-scope="nation">Nation</button>
+                  <button type="button" class="tab" data-chart-pulse-scope="region">Region</button>
+                </div>
+                <div class="chart-pulse-target">
+                  <label id="chartPulseTargetLabel" class="tiny muted" for="chartPulseTarget">Target</label>
+                  <select id="chartPulseTarget"></select>
+                </div>
+              </div>
+            </div>
+            <div id="dashboardChartsList" class="list chart-pulse-slots"></div>
+            <div id="chartPulseMeta" class="tiny muted"></div>
+          </section>
+          <section class="dashboard-focus-panel" data-dashboard-focus-panel="quests">
+            <div id="questSummary" class="tiny muted"></div>
+            <div id="questList" class="list"></div>
+          </section>
+          <section class="dashboard-focus-panel" data-dashboard-focus-panel="requests">
+            <div id="achievementSummary" class="tiny muted"></div>
+            <div id="achievementList" class="list"></div>
+            <div class="subhead">Rival Race</div>
+            <div id="rivalAchievementList" class="list rival-achievement-list"></div>
+          </section>
+          <section class="dashboard-focus-panel" data-dashboard-focus-panel="eras">
+            <div id="dashboardEraList" class="list"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+    <section class="dashboard-footer">
       <div class="panel card panel--scroll" data-panel="dashboard-overview">
         <div class="card-head">
           <h2>Dashboard</h2>
@@ -568,48 +629,6 @@
         </div>
       </div>
     </section>
-    <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="dashboard-charts">
-        <h2>Chart Pulse</h2>
-        <div class="card-body">
-          <div class="chart-pulse-controls">
-            <div class="tabs" id="chartPulseContentTabs">
-              <button type="button" class="tab active" data-chart-pulse-content="tracks">Tracks</button>
-              <button type="button" class="tab" data-chart-pulse-content="projects">Projects</button>
-              <button type="button" class="tab" data-chart-pulse-content="promos">Promos</button>
-            </div>
-            <div class="chart-pulse-scope">
-              <div class="tabs" id="chartPulseScopeTabs">
-                <button type="button" class="tab active" data-chart-pulse-scope="global">Global</button>
-                <button type="button" class="tab" data-chart-pulse-scope="nation">Nation</button>
-                <button type="button" class="tab" data-chart-pulse-scope="region">Region</button>
-              </div>
-              <div class="chart-pulse-target">
-                <label id="chartPulseTargetLabel" class="tiny muted" for="chartPulseTarget">Target</label>
-                <select id="chartPulseTarget"></select>
-              </div>
-            </div>
-          </div>
-          <div id="dashboardChartsList" class="list chart-pulse-slots"></div>
-          <div id="chartPulseMeta" class="tiny muted"></div>
-        </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="dashboard-achievements">
-        <h2>CEO Requests</h2>
-        <div class="card-body">
-          <div id="achievementSummary" class="tiny muted"></div>
-          <div id="achievementList" class="list"></div>
-          <div class="subhead">Rival Race</div>
-          <div id="rivalAchievementList" class="list rival-achievement-list"></div>
-        </div>
-      </div>
-      <div class="panel card panel--scroll" data-panel="dashboard-eras">
-        <h2>Active Eras</h2>
-        <div class="card-body">
-          <div id="dashboardEraList" class="list"></div>
-        </div>
-      </div>
-    </aside>
   </div>
 </template>
 
@@ -1304,7 +1323,7 @@
             <label class="check-pill"><input type="checkbox" data-social-filter="creator">Creators</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="track">Tracks</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="promo">Promo</label>
-            <label class="check-pill"><input type="checkbox" data-social-filter="quest">Quests</label>
+            <label class="check-pill"><input type="checkbox" data-social-filter="quest">Tasks</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="era">Eras</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="economy">Economy</label>
             <label class="check-pill"><input type="checkbox" data-social-filter="chart">Charts</label>
@@ -1538,6 +1557,30 @@
             <div class="tiny">Total allocation must be 100% or less. Budgets apply per promo type (min $100 per slot).</div>
           </div>
           <div id="autoPromoSummary" class="list"></div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="promoScheduleWeek">Schedule Week</label>
+              <input id="promoScheduleWeek" type="number" min="1" step="1">
+            </div>
+            <div class="field">
+              <label for="promoScheduleDay">Schedule Day</label>
+              <select id="promoScheduleDay">
+                <option value="">Day</option>
+                <option value="0">Sun</option>
+                <option value="1">Mon</option>
+                <option value="2">Tue</option>
+                <option value="3">Wed</option>
+                <option value="4">Thu</option>
+                <option value="5">Fri</option>
+                <option value="6">Sat</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="promoScheduleTimeframe">Timeframe</label>
+              <select id="promoScheduleTimeframe"></select>
+            </div>
+          </div>
+          <div class="tiny muted">Leave schedule fields blank to run immediately; scheduled promos reserve slots and post to eyeriSocial on the event time.</div>
           <div class="actions">
             <button id="promoBtn" type="button">Fund Promo Push</button>
           </div>
@@ -1597,13 +1640,6 @@
               <input id="tourNameInput" type="text" data-tour-lock>
             </div>
             <div class="field">
-              <label for="tourGoalSelect">Goal</label>
-              <select id="tourGoalSelect" data-tour-lock>
-                <option value="visibility">Visibility</option>
-                <option value="revenue">Revenue</option>
-              </select>
-            </div>
-            <div class="field">
               <label for="tourActSelect">Act</label>
               <select id="tourActSelect" data-tour-lock></select>
             </div>
@@ -1627,10 +1663,17 @@
               <input id="tourWindowEnd" type="number" min="1" step="1" data-tour-lock>
             </div>
           </div>
-          <div class="field">
-            <label for="tourNotes">Notes</label>
-            <textarea id="tourNotes" rows="3" data-tour-lock></textarea>
+          <div class="form-grid">
+            <div class="field">
+              <label for="tourAutoCount">Auto Dates</label>
+              <input id="tourAutoCount" type="number" min="1" step="1" data-tour-lock>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button id="tourAutoGenerateBtn" type="button" class="ghost mini" data-tour-lock>Auto Generate</button>
+            </div>
           </div>
+          <div class="tiny muted">Auto-generate uses the tour window and current venue filters.</div>
           <div id="tourPlannerMeta" class="tiny muted"></div>
         </div>
       </div>

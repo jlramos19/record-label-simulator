@@ -24,6 +24,8 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 ## Naming data
 - DEC-20251225-007: Creator name pools live in `src/app/game/names.ts`, sourced from `game-design-documents/03-Systems/record-label-simulator-alphabet-and-vocabulary.md`, ASCII-normalized, and mapped to Annglora/Bytenza/Crowlya regional lore.
 - DEC-20251225-008: Creator name pools are language-specific (Annglora = English, Bytenza = Korean, Crowlya = Spanish), with Bytenza surnames constrained to single Hangul syllable blocks and given names weighted toward 2/3/4 syllable blocks (85%/12.5%/2.5%); this supersedes the earlier vocabulary-source constraint for creator pools.
+- DEC-20251226-008: Solo act name generation excludes `groups_formations` nouns; the category weight is 0 for solo acts.
+- DEC-20251226-009: Act names use semantic adjective+noun IDs with 15x20 pools, nation-weighted category bias, solo/group grammar, and Bytenza UI stacking (Hangul primary, English secondary, RR available for tooltip/debug).
 
 ## Economy + analytics
 - DEC-20251226-001: Eras view replaces the Tracks panel with an Era Performance panel, showing per-track type, chart points, sales/stream metrics, costs, earnings, and an embedded chart history table for the focused era.
@@ -38,7 +40,7 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 - DEC-20251226-005: Chart scoring applies homeland bonuses from Act + Creator origins and uses Gaia nation relationship lore to bias international audience response.
 
 ## Cheater mode
-- DEC-20251226-004: Cheater mode unlocks economy tuning in the tutorial and disables achievements + quests while active.
+- DEC-20251226-004: Cheater mode unlocks economy tuning in the tutorial and disables achievements + tasks while active.
 
 ## Game start defaults
 - DEC-20251226-007: New games default to Modern Mode (2400), Medium difficulty, Fast speed (1h = 1s), and auto-save enabled every 2 minutes.

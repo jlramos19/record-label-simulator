@@ -32,6 +32,7 @@ import {
   renderActs,
   renderAll,
   renderAutoAssignModal,
+  renderCalendarDayDetail,
   renderCalendarList,
   renderCalendarView,
   renderCharts,
@@ -92,6 +93,7 @@ const {
   startMasterStage,
   advanceHours,
   makeActName,
+  makeActNameEntry,
   makeAct,
   pickDistinct,
   getAct,
@@ -111,6 +113,7 @@ const {
   createRolloutStrategyForEra,
   createRolloutStrategyFromTemplate,
   createTourDraft,
+  autoGenerateTourDates,
   updateTourDraft,
   deleteTourDraft,
   getSelectedTourDraft,
@@ -177,6 +180,7 @@ const {
   getPromoFacilityForType,
   getPromoFacilityAvailability,
   reservePromoFacilitySlot,
+  scheduleManualPromoEvent,
   ensureMarketCreators,
   attemptSignCreator,
   listGameModes,
@@ -712,9 +716,7 @@ const VIEW_DEFAULTS = {
   dashboard: {
     "dashboard-overview": VIEW_PANEL_STATES.open,
     "dashboard-pipeline": VIEW_PANEL_STATES.open,
-    "dashboard-charts": VIEW_PANEL_STATES.open,
-    "dashboard-eras": VIEW_PANEL_STATES.open,
-    "dashboard-achievements": VIEW_PANEL_STATES.open
+    "dashboard-focus": VIEW_PANEL_STATES.open
   },
   charts: {
     "charts": VIEW_PANEL_STATES.open
@@ -1918,6 +1920,47 @@ function promoWeeksFromBudget(budget) {
   return clamp(Math.floor(budget / 1200) + 1, 1, 4);
 }
 
+function listPromoTimeframesSafe() {
+  return Array.isArray(PROMO_TIMEFRAMES) ? PROMO_TIMEFRAMES : [];
+}
+
+function resolvePromoScheduleEpochMs(week, dayIndex, timeframeId) {
+  if (!Number.isFinite(week) || !Number.isFinite(dayIndex) || !timeframeId) return null;
+  const frames = listPromoTimeframesSafe();
+  const frame = frames.find((entry) => entry.id === timeframeId);
+  if (!frame) return null;
+  const safeWeek = Math.max(1, Math.round(week));
+  const safeDay = clamp(Math.round(dayIndex), 0, 6);
+  const hourMs = 60 * 60 * 1000;
+  return weekStartEpochMs(safeWeek) + safeDay * 24 * hourMs + frame.startHour * hourMs;
+}
+
+function getPromoScheduleState() {
+  const rawWeek = state.ui?.promoScheduleWeek;
+  const rawDay = state.ui?.promoScheduleDay;
+  const weekValue = rawWeek === null || rawWeek === undefined || rawWeek === ""
+    ? null
+    : Number(rawWeek);
+  const dayValue = rawDay === null || rawDay === undefined || rawDay === ""
+    ? null
+    : Number(rawDay);
+  const timeframeId = state.ui?.promoScheduleTimeframe || "";
+  const hasWeek = Number.isFinite(weekValue);
+  const hasDay = Number.isFinite(dayValue);
+  const hasFrame = Boolean(timeframeId);
+  const wantsSchedule = hasWeek || hasDay || hasFrame;
+  const complete = hasWeek && hasDay && hasFrame;
+  const epochMs = complete ? resolvePromoScheduleEpochMs(weekValue, dayValue, timeframeId) : null;
+  return {
+    wantsSchedule,
+    complete,
+    epochMs,
+    week: weekValue,
+    day: dayValue,
+    timeframeId
+  };
+}
+
 function normalizePromoBudgetValue(raw, typeId, inflationMultiplier) {
   const baseCost = getPromoTypeCosts(typeId, inflationMultiplier).adjustedCost;
   const parsed = Number(raw);
@@ -2225,7 +2268,8 @@ function formatPromoFacilityWindowLabel(availability) {
 function buildPromoFacilityHint(typeId) {
   const facility = getPromoFacilityForType(typeId);
   if (!facility) return "";
-  const availability = getPromoFacilityAvailability(facility);
+  const scheduleState = getPromoScheduleState();
+  const availability = getPromoFacilityAvailability(facility, scheduleState.complete ? scheduleState.epochMs : undefined);
   const label = facility === "broadcast" ? "Broadcast slots" : "Filming slots";
   const windowLabel = formatPromoFacilityWindowLabel(availability);
   return ` | ${label} (${windowLabel}): ${availability.available}/${availability.capacity}`;
@@ -2246,8 +2290,10 @@ function buildPromoFacilityHints(typeIds) {
   const needs = getPromoFacilityNeeds(typeIds);
   const entries = Object.entries(needs);
   if (!entries.length) return "";
+  const scheduleState = getPromoScheduleState();
+  const availabilityEpoch = scheduleState.complete ? scheduleState.epochMs : undefined;
   return entries.map(([facilityId, count]) => {
-    const availability = getPromoFacilityAvailability(facilityId);
+    const availability = getPromoFacilityAvailability(facilityId, availabilityEpoch);
     const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
     const neededLabel = count > 1 ? ` (need ${count})` : "";
     const windowLabel = formatPromoFacilityWindowLabel(availability);
@@ -2685,6 +2731,17 @@ function bindGlobalHandlers() {
     });
   }
   on("calendarClose", "click", () => closeOverlay("calendarModal"));
+  on("calendarDayClose", "click", () => closeOverlay("calendarDayModal"));
+  root.addEventListener("click", (e) => {
+    const trigger = e.target.closest("[data-calendar-day-more]");
+    if (!trigger) return;
+    const dayTs = Number(trigger.dataset.dayTs || trigger.closest("[data-day-ts]")?.dataset.dayTs);
+    if (!Number.isFinite(dayTs)) return;
+    if (!state.ui) state.ui = {};
+    state.ui.calendarDayFocus = dayTs;
+    renderCalendarDayDetail(dayTs);
+    openOverlay("calendarDayModal");
+  });
   if (!UI_REACT_ISLANDS_ENABLED) {
     const calendarModal = $("calendarModal");
     if (calendarModal) {
@@ -3078,6 +3135,19 @@ function bindViewHandlers(route, root) {
     });
   }
 
+  const dashboardFocusTabs = root.querySelector("#dashboardFocusTabs");
+  if (dashboardFocusTabs) {
+    dashboardFocusTabs.addEventListener("click", (e) => {
+      const tab = e.target.closest(".tab");
+      if (!tab) return;
+      const next = tab.dataset.dashboardFocus || "charts";
+      if (next === state.ui.dashboardFocusPanel) return;
+      state.ui.dashboardFocusPanel = next;
+      renderAll({ save: false });
+      saveToActiveSlot();
+    });
+  }
+
   const syncCreatePanelToggles = () => {
     const help = root.querySelector("#createHelp");
     const helpBtn = root.querySelector("#createHelpToggle");
@@ -3301,10 +3371,9 @@ function bindViewHandlers(route, root) {
         );
         const lockouts = getPromoTypeLockouts(trackContext);
         if (lockouts[typeId]) {
-          const message = typeId === "musicVideo" && lockouts[typeId] === "Used"
-            ? "Music video promo already used for this track."
-            : "Music video promo unlocks after release.";
-          logEvent(message, "warn");
+          const details = getPromoTypeDetails(typeId);
+          const reason = typeof lockouts[typeId] === "string" ? lockouts[typeId] : "Unavailable";
+          logEvent(`${details.label} locked: ${reason}.`, "warn");
           return;
         }
         const selected = ensurePromoTypeSelection(root, select ? select.value : DEFAULT_PROMO_TYPE, lockouts);
@@ -3375,9 +3444,8 @@ function bindViewHandlers(route, root) {
     });
     on("tourDraftCreateBtn", "click", () => {
       const actId = root.querySelector("#tourActSelect")?.value || null;
-      const goal = root.querySelector("#tourGoalSelect")?.value || "visibility";
       const era = actId ? getLatestActiveEraForAct(actId) : null;
-      const draft = createTourDraft({ actId, eraId: era?.id || null, goal });
+      const draft = createTourDraft({ actId, eraId: era?.id || null });
       setTourNotice(`Tour draft created: ${draft.name}.`, "info");
       logUiEvent("action_submit", { action: "tour_create", tourId: draft.id, actId, eraId: draft.eraId });
       renderTouringDesk();
@@ -3399,14 +3467,6 @@ function bindViewHandlers(route, root) {
       const draft = getDraft();
       if (!draft) return;
       updateTourDraft(draft.id, { name: e.target.value });
-      clearTourNotice();
-      renderTouringDesk();
-      saveToActiveSlot();
-    });
-    on("tourGoalSelect", "change", (e) => {
-      const draft = getDraft();
-      if (!draft) return;
-      updateTourDraft(draft.id, { goal: e.target.value });
       clearTourNotice();
       renderTouringDesk();
       saveToActiveSlot();
@@ -3473,13 +3533,41 @@ function bindViewHandlers(route, root) {
       renderTouringDesk();
       saveToActiveSlot();
     });
-    on("tourNotes", "change", (e) => {
-      const draft = getDraft();
-      if (!draft) return;
-      updateTourDraft(draft.id, { notes: e.target.value });
-      clearTourNotice();
+    on("tourAutoCount", "change", (e) => {
+      if (!state.ui) state.ui = {};
+      const raw = Math.round(Number(e.target.value || 0));
+      state.ui.tourAutoCount = Math.max(1, raw || 1);
       renderTouringDesk();
       saveToActiveSlot();
+    });
+    on("tourAutoGenerateBtn", "click", () => {
+      const draft = getDraft();
+      if (!draft) {
+        renderTouringDesk();
+        return;
+      }
+      const count = Math.max(1, Math.round(Number(state.ui?.tourAutoCount || 1)));
+      const filters = state.ui?.tourVenueFilters || {};
+      const result = autoGenerateTourDates({
+        draftId: draft.id,
+        count,
+        startWeek: draft.window?.startWeek ?? null,
+        endWeek: draft.window?.endWeek ?? null,
+        filters
+      });
+      if (!result.ok) {
+        setTourNotice(result.reason || "Auto-generate failed.", "warn");
+        logUiEvent("action_submit", { action: "tour_auto_fail", tourId: draft.id, code: result.code });
+      } else {
+        const revenueLabel = Number.isFinite(result.projectedRevenue)
+          ? ` (Projected revenue ${formatMoney(result.projectedRevenue)}).`
+          : ".";
+        setTourNotice(`Auto-generated ${result.booked?.length || 0} tour date(s)${revenueLabel}`, "info");
+        logUiEvent("action_submit", { action: "tour_auto_generate", tourId: draft.id, count });
+      }
+      renderTouringDesk();
+      saveToActiveSlot();
+      emitStateChanged();
     });
     on("tourBalanceToggle", "change", (e) => {
       const enabled = Boolean(e.target.checked);
@@ -3709,6 +3797,30 @@ function bindViewHandlers(route, root) {
     openOverlay("calendarModal");
   });
 
+  on("promoScheduleWeek", "change", (e) => {
+    if (!state.ui) state.ui = {};
+    const raw = String(e.target.value || "").trim();
+    const week = raw ? Math.max(1, Math.round(Number(raw))) : null;
+    state.ui.promoScheduleWeek = Number.isFinite(week) ? week : null;
+    saveToActiveSlot();
+  });
+  on("promoScheduleDay", "change", (e) => {
+    if (!state.ui) state.ui = {};
+    const raw = String(e.target.value || "");
+    if (!raw) {
+      state.ui.promoScheduleDay = null;
+    } else {
+      const day = clamp(Math.round(Number(raw)), 0, 6);
+      state.ui.promoScheduleDay = Number.isFinite(day) ? day : null;
+    }
+    saveToActiveSlot();
+  });
+  on("promoScheduleTimeframe", "change", (e) => {
+    if (!state.ui) state.ui = {};
+    const value = String(e.target.value || "");
+    state.ui.promoScheduleTimeframe = value || null;
+    saveToActiveSlot();
+  });
   on("promoBtn", "click", runPromotion);
   on("promoFocusPickBtn", "click", pickPromoTargetsFromFocus);
   on("autoRolloutToggle", "change", (e) => {
@@ -3882,7 +3994,21 @@ function bindViewHandlers(route, root) {
     $("labelNameInput").value = makeLabelName();
   });
   on("actNameRandom", "click", () => {
-    $("actName").value = makeActName();
+    const input = $("actName");
+    const type = $("actTypeSelect").value;
+    const actKind = type === "Solo Act" ? "solo" : "group";
+    const memberIds = [
+      state.ui.actSlots.lead,
+      state.ui.actSlots.member2,
+      state.ui.actSlots.member3
+    ].filter(Boolean);
+    const entry = makeActNameEntry({ actKind, memberIds });
+    input.value = entry.name;
+    input.dataset.nameKey = entry.nameKey;
+  });
+  on("actName", "input", (e) => {
+    const target = e.target;
+    if (target?.dataset) delete target.dataset.nameKey;
   });
   on("labelAlignment", "change", (e) => {
     state.label.alignment = e.target.value;
@@ -5054,7 +5180,11 @@ function getCreatorsOverActLimit(memberIds, actCounts) {
 }
 
 function createActFromUI() {
-  const name = $("actName").value.trim() || makeActName();
+  const nameInput = $("actName");
+  const inputName = nameInput.value.trim();
+  const inputNameKey = nameInput.dataset.nameKey || null;
+  let name = inputName;
+  let nameKey = inputNameKey;
   const type = $("actTypeSelect").value;
   const alignment = $("actAlignmentSelect").value;
   const lead = state.ui.actSlots.lead;
@@ -5082,11 +5212,20 @@ function createActFromUI() {
     logEvent(`Cannot create act: ${names} ${verb} already in ${CREATOR_ACT_LIMIT} acts.`, "warn");
     return;
   }
-  const act = makeAct({ name, type, alignment, memberIds: members });
+  const actKind = type === "Solo Act" ? "solo" : "group";
+  if (!name) {
+    const generated = makeActNameEntry({ actKind, memberIds: members });
+    name = generated.name;
+    nameKey = generated.nameKey;
+  } else if (!inputNameKey) {
+    nameKey = null;
+  }
+  const act = makeAct({ name, nameKey, type, alignment, memberIds: members });
   state.acts.push(act);
   logUiEvent("action_submit", { action: "create_act", actId: act.id, type });
   logEvent(`Created ${act.type} "${act.name}".`);
-  $("actName").value = "";
+  nameInput.value = "";
+  delete nameInput.dataset.nameKey;
   state.ui.trackSlots.actId = act.id;
   renderActs();
   renderCreators();
@@ -5110,9 +5249,12 @@ function createQuickAct() {
   const pool = eligibleCreators.map((creator) => creator.id);
   const groupSize = chooseGroup && pool.length >= 3 && Math.random() < 0.5 ? 3 : 2;
   const memberIds = pickDistinct(pool, chooseGroup ? groupSize : 1);
-  const type = memberIds.length > 1 ? "Group Act" : "Solo Act";
+  const actKind = memberIds.length > 1 ? "group" : "solo";
+  const type = actKind === "group" ? "Group Act" : "Solo Act";
+  const actNameEntry = makeActNameEntry({ actKind, memberIds });
   const act = makeAct({
-    name: makeActName(),
+    name: actNameEntry.name,
+    nameKey: actNameEntry.nameKey,
     type,
     alignment: state.label.alignment,
     memberIds
@@ -5347,6 +5489,7 @@ function renameActById(actId, nextName) {
   }
   if (act.name === name) return;
   act.name = name;
+  act.nameKey = null;
   logEvent(`Act renamed to "${act.name}".`);
   renderActs();
   renderTracks();
@@ -5543,9 +5686,20 @@ function runPromotion() {
     logEvent("Track is not active on the market.", "warn");
     return;
   }
+  const scheduleState = getPromoScheduleState();
+  if (scheduleState.wantsSchedule && !scheduleState.complete) {
+    logEvent("Select a schedule week, day, and timeframe or clear them to run now.", "warn");
+    return;
+  }
+  const scheduledAt = scheduleState.complete ? scheduleState.epochMs : null;
+  if (scheduledAt && scheduledAt <= state.time.epochMs) {
+    logEvent("Scheduled promo time must be in the future.", "warn");
+    return;
+  }
+  const availabilityEpoch = scheduledAt || state.time.epochMs;
   const facilityNeeds = getPromoFacilityNeeds(effectiveTypes);
   for (const [facilityId, count] of Object.entries(facilityNeeds)) {
-    const availability = getPromoFacilityAvailability(facilityId);
+    const availability = getPromoFacilityAvailability(facilityId, availabilityEpoch);
     if (availability.available < count) {
       const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
       const plural = count === 1 ? "type" : "types";
@@ -5557,7 +5711,12 @@ function runPromotion() {
   for (const promoType of effectiveTypes) {
     const facilityId = getPromoFacilityForType(promoType);
     if (!facilityId) continue;
-    const reservation = reservePromoFacilitySlot(facilityId, promoType, trackContext.track?.id || null, { actId: act.id });
+    const reservation = reservePromoFacilitySlot(
+      facilityId,
+      promoType,
+      trackContext.track?.id || null,
+      { actId: act.id, epochMs: availabilityEpoch }
+    );
     if (!reservation.ok) {
       logEvent(reservation.reason || "No facility slots available for the current timeframe.", "warn");
       return;
@@ -5578,6 +5737,52 @@ function runPromotion() {
     weeksByType[promoType] = weeks;
     boostWeeks = Math.max(boostWeeks, weeks);
   });
+  if (scheduledAt) {
+    const promoTargetType = trackContext.track ? "track" : project ? "project" : "act";
+    const promoProjectName = trackContext.track?.projectName || project?.projectName || null;
+    const labelName = state.label?.name || "Record Label";
+    const contentId = trackContext.track ? trackContext.track.id : project ? projectId : null;
+    const frameLabel = listPromoTimeframesSafe().find((frame) => frame.id === scheduleState.timeframeId)?.label || "";
+    const dayLabel = DAYS?.[scheduleState.day] || "Day";
+    const scheduleLabel = frameLabel ? `${dayLabel} ${frameLabel}` : dayLabel;
+    for (const promoType of effectiveTypes) {
+      const budget = budgets[promoType];
+      const weeks = weeksByType[promoType] || boostWeeks;
+      const scheduled = scheduleManualPromoEvent({
+        promoType,
+        actId: act.id,
+        contentId,
+        scheduledAt,
+        budget,
+        weeks,
+        targetType: promoTargetType,
+        label: labelName,
+        projectName: promoProjectName,
+        facilityId: getPromoFacilityForType(promoType)
+      });
+      if (!scheduled.ok) {
+        logEvent(scheduled.reason || "Promo schedule failed.", "warn");
+        return;
+      }
+      logUiEvent("action_submit", {
+        action: "promotion_schedule",
+        actId: act.id,
+        projectId: projectId || null,
+        projectName: promoProjectName || null,
+        trackId: trackContext.track?.id || null,
+        targetType: promoTargetType,
+        budget,
+        weeks,
+        promoType,
+        scheduledAt,
+        totalCost
+      });
+    }
+    const promoLabels = effectiveTypes.map((promoType) => getPromoTypeDetails(promoType).label).join(", ");
+    logEvent(`Promo push scheduled for ${formatDate(scheduledAt)} (${scheduleLabel}) (${promoLabels}).`);
+    renderAll();
+    return;
+  }
   const findMarketEntry = (entry) => {
     if (!entry) return null;
     if (entry.marketId) {

@@ -15,8 +15,6 @@ import {
   BYTENZA_SURNAMES
 } from "./names/bytenza.js";
 import {
-  ACT_NAME_TRANSLATIONS,
-  ACT_NAMES,
   ERA_NAME_TEMPLATES,
   LABEL_NAMES,
   NAME_PARTS,
@@ -48,8 +46,6 @@ const CREATOR_NAME_PARTS = {
 };
 
 export {
-  ACT_NAME_TRANSLATIONS,
-  ACT_NAMES,
   CREATOR_NAME_PARTS,
   EAST_ASIAN_NAMES,
   ERA_NAME_TEMPLATES,
@@ -63,3 +59,7 @@ export {
   TRACK_TITLE_TEMPLATES,
   WESTERN_NAMES
 };
+
+export * from "./names/act-name-pools.js";
+export * from "./names/act-name-generator.js";
+export * from "./names/act-name-renderer.js";

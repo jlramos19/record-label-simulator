@@ -4,7 +4,7 @@ import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, read
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
-import { ACT_NAME_TRANSLATIONS, ACT_NAMES, CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLE_TRANSLATIONS, PROJECT_TITLES } from "./game/names.js";
+import { CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLE_TRANSLATIONS, PROJECT_TITLES, generateActNamePair, generateUniqueActNamePairs, getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation } from "./game/names.js";
 import { AI_CREATE_BUDGET_PCT, AI_CREATE_MIN_CASH, AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
 import { evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks, getProjectTrackLimits, normalizeProjectName, normalizeProjectType } from "./game/project-tracks.js";
 import { buildDefaultTrackSlotVisibility, buildEmptyTrackSlotList, parseTrackRoleTarget, roleLabel, trackRoleLimit } from "./game/track-roles.js";
@@ -358,6 +358,7 @@ function makeDefaultState() {
             },
             calendarWeekIndex: null,
             sidePanelRestore: {},
+            dashboardFocusPanel: "charts",
             activeView: "dashboard",
             tutorialTab: "loops"
         },
@@ -493,10 +494,10 @@ function setCheaterMode(enabled) {
         state.meta = makeDefaultState().meta;
     state.meta.cheaterMode = next;
     if (next) {
-        logEvent("Cheater mode enabled. Achievements and quests are disabled while active.", "warn");
+        logEvent("Cheater mode enabled. Achievements and tasks are disabled while active.", "warn");
     }
     else {
-        logEvent("Cheater mode disabled. Achievements and quests restored.", "info");
+        logEvent("Cheater mode disabled. Achievements and tasks restored.", "info");
         if (!state.quests.length)
             refreshQuestPool();
     }
@@ -705,7 +706,8 @@ const PROMO_GAP_PENALTY_PER_TYPE = 3;
 const PROMO_GAP_PENALTY_MAX = 9;
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
     .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
-const TOUR_GOALS = ["visibility", "revenue"];
+const TOUR_GOALS = ["balanced"];
+const TOUR_GOAL_DEFAULT = "balanced";
 const TOUR_LEAD_MIN_WEEKS = 2;
 const TOUR_LEAD_MAX_WEEKS = 6;
 const TOUR_WEEKLY_MAX_DATES = 2;
@@ -713,10 +715,16 @@ const TOUR_REST_DAY_MIN = 1;
 const TOUR_TRAVEL_BUFFER_MIN = 1;
 const TOUR_WARNING_SELLTHROUGH_LOW = 0.5;
 const TOUR_WARNING_SELLTHROUGH_HIGH = 0.95;
+const TOUR_BOOKING_SELLTHROUGH_MIN = 0.35;
+const TOUR_BOOKING_COST_BUFFER = 1.05;
 const TOUR_FAN_GAIN_VISIBILITY = 0.35;
 const TOUR_FAN_GAIN_REVENUE = 0.2;
+const TOUR_FAN_GAIN_BALANCED = 0.28;
 const TOUR_VISIBILITY_PROMO_MAX = 4;
 const TOUR_VISIBILITY_PROMO_MIN = 1;
+const TOUR_CONCERT_SEGMENT_COUNT = 3;
+const TOUR_CONCERT_INTEREST_BASE = 0.9;
+const TOUR_CONCERT_INTEREST_MAX = 1.15;
 const CREATOR_SKILL_GAIN_BY_STAGE = [0.15, 0.25, 0.4];
 const CREATOR_SKILL_DECAY_GRACE_WEEKS = 6;
 const CREATOR_SKILL_DECAY_STEP_WEEKS = 2;
@@ -729,6 +737,15 @@ const STAGE_COST_SKILL_MAX = 1.45;
 const MARKET_MIN_PER_ROLE = 10;
 const RIVAL_MIN_PER_ROLE = 10;
 const MARKET_ROLES = ["Songwriter", "Performer", "Producer"];
+const CATHARSIS_LEVEL_COUNT = 10;
+const MARKET_CATHARSIS_LEVEL_CAP = 5;
+const MARKET_CATHARSIS_LEVEL_WEIGHTS = [
+    { level: 1, weight: 30 },
+    { level: 2, weight: 25 },
+    { level: 3, weight: 20 },
+    { level: 4, weight: 15 },
+    { level: 5, weight: 10 }
+];
 const CREATOR_ROSTER_CAP = 125;
 const STUDIO_CAP_PER_LABEL = 50;
 const ACHIEVEMENT_TARGET = 12;
@@ -1953,6 +1970,13 @@ function getReleaseAsapHours(epochMs = state.time.epochMs) {
 function getReleaseAsapAt(epochMs = state.time.epochMs) {
     return epochMs + getReleaseAsapHours(epochMs) * HOUR_MS;
 }
+function alignReleaseAtToProcessing(epochMs) {
+    if (!Number.isFinite(epochMs))
+        return epochMs;
+    if (isScheduledTime(epochMs, WEEKLY_SCHEDULE.releaseProcessing))
+        return epochMs;
+    return getReleaseAsapAt(epochMs);
+}
 function getUtcDayIndex(epochMs) {
     return getUtcDayHourMinute(epochMs).day;
 }
@@ -1965,6 +1989,66 @@ function endOfDayEpochMs(epochMs) {
 function weekStartEpochMs(weekNumber) {
     const safeWeek = Math.max(1, Math.floor(Number(weekNumber) || 1));
     return getWeekAnchorEpochMs() + (safeWeek - 1) * WEEK_HOURS * HOUR_MS;
+}
+const AUDIENCE_AGE_GROUP_SPAN = 4;
+const AUDIENCE_AGE_GROUP_COUNT = 30;
+function buildAudienceAgeGroupDefinitions() {
+    return Array.from({ length: AUDIENCE_AGE_GROUP_COUNT }, (_, index) => {
+        const minAge = index * AUDIENCE_AGE_GROUP_SPAN;
+        const maxAge = minAge + AUDIENCE_AGE_GROUP_SPAN - 1;
+        const generationIndex = Math.floor(minAge / 16);
+        const generationStart = generationIndex * 16;
+        const generationLabel = `${generationStart}-${generationStart + 15}`;
+        return {
+            index,
+            minAge,
+            maxAge,
+            label: `${minAge}-${maxAge}`,
+            generationIndex,
+            generationLabel
+        };
+    });
+}
+const AUDIENCE_AGE_GROUPS = buildAudienceAgeGroupDefinitions();
+function buildAudienceAgeGroupWeights() {
+    return AUDIENCE_AGE_GROUPS.map((group) => {
+        const midpoint = (group.minAge + group.maxAge) / 2;
+        const youthCurve = Math.exp(-Math.pow((midpoint - 24) / 18, 2));
+        const adultCurve = Math.exp(-Math.pow((midpoint - 45) / 28, 2));
+        const base = 0.35 + 0.65 * ((youthCurve + adultCurve) / 2);
+        return clamp(base, 0.2, 1.2);
+    });
+}
+function allocateByShare(total, shares) {
+    const safeTotal = Math.max(0, Math.round(Number(total) || 0));
+    if (!safeTotal)
+        return shares.map(() => 0);
+    const raw = shares.map((share) => share * safeTotal);
+    const rounded = raw.map((value) => Math.round(value));
+    let diff = safeTotal - rounded.reduce((sum, value) => sum + value, 0);
+    if (diff !== 0) {
+        const ranked = raw
+            .map((value, index) => ({ index, frac: value - Math.floor(value) }))
+            .sort((a, b) => b.frac - a.frac);
+        const steps = Math.min(Math.abs(diff), ranked.length);
+        for (let i = 0; i < steps; i += 1) {
+            const target = ranked[i % ranked.length].index;
+            rounded[target] += diff > 0 ? 1 : -1;
+        }
+    }
+    return rounded;
+}
+function buildAudienceAgeGroupDistribution(total) {
+    const safeTotal = Math.max(0, Math.round(Number(total) || 0));
+    const weights = buildAudienceAgeGroupWeights();
+    const weightSum = weights.reduce((sum, value) => sum + value, 0) || 1;
+    const shares = weights.map((value) => value / weightSum);
+    const counts = allocateByShare(safeTotal, shares);
+    return AUDIENCE_AGE_GROUPS.map((group, index) => ({
+        ...group,
+        share: shares[index] || 0,
+        count: counts[index] || 0
+    }));
 }
 function rolloutReleaseTimestampForWeek(weekNumber) {
     const weekStart = weekStartEpochMs(weekNumber);
@@ -2513,7 +2597,7 @@ function getPromoFacilityAvailability(facilityId, epochMs = state.time.epochMs) 
 function reservePromoFacilitySlot(facilityId, promoType, trackId, options = {}) {
     if (!facilityId)
         return { ok: true, booking: null };
-    const now = state.time.epochMs;
+    const now = Number.isFinite(options.epochMs) ? options.epochMs : state.time.epochMs;
     const actId = options.actId || (trackId ? getTrack(trackId)?.actId : null);
     const facilities = ensurePromoFacilities();
     const window = resolvePromoTimeframeWindow(now, { allowFuture: true });
@@ -2586,6 +2670,31 @@ function reservePromoFacilitySlot(facilityId, promoType, trackId, options = {}) 
     };
     facilities[facilityId].bookings.push(booking);
     return { ok: true, booking, availability: studioPick.availability };
+}
+function scheduleManualPromoEvent({ promoType, actId = null, contentId = null, scheduledAt, budget = 0, weeks = 1, targetType = null, label = null, projectName = null, facilityId = null } = {}) {
+    if (!Number.isFinite(scheduledAt) || scheduledAt <= state.time.epochMs) {
+        return { ok: false, reason: "Scheduled promo time must be in the future." };
+    }
+    const entry = {
+        id: uid("SE"),
+        scheduledAt,
+        actionType: promoType || DEFAULT_PROMO_TYPE,
+        contentId: contentId || null,
+        actId: actId || null,
+        eraId: null,
+        status: "Scheduled",
+        facilityId: facilityId || getPromoFacilityForType(promoType) || null,
+        source: "manualPromo",
+        budget: Math.max(0, Math.round(Number(budget || 0))),
+        weeks: Math.max(1, Math.round(Number(weeks || 1))),
+        targetType,
+        label,
+        projectName,
+        createdAt: state.time.epochMs,
+        completedAt: null
+    };
+    ensureScheduledEventsStore().push(entry);
+    return { ok: true, entry };
 }
 function promoFacilityNeeds(typeIds) {
     const list = Array.isArray(typeIds) ? typeIds : [typeIds];
@@ -2785,7 +2894,7 @@ catch (e) {
 function postQuestEmail(quest) {
     const contact = labelContactInfo();
     const labelHandle = handleFromName(contact.labelName, "Label");
-    const subject = `Quest: ${quest.text}`;
+    const subject = `Task: ${quest.text}`;
     const expReward = Math.round(quest.expReward ?? (quest.reward / 8));
     postSocial({
         handle: labelHandle,
@@ -2817,7 +2926,7 @@ function postQuestComplete(quest) {
     const expReward = Math.round(quest.expReward ?? (quest.reward / 8));
     postSocial({
         handle: "@eyeriStories",
-        title: `Quest complete: ${quest.id}`,
+        title: `Task complete: ${quest.id}`,
         lines: [
             `${state.label.name} fulfilled "${quest.text}".`,
             `Reward issued: ${formatMoney(quest.reward)} + ${formatCount(expReward)} EXP.`
@@ -3671,9 +3780,41 @@ function creatorPreferredGenres(creator) {
     });
     return list;
 }
-function makeActName() {
-    const existing = state.acts.map((act) => act.name);
-    return pickUniqueName(ACT_NAMES, existing, "Collective");
+function resolveActKindFromType(type) {
+    return type === "solo" || type === "Solo Act" ? "solo" : "group";
+}
+function resolveActCountryFromMemberIds(memberIds) {
+    const countries = listFromIds(memberIds).map((id) => getCreator(id)?.country).filter(Boolean);
+    return dominantValue(countries, null);
+}
+function listActNameKeys(list = state.acts, actKind = null) {
+    return list
+        .filter((act) => !actKind || resolveActKindFromType(act?.type) === actKind)
+        .map((act) => act?.nameKey)
+        .filter(Boolean);
+}
+function makeActNameEntry({ nation, rng, existingKeys, actKind = "group", memberIds } = {}) {
+    const resolvedActKind = resolveActKindFromType(actKind);
+    const resolvedNation = nation
+        || resolveActCountryFromMemberIds(memberIds)
+        || state.label.country
+        || "Annglora";
+    const usedKeys = existingKeys || listActNameKeys(state.acts, resolvedActKind);
+    const [pair] = generateUniqueActNamePairs({
+        count: 1,
+        nation: resolvedNation,
+        actKind: resolvedActKind,
+        rng,
+        existingKeys: usedKeys
+    });
+    const resolved = pair || generateActNamePair({ nation: resolvedNation, actKind: resolvedActKind, rng });
+    return {
+        name: renderActNameByNation(resolved.nameKey, resolvedNation, resolvedActKind),
+        nameKey: resolved.nameKey
+    };
+}
+function makeActName({ nation, rng, actKind = "group", memberIds } = {}) {
+    return makeActNameEntry({ nation, rng, actKind, memberIds }).name;
 }
 function makeLabelName() {
     const existing = [state.label.name];
@@ -3690,10 +3831,11 @@ function makeEraName(actName) {
     });
     return composed;
 }
-function makeAct({ name, type, alignment, memberIds }) {
+function makeAct({ name, nameKey = null, type, alignment, memberIds }) {
     return {
         id: uid("AC"),
         name,
+        nameKey,
         type,
         alignment,
         memberIds,
@@ -3711,12 +3853,54 @@ function seedActs() {
         return;
     const members = state.creators.slice(0, Math.min(3, state.creators.length)).map((creator) => creator.id);
     const type = members.length > 1 ? "Group Act" : "Solo Act";
+    const actKind = resolveActKindFromType(type);
+    const actNameEntry = makeActNameEntry({ actKind, memberIds: members });
     state.acts.push(makeAct({
-        name: makeActName(),
+        name: actNameEntry.name,
+        nameKey: actNameEntry.nameKey,
         type,
         alignment: state.label.alignment,
         memberIds: members
     }));
+}
+function catharsisPointsPerLevel() {
+    return Math.max(1, Math.floor(STAMINA_MAX / CATHARSIS_LEVEL_COUNT));
+}
+function marketCatharsisCap() {
+    const step = catharsisPointsPerLevel();
+    return Math.min(STAMINA_MAX, step * MARKET_CATHARSIS_LEVEL_CAP - 1);
+}
+function pickWeightedEntry(list) {
+    if (!Array.isArray(list) || !list.length)
+        return null;
+    const total = list.reduce((sum, entry) => sum + (entry.weight || 0), 0);
+    if (total <= 0)
+        return list[0];
+    let roll = rand(1, total);
+    for (const entry of list) {
+        roll -= entry.weight || 0;
+        if (roll <= 0)
+            return entry;
+    }
+    return list[list.length - 1];
+}
+function randomMarketCatharsisStamina() {
+    const step = catharsisPointsPerLevel();
+    const pick = pickWeightedEntry(MARKET_CATHARSIS_LEVEL_WEIGHTS) || { level: 1 };
+    const min = Math.max(1, (pick.level - 1) * step);
+    const max = Math.min(pick.level * step - 1, marketCatharsisCap());
+    return rand(min, Math.max(min, max));
+}
+function applyMarketCreatorCatharsis(creator) {
+    if (!creator)
+        return;
+    const cap = marketCatharsisCap();
+    const current = Number.isFinite(creator.stamina) ? creator.stamina : null;
+    if (!Number.isFinite(current) || current > cap) {
+        creator.stamina = randomMarketCatharsisStamina();
+        return;
+    }
+    creator.stamina = clampStamina(current);
 }
 function buildMarketCreators(options = {}) {
     const list = [];
@@ -3724,6 +3908,7 @@ function buildMarketCreators(options = {}) {
     MARKET_ROLES.forEach((role) => {
         for (let i = 0; i < MARKET_MIN_PER_ROLE; i += 1) {
             const creator = normalizeCreator(makeCreator(role, existing(), null, options));
+            applyMarketCreatorCatharsis(creator);
             creator.signCost = computeSignCost(creator);
             list.push(creator);
         }
@@ -3738,6 +3923,7 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
     state.marketCreators = state.marketCreators.filter((creator) => creator && typeof creator === "object" && creator.role);
     state.marketCreators = state.marketCreators.map((creator) => {
         const next = normalizeCreator(creator);
+        applyMarketCreatorCatharsis(next);
         next.signCost = computeSignCost(next);
         return next;
     });
@@ -3749,6 +3935,7 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
         const missing = Math.max(0, MARKET_MIN_PER_ROLE - current);
         for (let i = 0; i < missing; i += 1) {
             const creator = normalizeCreator(makeCreator(role, existing(), null, options));
+            applyMarketCreatorCatharsis(creator);
             creator.signCost = computeSignCost(creator);
             state.marketCreators.push(creator);
         }
@@ -3985,13 +4172,31 @@ function makeTrackTitleByCountrySeeded(theme, mood, country, rng) {
     const base = seededPickUniqueName(pool, existing, "II", rng);
     return base;
 }
-function makeRivalActName() {
-    const existing = state.marketTracks.map((track) => track.actName);
-    return pickUniqueName(ACT_NAMES, existing, "Unit");
+function listMarketActNameKeys(list = state.marketTracks) {
+    return list.map((track) => track?.actNameKey).filter(Boolean);
 }
-function makeRivalActNameSeeded(rng) {
-    const existing = state.marketTracks.map((track) => track.actName);
-    return seededPickUniqueName(ACT_NAMES, existing, "Unit", rng);
+function makeRivalActNameEntry({ nation, rng, existingKeys, actKind = "group" } = {}) {
+    const resolvedNation = nation || "Annglora";
+    const resolvedActKind = resolveActKindFromType(actKind);
+    const usedKeys = existingKeys || listMarketActNameKeys();
+    const [pair] = generateUniqueActNamePairs({
+        count: 1,
+        nation: resolvedNation,
+        actKind: resolvedActKind,
+        rng,
+        existingKeys: usedKeys
+    });
+    const resolved = pair || generateActNamePair({ nation: resolvedNation, actKind: resolvedActKind, rng });
+    return {
+        name: renderActNameByNation(resolved.nameKey, resolvedNation, resolvedActKind),
+        nameKey: resolved.nameKey
+    };
+}
+function makeRivalActName() {
+    return makeRivalActNameEntry().name;
+}
+function makeRivalActNameSeeded(rng, nation, actKind = "group") {
+    return makeRivalActNameEntry({ rng, nation, actKind }).name;
 }
 function makeProjectTitle() {
     const existing = [
@@ -5804,6 +6009,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
         label: state.label.name,
         actId: track.actId,
         actName: act ? act.name : "Unknown Act",
+        actNameKey: act?.nameKey || null,
         eraId: track.eraId || null,
         eraName: resolvedEra ? resolvedEra.name : null,
         projectName,
@@ -5865,7 +6071,8 @@ function scheduleRelease(track, hoursFromNow, distribution, note) {
         logEvent("Scheduled releases must target a future time. Defaulting to +1h.", "warn");
         scheduleHours = 1;
     }
-    const releaseAt = state.time.epochMs + scheduleHours * HOUR_MS;
+    const requestedAt = state.time.epochMs + scheduleHours * HOUR_MS;
+    const releaseAt = alignReleaseAtToProcessing(requestedAt);
     const dist = distribution || "Digital";
     const feeResult = applyReleaseDistributionFee(dist);
     if (!feeResult.ok) {
@@ -5881,7 +6088,7 @@ function scheduleRelease(track, hoursFromNow, distribution, note) {
         track.status = "Scheduled";
     ensureEraForTrack(track, "Release scheduled", { releaseType: track.releaseType, mode: "schedule" });
     const feeNote = feeResult.fee ? ` Distribution fee: ${formatMoney(feeResult.fee)}.` : "";
-    logEvent(`Scheduled "${track.title}" for release in ${scheduleHours}h.${feeNote}`);
+    logEvent(`Scheduled "${track.title}" for release on ${formatDate(releaseAt)}.${feeNote}`);
     if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("rls:state-changed"));
     }
@@ -6221,6 +6428,148 @@ function scheduleRolloutEvent(strategy, era, weekIndex, eventItem, eventIndex, m
     }
     return { ok: true, scheduled: true };
 }
+function resolveScheduledPromoTarget(entry) {
+    const act = entry?.actId ? getAct(entry.actId) : null;
+    const targetType = entry?.targetType
+        || (entry?.contentId && parsePromoProjectKey(entry.contentId) ? "project" : entry?.contentId ? "track" : "act");
+    const project = targetType === "project" && entry?.contentId ? parsePromoProjectKey(entry.contentId) : null;
+    const track = targetType === "track" && entry?.contentId ? getTrack(entry.contentId) : null;
+    return { act, track, project, targetType };
+}
+function applyScheduledPromoEntry(entry, now) {
+    if (!entry)
+        return { ok: false, reason: "Scheduled promo missing." };
+    const promoType = entry.actionType || DEFAULT_PROMO_TYPE;
+    const details = getPromoTypeDetails(promoType);
+    const { act, track, project, targetType } = resolveScheduledPromoTarget(entry);
+    if (!act)
+        return { ok: false, reason: "Scheduled promo requires an Act." };
+    if (details.requiresTrack && !track && !project) {
+        return { ok: false, reason: `${details.label || "Promo"} requires a track.` };
+    }
+    if (track && track.actId && track.actId !== act.id) {
+        return { ok: false, reason: "Scheduled promo track does not match the Act." };
+    }
+    if (project && project.actId && project.actId !== act.id) {
+        return { ok: false, reason: "Scheduled promo project does not match the Act." };
+    }
+    if (promoType === "musicVideo" && track && track.status !== "Released") {
+        return { ok: false, reason: "Music video promo requires a released track." };
+    }
+    const projectTargets = project ? listPromoEligibleTracksForProject(project) : [];
+    if (project && details.requiresTrack && !projectTargets.length) {
+        return { ok: false, reason: "Scheduled promo project has no eligible tracks." };
+    }
+    const market = track && track.status === "Released"
+        ? state.marketTracks.find((entry) => entry.id === track.marketId)
+        : null;
+    if (track && track.status === "Released" && !market) {
+        return { ok: false, reason: "Scheduled promo track is not active on the market." };
+    }
+    const budget = Math.max(0, Math.round(Number(entry.budget || 0)));
+    const weeks = Math.max(1, Math.round(Number(entry.weeks || promoWeeksFromBudget(budget))));
+    const boostWeeks = weeks;
+    if (track) {
+        const promo = track.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
+        if (track.status === "Released" && market) {
+            market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
+        }
+        else {
+            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+        }
+        if (promoType === "musicVideo")
+            promo.musicVideoUsed = true;
+        track.promo = promo;
+    }
+    else if (projectTargets.length) {
+        projectTargets.forEach((entryTrack) => {
+            if (entryTrack.status === "Released") {
+                const marketEntry = entryTrack.marketId
+                    ? state.marketTracks.find((marketEntry) => marketEntry.id === entryTrack.marketId)
+                    : state.marketTracks.find((marketEntry) => marketEntry.trackId === entryTrack.id);
+                if (marketEntry)
+                    marketEntry.promoWeeks = Math.max(marketEntry.promoWeeks || 0, boostWeeks);
+                return;
+            }
+            const promo = entryTrack.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
+            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+            if (promoType === "musicVideo")
+                promo.musicVideoUsed = true;
+            entryTrack.promo = promo;
+        });
+    }
+    act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
+    state.meta.promoRuns = (state.meta.promoRuns || 0) + 1;
+    const promoIds = new Set([...(act.memberIds || [])]);
+    if (track) {
+        (track.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
+        (track.creators?.performerIds || []).forEach((id) => promoIds.add(id));
+        (track.creators?.producerIds || []).forEach((id) => promoIds.add(id));
+    }
+    else if (projectTargets.length) {
+        projectTargets.forEach((entryTrack) => {
+            (entryTrack.creators?.songwriterIds || []).forEach((id) => promoIds.add(id));
+            (entryTrack.creators?.performerIds || []).forEach((id) => promoIds.add(id));
+            (entryTrack.creators?.producerIds || []).forEach((id) => promoIds.add(id));
+        });
+    }
+    const promoIdList = Array.from(promoIds).filter(Boolean);
+    if (promoIdList.length)
+        markCreatorPromo(promoIdList);
+    if (track) {
+        recordPromoUsage({ track, market, act, promoType, atMs: now });
+    }
+    else {
+        recordPromoUsage({ act, promoType, atMs: now });
+    }
+    const promoProjectName = project?.projectName || track?.projectName || entry.projectName || null;
+    const postTitle = track?.title || promoProjectName || act.name;
+    const releaseDate = (() => {
+        if (track?.status === "Released")
+            return formatDate(track.releasedAt || now);
+        const scheduled = track
+            ? state.releaseQueue.find((release) => release.trackId === track.id)
+            : null;
+        if (scheduled?.releaseAt)
+            return formatDate(scheduled.releaseAt);
+        if (projectTargets.length) {
+            const latest = projectTargets
+                .map((entryTrack) => (entryTrack.status === "Released" ? entryTrack.releasedAt : state.releaseQueue.find((release) => release.trackId === entryTrack.id)?.releaseAt))
+                .filter(Number.isFinite)
+                .sort((a, b) => b - a)[0];
+            if (latest)
+                return formatDate(latest);
+        }
+        return formatDate(now);
+    })();
+    recordPromoContent({
+        promoType,
+        actId: act.id,
+        actName: act.name,
+        trackId: track?.id || null,
+        marketId: market?.id || null,
+        trackTitle: track ? track.title : promoProjectName || act.name,
+        projectName: promoProjectName,
+        label: entry.label || state.label?.name || "",
+        budget,
+        weeks,
+        isPlayer: true,
+        targetType: targetType || (track ? "track" : project ? "project" : "act")
+    });
+    if (typeof postFromTemplate === "function") {
+        postFromTemplate(promoType, {
+            trackTitle: postTitle,
+            actName: act.name,
+            releaseDate,
+            channel: track?.distribution || "Broadcast",
+            handle: handleFromName(state.label?.name || "Label", "Label"),
+            cost: budget,
+            requirement: details.requirement
+        });
+        uiHooks.renderEventLog?.();
+    }
+    return { ok: true };
+}
 function expandRolloutStrategy(strategyId, { mode = "manual" } = {}) {
     const strategy = getRolloutStrategyById(strategyId);
     if (!strategy) {
@@ -6289,6 +6638,21 @@ function processScheduledEvents() {
             return;
         if (entry.scheduledAt > now)
             return;
+        if (entry.source === "manualPromo") {
+            const result = applyScheduledPromoEntry(entry, now);
+            if (!result.ok) {
+                entry.status = "Cancelled";
+                entry.completedAt = now;
+                entry.lastAttemptReason = result.reason || "Promo execution failed.";
+                logEvent(`Scheduled promo cancelled: ${entry.lastAttemptReason}`, "warn");
+                return;
+            }
+            entry.status = "Completed";
+            entry.completedAt = now;
+            const label = rolloutEventLabel(entry.actionType);
+            logEvent(`Scheduled promo executed: ${label}.`);
+            return;
+        }
         entry.status = "Completed";
         entry.completedAt = now;
         const track = entry.contentId ? getTrack(entry.contentId) : null;
@@ -7220,6 +7584,7 @@ function buildChartSnapshot(scope, entries) {
                 label: entry.track?.label || entry.label || base.label || "",
                 actId: entry.track?.actId || entry.actId || base.actId || null,
                 actName: entry.track?.actName || entry.actName || base.actName || "",
+                actNameKey: entry.track?.actNameKey || entry.actNameKey || base.actNameKey || null,
                 country: entry.track?.country || entry.country || base.country || "",
                 theme: entry.track?.theme || entry.theme || base.theme || "",
                 mood: entry.track?.mood || entry.mood || base.mood || "",
@@ -7376,6 +7741,13 @@ const TOUR_TIER_DEFAULTS = {
         maxDatesMax: 18
     }
 };
+const TOUR_TIER_REQUIREMENTS = {
+    Club: { minActPeak: null, minFans: 0, minSellThrough: TOUR_BOOKING_SELLTHROUGH_MIN },
+    Theater: { minActPeak: 200, minFans: 8000, minSellThrough: Math.max(0.32, TOUR_BOOKING_SELLTHROUGH_MIN) },
+    Amphitheater: { minActPeak: 120, minFans: 20000, minSellThrough: Math.max(0.38, TOUR_BOOKING_SELLTHROUGH_MIN) },
+    Arena: { minActPeak: 60, minFans: 75000, minSellThrough: Math.max(0.42, TOUR_BOOKING_SELLTHROUGH_MIN) },
+    Stadium: { minActPeak: 25, minFans: 160000, minSellThrough: Math.max(0.5, TOUR_BOOKING_SELLTHROUGH_MIN) }
+};
 function ensureTouringStore() {
     if (!state.touring || typeof state.touring !== "object") {
         state.touring = { drafts: [], bookings: [], lastDraftId: 0 };
@@ -7420,6 +7792,13 @@ function selectTourDraft(draftId) {
     state.ui.tourDraftId = draftId || null;
     return getSelectedTourDraft();
 }
+function normalizeTourGoal(goal) {
+    if (goal === "visibility" || goal === "revenue")
+        return TOUR_GOAL_DEFAULT;
+    if (TOUR_GOALS.includes(goal))
+        return goal;
+    return TOUR_GOAL_DEFAULT;
+}
 function createTourDraft({ name, actId, eraId, goal, anchorTrackIds, anchorProjectId, window, notes } = {}) {
     const touring = ensureTouringStore();
     touring.lastDraftId = Math.max(0, Math.round(Number(touring.lastDraftId) || 0) + 1);
@@ -7430,7 +7809,7 @@ function createTourDraft({ name, actId, eraId, goal, anchorTrackIds, anchorProje
         name: typeof name === "string" && name.trim() ? name.trim() : defaultName,
         actId: actId || null,
         eraId: eraId || null,
-        goal: TOUR_GOALS.includes(goal) ? goal : "visibility",
+        goal: normalizeTourGoal(goal),
         anchorTrackIds: Array.isArray(anchorTrackIds) ? anchorTrackIds.filter(Boolean) : [],
         anchorProjectId: typeof anchorProjectId === "string" ? anchorProjectId : null,
         window: {
@@ -7457,8 +7836,8 @@ function updateTourDraft(draftId, updates = {}) {
         draft.actId = updates.actId;
     if (typeof updates.eraId === "string" || updates.eraId === null)
         draft.eraId = updates.eraId;
-    if (TOUR_GOALS.includes(updates.goal))
-        draft.goal = updates.goal;
+    if (typeof updates.goal === "string")
+        draft.goal = normalizeTourGoal(updates.goal);
     if (Array.isArray(updates.anchorTrackIds))
         draft.anchorTrackIds = updates.anchorTrackIds.filter(Boolean);
     if (typeof updates.anchorProjectId === "string" || updates.anchorProjectId === null)
@@ -7575,6 +7954,96 @@ function tourLeadWeeks(scheduledAt) {
     const delta = scheduledAt - state.time.epochMs;
     return Math.max(0, delta / WEEK_MS);
 }
+function resolveChartEntryMeta(entry) {
+    const track = entry?.track || entry?.anchor || null;
+    return {
+        actId: track?.actId || entry?.actId || null,
+        actNameKey: track?.actNameKey || entry?.actNameKey || null,
+        trackId: track?.trackId || track?.id || entry?.trackId || null
+    };
+}
+function bestChartRankForAct(entries, { actId, actNameKey, trackId } = {}) {
+    let best = null;
+    (entries || []).forEach((entry) => {
+        if (!entry)
+            return;
+        const meta = resolveChartEntryMeta(entry);
+        const isActMatch = (actId && meta.actId === actId) || (actNameKey && meta.actNameKey === actNameKey);
+        const isTrackMatch = trackId && meta.trackId === trackId;
+        if (!isActMatch && !isTrackMatch)
+            return;
+        const rank = Number(entry.rank || entry.peak || 0);
+        if (!Number.isFinite(rank) || rank <= 0)
+            return;
+        best = best === null ? rank : Math.min(best, rank);
+    });
+    return best;
+}
+function chartRankBoost(rank, size, minBoost, maxBoost) {
+    if (!Number.isFinite(rank) || rank <= 0)
+        return 0;
+    const span = Math.max(1, Number(size || 1) - 1);
+    const pct = clamp(1 - (rank - 1) / span, 0, 1);
+    return minBoost + pct * (maxBoost - minBoost);
+}
+function resolveTourChartingBoost({ actId, actNameKey, trackId, regionId, nation }) {
+    const regionEntries = regionId ? state.charts?.regions?.[regionId] || [] : [];
+    const nationEntries = nation ? state.charts?.nations?.[nation] || [] : [];
+    const globalEntries = state.charts?.global || [];
+    const regionRank = bestChartRankForAct(regionEntries, { actId, actNameKey, trackId });
+    const nationRank = bestChartRankForAct(nationEntries, { actId, actNameKey, trackId });
+    const globalRank = bestChartRankForAct(globalEntries, { actId, actNameKey, trackId });
+    const regionBoost = chartRankBoost(regionRank, CHART_SIZES?.region || 40, 0.05, 0.2);
+    const nationBoost = chartRankBoost(nationRank, CHART_SIZES?.nation || 100, 0.04, 0.14);
+    const globalBoost = chartRankBoost(globalRank, CHART_SIZES?.global || 200, 0.03, 0.12);
+    const boost = Math.max(regionBoost, nationBoost * 0.85, globalBoost * 0.7);
+    return clamp(1 + boost, 0.9, 1.25);
+}
+function resolveAgeGroupsForScope(scopeId, snapshot) {
+    if (!snapshot)
+        return [];
+    if (!scopeId || scopeId === "global")
+        return snapshot.ageGroups || [];
+    if (NATIONS.includes(scopeId)) {
+        return snapshot.nations?.find((entry) => entry.nation === scopeId)?.ageGroups || snapshot.ageGroups || [];
+    }
+    const region = REGION_DEFS.find((entry) => entry.id === scopeId);
+    if (region && NATIONS.includes(region.nation)) {
+        return snapshot.nations?.find((entry) => entry.nation === region.nation)?.ageGroups || snapshot.ageGroups || [];
+    }
+    return snapshot.ageGroups || [];
+}
+function pickConcertInterestSegments(scopeId, groupCount, epochMs) {
+    const total = Math.max(1, Math.floor(groupCount || 0));
+    const picks = new Set();
+    const week = Number.isFinite(epochMs) ? weekIndexForEpochMs(epochMs) + 1 : weekIndex() + 1;
+    const seed = makeStableSeed([scopeId || "global", week, "concert-segments"]);
+    const rng = makeSeededRng(seed);
+    const target = Math.min(TOUR_CONCERT_SEGMENT_COUNT, total);
+    while (picks.size < target) {
+        picks.add(Math.floor(rng() * total));
+    }
+    return picks;
+}
+function resolveConcertInterestMultiplier(scopeId, epochMs) {
+    const snapshot = computePopulationSnapshot();
+    const groups = resolveAgeGroupsForScope(scopeId, snapshot);
+    if (!groups.length)
+        return 1;
+    const picks = pickConcertInterestSegments(scopeId, groups.length, epochMs);
+    const total = Number(snapshot.total || 0) || groups.reduce((sum, group) => sum + Number(group.count || 0), 0) || 1;
+    let activeShare = 0;
+    groups.forEach((group, index) => {
+        if (!picks.has(index))
+            return;
+        const share = Number.isFinite(group.share) ? group.share : Math.max(0, Number(group.count || 0) / total);
+        activeShare += share;
+    });
+    const base = TOUR_CONCERT_INTEREST_BASE;
+    const max = TOUR_CONCERT_INTEREST_MAX;
+    const boost = clamp(activeShare / 0.35, 0, 1) * (max - base);
+    return clamp(base + boost, base, max);
+}
 function computeTourProjection({ draft, act, era, venue, scheduledAt, anchor }) {
     const tier = getTourTierConfig(venue?.tier) || TOUR_TIER_DEFAULTS.Club;
     const capacity = Math.max(1, Number(venue?.capacity || tier.capacityMin || 500));
@@ -7591,9 +8060,24 @@ function computeTourProjection({ draft, act, era, venue, scheduledAt, anchor }) 
     const promoScale = 5000;
     const promoEfficiency = 0.35;
     const promoLift = 1 + Math.log1p((promoWeeks * (ECONOMY_TUNING?.promoWeekBudgetStep || 1200)) / promoScale) * promoEfficiency;
-    const goalWeight = draft?.goal === "revenue" ? 0.95 : 1.1;
     const momentum = tourEraMomentum(era);
-    const desiredAttendance = baseDemand * trendFit * regionAffinity * announceLead * tier.drawMultiplier * promoLift * goalWeight * momentum;
+    const chartingBoost = resolveTourChartingBoost({
+        actId: act?.id || null,
+        actNameKey: act?.nameKey || null,
+        trackId: anchor?.trackId || anchor?.id || null,
+        regionId: venue?.regionId || null,
+        nation: venue?.nation || null
+    });
+    const concertInterest = resolveConcertInterestMultiplier(venue?.regionId || venue?.nation || "global", scheduledAt);
+    const desiredAttendance = baseDemand
+        * trendFit
+        * regionAffinity
+        * announceLead
+        * tier.drawMultiplier
+        * promoLift
+        * momentum
+        * chartingBoost
+        * concertInterest;
     const sellThrough = clamp(desiredAttendance / capacity, 0.2, 1.1);
     const attendance = Math.min(capacity, roundToAudienceChunk(capacity * sellThrough));
     const regionPriceIndex = tourRegionPriceIndex(venue);
@@ -7601,7 +8085,7 @@ function computeTourProjection({ draft, act, era, venue, scheduledAt, anchor }) 
     const ticketPrice = roundMoney(tier.baseTicketPrice * regionPriceIndex * qualityPremium);
     const grossTicket = Math.round(attendance * ticketPrice);
     const merch = Math.round(attendance * tier.merchAttachRate * tier.merchSpendPerFan);
-    const sponsorship = Math.round((tier.sponsorBase || 0) * momentum * goalWeight);
+    const sponsorship = Math.round((tier.sponsorBase || 0) * momentum);
     const revenue = Math.round(grossTicket + merch + sponsorship);
     const staffing = Math.round(tier.staffingBase + attendance * 0.4);
     const travel = Math.round(tier.travelBase);
@@ -7657,6 +8141,56 @@ function buildTourWarnings({ actId, venue, scheduledAt, projection, draftId }) {
     }
     return warnings;
 }
+function getTourTierRequirement(tier) {
+    if (!tier)
+        return { minActPeak: null, minFans: 0, minSellThrough: TOUR_BOOKING_SELLTHROUGH_MIN };
+    return TOUR_TIER_REQUIREMENTS[tier] || { minActPeak: null, minFans: 0, minSellThrough: TOUR_BOOKING_SELLTHROUGH_MIN };
+}
+function evaluateTourBookingEligibility({ act, venue, projection }) {
+    if (!act || !venue) {
+        return { ok: false, reason: "Tour eligibility requires an Act and venue.", code: "TOUR_TIER_LOCKED" };
+    }
+    const tierReq = getTourTierRequirement(venue.tier);
+    if (Number.isFinite(tierReq.minActPeak) && tierReq.minActPeak > 0) {
+        const actPeak = getActPrestigePeak(act.id);
+        if (!Number.isFinite(actPeak) || actPeak > tierReq.minActPeak) {
+            return {
+                ok: false,
+                reason: `Tour tier requires a Top ${tierReq.minActPeak} chart peak.`,
+                code: "TOUR_TIER_LOCKED"
+            };
+        }
+    }
+    const fanTotal = Math.max(0, Number(state.label?.fans || 0));
+    if (Number.isFinite(tierReq.minFans) && fanTotal < tierReq.minFans) {
+        return {
+            ok: false,
+            reason: `Tour tier requires ${formatCount(tierReq.minFans)} label fans.`,
+            code: "TOUR_TIER_LOCKED"
+        };
+    }
+    const sellThrough = Number(projection?.sellThrough || 0);
+    if (Number.isFinite(tierReq.minSellThrough) && sellThrough < tierReq.minSellThrough) {
+        return {
+            ok: false,
+            reason: "Projected sell-through below booking threshold.",
+            code: "TOUR_DEMAND_LOW"
+        };
+    }
+    const costs = Math.max(0, Math.round(Number(projection?.costs || 0)));
+    if (costs > 0) {
+        const budgetNeed = Math.round(costs * TOUR_BOOKING_COST_BUFFER);
+        const cash = Math.max(0, Number(state.label?.wallet?.cash ?? state.label?.cash ?? 0));
+        if (cash < budgetNeed) {
+            return {
+                ok: false,
+                reason: `Insufficient cash for booking costs (${formatMoney(budgetNeed)}).`,
+                code: "TOUR_BUDGET_SHORT"
+            };
+        }
+    }
+    return { ok: true };
+}
 function validateTourBooking({ draft, venue, scheduledAt }) {
     if (!draft)
         return { ok: false, reason: "Select a tour draft first.", code: "TOUR_NO_DRAFT" };
@@ -7699,7 +8233,20 @@ function validateTourBooking({ draft, venue, scheduledAt }) {
     if (conflicts.length) {
         return { ok: false, reason: "Act already booked for this date.", code: "TOUR_SLOT_CONFLICT" };
     }
-    return { ok: true, act, era, releases };
+    const anchor = resolveTourAnchor(draft, act.id, era.id);
+    const projection = computeTourProjection({
+        draft,
+        act,
+        era,
+        venue,
+        scheduledAt,
+        anchor: anchor.primary
+    });
+    const eligibility = evaluateTourBookingEligibility({ act, venue, projection });
+    if (!eligibility.ok) {
+        return { ok: false, reason: eligibility.reason, code: eligibility.code, act, era, releases, projection, anchor };
+    }
+    return { ok: true, act, era, releases, projection, anchor };
 }
 function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
     const draft = getTourDraftById(draftId);
@@ -7716,8 +8263,8 @@ function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
         return validation;
     }
     const { act, era } = validation;
-    const anchor = resolveTourAnchor(draft, act.id, era.id);
-    const projection = computeTourProjection({
+    const anchor = validation.anchor || resolveTourAnchor(draft, act.id, era.id);
+    const projection = validation.projection || computeTourProjection({
         draft,
         act,
         era,
@@ -7732,9 +8279,10 @@ function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
         tourName: draft.name || "",
         actId: act.id,
         actName: act.name,
+        actNameKey: act.nameKey || null,
         eraId: era.id,
         eraName: era.name,
-        goal: draft.goal || "visibility",
+        goal: normalizeTourGoal(draft.goal),
         anchorTrackId: anchor.primary?.trackId || null,
         anchorProjectName: anchor.projectName || null,
         venueId: venue.id,
@@ -7777,8 +8325,104 @@ function removeTourBooking(bookingId) {
     }
     return changed;
 }
+function autoGenerateTourDates({ draftId, count = null, startWeek = null, endWeek = null, filters = {} } = {}) {
+    const draft = getTourDraftById(draftId);
+    if (!draft)
+        return { ok: false, reason: "Select a tour draft first." };
+    if (!draft.actId)
+        return { ok: false, reason: "Tour draft requires an Act." };
+    const act = getAct(draft.actId);
+    if (!act)
+        return { ok: false, reason: "Tour Act not found." };
+    const era = draft.eraId ? getEraById(draft.eraId) : getLatestActiveEraForAct(act.id);
+    if (!era || era.status !== "Active")
+        return { ok: false, reason: "Touring requires an active Era." };
+    const releases = listMarketTracksForAct(act.id, era.id);
+    if (!releases.length)
+        return { ok: false, reason: "Touring requires released Project or Track content." };
+    const fallbackStart = Number.isFinite(draft.window?.startWeek) ? draft.window.startWeek : weekIndex() + 1;
+    const fallbackEnd = Number.isFinite(draft.window?.endWeek) ? draft.window.endWeek : fallbackStart + 5;
+    const windowStart = Math.max(1, Math.round(Number.isFinite(startWeek) ? startWeek : fallbackStart));
+    const windowEnd = Math.max(windowStart, Math.round(Number.isFinite(endWeek) ? endWeek : fallbackEnd));
+    const maxCandidates = Math.max(1, (windowEnd - windowStart + 1) * TOUR_WEEKLY_MAX_DATES);
+    const targetCount = Math.min(Math.max(1, Math.round(Number(count) || Math.min(8, maxCandidates))), maxCandidates);
+    const filterNation = filters.nation || (filters.nation !== "" ? filters.nation : null);
+    const filterRegion = filters.regionId || (filters.regionId !== "" ? filters.regionId : null);
+    const filterTier = filters.tier || (filters.tier !== "" ? filters.tier : null);
+    const venues = listTourVenues({
+        nation: filterNation && filterNation !== "All" ? filterNation : null,
+        regionId: filterRegion && filterRegion !== "All" ? filterRegion : null,
+        tier: filterTier && filterTier !== "All" ? filterTier : null
+    });
+    if (!venues.length)
+        return { ok: false, reason: "No venues available for the selected filters." };
+    const tierOrder = listTourTiers();
+    const tierIndex = (tier) => {
+        const index = tierOrder.indexOf(tier);
+        return index >= 0 ? index : tierOrder.length;
+    };
+    venues.sort((a, b) => {
+        const tierDelta = tierIndex(a.tier) - tierIndex(b.tier);
+        if (tierDelta !== 0)
+            return tierDelta;
+        return (a.capacity || 0) - (b.capacity || 0);
+    });
+    const dayOrder = [5, 6, 4, 3, 2, 1, 0];
+    const booked = [];
+    const weekCounts = {};
+    const hasRestConflict = (scheduledAt) => {
+        const dayKey = tourDayKey(scheduledAt);
+        return listTourBookings({ actId: act.id })
+            .concat(booked)
+            .some((booking) => Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_REST_DAY_MIN);
+    };
+    for (let week = windowStart; week <= windowEnd && booked.length < targetCount; week += 1) {
+        if (!Number.isFinite(weekCounts[week])) {
+            const existingWeekCount = listTourBookings({ tourId: draft.id })
+                .filter((booking) => weekIndexForEpochMs(booking.scheduledAt) + 1 === week).length;
+            weekCounts[week] = existingWeekCount;
+        }
+        for (const day of dayOrder) {
+            if (booked.length >= targetCount)
+                break;
+            if (weekCounts[week] >= TOUR_WEEKLY_MAX_DATES)
+                break;
+            const scheduledAt = weekStartEpochMs(week) + day * DAY_MS;
+            if (scheduledAt <= state.time.epochMs)
+                continue;
+            if (hasRestConflict(scheduledAt))
+                continue;
+            let best = null;
+            venues.forEach((venue) => {
+                const validation = validateTourBooking({ draft, venue, scheduledAt });
+                if (!validation.ok)
+                    return;
+                const projection = validation.projection;
+                if (!projection)
+                    return;
+                const score = Number(projection.profit || 0);
+                if (!best || score > best.score) {
+                    best = { venue, score };
+                }
+            });
+            if (!best)
+                continue;
+            const result = bookTourDate({ draftId: draft.id, venueId: best.venue.id, weekNumber: week, dayIndex: day });
+            if (result.ok && result.booking) {
+                booked.push(result.booking);
+                weekCounts[week] += 1;
+            }
+        }
+    }
+    if (!booked.length) {
+        return { ok: false, reason: "No eligible tour dates found in the selected window." };
+    }
+    const projectionSummary = booked.reduce((sum, booking) => sum + Number(booking.projection?.revenue || 0), 0);
+    logEvent(`Auto-generated ${booked.length} tour date${booked.length === 1 ? "" : "s"} (Projected revenue ${formatMoney(projectionSummary)}).`);
+    return { ok: true, booked, projectedRevenue: projectionSummary };
+}
 function applyTourVisibilityBoost(booking) {
-    if (!booking || booking.goal !== "visibility")
+    if (!booking)
         return;
     const attendance = Number(booking.projection?.attendance || booking.attendance || 0);
     if (!attendance)
@@ -7843,7 +8487,7 @@ function resolveTourBookings(now = state.time.epochMs) {
         pending.count += 1;
         logEvent(`Tour completed: ${booking.actName} at ${booking.venueLabel} (${formatMoney(profit)} net).`);
         if (balanceEnabled) {
-            const gainRate = booking.goal === "visibility" ? TOUR_FAN_GAIN_VISIBILITY : TOUR_FAN_GAIN_REVENUE;
+            const gainRate = TOUR_FAN_GAIN_BALANCED;
             const gain = Math.round(attendance * gainRate);
             pending.fanGain += gain;
             const snapshot = computePopulationSnapshot();
@@ -8053,6 +8697,7 @@ function buildPromoFallbackTrack(entry, act) {
     const genre = theme && mood ? makeGenre(theme, mood) : "";
     const actId = act?.id || entry.actId || null;
     const actName = act?.name || entry.actName || "Unknown";
+    const actNameKey = act?.nameKey || entry.actNameKey || null;
     const label = entry.label || state.label?.name || "Unknown";
     const alignment = act?.alignment || state.label?.alignment || "Neutral";
     const country = entry.country
@@ -8065,6 +8710,7 @@ function buildPromoFallbackTrack(entry, act) {
         projectName: entry.projectName || "",
         actId,
         actName,
+        actNameKey,
         label,
         alignment,
         theme,
@@ -8090,13 +8736,14 @@ function buildPromoAnchorTrack(entry, currentWeek) {
     anchor.label = anchor.label || entry.label || fallback.label;
     anchor.actId = anchor.actId || entry.actId || fallback.actId || null;
     anchor.actName = anchor.actName || entry.actName || fallback.actName || "";
+    anchor.actNameKey = anchor.actNameKey || entry.actNameKey || fallback.actNameKey || null;
     anchor.country = anchor.country || entry.country || fallback.country || "Annglora";
     anchor.isPlayer = typeof entry.isPlayer === "boolean" ? entry.isPlayer : !!anchor.isPlayer;
     anchor.promoWeeks = Math.max(0, promoEntryWeeksRemaining(entry, currentWeek));
     anchor.weeksOnChart = Math.max(0, promoEntryAgeWeeks(entry, currentWeek));
     return anchor;
 }
-function recordPromoContent({ promoType, actId = null, actName = null, trackId = null, marketId = null, trackTitle = null, projectName = null, label = null, budget = 0, weeks = 1, isPlayer = null, targetType = null } = {}) {
+function recordPromoContent({ promoType, actId = null, actName = null, actNameKey = null, trackId = null, marketId = null, trackTitle = null, projectName = null, label = null, budget = 0, weeks = 1, isPlayer = null, targetType = null } = {}) {
     const list = ensurePromoContentStore();
     const resolvedType = promoType || DEFAULT_PROMO_TYPE;
     const details = getPromoTypeDetails(resolvedType);
@@ -8107,6 +8754,7 @@ function recordPromoContent({ promoType, actId = null, actName = null, trackId =
     const resolvedLabel = label || base?.label || (isPlayer ? state.label?.name : "") || "";
     const resolvedActId = act?.id || actId || base?.actId || null;
     const resolvedActName = actName || act?.name || base?.actName || "Unknown";
+    const resolvedActNameKey = actNameKey || act?.nameKey || base?.actNameKey || null;
     const resolvedIsPlayer = typeof isPlayer === "boolean"
         ? isPlayer
         : !!base?.isPlayer || (resolvedLabel && resolvedLabel === state.label?.name);
@@ -8128,6 +8776,7 @@ function recordPromoContent({ promoType, actId = null, actName = null, trackId =
         promoLabel: details.label,
         actId: resolvedActId,
         actName: resolvedActName,
+        actNameKey: resolvedActNameKey,
         trackId: track?.id || trackId || base?.trackId || null,
         marketId: market?.id || marketId || base?.marketId || null,
         trackTitle: resolvedTrackTitle,
@@ -8179,6 +8828,7 @@ function buildPromoChartList(entries, scopeId, scopeKey, size, prevEntries, curr
             promoLabel: item.entry.promoLabel,
             actId: item.entry.actId || anchor.actId || null,
             actName: item.entry.actName || anchor.actName || "Unknown",
+            actNameKey: item.entry.actNameKey || anchor.actNameKey || null,
             trackId: item.entry.trackId || anchor.trackId || null,
             marketId: item.entry.marketId || anchor.marketId || null,
             trackTitle: item.entry.trackTitle || (item.entry.trackId ? anchor.title : "") || "",
@@ -8235,6 +8885,8 @@ function computePromoCharts() {
 function tourActKey(entry) {
     if (entry?.actId)
         return entry.actId;
+    if (entry?.actNameKey)
+        return entry.actNameKey;
     const actName = entry?.actName || "Unknown";
     const label = entry?.label || "Unknown";
     return `${actName}::${label}`;
@@ -8243,7 +8895,13 @@ function ensureTourHistoryEntry(entry) {
     const history = ensureTourHistoryStore();
     const key = entry.actKey;
     if (!history[key]) {
-        history[key] = { actId: entry.actId || null, actName: entry.actName || "", label: entry.label || "", chartHistory: {} };
+        history[key] = {
+            actId: entry.actId || null,
+            actName: entry.actName || "",
+            actNameKey: entry.actNameKey || null,
+            label: entry.label || "",
+            chartHistory: {}
+        };
     }
     if (!history[key].chartHistory || typeof history[key].chartHistory !== "object")
         history[key].chartHistory = {};
@@ -8251,6 +8909,8 @@ function ensureTourHistoryEntry(entry) {
         history[key].actId = entry.actId;
     if (entry.actName && !history[key].actName)
         history[key].actName = entry.actName;
+    if (entry.actNameKey && !history[key].actNameKey)
+        history[key].actNameKey = entry.actNameKey;
     if (entry.label && !history[key].label)
         history[key].label = entry.label;
     return history[key];
@@ -8324,6 +8984,7 @@ function buildTourChartEntry(booking, now) {
     return {
         actId: booking.actId || primaryTrack?.actId || null,
         actName: booking.actName || primaryTrack?.actName || "Unknown",
+        actNameKey: booking.actNameKey || primaryTrack?.actNameKey || null,
         label,
         alignment,
         country,
@@ -8369,14 +9030,16 @@ function buildTourChartList(entries, scopeKey, size, prevEntries) {
             return;
         const actId = entry.actId || track?.actId || null;
         const actName = entry.actName || track?.actName || "Unknown";
+        const actNameKey = entry.actNameKey || track?.actNameKey || null;
         const label = entry.label || track?.label || "Unknown";
-        const key = tourActKey({ actId, actName, label });
+        const key = tourActKey({ actId, actName, actNameKey, label });
         const metrics = entry.metrics || {};
         const score = Number(entry.score || metrics.attendance || 0);
         const existing = grouped.get(key) || {
             actKey: key,
             actId,
             actName,
+            actNameKey,
             label,
             alignment: entry.alignment || track?.alignment || state.label?.alignment || "Neutral",
             country: entry.country || track?.country || "Annglora",
@@ -8702,6 +9365,7 @@ function archiveMarketTracks(entries) {
         label: entry.label || "",
         actId: entry.actId || null,
         actName: entry.actName || "",
+        actNameKey: entry.actNameKey || null,
         projectName: entry.projectName || "",
         projectType: normalizeProjectType(entry.projectType || "Single"),
         releasedAt: entry.releasedAt || now,
@@ -8889,6 +9553,7 @@ function buildProjectedMarketTracks(targetEpochMs) {
                 label: state.label.name,
                 actId: track.actId,
                 actName: act ? act.name : "Unknown Act",
+                actNameKey: act?.nameKey || null,
                 eraId: track.eraId || null,
                 eraName: era ? era.name : null,
                 projectName,
@@ -8946,6 +9611,7 @@ function buildProjectedMarketTracks(targetEpochMs) {
                 label: entry.label || "Unknown",
                 actId: null,
                 actName: entry.actName || "Unknown",
+                actNameKey: entry.actNameKey || null,
                 projectName,
                 projectType,
                 isPlayer: false,
@@ -9490,11 +10156,20 @@ function computeLabelScoresFromCharts() {
     return scores;
 }
 function resolveChartEntryAct(entry) {
-    if (!entry)
-        return { actId: null, actName: "", label: "", country: "", isPlayer: false };
+    if (!entry) {
+        return {
+            actId: null,
+            actName: "",
+            actNameKey: null,
+            label: "",
+            country: "",
+            isPlayer: false
+        };
+    }
     const base = entry.track || entry;
     const actId = entry.actId || base.actId || null;
     const actName = entry.actName || base.actName || "";
+    const actNameKey = entry.actNameKey || base.actNameKey || null;
     const label = entry.label || base.label || "";
     const country = entry.country || base.country || "";
     const isPlayer = typeof entry.isPlayer === "boolean"
@@ -9502,13 +10177,15 @@ function resolveChartEntryAct(entry) {
         : typeof base.isPlayer === "boolean"
             ? base.isPlayer
             : (label && state.label?.name ? label === state.label.name : false);
-    return { actId, actName, label, country, isPlayer };
+    return { actId, actName, actNameKey, label, country, isPlayer };
 }
 function actPopularityKey(info) {
     if (!info)
         return "";
     if (info.actId)
         return `act:${info.actId}`;
+    if (info.actNameKey)
+        return `actkey:${info.actNameKey}`;
     const name = info.actName ? String(info.actName).trim() : "";
     const label = info.label ? String(info.label).trim() : "";
     if (!name && !label)
@@ -9550,6 +10227,7 @@ function addActPopularityPoints(yearEntry, actInfo, points, kind, week, seen) {
     if (!actKey)
         return;
     const fallbackName = actInfo.actName ? actInfo.actName : "Unknown Act";
+    const fallbackNameKey = actInfo.actNameKey || null;
     const fallbackLabel = actInfo.label ? actInfo.label : "Unknown Label";
     const fallbackCountry = actInfo.country ? actInfo.country : "";
     let entry = yearEntry.acts[actKey];
@@ -9557,6 +10235,7 @@ function addActPopularityPoints(yearEntry, actInfo, points, kind, week, seen) {
         entry = {
             actId: actInfo.actId || null,
             actName: fallbackName,
+            actNameKey: fallbackNameKey,
             label: fallbackLabel,
             country: fallbackCountry,
             points: 0,
@@ -9571,6 +10250,8 @@ function addActPopularityPoints(yearEntry, actInfo, points, kind, week, seen) {
     }
     if (!entry.country && fallbackCountry)
         entry.country = fallbackCountry;
+    if (!entry.actNameKey && fallbackNameKey)
+        entry.actNameKey = fallbackNameKey;
     entry.points += points;
     if (kind === "tracks")
         entry.trackPoints += points;
@@ -9872,6 +10553,24 @@ function declineBailout() {
     finalizeGame("loss", "Bankruptcy after declining bailout.");
     return true;
 }
+function rivalAchievementCount(rival) {
+    if (!rival)
+        return 0;
+    const unlocked = Array.isArray(rival.achievementsUnlocked) ? rival.achievementsUnlocked.length : 0;
+    return Math.max(unlocked, rival.achievements || 0);
+}
+function findRivalAchievementWinner() {
+    if (!Array.isArray(state.rivals))
+        return null;
+    const contenders = state.rivals
+        .map((rival) => ({ rival, count: rivalAchievementCount(rival) }))
+        .filter((entry) => entry.count >= ACHIEVEMENT_TARGET);
+    if (!contenders.length)
+        return null;
+    contenders.sort((a, b) => b.count - a.count || String(a.rival.name || "").localeCompare(String(b.rival.name || "")));
+    const winner = contenders[0].rival;
+    return { label: winner?.name || "Rival label", count: contenders[0].count };
+}
 function checkWinLoss(scores) {
     if (state.meta.gameOver)
         return;
@@ -9893,6 +10592,14 @@ function checkWinLoss(scores) {
             announceWin("Completed 12 CEO Requests.");
         }
     }
+    if (!state.meta.winState) {
+        const rivalWinner = findRivalAchievementWinner();
+        if (rivalWinner) {
+            logEvent(`${rivalWinner.label} completed ${ACHIEVEMENT_TARGET} CEO Requests before you.`, "warn");
+            finalizeGame("loss", `${rivalWinner.label} completed ${ACHIEVEMENT_TARGET} CEO Requests before you.`);
+            return;
+        }
+    }
     if (year >= 4000) {
         const currentTop = topLabelFromScores(scores).label;
         const cumulativeTop = topCumulativeLabel().label;
@@ -9901,88 +10608,258 @@ function checkWinLoss(scores) {
         finalizeGame(victory ? "win" : "loss", victory ? "Final Year 4000 verdict." : "Not #1 at Year 4000.");
     }
 }
+const QUEST_FOCUS_REQUESTS = {
+    tracks: ["REQ-01", "REQ-02", "REQ-03"],
+    projects: ["REQ-04", "REQ-05", "REQ-06"],
+    promos: ["REQ-07", "REQ-08", "REQ-09"],
+    tours: ["REQ-10", "REQ-11", "REQ-12"]
+};
+function questFocusRequests(group) {
+    const list = QUEST_FOCUS_REQUESTS[group];
+    return Array.isArray(list) ? list.slice() : [];
+}
+function countReleasedProjects(projectType) {
+    const targetType = projectType ? normalizeProjectType(projectType) : null;
+    const keys = new Set();
+    state.tracks.forEach((track) => {
+        if (track.status !== "Released")
+            return;
+        const type = normalizeProjectType(track.projectType || "Single");
+        if (targetType && type !== targetType)
+            return;
+        const name = normalizeProjectName(track.projectName || `${track.title || "Unknown"} - Single`);
+        keys.add(`${name}::${type}`);
+    });
+    return keys.size;
+}
+function countPlayerTourBookings() {
+    const bookings = Array.isArray(state.touring?.bookings) ? state.touring.bookings : [];
+    const label = state.label?.name || "";
+    return bookings.filter((booking) => booking?.label === label).length;
+}
+function pickQuestChartScope() {
+    const roll = Math.random();
+    if (roll < 0.65)
+        return { scopeType: "global", scopeTarget: "global" };
+    const labelNation = NATIONS.includes(state.label?.country) ? state.label.country : NATIONS[0];
+    return { scopeType: "nation", scopeTarget: labelNation || "Annglora" };
+}
+function questChartTarget(scopeType, week) {
+    if (scopeType === "nation") {
+        if (week < 80)
+            return 10;
+        if (week < 200)
+            return 5;
+        return 3;
+    }
+    if (week < 80)
+        return 20;
+    if (week < 200)
+        return 10;
+    return 5;
+}
+function questChartEntries(scopeType, scopeTarget) {
+    if (scopeType === "nation")
+        return state.charts.nations?.[scopeTarget] || [];
+    if (scopeType === "region")
+        return state.charts.regions?.[scopeTarget] || [];
+    return state.charts.global || [];
+}
+function isPlayerChartEntry(entry) {
+    if (!entry)
+        return false;
+    if (entry.track?.isPlayer || entry.isPlayer)
+        return true;
+    const label = resolveChartEntryLabel(entry);
+    return Boolean(label && label === state.label?.name);
+}
+function bestPlayerChartRank(entries) {
+    const ranks = (entries || [])
+        .filter((entry) => isPlayerChartEntry(entry))
+        .map((entry) => entry.rank)
+        .filter((rank) => Number.isFinite(rank));
+    return ranks.length ? Math.min(...ranks) : null;
+}
+function pickQuestTemplate(pool, usedGroups = [], usedTypes = []) {
+    if (!pool.length)
+        return null;
+    const unlocked = new Set(state.meta?.achievementsUnlocked || []);
+    const remaining = pool.filter((template) => !usedTypes.includes(template.type));
+    const withoutGroup = remaining.filter((template) => !usedGroups.includes(template.focusGroup));
+    const supportsLocked = (template) => (template.focusRequests || []).some((id) => !unlocked.has(id));
+    const preferred = withoutGroup.filter(supportsLocked);
+    const fallbackGroup = withoutGroup.length ? withoutGroup : remaining;
+    const fallbackPreferred = fallbackGroup.filter(supportsLocked);
+    const finalPool = preferred.length ? preferred : (fallbackPreferred.length ? fallbackPreferred : fallbackGroup);
+    return finalPool.length ? pickOne(finalPool) : pickOne(pool);
+}
 function nextQuestId() {
     state.meta.questIdCounter += 1;
     return `CEO-${String(state.meta.questIdCounter).padStart(2, "0")}`;
 }
-function makeQuest(template, existingTypes) {
+function makeQuest(template) {
     const week = weekIndex() + 1;
-    return template(week, existingTypes);
+    const quest = template.build(week);
+    quest.id = nextQuestId();
+    quest.type = template.type || quest.type;
+    quest.focusGroup = template.focusGroup || quest.focusGroup || null;
+    if (!Array.isArray(quest.focusRequests)) {
+        quest.focusRequests = Array.isArray(template.focusRequests) ? template.focusRequests.slice() : [];
+    }
+    if (!Number.isFinite(quest.createdAt))
+        quest.createdAt = state.time.epochMs;
+    if (typeof quest.done !== "boolean")
+        quest.done = false;
+    if (typeof quest.rewarded !== "boolean")
+        quest.rewarded = false;
+    return quest;
 }
 function questTemplates() {
-    return [
-        (week) => {
-            const target = clamp(2 + Math.floor(week / 4), 2, 8);
-            const startCount = state.tracks.filter((track) => track.status === "Released").length;
-            return {
-                id: nextQuestId(),
-                type: "releaseCount",
-                target,
-                progress: 0,
-                startCount,
-                reward: 1500 + target * 650,
-                expReward: 300 + target * 40,
-                story: "CEO Directive: Gaia wants fresh releases to keep the charts alive.",
-                text: `Release ${target} tracks this cycle`,
-                done: false,
-                rewarded: false
-            };
+    const hasReleasedTracks = state.tracks.some((track) => track.status === "Released");
+    const hasActiveEra = getActiveEras().some((entry) => entry.status === "Active");
+    const templates = [
+        {
+            type: "releaseCount",
+            focusGroup: "tracks",
+            focusRequests: questFocusRequests("tracks"),
+            build: (week) => {
+                const target = clamp(2 + Math.floor(week / 4), 2, 8);
+                const startCount = state.tracks.filter((track) => track.status === "Released").length;
+                return {
+                    target,
+                    progress: 0,
+                    startCount,
+                    reward: 1500 + target * 650,
+                    expReward: 300 + target * 40,
+                    story: "CEO Directive: ship new tracks to build chart momentum.",
+                    text: `Release ${target} tracks this cycle`
+                };
+            }
         },
-        () => {
-            const genre = state.trends.length ? pickOne(state.trends) : makeGenre(pickOne(THEMES), pickOne(MOODS));
-            return {
-                id: nextQuestId(),
-                type: "trendRelease",
-                target: 1,
-                progress: 0,
-                genre,
-                createdAt: state.time.epochMs,
-                reward: 3200,
-                expReward: 420,
-                story: `Gaia tip: deliver a ${formatGenreKeyLabel(genre)} track to steer the week.`,
-                text: `Release 1 track in ${formatGenreKeyLabel(genre)}`,
-                done: false,
-                rewarded: false
-            };
+        {
+            type: "trendRelease",
+            focusGroup: "tracks",
+            focusRequests: questFocusRequests("tracks"),
+            build: () => {
+                const genre = state.trends.length ? pickOne(state.trends) : makeGenre(pickOne(THEMES), pickOne(MOODS));
+                return {
+                    target: 1,
+                    progress: 0,
+                    genre,
+                    createdAt: state.time.epochMs,
+                    reward: 3200,
+                    expReward: 420,
+                    story: `Gaia tip: deliver a ${formatGenreKeyLabel(genre)} track to steer the week.`,
+                    text: `Release 1 track in ${formatGenreKeyLabel(genre)}`
+                };
+            }
         },
-        () => {
-            const countries = ["Annglora", "Bytenza", "Crowlya"];
-            const country = pickOne(countries);
-            const target = Math.random() < 0.5 ? 10 : 5;
-            return {
-                id: nextQuestId(),
-                type: "countryTop",
-                country,
-                target,
-                bestRank: null,
-                reward: target <= 5 ? 5200 : 3600,
-                expReward: target <= 5 ? 520 : 420,
-                story: `${country} Critics Council is watching your next move.`,
-                text: `Land a track in ${country} Top ${target}`,
-                done: false,
-                rewarded: false
-            };
+        {
+            type: "chartTop",
+            focusGroup: "tracks",
+            focusRequests: questFocusRequests("tracks"),
+            build: (week) => {
+                const { scopeType, scopeTarget } = pickQuestChartScope();
+                const target = questChartTarget(scopeType, week);
+                const scopeLabel = formatScopeLabel(scopeType, scopeTarget);
+                const reward = target <= 5 ? 5200 : target <= 10 ? 4200 : 3200;
+                const expReward = target <= 5 ? 520 : target <= 10 ? 460 : 420;
+                return {
+                    scopeType,
+                    scopeTarget,
+                    target,
+                    bestRank: null,
+                    reward,
+                    expReward,
+                    story: `CEO Directive: climb ${scopeLabel} charts to pressure yearly awards.`,
+                    text: `Land a track in ${scopeLabel} Top ${target}`
+                };
+            }
         },
-        (week) => ({
-            id: nextQuestId(),
-            type: "cash",
-            target: 65000 + week * 2500,
-            progress: 0,
-            reward: 2400,
-            expReward: 360,
-            story: "eyeriS Corp wants proof of sustainable cashflow this quarter.",
-            text: "Reach a cash milestone",
-            done: false,
-            rewarded: false
-        })
+        {
+            type: "projectRelease",
+            focusGroup: "projects",
+            focusRequests: questFocusRequests("projects"),
+            build: (week) => {
+                const options = week < 12 ? ["Single", "EP"] : ["EP", "Album"];
+                const projectType = pickOne(options);
+                const target = 1;
+                const startCount = countReleasedProjects(projectType);
+                return {
+                    projectType,
+                    target,
+                    progress: 0,
+                    startCount,
+                    reward: 3600,
+                    expReward: 440,
+                    story: "CEO Directive: map a project arc to win project awards.",
+                    text: `Release a ${projectType} project`
+                };
+            }
+        },
+        {
+            type: "promoRuns",
+            focusGroup: "promos",
+            focusRequests: questFocusRequests("promos"),
+            isAvailable: () => hasReleasedTracks,
+            build: (week) => {
+                const target = clamp(1 + Math.floor(week / 10), 1, 4);
+                const startCount = Math.max(0, Math.round(state.meta?.promoRuns || 0));
+                return {
+                    target,
+                    progress: 0,
+                    startCount,
+                    reward: 2400 + target * 420,
+                    expReward: 360 + target * 40,
+                    story: "CEO Directive: flood the feeds to earn promo awards.",
+                    text: `Launch ${target} promo campaign${target === 1 ? "" : "s"}`
+                };
+            }
+        },
+        {
+            type: "tourBookings",
+            focusGroup: "tours",
+            focusRequests: questFocusRequests("tours"),
+            isAvailable: () => hasReleasedTracks && hasActiveEra,
+            build: (week) => {
+                const target = clamp(1 + Math.floor(week / 16), 1, 4);
+                const startCount = countPlayerTourBookings();
+                return {
+                    target,
+                    progress: 0,
+                    startCount,
+                    reward: 3000 + target * 500,
+                    expReward: 420 + target * 40,
+                    story: "CEO Directive: lock tour dates to chase touring awards.",
+                    text: `Book ${target} tour date${target === 1 ? "" : "s"}`
+                };
+            }
+        }
     ];
+    return templates.filter((template) => !template.isAvailable || template.isAvailable());
 }
 function buildQuests() {
     const pool = questTemplates();
+    if (!pool.length) {
+        logEvent("Quest pool is empty; no quests generated.", "warn");
+        return [];
+    }
+    const targetCount = Math.min(3, pool.length);
     const quests = [];
-    while (quests.length < 3) {
-        const template = pickOne(pool);
-        quests.push(makeQuest(template, quests.map((quest) => quest.type)));
+    const usedGroups = [];
+    const usedTypes = [];
+    let attempts = 0;
+    while (quests.length < targetCount && attempts < 12) {
+        const template = pickQuestTemplate(pool, usedGroups, usedTypes);
+        if (!template)
+            break;
+        quests.push(makeQuest(template));
+        usedGroups.push(template.focusGroup);
+        usedTypes.push(template.type);
+        attempts += 1;
+    }
+    if (quests.length < targetCount) {
+        logEvent(`Quest pool shortfall: ${quests.length}/${targetCount} quests seeded.`, "warn");
     }
     return quests;
 }
@@ -10001,9 +10878,32 @@ function updateQuests() {
         }
         if (quest.type === "countryTop") {
             const entries = state.charts.nations[quest.country] || [];
-            const playerEntry = entries.find((entry) => entry.track.isPlayer);
-            quest.bestRank = playerEntry ? playerEntry.rank : quest.bestRank;
+            const bestRank = bestPlayerChartRank(entries);
+            quest.bestRank = bestRank !== null ? bestRank : quest.bestRank;
             quest.done = quest.bestRank !== null && quest.bestRank <= quest.target;
+        }
+        if (quest.type === "chartTop") {
+            const scopeType = quest.scopeType || "global";
+            const scopeTarget = quest.scopeTarget || "global";
+            const entries = questChartEntries(scopeType, scopeTarget);
+            const bestRank = bestPlayerChartRank(entries);
+            quest.bestRank = bestRank !== null ? bestRank : quest.bestRank;
+            quest.done = quest.bestRank !== null && quest.bestRank <= quest.target;
+        }
+        if (quest.type === "projectRelease") {
+            const current = countReleasedProjects(quest.projectType);
+            quest.progress = current - (quest.startCount || 0);
+            quest.done = quest.progress >= quest.target;
+        }
+        if (quest.type === "promoRuns") {
+            const current = Math.max(0, Math.round(state.meta?.promoRuns || 0));
+            quest.progress = current - (quest.startCount || 0);
+            quest.done = quest.progress >= quest.target;
+        }
+        if (quest.type === "tourBookings") {
+            const current = countPlayerTourBookings();
+            quest.progress = current - (quest.startCount || 0);
+            quest.done = quest.progress >= quest.target;
         }
         if (quest.type === "cash") {
             quest.progress = state.label.cash;
@@ -10014,7 +10914,7 @@ function updateQuests() {
             state.label.cash += quest.reward;
             const expGain = Math.round(quest.expReward ?? (quest.reward / 8));
             awardExp(expGain, null, true);
-            logEvent(`Quest complete: ${quest.id}. Reward +${formatMoney(quest.reward)} and ${expGain} EXP.`);
+            logEvent(`Task complete: ${quest.id}. Reward +${formatMoney(quest.reward)} and ${expGain} EXP.`);
             postQuestComplete(quest);
         }
     });
@@ -10024,12 +10924,28 @@ function refreshQuestPool() {
         return;
     const active = state.quests.filter((quest) => !quest.done);
     const pool = questTemplates();
+    if (!pool.length) {
+        logEvent("Quest pool is empty; no quests refreshed.", "warn");
+        return;
+    }
     const newQuests = [];
-    while (active.length < 3) {
-        const template = pickOne(pool);
-        const quest = makeQuest(template, active.map((quest) => quest.type));
+    const targetCount = Math.min(3, pool.length);
+    const usedGroups = active.map((quest) => quest.focusGroup).filter(Boolean);
+    const usedTypes = active.map((quest) => quest.type).filter(Boolean);
+    let attempts = 0;
+    while (active.length < targetCount && attempts < 12) {
+        const template = pickQuestTemplate(pool, usedGroups, usedTypes);
+        if (!template)
+            break;
+        const quest = makeQuest(template);
         active.push(quest);
         newQuests.push(quest);
+        usedGroups.push(template.focusGroup);
+        usedTypes.push(template.type);
+        attempts += 1;
+    }
+    if (active.length < targetCount) {
+        logEvent(`Quest pool shortfall: ${active.length}/${targetCount} quests active.`, "warn");
     }
     state.quests = active;
     newQuests.forEach((quest) => postQuestEmail(quest));
@@ -10426,6 +11342,8 @@ function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek }) 
     const releasePlan = recommendReleasePlan({ genre, quality });
     const crew = pickRivalReleaseCrew(rival, theme, mood);
     const projectType = normalizeProjectType("Single");
+    const actKind = crew.length > 1 ? "group" : "solo";
+    const rivalAct = makeRivalActNameEntry({ rng, nation: rival.country, actKind });
     return {
         id: uid("RR"),
         queueType: "release",
@@ -10435,7 +11353,8 @@ function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek }) 
         releaseAt,
         title: makeTrackTitleByCountrySeeded(theme, mood, rival.country, rng),
         label: rival.name,
-        actName: makeRivalActNameSeeded(rng),
+        actName: rivalAct.name,
+        actNameKey: rivalAct.nameKey,
         projectName: makeProjectTitleSeeded(rng),
         projectType,
         theme,
@@ -10461,6 +11380,7 @@ function planRivalPromoEntry({ rival, husk, promoAt, stepIndex, planWeek, promoT
         releaseAt: promoAt,
         title: details.label,
         actName: "Promotion",
+        actNameKey: null,
         label: rival.name,
         promoType,
         promoSeed: rng()
@@ -10948,6 +11868,7 @@ function processRivalPromoEntry(entry) {
         promoType,
         actId: market.actId || null,
         actName: market.actName || null,
+        actNameKey: market.actNameKey || null,
         trackId: market.trackId || null,
         marketId: market.id,
         trackTitle: isProjectPromo ? market.projectName : market.title,
@@ -10994,6 +11915,7 @@ function processRivalReleaseQueue() {
                 label: entry.label,
                 actId: null,
                 actName: entry.actName,
+                actNameKey: entry.actNameKey || null,
                 projectName: entry.projectName,
                 projectType,
                 isPlayer: false,
@@ -11472,6 +12394,7 @@ function runAutoPromoForPlayer() {
                 promoType,
                 actId: act?.id || track?.actId || null,
                 actName: act?.name || null,
+                actNameKey: act?.nameKey || null,
                 trackId: track?.id || null,
                 marketId: market?.id || null,
                 trackTitle: track ? track.title : projectSpec ? projectSpec.projectName : null,
@@ -11579,6 +12502,7 @@ function runAutoPromoForRivals() {
             promoType,
             actId: market.actId || null,
             actName: market.actName || null,
+            actNameKey: market.actNameKey || null,
             trackId: market.trackId || null,
             marketId: market.id,
             trackTitle: isProjectPromo ? market.projectName : market.title,
@@ -11663,6 +12587,8 @@ function resolveAwardActKey(entry) {
         return null;
     if (entry.actId)
         return entry.actId;
+    if (entry.actNameKey)
+        return `actkey:${entry.actNameKey}`;
     const actName = entry.actName || "Unknown";
     const label = entry.label || "Unknown";
     return `${actName}::${label}`;
@@ -11676,6 +12602,7 @@ function ensureAwardCandidate(store, entry) {
             actKey: key,
             actId: entry.actId || null,
             actName: entry.actName || "Unknown",
+            actNameKey: entry.actNameKey || null,
             label: entry.label || ""
         };
     }
@@ -11685,6 +12612,8 @@ function ensureAwardCandidate(store, entry) {
             candidate.actId = entry.actId;
         if ((!candidate.actName || candidate.actName === "Unknown") && entry.actName)
             candidate.actName = entry.actName;
+        if (!candidate.actNameKey && entry.actNameKey)
+            candidate.actNameKey = entry.actNameKey;
         if (!candidate.label && entry.label)
             candidate.label = entry.label;
     }
@@ -12109,6 +13038,7 @@ async function evaluateAnnualAwards(year) {
             actKey: result.actKey,
             actId: result.actId,
             actName: result.actName,
+            actNameKey: result.actNameKey || null,
             label: result.label,
             primaryValue: result.primaryValue,
             resolvedBy: result.resolvedBy
@@ -12168,7 +13098,7 @@ async function onYearTick(year) {
     await evaluateAnnualAwards(year);
     evaluateAchievements();
     evaluateRivalAchievements();
-    // Run end-of-year economy/housekeeping: award EXP, refresh quests
+    // Run end-of-year economy/housekeeping: award EXP, refresh tasks
     awardExp(1200, `Year ${year} Season End`, true);
     // Reconcile win/loss state
     checkWinLoss(labelScores);
@@ -12502,7 +13432,7 @@ function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null
         const maxSize = Math.min(limits.max, remaining);
         const projectSize = seededRand(limits.min, maxSize, rngFn);
         const projectName = makeProjectTitleSeeded(rngFn);
-        const actName = makeRivalActNameSeeded(rngFn);
+        const rivalAct = makeRivalActNameEntry({ rng: rngFn, nation: rival.country });
         const genre = makeGenre(theme, mood);
         const trendAtRelease = Array.isArray(state.trends) ? state.trends.includes(genre) : false;
         for (let i = 0; i < projectSize && remaining > 0; i += 1) {
@@ -12515,7 +13445,8 @@ function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null
                 title: makeTrackTitleByCountrySeeded(theme, mood, rival.country, rngFn),
                 label: rival.name,
                 actId: null,
-                actName,
+                actName: rivalAct.name,
+                actNameKey: rivalAct.nameKey,
                 projectName,
                 projectType,
                 isPlayer: false,
@@ -12875,6 +13806,9 @@ function normalizeState() {
     }
     if (!state.ui.sidePanelRestore)
         state.ui.sidePanelRestore = {};
+    if (!["charts", "quests", "requests", "eras"].includes(state.ui.dashboardFocusPanel)) {
+        state.ui.dashboardFocusPanel = "charts";
+    }
     if (!state.ui.activeView)
         state.ui.activeView = "dashboard";
     if (state.ui.activeView === "promotion") {
@@ -13067,6 +14001,8 @@ function normalizeState() {
     state.acts = state.acts.filter(Boolean).map((act) => {
         if (!Array.isArray(act.memberIds))
             act.memberIds = [];
+        if (typeof act.nameKey !== "string")
+            act.nameKey = act.nameKey || null;
         if (typeof act.promoWeeks !== "number")
             act.promoWeeks = 0;
         if (typeof act.lastPromoAt !== "number")
@@ -13350,6 +14286,8 @@ function normalizeState() {
             next.promoType = DEFAULT_PROMO_TYPE;
         if (!next.promoLabel)
             next.promoLabel = getPromoTypeDetails(next.promoType).label;
+        if (typeof next.actNameKey !== "string")
+            next.actNameKey = next.actNameKey || null;
         if (!Number.isFinite(next.budget))
             next.budget = 0;
         if (!Number.isFinite(next.weeks) || next.weeks <= 0)
@@ -13373,8 +14311,7 @@ function normalizeState() {
             next.id = uid("TD");
         if (typeof next.name !== "string")
             next.name = "";
-        if (next.goal !== "visibility" && next.goal !== "revenue")
-            next.goal = "visibility";
+        next.goal = normalizeTourGoal(next.goal);
         if (typeof next.actId !== "string")
             next.actId = next.actId || null;
         if (typeof next.eraId !== "string")
@@ -13411,12 +14348,13 @@ function normalizeState() {
             next.tourId = next.tourId || null;
         if (typeof next.tourName !== "string")
             next.tourName = next.tourName || "";
-        if (next.goal !== "visibility" && next.goal !== "revenue")
-            next.goal = "visibility";
+        next.goal = normalizeTourGoal(next.goal);
         if (typeof next.actId !== "string")
             next.actId = next.actId || null;
         if (typeof next.actName !== "string")
             next.actName = next.actName || "";
+        if (typeof next.actNameKey !== "string")
+            next.actNameKey = next.actNameKey || null;
         if (typeof next.eraId !== "string")
             next.eraId = next.eraId || null;
         if (typeof next.eraName !== "string")
@@ -13490,6 +14428,8 @@ function normalizeState() {
             return;
         if (!entry.chartHistory || typeof entry.chartHistory !== "object")
             entry.chartHistory = {};
+        if (typeof entry.actNameKey !== "string")
+            entry.actNameKey = entry.actNameKey || null;
     });
     if (!state.economy) {
         state.economy = {
@@ -13687,12 +14627,30 @@ function normalizeState() {
             next.completedAt = null;
         if (!next.actionType)
             next.actionType = DEFAULT_PROMO_TYPE;
+        if (typeof next.contentId !== "string")
+            next.contentId = next.contentId || null;
         if (typeof next.actId !== "string")
             next.actId = next.actId || null;
         if (typeof next.eraId !== "string")
             next.eraId = next.eraId || null;
         if (typeof next.facilityId !== "string")
             next.facilityId = getPromoFacilityForType(next.actionType) || null;
+        if (typeof next.source !== "string")
+            next.source = next.source || null;
+        if (!Number.isFinite(next.budget))
+            next.budget = 0;
+        if (!Number.isFinite(next.weeks))
+            next.weeks = 1;
+        if (typeof next.targetType !== "string")
+            next.targetType = next.targetType || null;
+        if (typeof next.label !== "string")
+            next.label = next.label || null;
+        if (typeof next.projectName !== "string")
+            next.projectName = next.projectName || null;
+        if (typeof next.createdAt !== "number")
+            next.createdAt = next.createdAt || state.time?.epochMs || Date.now();
+        if (typeof next.lastAttemptReason !== "string")
+            next.lastAttemptReason = next.lastAttemptReason || null;
         if (typeof next.rolloutStrategyId !== "string")
             next.rolloutStrategyId = next.rolloutStrategyId || null;
         if (typeof next.rolloutItemId !== "string")
@@ -13722,6 +14680,8 @@ function normalizeState() {
         const next = entry || {};
         const queueType = next.queueType || "release";
         next.queueType = queueType;
+        if (typeof next.actNameKey !== "string")
+            next.actNameKey = next.actNameKey || null;
         if (queueType === "promo" && !next.promoType)
             next.promoType = AUTO_PROMO_RIVAL_TYPE;
         if (typeof next.releaseAt !== "number")
@@ -13863,6 +14823,8 @@ function normalizeState() {
             if (!entry.distribution)
                 entry.distribution = "Digital";
             entry.projectType = normalizeProjectType(entry.projectType || "Single");
+            if (typeof entry.actNameKey !== "string")
+                entry.actNameKey = entry.actNameKey || null;
             if (typeof entry.releasedAt !== "number")
                 entry.releasedAt = state.time?.epochMs || Date.now();
             if (typeof entry.isPlayer !== "boolean")
@@ -13933,6 +14895,8 @@ function normalizeState() {
             if (!entry.distribution)
                 entry.distribution = "Digital";
             entry.projectType = normalizeProjectType(entry.projectType || "Single");
+            if (typeof entry.actNameKey !== "string")
+                entry.actNameKey = entry.actNameKey || null;
             if (typeof entry.trendAtRelease !== "boolean")
                 entry.trendAtRelease = false;
             if (typeof entry.isPlayer !== "boolean")
@@ -13964,10 +14928,14 @@ function normalizeState() {
     }
     if (!Array.isArray(state.releaseQueue))
         state.releaseQueue = [];
-    state.releaseQueue = state.releaseQueue.map((entry) => ({
-        ...entry,
-        distribution: entry.distribution || entry.note || "Digital"
-    }));
+    state.releaseQueue = state.releaseQueue.map((entry) => {
+        const releaseAt = Number.isFinite(entry.releaseAt) ? alignReleaseAtToProcessing(entry.releaseAt) : entry.releaseAt;
+        return {
+            ...entry,
+            releaseAt,
+            distribution: entry.distribution || entry.note || "Digital"
+        };
+    });
     const timeDefaults = makeDefaultState().time;
     if (!state.time)
         state.time = { ...timeDefaults };
@@ -14495,7 +15463,7 @@ function getTopActSnapshot() {
     const initials = act.name.split(" ").map((part) => part[0]).slice(0, 3).join("").toUpperCase();
     const color = act.alignment ? `linear-gradient(135deg, ${alignmentColor(act.alignment)}, rgba(255,255,255,0.1))` : "";
     const textColor = act.alignment === "Safe" ? "#0b0f14" : "#f4f1ea";
-    return { name: act.name, initials, color, textColor };
+    return { name: act.name, nameKey: act.nameKey || null, initials, color, textColor };
 }
 function alignmentColor(alignment) {
     if (alignment === "Safe")
@@ -14589,6 +15557,7 @@ function buildPopulationSnapshot(year, totalOverride) {
     const stage = populationStageForYear(year);
     const total = typeof totalOverride === "number" ? totalOverride : populationAtYear(year);
     const splits = populationSplitsForStage(stage);
+    const ageGroups = buildAudienceAgeGroupDistribution(total);
     const nations = NATIONS.map((nation) => {
         const nationPop = roundToThousandUp(total * splits[nation]);
         const capitalPop = roundToThousandUp(nationPop * REGION_CAPITAL_SHARE);
@@ -14597,10 +15566,11 @@ function buildPopulationSnapshot(year, totalOverride) {
             nation,
             total: nationPop,
             capital: capitalPop,
-            elsewhere: elsewherePop
+            elsewhere: elsewherePop,
+            ageGroups: buildAudienceAgeGroupDistribution(nationPop)
         };
     });
-    return { total, stage: stage.id, nations };
+    return { total, stage: stage.id, ageGroups, nations };
 }
 function refreshPopulationSnapshot(year) {
     if (!state.population) {
@@ -14622,7 +15592,10 @@ function computePopulationSnapshot() {
     if (!state.population) {
         state.population = { snapshot: null, lastUpdateYear: 0, lastUpdateAt: null, campaignSplit: null, campaignSplitStage: null };
     }
-    if (!state.population.snapshot) {
+    if (!state.population.snapshot
+        || !Array.isArray(state.population.snapshot.ageGroups)
+        || !Array.isArray(state.population.snapshot.nations)
+        || state.population.snapshot.nations.some((entry) => !Array.isArray(entry.ageGroups))) {
         refreshPopulationSnapshot(currentYear());
     }
     return state.population.snapshot;
@@ -14640,29 +15613,40 @@ function buildCalendarSources() {
             ts: entry.releaseAt,
             title: track ? track.title : "Unknown Track",
             actName: act ? act.name : "Unknown",
+            actNameKey: act?.nameKey || null,
             label: labelName,
             kind: "labelScheduled",
             typeLabel: "Scheduled",
             distribution: entry.distribution || entry.note || "Digital"
         };
     });
-    const rolloutEvents = ensureScheduledEventsStore()
+    const scheduledEvents = ensureScheduledEventsStore()
         .filter((entry) => Number.isFinite(entry.scheduledAt))
         .map((entry) => {
         const track = entry.contentId ? getTrack(entry.contentId) : null;
+        const project = entry.targetType === "project" && entry.contentId ? parsePromoProjectKey(entry.contentId) : null;
         const act = entry.actId ? getAct(entry.actId) : track ? getAct(track.actId) : null;
         const typeLabel = rolloutEventLabel(entry.actionType);
+        const scheduledAt = Number.isFinite(entry.eventAt) ? entry.eventAt : entry.scheduledAt;
+        const title = track?.title || project?.projectName || typeLabel;
+        const distribution = entry.source === "manualPromo"
+            ? entry.facilityId
+                ? promoFacilityLabel(entry.facilityId)
+                : "eyeriSocial"
+            : undefined;
         return {
             id: entry.id,
-            ts: entry.scheduledAt,
-            title: track ? track.title : typeLabel,
+            ts: scheduledAt,
+            title,
             actName: act ? act.name : "Unknown",
+            actNameKey: act?.nameKey || null,
             label: labelName,
             kind: "labelEvent",
-            typeLabel
+            typeLabel,
+            distribution
         };
     });
-    labelScheduled.push(...rolloutEvents);
+    labelScheduled.push(...scheduledEvents);
     const labelReleased = state.marketTracks
         .filter((entry) => entry.isPlayer)
         .map((entry) => ({
@@ -14670,6 +15654,7 @@ function buildCalendarSources() {
         ts: entry.releasedAt,
         title: entry.title,
         actName: entry.actName || "Unknown",
+        actNameKey: entry.actNameKey || null,
         label: entry.label || labelName,
         kind: "labelReleased",
         typeLabel: "Released",
@@ -14685,6 +15670,7 @@ function buildCalendarSources() {
             ts: booking.scheduledAt,
             title: booking.tourName || `${booking.actName || "Act"} Tour`,
             actName: booking.actName || "Unknown",
+            actNameKey: booking.actNameKey || null,
             label: booking.label || labelName,
             kind: isWarning ? "tourWarning" : "tourScheduled",
             className: isWarning ? "tour-warning" : "tour-scheduled",
@@ -14705,6 +15691,7 @@ function buildCalendarSources() {
             ts: entry.releaseAt,
             title,
             actName: entry.actName || (isPromo ? "Promotion" : "Unknown"),
+            actNameKey: entry.actNameKey || null,
             label: entry.label,
             labelColor,
             showLabel: true,
@@ -14724,6 +15711,7 @@ function buildCalendarSources() {
             ts: entry.releasedAt,
             title: entry.title,
             actName: entry.actName || "Unknown",
+            actNameKey: entry.actNameKey || null,
             label: entry.label,
             labelColor,
             showLabel: true,
@@ -14742,6 +15730,7 @@ function buildCalendarSources() {
             id: era.id,
             name: era.name,
             actName: act ? act.name : "Unknown",
+            actNameKey: act?.nameKey || null,
             stageName,
             startedWeek: era.startedWeek,
             content
@@ -14896,7 +15885,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { ACT_NAME_TRANSLATIONS, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

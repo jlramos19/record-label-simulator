@@ -1,6 +1,9 @@
 # Dashboard CEO Requests
 
-Defines the Dashboard panel that surfaces CEO Requests (achievements) and the rival race.
+Defines the Dashboard focus tab that surfaces CEO Requests (achievements) and the rival race.
+
+## Placement
+- Lives inside the Road to the Top panel alongside the Charts, Tasks, Requests, and Eras tabs.
 
 ## Purpose
 - Keep the player aware of achievement progress without leaving the Dashboard.

@@ -1,74 +1,94 @@
-# Act Name Generator (Group Acts)
+# Act Name Generator
 
 ## Overview
-Group Act names are generated from a semantic pair:
+Act names are generated from a semantic pair:
 - 1 adjective ID
-- 1 plural-noun ID
+- 1 noun ID
 
-The semantic pair is the canonical identity for translation, rendering, and UI stacking.
+The semantic pair is the canonical identity for rendering, translation, and UI stacking. The stored key format is:
+- `adj.<category>.<index>::noun.<category>.<index>`
+
+## Pool Size + Combinatorics
+- 15 adjective categories x 20 entries each = 300 adjectives
+- 15 noun categories x 20 entries each = 300 nouns
+- Unique base combinations = 90,000
+- Solo vs group rendering doubles the output variants (up to 180,000 rendered variants)
 
 ## Categories
-Adjectives (20 categories, 25 tokens each):
+Adjectives (15):
 1) Colors (basic)
 2) Light / glow
-3) Temperature (hot/cold)
-4) Texture (soft/rough)
-5) Material / substance (wood/metal/glass)
-6) Size (big/small)
-7) Height / length (tall/short/long)
-8) Shape / geometry (round/sharp/angular)
-9) Speed / motion (fast/slow)
-10) Strength / power (strong/gentle)
-11) Calm vs intense (calm/fierce)
-12) Weather / sky (stormy/sunny)
-13) Time / age (new/ancient)
-14) Nature / ecology (wild/leafy)
-15) Luxury / regality (royal/elegant)
-16) Tech / digital (digital/encoded)
-17) Precision / quality (precise/clean)
-18) Mystery / magic tone (mystic/secret)
-19) Urban / place vibe (urban/coastal)
-20) Rarity / value (rare/common)
+3) Temperature
+4) Texture
+5) Material / substance
+6) Size / scale
+7) Shape / geometry
+8) Speed / motion
+9) Strength / power
+10) Calm vs intense
+11) Weather / sky
+12) Time / age
+13) Nature / ecology
+14) Luxury / regality
+15) Tech / digital
 
-Nouns (20 categories, 25 tokens each):
+Nouns (15):
 1) Animals (general)
 2) Birds
 3) Sea creatures
 4) Insects / small critters
 5) Flowers
-6) Herbs / plants / foliage
-7) Trees / woods
-8) Gemstones
-9) Crystals / minerals
-10) Metals / alloys
-11) Tools / stationery
-12) Household objects
-13) Tech components
-14) Vehicles / transport nouns
-15) Sky / celestial nouns
-16) Weather / water phenomena
-17) Geography / places
-18) Music / sound nouns
-19) Regalia / ritual objects
-20) Groups / formations
+6) Trees / woods
+7) Gemstones / crystals
+8) Metals / alloys
+9) Tools / stationery
+10) Household objects
+11) Tech components
+12) Sky / celestial nouns
+13) Weather / water phenomena
+14) Geography / places
+15) Groups / formations
+
+## Data Shape
+Adjectives:
+- `en`
+- `es_m_s`, `es_f_s`, `es_m_p`, `es_f_p`
+- `ko.hangul`, `ko.rr` (RR = Revised Romanization)
+
+Nouns:
+- `en.s`, `en.p`
+- `es.gender`, `es.s`, `es.p`
+- `ko.s.hangul`, `ko.s.rr`
+- `ko.p.hangul`, `ko.p.rr`
 
 ## Grammar Rules (Rendering)
-- Annglora: `{Adj_EN} {NounPlural_EN}`
-- Crowlya: `{NounPlural_ES} {Adj_ES}` with gender + plural agreement
-- Bytenza: `{Adj_KO} {Noun_KO} {CollectiveSuffix?}` (use group markers when available; fall back to 들 only when needed)
+- Annglora (EN): `Adj + Noun`
+  - Group acts use plural nouns.
+  - Solo acts use singular nouns.
+- Crowlya (ES): `Noun + Adj` with gender + number agreement.
+  - Group acts use plural nouns and plural adjective forms.
+  - Solo acts use singular nouns and singular adjective forms.
+- Bytenza (KO): `Adj + Noun` using provided attributive forms.
+  - Group acts use `ko.p` (group/collective marker included in the noun form).
+  - Solo acts use `ko.s` (no group marker).
 
-## UI Stacking (Bytenza)
-Bytenza Act names stack Korean (primary) with English translation (secondary) using the semantic pair.
+## ActKind Rules
+- `group` uses plural noun forms.
+- `solo` uses singular noun forms.
+- `groups_formations` is disabled for solo acts (weight = 0).
 
 ## Nation-Weighted Selection
 Category weights bias selection by nation (default weight = 1):
-- Annglora: boost flowers/plants/trees + nature/light/season adjectives
-- Crowlya: boost gemstones/metals/regalia + luxury/radiance/mystery adjectives
-- Bytenza: boost animals/tech/components/formations + tech/geometry/precision/speed adjectives
+- Applied independently for adjective and noun category selection.
+- Optional overrides per act kind (`group_weights`, `solo_weights`).
 
-## Combinatorics
-- 20 x 25 adjectives = 500
-- 20 x 25 nouns = 500
-- Unique base pairs = 500 x 500 = 250,000
-- Rendered across 3 nations = 750,000 nation strings
-- If Bytenza stacks Korean + English, upper bound display lines = 1,000,000
+## UI Stacking (Bytenza)
+When an Act name is Hangul and has a semantic key:
+- Korean (Hangul) is primary.
+- English is secondary.
+- Romanized Hangul is available for debugging and optional tooltips.
+
+## Source Files
+- Data: `src/app/game/names/act-name-pools.ts`
+- Generator: `src/app/game/names/act-name-generator.ts`
+- Renderer: `src/app/game/names/act-name-renderer.ts`

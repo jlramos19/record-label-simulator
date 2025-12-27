@@ -1,5 +1,32 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-0008Z)
+- Creator ID portraits now render in a fixed 2:3 frame, with stacked fallback symbols to fit the tall placeholder.
+
+## 2025-12-26 (RLS-PATCH-20251226-2358Z)
+- Road to the Top now replaces Dashboard Focus and takes the top half of the Dashboard, with the overview + pipeline moved into a footer row.
+- Act name pools now use 15 adjective + 15 noun categories (20 entries each) with solo/group rendering and nation-weighted selection.
+- Bytenza act names now store Hangul + Revised Romanization, with UI tooltips exposing the romanized form alongside English stacking.
+- Solo act generation now excludes `groups_formations` across all nation bias weights.
+
+## 2025-12-26 (RLS-PATCH-20251226-2346Z)
+- Release scheduling now snaps queued drops to the Friday 00:00 processing window so calendar dates match the actual release day.
+
+## 2025-12-26 (RLS-PATCH-20251226-2330Z)
+- Dashboard Focus now consolidates charts, quests, CEO Requests, and active eras into a tabbed panel for more space.
+- Quests now align to CEO Request categories, prefer locked requests, and show linked request IDs in the list.
+- Added quest objectives for project releases, promo campaigns, and tour bookings to support annual awards.
+
+## 2025-12-26 (RLS-PATCH-20251226-2311Z)
+- Rival labels completing all 12 CEO Requests now trigger a loss if the player has not secured a win state.
+- Quest messaging now surfaces as Tasks in UI copy and social/email headers, aligning with the task repurpose.
+- Documented task automation expectations and win/loss tracking rules.
+
+## 2025-12-26 (RLS-PATCH-20251226-2254Z)
+- Act name generator now uses 20x25 semantic adjective/noun pools with deterministic, nation-weighted selection and unique key support.
+- Bytenza act names now stack Korean + English in UI surfaces using act name keys for translation.
+- Added an act-name generator validation script for combinatorics, determinism, Spanish agreement, and Korean formatting.
+
 ## 2025-12-26 (RLS-PATCH-20251226-2141Z)
 - Touring Desk now supports draft planning, venue filtering, booking dates, and route timelines with projection summaries + warnings.
 - Tour bookings now render on the Calendar with warning styling, and touring charts rank acts by booked attendance so CEO Requests can progress.
@@ -27,6 +54,13 @@
 - Rival rollout scheduling now applies a wallet-percent release budget and cash reserve before queuing drops.
 - Competitive rivals can queue additional dominance drops toward target chart scopes when budget + roster capacity allow.
 - Rival dominance pushes now surface a log entry when a chart push is queued.
+
+## 2025-12-26 (RLS-PATCH-20251226-2009Z)
+- Touring projections now factor regional chart momentum plus rotating concert-interest segments, with booking eligibility gating venue access.
+- Touring desk drops goal/notes inputs, adds auto-generated dates with projected revenue, and blocks ineligible venue bookings in the UI.
+- Promo pushes can be scheduled ahead by week/day/timeframe (including eyeriSocial), with facility availability checked against the scheduled window.
+- Calendar now shows event execution times, and "+N more" opens a day-detail modal listing every event for that date.
+- Population panels now surface audience age-group splits to match GDD chunking.
 
 ## 2025-12-26 (RLS-PATCH-20251226-2003Z)
 - Dashboard now includes CEO Requests progress plus a rival race panel showing each label's unlocked count and focus request.

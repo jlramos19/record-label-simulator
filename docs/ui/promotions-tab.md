@@ -26,6 +26,7 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 - Promo pushes feed the Charts view promotional rankings via engagement metrics (eyeriSocial likes, music video views, interview comments, live performance concurrent audience).
 - Facility gating applies per promo type; if required slots are unavailable, the push is blocked.
 - Broadcast program eligibility (quality + charting) blocks high-stakes programs when unmet.
+- Promo booking windows can be reserved in advance (including eyeriSocial posts); scheduled promos appear in the Calendar.
 - Internal Log surfaces system updates for balance/debug review.
 - Loss Archives and Debug Bundle export stay internal-only and are not shown in Promotions.
 

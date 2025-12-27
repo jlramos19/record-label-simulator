@@ -1,6 +1,5 @@
 // @ts-nocheck
 import {
-  ACT_NAME_TRANSLATIONS,
   ACT_PROMO_WARNING_WEEKS,
   ACHIEVEMENTS,
   ACHIEVEMENT_TARGET,
@@ -52,6 +51,8 @@ import {
   formatShortDate,
   formatWeekRangeLabel,
   getAct,
+  hasHangulText,
+  lookupActNameDetails,
   getActPopularityLeaderboard,
   getActiveEras,
   getBusyCreatorIds,
@@ -139,6 +140,7 @@ import {
   weekIndex,
   weekStartEpochMs,
   weekNumberFromEpochMs,
+  validateTourBooking,
 } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
@@ -314,9 +316,18 @@ function lookupProjectTitleTranslation(name) {
   return PROJECT_TITLE_TRANSLATIONS?.[name] || "";
 }
 
-function renderLocalizedName(primary, translation, { lang = "ko" } = {}) {
+function escapeAttribute(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function renderLocalizedName(primary, translation, { lang = "ko", romanized = "" } = {}) {
   if (!translation) return primary;
-  return `<span class="name-stack"><span class="name-ko" lang="${lang}">${primary}</span><span class="name-romanized">${translation}</span></span>`;
+  const titleAttr = romanized ? ` title="${escapeAttribute(romanized)}"` : "";
+  return `<span class="name-stack"${titleAttr}><span class="name-ko" lang="${lang}">${primary}</span><span class="name-romanized">${translation}</span></span>`;
 }
 
 function renderTrackTitle(title) {
@@ -344,21 +355,42 @@ function renderProjectName(name) {
   return renderLocalizedName(`${base}${suffix}`, translation);
 }
 
-function renderActName(act) {
-  if (!act) return "";
-  const isObject = typeof act === "object";
-  const name = isObject ? String(act.name || "").trim() : String(act || "").trim();
-  if (!name) return "";
-  const allowTranslation = !isObject || act.type === "Group Act";
-  const translation = allowTranslation ? ACT_NAME_TRANSLATIONS?.[name] : "";
-  if (!translation) return name;
-  return renderLocalizedName(name, translation);
+function normalizeActKind(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const lowered = raw.toLowerCase();
+  if (lowered === "solo" || lowered === "solo act") return "solo";
+  if (lowered === "group" || lowered === "group act") return "group";
+  return null;
 }
 
-function formatActNamePlain(name) {
+function resolveActNameParts(act) {
+  if (!act) return { name: "", nameKey: null, actKind: null };
+  if (typeof act === "object") {
+    const name = String(act.name || act.actName || "").trim();
+    const nameKey = act.nameKey || act.actNameKey || null;
+    const actKind = normalizeActKind(act.actKind || act.actType || act.type);
+    return { name, nameKey, actKind };
+  }
+  return { name: String(act || "").trim(), nameKey: null, actKind: null };
+}
+
+function renderActName(act) {
+  const { name, nameKey, actKind } = resolveActNameParts(act);
   if (!name) return "";
-  const translation = ACT_NAME_TRANSLATIONS?.[name] || "";
-  return translation ? `${name} / ${translation}` : name;
+  if (!hasHangulText(name)) return name;
+  const { translation, romanized } = lookupActNameDetails({ name, nameKey, actKind });
+  if (!translation) return name;
+  return renderLocalizedName(name, translation, { romanized });
+}
+
+function formatActNamePlain(act) {
+  const { name, nameKey, actKind } = resolveActNameParts(act);
+  if (!name) return "";
+  if (!hasHangulText(name)) return name;
+  const { translation, romanized } = lookupActNameDetails({ name, nameKey, actKind });
+  if (!translation) return name;
+  return romanized ? `${name} / ${translation} (${romanized})` : `${name} / ${translation}`;
 }
 
 function isCreatorInAct(creatorId) {
@@ -405,30 +437,33 @@ function buildWorkOrderCrewLabel(crew) {
   };
 }
 
-const SKILL_LEVEL_COUNT = 10;
-const SKILL_EXP_PER_LEVEL = Math.max(1, (SKILL_MAX - SKILL_MIN + 1) / SKILL_LEVEL_COUNT);
-const SKILL_EXP_PER_LEVEL_LABEL = Number.isInteger(SKILL_EXP_PER_LEVEL)
-  ? String(SKILL_EXP_PER_LEVEL)
-  : SKILL_EXP_PER_LEVEL.toFixed(2);
+const CATHARSIS_LEVEL_COUNT = 10;
+const CATHARSIS_CHARGE_PER_LEVEL = Math.max(1, Math.floor(STAMINA_MAX / CATHARSIS_LEVEL_COUNT));
+const CATHARSIS_CHARGE_PER_LEVEL_LABEL = String(CATHARSIS_CHARGE_PER_LEVEL);
 
-function getCreatorSkillLevel(creator) {
-  const skill = Number.isFinite(creator?.skill) ? creator.skill : SKILL_MIN;
-  const bounded = clamp(skill, SKILL_MIN, SKILL_MAX) - SKILL_MIN;
-  return clamp(Math.floor(bounded / SKILL_EXP_PER_LEVEL) + 1, 1, SKILL_LEVEL_COUNT);
+function getCreatorCatharsisScore(creator) {
+  const stamina = Number.isFinite(creator?.stamina) ? creator.stamina : 0;
+  const ratio = STAMINA_MAX ? clamp(stamina / STAMINA_MAX, 0, 1) : 0;
+  return Math.round(ratio * 100);
 }
 
-function getCreatorSkillExp(creator) {
-  const skill = Number.isFinite(creator?.skill) ? creator.skill : SKILL_MIN;
-  const progress = Number.isFinite(creator?.skillProgress) ? creator.skillProgress : 0;
-  const bounded = clamp(skill, SKILL_MIN, SKILL_MAX) - SKILL_MIN;
-  const exp = (bounded % SKILL_EXP_PER_LEVEL) + progress;
-  return clamp(exp, 0, SKILL_EXP_PER_LEVEL);
+function getCreatorCatharsisLevel(creator) {
+  const stamina = Number.isFinite(creator?.stamina) ? creator.stamina : 0;
+  const bounded = clamp(stamina, 0, STAMINA_MAX);
+  return clamp(Math.floor(bounded / CATHARSIS_CHARGE_PER_LEVEL) + 1, 1, CATHARSIS_LEVEL_COUNT);
 }
 
-function renderCreatorSkillProgress(creator) {
-  const level = getCreatorSkillLevel(creator);
-  const exp = getCreatorSkillExp(creator);
-  return `Skill Level ${level} | EXP ${exp.toFixed(2)} / ${SKILL_EXP_PER_LEVEL_LABEL}`;
+function getCreatorCatharsisCharge(creator) {
+  const stamina = Number.isFinite(creator?.stamina) ? creator.stamina : 0;
+  const bounded = clamp(stamina, 0, STAMINA_MAX);
+  const charge = CATHARSIS_CHARGE_PER_LEVEL ? (bounded % CATHARSIS_CHARGE_PER_LEVEL) : bounded;
+  return clamp(charge, 0, CATHARSIS_CHARGE_PER_LEVEL);
+}
+
+function renderCreatorCatharsisProgress(creator) {
+  const level = getCreatorCatharsisLevel(creator);
+  const charge = getCreatorCatharsisCharge(creator);
+  return `Catharsis Level ${level} | Charge ${charge} / ${CATHARSIS_CHARGE_PER_LEVEL_LABEL}`;
 }
 
 function splitRecordLabelName(label) {
@@ -906,6 +941,8 @@ function renderAutoAssignModal() {
         <h3>${label}</h3>
         ${candidates.map((creator) => {
           const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
+          const catharsisScore = getCreatorCatharsisScore(creator);
+          const catharsisGrade = scoreGrade(catharsisScore);
           const overuseSafe = getCreatorStaminaSpentToday(creator) + req <= STAMINA_OVERUSE_LIMIT;
           const canAssign = creator.ready && overuseSafe;
           return `
@@ -914,9 +951,9 @@ function renderAutoAssignModal() {
               <div>
                 <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
-                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
-                <div class="muted">ID ${creator.id} | Skill <span class="grade-text" data-grade="${scoreGrade(creator.skill)}">${creator.skill}</span></div>
-                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
+                <div class="muted">Catharsis ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">ID ${creator.id} | Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
+                <div class="muted">${renderCreatorCatharsisProgress(creator)}</div>
               </div>
               <div class="actions">
                 ${creator.ready ? "" : `<span class="tag low">Low stamina</span>`}
@@ -974,8 +1011,9 @@ function renderFocusEraStatus() {
   const focusEra = getFocusedEra();
   const fallbackEra = !focusEra && activeEras.length === 1 ? activeEras[0] : null;
   const displayEra = focusEra || fallbackEra;
-  const actName = displayEra ? getAct(displayEra.actId)?.name : null;
-  const actLabel = actName ? renderActName(actName) : "";
+  const act = displayEra ? getAct(displayEra.actId) : null;
+  const actName = act ? act.name : null;
+  const actLabel = act ? renderActName(act) : "";
   const stageName = displayEra ? ERA_STAGES[displayEra.stageIndex] || "Active" : "";
   const baseLabel = displayEra
     ? `${displayEra.name}${actLabel ? ` (${actLabel})` : ""}${stageName ? ` | ${stageName}` : ""}`
@@ -1007,7 +1045,7 @@ function renderFocusEraStatus() {
     headerEl.innerHTML = headerLabel;
     if (displayEra) {
       const stageName = ERA_STAGES[displayEra.stageIndex] || "Active";
-      const actTitle = actName ? formatActNamePlain(actName) : "Unknown";
+      const actTitle = act ? formatActNamePlain(act) : "Unknown";
       headerEl.title = `Act: ${actTitle} | Stage: ${stageName}`;
     } else {
       headerEl.title = "";
@@ -1359,7 +1397,7 @@ function renderTopBar() {
   const topActNameEl = $("topActName");
   if (topActNameEl) {
     const topAct = getTopActSnapshot();
-    topActNameEl.innerHTML = topAct ? `Top Act: ${renderActName(topAct.name)}` : "Top Act: -";
+    topActNameEl.innerHTML = topAct ? `Top Act: ${renderActName(topAct)}` : "Top Act: -";
     $("topActPortrait").textContent = topAct ? topAct.initials : "RLS";
     $("topActPortrait").style.background = topAct ? topAct.color : "";
     $("topActPortrait").style.color = topAct ? topAct.textColor : "";
@@ -1391,6 +1429,7 @@ function buildChartPulsePromoEntries({ startAt, endAt, scopeType, scopeTarget })
         ts: entry.scheduledAt,
         title: track ? track.title : details.label,
         actName: act ? act.name : "Unknown",
+        actNameKey: act?.nameKey || null,
         label: labelName,
         typeLabel: details.label,
         impact: details.cost
@@ -1413,6 +1452,7 @@ function buildChartPulsePromoEntries({ startAt, endAt, scopeType, scopeTarget })
         ts: entry.releaseAt,
         title: entry.title || details.label,
         actName: entry.actName || "Promotion",
+        actNameKey: entry.actNameKey || null,
         label: entry.label || "Rival",
         typeLabel: details.label,
         impact: details.cost
@@ -1426,9 +1466,40 @@ function buildChartPulsePromoEntries({ startAt, endAt, scopeType, scopeTarget })
     .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
 
+const DASHBOARD_FOCUS_PANELS = ["charts", "quests", "requests", "eras"];
+
+function normalizeDashboardFocusPanel(value) {
+  return DASHBOARD_FOCUS_PANELS.includes(value) ? value : "charts";
+}
+
+function renderDashboardFocusPanels() {
+  const tabs = $("dashboardFocusTabs");
+  const panels = typeof document === "undefined"
+    ? []
+    : Array.from(document.querySelectorAll("[data-dashboard-focus-panel]"));
+  if (!tabs && !panels.length) return;
+  const active = normalizeDashboardFocusPanel(state.ui.dashboardFocusPanel);
+  if (state.ui.dashboardFocusPanel !== active) {
+    state.ui.dashboardFocusPanel = active;
+  }
+  if (tabs) {
+    tabs.querySelectorAll(".tab").forEach((tab) => {
+      const isActive = tab.dataset.dashboardFocus === active;
+      tab.classList.toggle("active", isActive);
+      tab.setAttribute("aria-pressed", String(isActive));
+    });
+  }
+  panels.forEach((panel) => {
+    const isActive = panel.dataset.dashboardFocusPanel === active;
+    panel.classList.toggle("is-active", isActive);
+    panel.setAttribute("aria-hidden", String(!isActive));
+  });
+}
+
 function renderDashboard() {
   const statsEl = $("dashboardStats");
   if (!statsEl) return;
+  renderDashboardFocusPanels();
   const weekLabel = $("dashboardWeekLabel");
   if (weekLabel) weekLabel.textContent = `Week ${weekIndex() + 1}`;
   const dateLabel = $("dashboardDateLabel");
@@ -1626,7 +1697,7 @@ function renderDashboard() {
             <div class="list-row">
               <div>
                 <div class="item-title">#${entry.rank} ${renderTrackTitle(entry.title)}</div>
-                <div class="muted">${entry.typeLabel} | ${renderActName(entry.actName || "-")} | ${entry.label}</div>
+                <div class="muted">${entry.typeLabel} | ${renderActName(entry) || "-"} | ${entry.label}</div>
               </div>
               <div class="pill">${formatMoney(entry.impact)}</div>
             </div>
@@ -1638,7 +1709,7 @@ function renderDashboard() {
             <div class="list-row">
               <div>
                 <div class="item-title">#${entry.rank} ${renderProjectName(entry.projectName)}</div>
-                <div class="muted">${entry.projectType} | ${renderActName(entry.actName || "-")} | ${entry.label || "-"}</div>
+                <div class="muted">${entry.projectType} | ${renderActName(entry) || "-"} | ${entry.label || "-"}</div>
               </div>
               <div class="pill">${formatCount(entry.score)}</div>
             </div>
@@ -1702,6 +1773,9 @@ function renderDashboard() {
       `).join("");
     }
   }
+
+  renderQuests();
+  renderRivalAchievementRace();
 }
 
 function renderPopulation() {
@@ -1721,6 +1795,22 @@ function renderPopulation() {
       </div>
     `
   ];
+  if (Array.isArray(snapshot.ageGroups) && snapshot.ageGroups.length) {
+    const ageLine = snapshot.ageGroups.map((group) => {
+      const count = Number.isFinite(group.count) ? group.count : 0;
+      const share = Number.isFinite(group.share)
+        ? group.share
+        : (snapshot.total ? count / snapshot.total : 0);
+      const pct = Math.round(share * 100);
+      return `${group.label}: ${formatCount(count)} (${pct}%)`;
+    }).join(" | ");
+    list.push(`
+      <div class="list-item">
+        <div class="item-title">Audience Age Split</div>
+        <div class="muted">${ageLine}</div>
+      </div>
+    `);
+  }
   snapshot.nations.forEach((nation) => {
     list.push(`
       <div class="list-item">
@@ -1774,7 +1864,7 @@ function renderTutorialEconomy() {
   const cheaterActive = Boolean(state.meta?.cheaterMode);
   if (noticeEl) {
     noticeEl.textContent = cheaterActive
-      ? "Cheater mode active. Achievements and quests are disabled while active."
+      ? "Cheater mode active. Achievements and tasks are disabled while active."
       : "Enable Cheater Mode in Settings to edit economy tuning.";
   }
 
@@ -2558,7 +2648,7 @@ function renderCalendarEraList(eras) {
   return eras.map((era) => `
     <div class="list-item">
       <div class="item-title">${era.name}</div>
-      <div class="muted">Act: ${renderActName(era.actName)} | Stage: ${era.stageName}</div>
+      <div class="muted">Act: ${renderActName(era) || "Unknown"} | Stage: ${era.stageName}</div>
       <div class="muted">Started Week ${era.startedWeek} | Content: ${era.content}</div>
     </div>
   `).join("");
@@ -2597,6 +2687,14 @@ function renderCalendarView() {
   renderCalendarList("calendarList", upcomingWeeks, upcomingProjection);
 }
 
+function formatEventTimeLabel(epochMs) {
+  if (!Number.isFinite(epochMs)) return "";
+  const date = new Date(epochMs);
+  const hours = String(date.getUTCHours()).padStart(2, "0");
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+  return hours === "00" && minutes === "00" ? "" : `${hours}:${minutes}`;
+}
+
 function renderCalendarUpcomingFooter(projection, tab) {
   const daysWithEvents = [];
   (projection.weeks || []).forEach((week) => {
@@ -2627,7 +2725,9 @@ function renderCalendarUpcomingFooter(projection, tab) {
       const title = entry.title || "Untitled";
       const typeLabel = entry.typeLabel || "Event";
       const distribution = entry.distribution || "Digital";
-      const actLabel = renderActName(entry.actName || "Unknown");
+      const timeLabel = formatEventTimeLabel(entry.ts);
+      const metaLine = timeLabel ? `${typeLabel} | ${timeLabel} | ${distribution}` : `${typeLabel} | ${distribution}`;
+      const actLabel = renderActName(entry) || "Unknown";
       const labelName = entry.label || "Label";
       const showLabel = entry.showLabel || tab === "public";
       const labelCountry = getRivalByName(labelName)?.country || state.label.country || "Annglora";
@@ -2638,13 +2738,13 @@ function renderCalendarUpcomingFooter(projection, tab) {
       return `
         <div class="calendar-upcoming-event">
           <div class="calendar-upcoming-event-title">${title}</div>
-          <div class="calendar-upcoming-event-meta">${typeLabel} | ${distribution}</div>
+          <div class="calendar-upcoming-event-meta">${metaLine}</div>
           <div class="calendar-upcoming-event-label">${labelLine}</div>
         </div>
       `;
     }).join("");
     const overflowHtml = overflow > 0
-      ? `<div class="calendar-upcoming-event calendar-upcoming-event--more">+${overflow} more</div>`
+      ? `<div class="calendar-upcoming-event calendar-upcoming-event--more" data-calendar-day-more data-day-ts="${day.start}" role="button" tabindex="0">+${overflow} more</div>`
       : "";
     return `
       <div class="${dayClass}" data-day-ts="${day.start}">
@@ -2694,6 +2794,29 @@ function resolvePromoWindow(epochMs) {
   const first = frames[0];
   if (hour < first.startHour) return { frame: first, dayStart, isCurrent: false };
   return { frame: first, dayStart: dayStart + DAY_MS, isCurrent: false };
+}
+
+function renderPromoScheduleControls() {
+  const weekInput = $("promoScheduleWeek");
+  const daySelect = $("promoScheduleDay");
+  const timeframeSelect = $("promoScheduleTimeframe");
+  if (!weekInput || !daySelect || !timeframeSelect) return;
+  if (!state.ui) state.ui = {};
+  const frames = listPromoTimeframesSafe();
+  const options = frames.map((frame) => `<option value="${frame.id}">${frame.label}</option>`).join("");
+  timeframeSelect.innerHTML = `<option value="">Timeframe</option>${options}`;
+  const weekValue = Number.isFinite(state.ui.promoScheduleWeek)
+    ? String(Math.max(1, Math.round(state.ui.promoScheduleWeek)))
+    : "";
+  const dayValue = Number.isFinite(state.ui.promoScheduleDay)
+    ? String(clamp(Math.round(state.ui.promoScheduleDay), 0, 6))
+    : "";
+  weekInput.value = weekValue;
+  if (!daySelect.querySelector('option[value=""]')) {
+    daySelect.insertAdjacentHTML("afterbegin", "<option value=\"\">Day</option>");
+  }
+  daySelect.value = dayValue;
+  timeframeSelect.value = state.ui.promoScheduleTimeframe || "";
 }
 
 function getBookingTimeframeId(booking) {
@@ -2914,14 +3037,63 @@ function renderCalendarList(targetId, weeks, projectionOverride) {
           const label = entry.label || "Label";
           const labelCountry = getRivalByName(label)?.country || state.label.country || "Annglora";
           const labelTag = label ? renderLabelTag(label, labelCountry) : "Label";
-          const actLabel = renderActName(entry.actName || "Unknown");
+          const actLabel = renderActName(entry) || "Unknown";
           const title = entry.title || "Untitled";
           const typeLabel = entry.typeLabel || "Event";
           const distribution = entry.distribution || "Digital";
+          const timeLabel = formatEventTimeLabel(entry.ts);
+          const timeLine = timeLabel ? ` @ ${timeLabel}` : "";
           return `
-            <div class="muted">${labelTag} | ${actLabel} | ${title} (${typeLabel}, ${distribution})</div>
+            <div class="muted">${labelTag} | ${actLabel} | ${title} (${typeLabel}${timeLine}, ${distribution})</div>
           `;
         }).join("")}
+      </div>
+    `;
+  }).join("");
+}
+
+function renderCalendarDayDetail(dayStartTs) {
+  const listEl = $("calendarDayList");
+  if (!listEl) return;
+  const titleEl = $("calendarDayTitle");
+  const dayStart = Number(dayStartTs);
+  if (!Number.isFinite(dayStart)) {
+    if (titleEl) titleEl.textContent = "Selected day";
+    listEl.innerHTML = `<div class="muted">No date selected.</div>`;
+    return;
+  }
+  if (titleEl) titleEl.textContent = formatShortDate(dayStart);
+  const weekNumber = weekNumberFromEpochMs(dayStart);
+  const anchorWeekIndex = Number.isFinite(weekNumber) ? weekNumber - 1 : weekIndex();
+  const projection = buildCalendarProjection({ pastWeeks: 0, futureWeeks: 0, anchorWeekIndex });
+  const week = projection.weeks[0];
+  const day = week?.days?.find((entry) => entry.start === dayStart) || null;
+  const events = Array.isArray(day?.events) ? day.events.slice().sort((a, b) => a.ts - b.ts) : [];
+
+  if (!events.length) {
+    listEl.innerHTML = `<div class="muted">No events scheduled for this day.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = events.map((entry) => {
+    const label = entry.label || "Label";
+    const labelCountry = getRivalByName(label)?.country || state.label.country || "Annglora";
+    const labelTag = label ? renderLabelTag(label, labelCountry) : "Label";
+    const actLabel = renderActName(entry) || "Unknown";
+    const title = entry.title || "Untitled";
+    const typeLabel = entry.typeLabel || "Event";
+    const distribution = entry.distribution || "Digital";
+    const timeLabel = formatEventTimeLabel(entry.ts);
+    const timeLine = timeLabel ? ` @ ${timeLabel}` : "";
+    return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${title}</div>
+            <div class="muted">${labelTag} | ${actLabel}</div>
+            <div class="muted">${typeLabel}${timeLine} | ${distribution}</div>
+          </div>
+        </div>
       </div>
     `;
   }).join("");
@@ -2996,7 +3168,8 @@ function renderCreators() {
     const list = roleCreators.map((creator) => {
       const busy = busyIds.has(creator.id);
       const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
-      const skillGrade = scoreGrade(creator.skill);
+      const catharsisScore = getCreatorCatharsisScore(creator);
+      const catharsisGrade = scoreGrade(catharsisScore);
       const roleText = roleLabel(creator.role);
       const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
       const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
@@ -3013,9 +3186,9 @@ function renderCreators() {
               <div>
                 <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
-                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
-                <div class="muted">ID ${creator.id} | ${roleText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
-                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
+                <div class="muted">Catharsis ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">ID ${creator.id} | ${roleText} | Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
+                <div class="muted">${renderCreatorCatharsisProgress(creator)}</div>
                 <div class="muted">Acts: ${actText}</div>
                 <div class="time-row">${nationalityPill}</div>
                 <div class="muted">Preferred Themes:</div>
@@ -3132,7 +3305,8 @@ function renderMarket() {
     });
     const sortedCreators = sortCreators(filteredCreators);
     const list = sortedCreators.map((creator) => {
-      const skillGrade = scoreGrade(creator.skill);
+      const catharsisScore = getCreatorCatharsisScore(creator);
+      const catharsisGrade = scoreGrade(catharsisScore);
       const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
       const nationalityPill = renderNationalityPill(creator.country);
       const lockout = getCreatorSignLockout(creator.id, now);
@@ -3163,9 +3337,9 @@ function renderMarket() {
               <div>
                 <div class="item-title">${renderCreatorName(creator)}</div>
                 <div class="bar"><span style="width:${staminaPct}%"></span></div>
-                <div class="muted">Stamina ${creator.stamina} / ${STAMINA_MAX}</div>
-                <div class="muted">ID ${creator.id} | ${roleLabelText} | Skill <span class="grade-text" data-grade="${skillGrade}">${creator.skill}</span></div>
-                <div class="muted">${renderCreatorSkillProgress(creator)}</div>
+                <div class="muted">Catharsis ${creator.stamina} / ${STAMINA_MAX}</div>
+                <div class="muted">ID ${creator.id} | ${roleLabelText} | Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
+                <div class="muted">${renderCreatorCatharsisProgress(creator)}</div>
                 <div class="time-row">${nationalityPill}</div>
                 <div class="muted">Preferred Themes:</div>
                 <div class="creator-pref-tags">${themeCells}</div>
@@ -4199,8 +4373,10 @@ function renderTouringDesk() {
   }
   if (!Number.isFinite(state.ui.tourBookingWeek)) state.ui.tourBookingWeek = weekIndex() + 1;
   if (!Number.isFinite(state.ui.tourBookingDay)) state.ui.tourBookingDay = 5;
+  if (!Number.isFinite(state.ui.tourAutoCount)) state.ui.tourAutoCount = 8;
   state.ui.tourBookingWeek = Math.max(1, Math.round(state.ui.tourBookingWeek));
   state.ui.tourBookingDay = clamp(Math.round(state.ui.tourBookingDay), 0, 6);
+  state.ui.tourAutoCount = Math.max(1, Math.round(state.ui.tourAutoCount));
 
   const drafts = listTourDrafts();
   let draft = getSelectedTourDraft();
@@ -4208,13 +4384,13 @@ function renderTouringDesk() {
 
   const noticeEl = $("tourNotice");
   const nameInput = $("tourNameInput");
-  const goalSelect = $("tourGoalSelect");
   const actSelect = $("tourActSelect");
   const eraSelect = $("tourEraSelect");
   const anchorSelect = $("tourAnchorSelect");
   const windowStartInput = $("tourWindowStart");
   const windowEndInput = $("tourWindowEnd");
-  const notesInput = $("tourNotes");
+  const autoCountInput = $("tourAutoCount");
+  const autoGenerateBtn = $("tourAutoGenerateBtn");
   const plannerMeta = $("tourPlannerMeta");
 
   const act = draft?.actId ? getAct(draft.actId) : null;
@@ -4255,10 +4431,6 @@ function renderTouringDesk() {
   if (nameInput) {
     nameInput.value = draft?.name || "";
     nameInput.disabled = !draft;
-  }
-  if (goalSelect) {
-    goalSelect.value = draft?.goal || "visibility";
-    goalSelect.disabled = !draft;
   }
   if (actSelect) {
     const acts = Array.isArray(state.acts) ? state.acts : [];
@@ -4329,12 +4501,15 @@ function renderTouringDesk() {
     windowEndInput.value = Number.isFinite(draft?.window?.endWeek) ? String(draft.window.endWeek) : "";
     windowEndInput.disabled = !draft;
   }
-  if (notesInput) {
-    notesInput.value = draft?.notes || "";
-    notesInput.disabled = !draft;
+  if (autoCountInput) {
+    autoCountInput.value = String(state.ui.tourAutoCount || 1);
+    autoCountInput.disabled = !draft;
+  }
+  if (autoGenerateBtn) {
+    autoGenerateBtn.disabled = !draft;
   }
   if (plannerMeta) {
-    const actLabel = act ? renderActName(act.name) : "No Act";
+    const actLabel = act ? renderActName(act) : "No Act";
     const eraLabel = era ? era.name : "No active Era";
     plannerMeta.textContent = `Status: ${draft?.status || "Draft"} | Act: ${actLabel} | Era: ${eraLabel}`;
   }
@@ -4445,14 +4620,18 @@ function renderTouringDesk() {
       } else {
         venueList.innerHTML = venues.map((venue) => {
           const availability = getTourVenueAvailability(venue.id, scheduledAt);
-          const projection = projectionsReady
+          const validation = validateTourBooking({ draft, venue, scheduledAt });
+          const projection = validation.projection || (projectionsReady
             ? computeTourProjection({ draft, act, era, venue, scheduledAt, anchor: anchor.primary })
-            : null;
+            : null);
           const slotsLabel = `${availability.available}/${availability.capacity} slots`;
           const projectionLine = projection
             ? `Projected attendance ${formatCount(projection.attendance)} | Profit ${formatMoney(projection.profit)}`
             : "Projection unavailable (needs Act + Era + released content).";
-          const canBook = projectionsReady && availability.available > 0 && scheduledAt > state.time.epochMs;
+          const blockLine = !validation.ok && validation.reason
+            ? `<div class="muted tour-warning-line">${validation.reason}</div>`
+            : "";
+          const canBook = validation.ok;
           return `
             <div class="list-item">
               <div class="list-row">
@@ -4461,6 +4640,7 @@ function renderTouringDesk() {
                   <div class="muted">${venue.tier} | ${venue.regionId} | Capacity ${formatCount(venue.capacity)}</div>
                   <div class="muted">Availability ${slotsLabel} | ${formatDate(scheduledAt)}</div>
                   <div class="muted">${projectionLine}</div>
+                  ${blockLine}
                 </div>
                 <div class="actions">
                   <button type="button" data-tour-book="${venue.id}"${canBook ? "" : " disabled"}>Book</button>
@@ -4872,7 +5052,7 @@ function renderCharts() {
     }
     const rows = entries.map((entry, index) => {
       const labelTag = renderLabelTag(entry.label || "Unknown Label", entry.country || state.label?.country || "Annglora");
-      const actName = renderActName(entry.actName || "Unknown Act") || "Unknown Act";
+      const actName = renderActName(entry) || "Unknown Act";
       const weeksActive = Number.isFinite(entry.weeksActive) ? entry.weeksActive : 0;
       const lastWeek = Number.isFinite(entry.lastWeek) ? entry.lastWeek : null;
       const lastWeekLabel = lastWeek ? `Last week ${lastWeek}` : "Last week --";
@@ -5043,7 +5223,7 @@ function renderCharts() {
             </td>
             <td class="chart-label">${labelTag}</td>
             <td class="chart-act">
-              <div>${renderActName(entry.actName || "-")}</div>
+              <div>${renderActName(entry) || "-"}</div>
               <div class="muted">${genreLine}</div>
             </td>
             <td class="chart-align">${alignTag}</td>
@@ -5060,7 +5240,7 @@ function renderCharts() {
       rows = displayEntries.map((entry) => {
         const labelTag = renderLabelTag(entry.label, entry.country || "Annglora");
         const alignTag = renderAlignmentTag(entry.alignment);
-        const actLabel = renderActName(entry.actName || "-");
+        const actLabel = renderActName(entry) || "-";
         const trackTitle = entry.trackTitle || entry.title || "";
         const targetType = entry.targetType
           || (trackTitle ? "track" : entry.projectName ? "project" : "act");
@@ -5126,7 +5306,7 @@ function renderCharts() {
           <tr>
             <td class="chart-rank">#${entry.rank}</td>
             <td class="chart-title">
-              <div class="item-title">${renderActName(entry.actName || "-")}</div>
+              <div class="item-title">${renderActName(entry) || "-"}</div>
               <div class="muted">Tour dates ${formatCount(dateCount)}</div>
             </td>
             <td class="chart-label">${labelTag}</td>
@@ -5150,8 +5330,8 @@ function renderCharts() {
         const track = entry.track || entry;
         const labelTag = renderLabelTag(track.label, track.country || "Annglora");
         const alignTag = renderAlignmentTag(track.alignment);
-        const actName = track.actName || "-";
         const projectName = track.projectName || "-";
+        const actLabel = renderActName(track) || "-";
         const lastRank = entry.lastRank ? `LW ${entry.lastRank}` : "LW --";
         const peak = entry.peak ? `Peak ${entry.peak}` : "Peak --";
         const woc = entry.woc ? `WOC ${entry.woc}` : "WOC 0";
@@ -5165,7 +5345,7 @@ function renderCharts() {
             </td>
             <td class="chart-label">${labelTag}</td>
             <td class="chart-act">
-              <div>${renderActName(actName)}</div>
+              <div>${actLabel}</div>
               <div class="muted">${renderProjectName(projectName)}</div>
             </td>
             <td class="chart-align">${alignTag}</td>
@@ -5340,23 +5520,37 @@ function renderRivalAchievementRace() {
 function renderQuests() {
   renderAchievements();
   const questList = $("questList");
+  const summaryEl = $("questSummary");
   if (!questList) return;
   if (state.meta.cheaterMode) {
-    questList.innerHTML = `<div class="muted">Cheater mode active. Quests are disabled.</div>`;
+    if (summaryEl) summaryEl.textContent = "Cheater mode active: tasks are paused.";
+    questList.innerHTML = `<div class="muted">Cheater mode active. Tasks are disabled.</div>`;
     return;
   }
   if (!state.quests.length) {
-    questList.innerHTML = `<div class="muted">No active quests.</div>`;
+    if (summaryEl) summaryEl.textContent = "No active tasks.";
+    questList.innerHTML = `<div class="muted">No active tasks.</div>`;
     return;
   }
+  const completed = state.quests.filter((quest) => quest.done).length;
+  const activeCount = state.quests.length - completed;
+  if (summaryEl) summaryEl.textContent = `${formatCount(activeCount)} active | ${formatCount(completed)} complete`;
   const list = state.quests.map((quest) => {
     let detail = "";
     if (quest.type === "releaseCount") detail = `${quest.progress}/${quest.target} released`;
     if (quest.type === "trendRelease") detail = `${quest.progress}/${quest.target} released`;
     if (quest.type === "countryTop") detail = quest.bestRank ? `Best rank #${quest.bestRank}` : "No chart entries";
+    if (quest.type === "chartTop") detail = quest.bestRank ? `Best rank #${quest.bestRank}` : "No chart entries";
+    if (quest.type === "projectRelease") {
+      detail = `${quest.progress}/${quest.target} ${quest.projectType} project${quest.target === 1 ? "" : "s"}`;
+    }
+    if (quest.type === "promoRuns") detail = `${quest.progress}/${quest.target} promos launched`;
+    if (quest.type === "tourBookings") detail = `${quest.progress}/${quest.target} dates booked`;
     if (quest.type === "cash") detail = `${formatMoney(quest.progress)} / ${formatMoney(quest.target)}`;
     const badgeClass = quest.done ? "badge" : "badge warn";
     const expReward = Math.round(quest.expReward ?? (quest.reward / 8));
+    const focusRequests = Array.isArray(quest.focusRequests) ? quest.focusRequests.filter(Boolean) : [];
+    const focusLine = focusRequests.length ? `Supports CEO Requests: ${focusRequests.join(", ")}` : "";
     return `
       <div class="list-item">
         <div class="list-row">
@@ -5364,6 +5558,7 @@ function renderQuests() {
             <div class="item-title">${quest.id}</div>
             <div class="muted">${quest.text}</div>
             <div class="muted">${quest.story}</div>
+            ${focusLine ? `<div class="tiny muted">${focusLine}</div>` : ""}
           </div>
           <div class="${badgeClass}">${quest.done ? "Done" : "Active"}</div>
         </div>
@@ -6088,6 +6283,7 @@ function renderActiveView(view) {
     renderSlots();
     renderEventLog();
     renderPromoAlerts();
+    renderPromoScheduleControls();
     renderWallet();
     renderResourceTickSummary();
     renderLossArchives();
@@ -6147,6 +6343,7 @@ export {
   renderQuickRecipes,
   renderCalendarView,
   renderCalendarList,
+  renderCalendarDayDetail,
   renderGenreIndex,
   renderCommunityRankings,
   renderStudiosList,
