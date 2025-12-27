@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] RLS-CHARTS-DEMOGRAPHICS-001: Add Charts demographics view + per-nation age pyramid seeding for audience/creator ages. (Agent Codex, started 2025-12-26 23:18:10 -04:00)
 - [ ] RLS-AUDIENCE-CHUNKS-002: Simulate audience chunks with age/evolution properties, surface them on the Dashboard, and add cheater CCC injection for creator ID testing. (Agent Codex, started 2025-12-26 22:25:23 -04:00)
 - [x] RLS-YEAREND-CHARTS-001: Track year-end charts across the year and release CEO Request winners on the first Saturday of January. (Agent Codex, started 2025-12-26 21:19:29 -04:00, completed 2025-12-26 21:19:29 -04:00)
 - [x] RLS-CCC-CATHARSIS-001: Add catharsis score (skill + stamina) to creator cards and cap CCC skill levels at 5 with weighted distribution. (Agent Codex, started 2025-12-26 20:27:58 -04:00, completed 2025-12-26 20:27:58 -04:00)

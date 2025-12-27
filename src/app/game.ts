@@ -2168,13 +2168,68 @@ function buildAudienceAgeGroupDefinitions() {
 
 const AUDIENCE_AGE_GROUPS = buildAudienceAgeGroupDefinitions();
 
-function buildAudienceAgeGroupWeights() {
+const DEFAULT_AGE_PYRAMID_PROFILE = {
+  youthPeak: 22,
+  youthSpread: 14,
+  adultPeak: 38,
+  adultSpread: 24,
+  youthWeight: 1,
+  adultWeight: 0.7,
+  seniorDrop: 0.65,
+  childBoost: 0.12
+};
+
+const CREATOR_AGE_PYRAMID_PROFILE = {
+  youthPeak: 23,
+  youthSpread: 10,
+  adultPeak: 32,
+  adultSpread: 14,
+  youthWeight: 1.4,
+  adultWeight: 0.5,
+  seniorDrop: 0.4,
+  childBoost: 0
+};
+
+function normalizeAgeProfile(profile) {
+  const base = DEFAULT_AGE_PYRAMID_PROFILE;
+  if (!profile || typeof profile !== "object") return base;
+  const safe = {
+    youthPeak: Number.isFinite(profile.youthPeak) ? profile.youthPeak : base.youthPeak,
+    youthSpread: Number.isFinite(profile.youthSpread) ? profile.youthSpread : base.youthSpread,
+    adultPeak: Number.isFinite(profile.adultPeak) ? profile.adultPeak : base.adultPeak,
+    adultSpread: Number.isFinite(profile.adultSpread) ? profile.adultSpread : base.adultSpread,
+    youthWeight: Number.isFinite(profile.youthWeight) ? profile.youthWeight : base.youthWeight,
+    adultWeight: Number.isFinite(profile.adultWeight) ? profile.adultWeight : base.adultWeight,
+    seniorDrop: Number.isFinite(profile.seniorDrop) ? profile.seniorDrop : base.seniorDrop,
+    childBoost: Number.isFinite(profile.childBoost) ? profile.childBoost : base.childBoost
+  };
+  safe.youthSpread = Math.max(6, safe.youthSpread);
+  safe.adultSpread = Math.max(8, safe.adultSpread);
+  safe.youthWeight = clamp(safe.youthWeight, 0.1, 2.5);
+  safe.adultWeight = clamp(safe.adultWeight, 0.1, 2.5);
+  safe.seniorDrop = clamp(safe.seniorDrop, 0.2, 1);
+  safe.childBoost = clamp(safe.childBoost, 0, 0.6);
+  return safe;
+}
+
+function resolveNationAgeProfile(nation) {
+  if (typeof NATION_AGE_PYRAMID_PROFILES !== "undefined" && NATION_AGE_PYRAMID_PROFILES) {
+    const profile = NATION_AGE_PYRAMID_PROFILES[nation];
+    if (profile) return normalizeAgeProfile(profile);
+  }
+  return DEFAULT_AGE_PYRAMID_PROFILE;
+}
+
+function buildAudienceAgeGroupWeights(profile = DEFAULT_AGE_PYRAMID_PROFILE) {
+  const safe = normalizeAgeProfile(profile);
   return AUDIENCE_AGE_GROUPS.map((group) => {
     const midpoint = (group.minAge + group.maxAge) / 2;
-    const youthCurve = Math.exp(-Math.pow((midpoint - 24) / 18, 2));
-    const adultCurve = Math.exp(-Math.pow((midpoint - 45) / 28, 2));
-    const base = 0.35 + 0.65 * ((youthCurve + adultCurve) / 2);
-    return clamp(base, 0.2, 1.2);
+    const youthCurve = Math.exp(-Math.pow((midpoint - safe.youthPeak) / safe.youthSpread, 2));
+    const adultCurve = Math.exp(-Math.pow((midpoint - safe.adultPeak) / safe.adultSpread, 2));
+    let weight = safe.youthWeight * youthCurve + safe.adultWeight * adultCurve;
+    if (midpoint < 20) weight += safe.childBoost;
+    if (midpoint >= 60) weight *= safe.seniorDrop;
+    return clamp(weight, 0.15, 1.5);
   });
 }
 
@@ -2197,12 +2252,31 @@ function allocateByShare(total, shares) {
   return rounded;
 }
 
-function buildAudienceAgeGroupDistribution(total) {
+function buildAudienceAgeGroupDistribution(total, profile = DEFAULT_AGE_PYRAMID_PROFILE) {
   const safeTotal = Math.max(0, Math.round(Number(total) || 0));
-  const weights = buildAudienceAgeGroupWeights();
+  const weights = buildAudienceAgeGroupWeights(profile);
   const weightSum = weights.reduce((sum, value) => sum + value, 0) || 1;
   const shares = weights.map((value) => value / weightSum);
   const counts = allocateByShare(safeTotal, shares);
+  return AUDIENCE_AGE_GROUPS.map((group, index) => ({
+    ...group,
+    share: shares[index] || 0,
+    count: counts[index] || 0
+  }));
+}
+
+function mergeAgeGroupDistributions(total, nationEntries) {
+  const safeTotal = Math.max(0, Math.round(Number(total) || 0));
+  const counts = AUDIENCE_AGE_GROUPS.map(() => 0);
+  nationEntries.forEach((entry) => {
+    if (!Array.isArray(entry?.ageGroups)) return;
+    entry.ageGroups.forEach((group, index) => {
+      const count = Number.isFinite(group?.count) ? group.count : 0;
+      counts[index] += count;
+    });
+  });
+  const countSum = counts.reduce((sum, value) => sum + value, 0) || safeTotal || 1;
+  const shares = counts.map((count) => (safeTotal ? count / safeTotal : count / countSum));
   return AUDIENCE_AGE_GROUPS.map((group, index) => ({
     ...group,
     share: shares[index] || 0,
@@ -2247,12 +2321,32 @@ function pickAudienceNation(snapshot) {
   return pick?.nation || NATIONS[0];
 }
 
-function pickAudienceAgeGroup() {
-  const weights = buildAudienceAgeGroupWeights();
-  const weighted = AUDIENCE_AGE_GROUPS.map((group, index) => ({
-    group,
-    weight: Math.max(1, Math.round((weights[index] || 0.1) * 100))
-  }));
+function pickAudienceAgeGroup(snapshot, nation) {
+  const nationEntry = nation && snapshot?.nations?.find((entry) => entry.nation === nation);
+  const scopeAgeGroups = nationEntry?.ageGroups?.length
+    ? nationEntry.ageGroups
+    : Array.isArray(snapshot?.ageGroups) && snapshot.ageGroups.length
+      ? snapshot.ageGroups
+      : null;
+  const fallbackProfile = nation ? resolveNationAgeProfile(nation) : DEFAULT_AGE_PYRAMID_PROFILE;
+  const groups = scopeAgeGroups?.length
+    ? scopeAgeGroups
+    : buildAudienceAgeGroupDistribution(100000, fallbackProfile);
+  const scopeTotal = Number.isFinite(nationEntry?.total)
+    ? nationEntry.total
+    : Number.isFinite(snapshot?.total)
+      ? snapshot.total
+      : groups.reduce((sum, group) => sum + (Number.isFinite(group?.count) ? group.count : 0), 0);
+  const safeTotal = scopeTotal || 1;
+  const weighted = groups.map((group, index) => {
+    const baseGroup = AUDIENCE_AGE_GROUPS[group?.index ?? index] || group;
+    const share = Number.isFinite(group?.share)
+      ? group.share
+      : Number.isFinite(group?.count)
+        ? group.count / safeTotal
+        : 0.01;
+    return { group: baseGroup, weight: Math.max(1, Math.round(share * 1000)) };
+  });
   const pick = pickWeightedEntry(weighted) || weighted[0];
   return pick?.group || AUDIENCE_AGE_GROUPS[0];
 }
@@ -2266,24 +2360,27 @@ function buildAudienceLifeExpectancy(age) {
   return { minAge, maxAge, label: `${minAge}-${maxAge}` };
 }
 
-function computeAudienceWeeklyBudget(age) {
+function computeAudienceWeeklyBudget(age, options = {}) {
+  const stable = options?.stable === true;
   const ageCurve = Math.exp(-Math.pow((age - 32) / 18, 2));
   const base = 180 + ageCurve * 320;
-  const jitter = rand(-40, 60);
+  const jitter = stable ? 0 : rand(-40, 60);
   return clamp(Math.round(base + jitter), 80, 900);
 }
 
-function computeAudienceEngagementRate(age) {
+function computeAudienceEngagementRate(age, options = {}) {
+  const stable = options?.stable === true;
   const ageCurve = Math.exp(-Math.pow((age - 26) / 22, 2));
   const base = 0.2 + ageCurve * 0.5;
-  const jitter = (rand(-8, 8) / 100);
+  const jitter = stable ? 0 : (rand(-8, 8) / 100);
   return clamp(Number((base + jitter).toFixed(2)), 0.05, 0.85);
 }
 
-function computeAudienceWeeklyHours(age) {
+function computeAudienceWeeklyHours(age, options = {}) {
+  const stable = options?.stable === true;
   const ageCurve = Math.exp(-Math.pow((age - 28) / 26, 2));
   const base = 12 + ageCurve * 20;
-  const jitter = rand(-3, 5);
+  const jitter = stable ? 0 : rand(-3, 5);
   return clamp(Math.round(base + jitter), 8, 48);
 }
 
@@ -2339,10 +2436,12 @@ function driftAudiencePreferences(chunk) {
   chunk.communityId = next.communityId;
 }
 
-function makeAudienceChunk({ nation, year, age, parent = null } = {}) {
-  const snapshot = computePopulationSnapshot();
-  const resolvedNation = nation || pickAudienceNation(snapshot);
-  const ageGroup = typeof age === "number" ? resolveAudienceAgeGroupForAge(age) : pickAudienceAgeGroup();
+function makeAudienceChunk({ nation, year, age, parent = null, snapshot = null } = {}) {
+  const popSnapshot = snapshot || computePopulationSnapshot();
+  const resolvedNation = nation || pickAudienceNation(popSnapshot);
+  const ageGroup = typeof age === "number"
+    ? resolveAudienceAgeGroupForAge(age)
+    : pickAudienceAgeGroup(popSnapshot, resolvedNation);
   const resolvedAge = Number.isFinite(age)
     ? clamp(Math.floor(age), 0, AUDIENCE_AGE_GROUPS[AUDIENCE_AGE_GROUPS.length - 1]?.maxAge ?? 119)
     : rand(ageGroup.minAge, ageGroup.maxAge);
@@ -2445,7 +2544,7 @@ function buildAudienceChunksSample(year = currentYear()) {
   counts.forEach((count, index) => {
     const nation = NATIONS[index] || weights[index]?.nation;
     for (let i = 0; i < count; i += 1) {
-      chunks.push(makeAudienceChunk({ nation, year }));
+      chunks.push(makeAudienceChunk({ nation, year, snapshot }));
     }
   });
   return chunks;
@@ -2508,7 +2607,13 @@ function advanceAudienceChunksYear(year = currentYear()) {
       if (chunk.reproductionRate > 0 && chunk.age >= 16 && chunk.age <= 40) {
         const chance = clamp(chunk.reproductionRate * AUDIENCE_CHUNK_REPRO_RATE_STEP, 0, 0.25);
         if (Math.random() < chance) {
-          births.push(makeAudienceChunk({ nation: chunk.nation, year: targetYear, age: rand(0, 3), parent: chunk }));
+          births.push(makeAudienceChunk({
+            nation: chunk.nation,
+            year: targetYear,
+            age: rand(0, 3),
+            parent: chunk,
+            snapshot
+          }));
         }
       }
     }
@@ -2530,7 +2635,7 @@ function advanceAudienceChunksYear(year = currentYear()) {
       .slice(0, targetCount);
   }
   while (nextChunks.length < targetCount) {
-    nextChunks.push(makeAudienceChunk({ year: targetYear }));
+    nextChunks.push(makeAudienceChunk({ year: targetYear, snapshot }));
   }
   store.chunks = nextChunks;
   store.lastUpdateYear = targetYear;
@@ -2575,7 +2680,7 @@ function resolveAudienceAgeGroupForAge(age) {
 }
 
 function pickCreatorAge() {
-  const weights = buildAudienceAgeGroupWeights();
+  const weights = buildAudienceAgeGroupWeights(CREATOR_AGE_PYRAMID_PROFILE);
   const candidates = AUDIENCE_AGE_GROUPS
     .filter((group) => group.minAge >= CREATOR_AGE_MIN && group.minAge <= CREATOR_AGE_MAX)
     .map((group) => {
@@ -2628,7 +2733,48 @@ function normalizeCreatorGenderKey(genderIdentity) {
   return null;
 }
 
+function buildCreatorPortraitGenreKey(theme, mood) {
+  if (!theme || !mood) return null;
+  const themeMatch = THEMES.find((entry) => entry.toLowerCase() === String(theme).toLowerCase());
+  const moodMatch = MOODS.find((entry) => entry.toLowerCase() === String(mood).toLowerCase());
+  if (!themeMatch || !moodMatch) return null;
+  return `${themeMatch.toLowerCase()}-${moodMatch.toLowerCase()}`;
+}
+
+function normalizeCreatorPortraitGenreKey(rawKey) {
+  const trimmed = typeof rawKey === "string" ? rawKey.trim() : "";
+  if (!trimmed) return null;
+  const bits = trimmed.split("-").filter(Boolean);
+  if (bits.length < 2) return null;
+  const themeKey = bits[0];
+  const moodKey = bits.slice(1).join("-");
+  return buildCreatorPortraitGenreKey(themeKey, moodKey);
+}
+
+function listCreatorPortraitGenreKeys(creator) {
+  const themes = Array.isArray(creator?.prefThemes) ? uniqueList(creator.prefThemes) : [];
+  const moods = Array.isArray(creator?.prefMoods) ? uniqueList(creator.prefMoods) : [];
+  const themeKeys = themes.filter((theme) => THEMES.includes(theme));
+  const moodKeys = moods.filter((mood) => MOODS.includes(mood));
+  const keys = [];
+  themeKeys.forEach((theme) => {
+    moodKeys.forEach((mood) => {
+      const key = buildCreatorPortraitGenreKey(theme, mood);
+      if (key) keys.push(key);
+    });
+  });
+  return uniqueList(keys);
+}
+
 function resolveCreatorPortraitGenre(creator) {
+  const storedKey = normalizeCreatorPortraitGenreKey(creator?.portraitGenreKey);
+  if (storedKey) {
+    const [themeKey, ...moodParts] = storedKey.split("-").filter(Boolean);
+    const moodKey = moodParts.join("-");
+    if (themeKey && moodKey) {
+      return { theme: themeKey, mood: moodKey };
+    }
+  }
   const theme = Array.isArray(creator?.prefThemes) ? creator.prefThemes[0] : null;
   const mood = Array.isArray(creator?.prefMoods) ? creator.prefMoods[0] : null;
   if (!theme || !THEMES.includes(theme) || !mood || !MOODS.includes(mood)) return null;
@@ -2672,6 +2818,28 @@ function parseCreatorPortraitKey(rawKey) {
   return { theme, mood, ageRange, nation, genderIdentity };
 }
 
+function parseCreatorPortraitUrl(url) {
+  if (!url) return null;
+  const manifest = getCreatorPortraitManifest();
+  const root = manifest?.root || CREATOR_PORTRAIT_ROOT;
+  const raw = String(url).trim();
+  if (!raw) return null;
+  const rootIndex = raw.indexOf(root);
+  if (rootIndex < 0) return null;
+  const afterRoot = raw.slice(rootIndex + root.length).replace(/^\/+/, "");
+  const parts = afterRoot.split("/").filter(Boolean);
+  if (parts.length < 4) return null;
+  const [genreKey, ageBin, identityKey, ...fileParts] = parts;
+  const file = fileParts.join("/");
+  return {
+    key: `${genreKey}/${ageBin}/${identityKey}`,
+    genreKey,
+    ageBin,
+    identityKey,
+    file
+  };
+}
+
 function buildCreatorPortraitUrlFromKey(portraitKey, portraitFile) {
   if (!portraitKey || !portraitFile) return null;
   const manifest = getCreatorPortraitManifest();
@@ -2713,42 +2881,75 @@ function setCreatorPortraitNote(creator, note) {
 
 function assignCreatorPortrait(creator) {
   if (!creator) return null;
-  if (creator.portraitUrl) {
-    setCreatorPortraitNote(creator, null);
-    return creator.portraitUrl;
+  const rawUrl = creator.portraitUrl ? String(creator.portraitUrl) : "";
+  const trimmedUrl = rawUrl.trim();
+  const existing = parseCreatorPortraitUrl(trimmedUrl);
+  if (trimmedUrl && !existing) {
+    return trimmedUrl;
   }
-  const genre = resolveCreatorPortraitGenre(creator);
+  if (!creator.portraitGenreKey && existing?.genreKey) {
+    const normalizedGenre = normalizeCreatorPortraitGenreKey(existing.genreKey);
+    if (normalizedGenre) creator.portraitGenreKey = normalizedGenre;
+  }
+  const preferredGenres = listCreatorPortraitGenreKeys(creator);
   const ageBin = resolveCreatorPortraitAgeBin(creator.age);
   const countryKey = normalizeCreatorNationalityKey(creator.country);
   const genderKey = normalizeCreatorGenderKey(creator.genderIdentity);
   const issues = [];
-  if (!genre) issues.push("theme/mood prefs");
+  if (!preferredGenres.length) issues.push("theme/mood prefs");
   if (!ageBin) issues.push("age bin");
   if (!countryKey) issues.push("nationality");
   if (!genderKey) issues.push("gender identity");
   if (issues.length) {
     setCreatorPortraitNote(creator, `Portrait match missing ${issues.join(", ")}.`);
-    return null;
+    return trimmedUrl || null;
   }
-  const key = `${genre.theme}-${genre.mood}/${ageBin}/${countryKey}-${genderKey}`;
   const manifest = getCreatorPortraitManifest();
   if (!manifest) {
     setCreatorPortraitNote(creator, "Portrait manifest missing. Run npm run build to refresh assets.");
-    return null;
+    return trimmedUrl || null;
   }
   const root = manifest.root || CREATOR_PORTRAIT_ROOT;
   const entries = manifest.entries || {};
+  const normalizedStored = normalizeCreatorPortraitGenreKey(creator.portraitGenreKey);
+  const preferredSet = new Set(preferredGenres);
+  let genreKey = normalizedStored && preferredSet.has(normalizedStored) ? normalizedStored : null;
+  if (!genreKey && creator.portraitGenreKey) creator.portraitGenreKey = null;
+  const identityKey = `${countryKey}-${genderKey}`;
+  const availableGenreKeys = preferredGenres.filter((candidate) => {
+    const candidateKey = `${candidate}/${ageBin}/${identityKey}`;
+    return Array.isArray(entries[candidateKey]) && entries[candidateKey].length;
+  });
+  if (!genreKey) {
+    if (!availableGenreKeys.length) {
+      setCreatorPortraitNote(
+        creator,
+        `No portraits found for ${ageBin}/${identityKey} across preferred genres.`
+      );
+      return trimmedUrl || null;
+    }
+    genreKey = pickOne(availableGenreKeys);
+    creator.portraitGenreKey = genreKey;
+  } else {
+    creator.portraitGenreKey = genreKey;
+  }
+  const key = `${genreKey}/${ageBin}/${identityKey}`;
   const files = entries[key];
   if (!Array.isArray(files) || !files.length) {
     setCreatorPortraitNote(creator, `No portraits found for ${key}.`);
-    return null;
+    return trimmedUrl || null;
+  }
+  if (existing?.key === key && creator.portraitUrl) {
+    setCreatorPortraitNote(creator, null);
+    return trimmedUrl || null;
   }
   const assigned = collectAssignedCreatorPortraits();
+  if (trimmedUrl) assigned.delete(trimmedUrl);
   const available = files.filter((file) => !assigned.has(`${root}/${key}/${file}`));
   const pick = pickOne(available.length ? available : files);
   if (!pick) {
     setCreatorPortraitNote(creator, `No portraits available for ${key}.`);
-    return null;
+    return trimmedUrl || null;
   }
   const url = `${root}/${key}/${pick}`;
   creator.portraitUrl = url;
@@ -3981,6 +4182,7 @@ function makeCreator(role, existingNames, country, options = {}) {
     age,
     ageGroup: ageGroup ? ageGroup.label : null,
     genderIdentity: null,
+    portraitGenreKey: null,
     portraitUrl: null,
     portraitNote: null
   };
@@ -4033,6 +4235,16 @@ function normalizeCreator(creator) {
     creator.portraitUrl = creator.portraitUrl ? String(creator.portraitUrl) : null;
   }
   if (creator.portraitUrl && !creator.portraitUrl.trim()) creator.portraitUrl = null;
+  if (typeof creator.portraitGenreKey !== "string") {
+    creator.portraitGenreKey = creator.portraitGenreKey ? String(creator.portraitGenreKey) : null;
+  }
+  if (creator.portraitGenreKey && !creator.portraitGenreKey.trim()) creator.portraitGenreKey = null;
+  creator.portraitGenreKey = normalizeCreatorPortraitGenreKey(creator.portraitGenreKey);
+  if (!creator.portraitGenreKey && creator.portraitUrl) {
+    const parsedPortrait = parseCreatorPortraitUrl(creator.portraitUrl);
+    const inferredKey = normalizeCreatorPortraitGenreKey(parsedPortrait?.genreKey);
+    if (inferredKey) creator.portraitGenreKey = inferredKey;
+  }
   if (typeof creator.genderIdentity !== "string") {
     creator.genderIdentity = creator.genderIdentity ? String(creator.genderIdentity) : null;
   }
@@ -8252,12 +8464,31 @@ function chartWeightsForScope(scopeId) {
 function buildChartMetrics(score, weights = CHART_WEIGHTS) {
   const normalized = normalizeChartWeights(weights);
   const base = Math.max(0, score) * 1200;
+  const multipliers = CONSUMPTION_VOLUME_MULTIPLIERS || {};
+  const salesMultiplier = Number.isFinite(multipliers.sales) ? multipliers.sales : 1;
+  const streamingMultiplier = Number.isFinite(multipliers.streaming) ? multipliers.streaming : 1;
+  const airplayMultiplier = Number.isFinite(multipliers.airplay) ? multipliers.airplay : 1;
+  const socialMultiplier = Number.isFinite(multipliers.social) ? multipliers.social : 1;
   return {
-    sales: roundToAudienceChunk(base * normalized.sales),
-    streaming: roundToAudienceChunk(base * normalized.streaming),
-    airplay: roundToAudienceChunk(base * normalized.airplay),
-    social: roundToAudienceChunk(base * normalized.social)
+    sales: roundToAudienceChunk(base * normalized.sales * salesMultiplier),
+    streaming: roundToAudienceChunk(base * normalized.streaming * streamingMultiplier),
+    airplay: roundToAudienceChunk(base * normalized.airplay * airplayMultiplier),
+    social: roundToAudienceChunk(base * normalized.social * socialMultiplier)
   };
+}
+
+function salesEquivalentFromMetrics(metrics) {
+  const safe = metrics || {};
+  const weights = CONSUMPTION_VALUE_WEIGHTS || {};
+  const salesWeight = Number.isFinite(weights.sales) ? weights.sales : 1;
+  const streamingWeight = Number.isFinite(weights.streaming) ? weights.streaming : 0.1;
+  const airplayWeight = Number.isFinite(weights.airplay) ? weights.airplay : 0;
+  const socialWeight = Number.isFinite(weights.social) ? weights.social : 0;
+  const sales = Number(safe.sales || 0);
+  const streaming = Number(safe.streaming || 0);
+  const airplay = Number(safe.airplay || 0);
+  const social = Number(safe.social || 0);
+  return sales * salesWeight + streaming * streamingWeight + airplay * airplayWeight + social * socialWeight;
 }
 
 const PROMO_METRIC_META = {
@@ -9984,6 +10215,7 @@ function buildChartWorkerPayload() {
       audience,
       trends: state.trends,
       defaultWeights: CHART_WEIGHTS,
+      volumeMultipliers: CONSUMPTION_VOLUME_MULTIPLIERS,
       labelCompetition,
       regionDefs: REGION_DEFS
     },
@@ -13553,14 +13785,14 @@ function applyTrackSnapshotsForAwards(week, snapshots, trackStore, projectStore)
         const actKey = ensureAwardCandidate(trackStore, entry);
         if (!actKey) return;
         const metrics = entry.metrics || {};
-        const sales = Number(metrics.sales || 0) + Number(metrics.streaming || 0);
+        const sales = salesEquivalentFromMetrics(metrics);
         addAwardMetric(trackStore.sales, actKey, sales);
       });
       projectEntries.forEach((entry) => {
         const actKey = ensureAwardCandidate(projectStore, entry);
         if (!actKey) return;
         const metrics = entry.metrics || {};
-        const sales = Number(metrics.sales || 0) + Number(metrics.streaming || 0);
+        const sales = salesEquivalentFromMetrics(metrics);
         addAwardMetric(projectStore.sales, actKey, sales);
       });
     }
@@ -14439,7 +14671,8 @@ function normalizeState() {
     && state.ui.chartContentType !== "projects"
     && state.ui.chartContentType !== "promotions"
     && state.ui.chartContentType !== "tours"
-    && state.ui.chartContentType !== "acts") {
+    && state.ui.chartContentType !== "acts"
+    && state.ui.chartContentType !== "demographics") {
     state.ui.chartContentType = "tracks";
   }
   if (state.ui.chartPulseContentType !== "tracks"
@@ -16023,19 +16256,20 @@ function buildPopulationSnapshot(year, totalOverride) {
   const stage = populationStageForYear(year);
   const total = typeof totalOverride === "number" ? totalOverride : populationAtYear(year);
   const splits = populationSplitsForStage(stage);
-  const ageGroups = buildAudienceAgeGroupDistribution(total);
   const nations = NATIONS.map((nation) => {
     const nationPop = roundToThousandUp(total * splits[nation]);
     const capitalPop = roundToThousandUp(nationPop * REGION_CAPITAL_SHARE);
     const elsewherePop = Math.max(0, nationPop - capitalPop);
+    const profile = resolveNationAgeProfile(nation);
     return {
       nation,
       total: nationPop,
       capital: capitalPop,
       elsewhere: elsewherePop,
-      ageGroups: buildAudienceAgeGroupDistribution(nationPop)
+      ageGroups: buildAudienceAgeGroupDistribution(nationPop, profile)
     };
   });
+  const ageGroups = mergeAgeGroupDistributions(total, nations);
   return { total, stage: stage.id, ageGroups, nations };
 }
 
@@ -16260,11 +16494,6 @@ function safeAvatarUrl(url) {
 
 function getCreatorPortraitUrl(creator) {
   if (!creator) return null;
-  const raw = creator.portraitUrl;
-  if (raw) {
-    const trimmed = String(raw).trim();
-    return trimmed ? trimmed : null;
-  }
   return assignCreatorPortrait(creator);
 }
 
@@ -16464,6 +16693,9 @@ export {
   clearSlot,
   collectTrendRanking,
   commitSlotChange,
+  computeAudienceEngagementRate,
+  computeAudienceWeeklyBudget,
+  computeAudienceWeeklyHours,
   computeAutoCreateBudget,
   computeAutoPromoBudget,
   computeCreatorCatharsisScore,

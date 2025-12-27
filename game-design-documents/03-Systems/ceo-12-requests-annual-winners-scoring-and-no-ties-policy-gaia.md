@@ -116,7 +116,7 @@
 
 #### **`Step 1 — Sales/Streams (easiest, preferred)`**
 
-* `Compare global total sales/streams for the tied Acts within that same year.`
+* `Compare global total sales/streams for the tied Acts within that same year (streams weighted at 0.1).`
 
 * `Higher global total wins.`
 
@@ -197,4 +197,3 @@
 ## **`Conclusion`**
 
 `The CEO’s 12 Requests are annual (12-month) Gaia-scoped achievements that always produce one winner Act per achievement per year. “Chart-topping” is scored by weekly #1 points (Regional=1, National=2, Global=3 per week). If any tie occurs anywhere, it is resolved deterministically—Sales/Streams first (global total for that year), then Critics, then Awards, and finally “First Achieved”—with an explicit rule that chart position details are never used to break ties.`
-

@@ -31,6 +31,7 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 - DEC-20251226-001: Eras view replaces the Tracks panel with an Era Performance panel, showing per-track type, chart points, sales/stream metrics, costs, earnings, and an embedded chart history table for the focused era.
 - DEC-20251226-002: Vinyl run recommendations use a demand curve (fan base, quality, trend alignment, project type, act size, promo lead time, and price sensitivity) plus baseline physical pricing to estimate unit cost, recommended units, and gross/cost projections for player planning.
 - DEC-20251226-005: Project type track-count constraints follow `game-design-documents/03-Systems/Economy/Pricing/economy-pricing-and-track-limits-by-format.md` (Single 1-4, EP 5-7, Album 8-32) for create/release validation and seeded market projects.
+- DEC-20251226-010: Streaming metrics scale up in volume but are down-weighted for chart/value tallies so streams are abundant yet less monetarily impactful than sales.
 
 ## Eras + projects
 - DEC-20251226-006: Era projects auto-group releases within a 26-week release/promo gap; singles attach to the Era project, albums close at 32 released tracks, Legacy-stage touring opens a 3-track deluxe window, and new releases after closure start a new Era.

@@ -2,7 +2,8 @@
 import { storeChartSnapshot } from "./db.js";
 
 const workerScope = self;
-const FALLBACK_WEIGHTS = { sales: 0.25, streaming: 0.25, airplay: 0.25, social: 0.25 };
+const FALLBACK_WEIGHTS = { sales: 0.35, streaming: 0.2, airplay: 0.3, social: 0.15 };
+const FALLBACK_VOLUME_MULTIPLIERS = { sales: 1, streaming: 5, airplay: 1, social: 1 };
 const AUDIENCE_CHUNK = 1000;
 const ALIGNMENTS = ["Safe", "Neutral", "Risky"];
 const AUDIENCE_ALIGNMENT_SCORE_SCALE = 42;
@@ -39,14 +40,19 @@ function roundToAudienceChunk(value) {
   return Math.ceil(Math.max(0, value) / AUDIENCE_CHUNK) * AUDIENCE_CHUNK;
 }
 
-function buildChartMetrics(score, weights, fallback) {
+function buildChartMetrics(score, weights, fallback, volumeMultipliers) {
   const normalized = normalizeChartWeights(weights, fallback);
   const base = Math.max(0, score) * 1200;
+  const multipliers = volumeMultipliers || FALLBACK_VOLUME_MULTIPLIERS;
+  const salesMultiplier = Number.isFinite(multipliers.sales) ? multipliers.sales : 1;
+  const streamingMultiplier = Number.isFinite(multipliers.streaming) ? multipliers.streaming : 1;
+  const airplayMultiplier = Number.isFinite(multipliers.airplay) ? multipliers.airplay : 1;
+  const socialMultiplier = Number.isFinite(multipliers.social) ? multipliers.social : 1;
   return {
-    sales: roundToAudienceChunk(base * normalized.sales),
-    streaming: roundToAudienceChunk(base * normalized.streaming),
-    airplay: roundToAudienceChunk(base * normalized.airplay),
-    social: roundToAudienceChunk(base * normalized.social)
+    sales: roundToAudienceChunk(base * normalized.sales * salesMultiplier),
+    streaming: roundToAudienceChunk(base * normalized.streaming * streamingMultiplier),
+    airplay: roundToAudienceChunk(base * normalized.airplay * airplayMultiplier),
+    social: roundToAudienceChunk(base * normalized.social * socialMultiplier)
   };
 }
 
@@ -160,6 +166,7 @@ function computeCharts(payload) {
   const chartSizes = payload?.chartSizes || { global: 0, nation: 0, region: 0 };
   const weights = payload?.weights || {};
   const defaultWeights = payload?.defaultWeights || FALLBACK_WEIGHTS;
+  const volumeMultipliers = payload?.volumeMultipliers || FALLBACK_VOLUME_MULTIPLIERS;
   const profiles = payload?.profiles || {};
   const trends = payload?.trends || [];
   const audience = payload?.audience || {};
@@ -179,7 +186,7 @@ function computeCharts(payload) {
     let sum = 0;
     nations.forEach((nation) => {
       const score = scoreTrack(track, nation, profiles, trends, audience, labelCompetition, regionDefs, nations);
-      const metrics = buildChartMetrics(score, weights?.nations?.[nation], defaultWeights);
+      const metrics = buildChartMetrics(score, weights?.nations?.[nation], defaultWeights, volumeMultipliers);
       nationScores[nation].push({ key: track.key, score, metrics });
       sum += score;
     });
@@ -187,11 +194,11 @@ function computeCharts(payload) {
     globalScores.push({
       key: track.key,
       score: avg,
-      metrics: buildChartMetrics(avg, weights?.global, defaultWeights)
+      metrics: buildChartMetrics(avg, weights?.global, defaultWeights, volumeMultipliers)
     });
     regionIds.forEach((regionId) => {
       const score = scoreTrack(track, regionId, profiles, trends, audience, labelCompetition, regionDefs, nations);
-      const metrics = buildChartMetrics(score, weights?.regions?.[regionId], defaultWeights);
+      const metrics = buildChartMetrics(score, weights?.regions?.[regionId], defaultWeights, volumeMultipliers);
       regionScores[regionId].push({ key: track.key, score, metrics });
     });
   });

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -5109,6 +5109,7 @@ function renderStudiosList() {
 function renderCharts() {
     const contentType = state.ui.chartContentType || "tracks";
     const isActs = contentType === "acts";
+    const isDemographics = contentType === "demographics";
     document.querySelectorAll("#chartTypeTabs .tab").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.chartContent === contentType);
     });
@@ -5119,10 +5120,34 @@ function renderCharts() {
     const regions = Array.isArray(REGION_DEFS) ? REGION_DEFS : [];
     const regionIds = new Set(regions.map((region) => region.id));
     let activeChart = state.ui.activeChart || "global";
+    let demographicsNotice = "";
     if (isActs) {
         if (activeChart !== "global") {
             activeChart = "global";
             state.ui.activeChart = activeChart;
+        }
+    }
+    else if (isDemographics) {
+        if (regionIds.has(activeChart)) {
+            const region = regions.find((entry) => entry.id === activeChart);
+            if (region?.nation) {
+                activeChart = region.nation;
+                state.ui.activeChart = activeChart;
+                demographicsNotice = `Regional demographics are not modeled yet. Showing ${activeChart}.`;
+                logEvent(`Demographics uses nation scope only. Showing ${activeChart}.`, "warn");
+            }
+            else {
+                activeChart = "global";
+                state.ui.activeChart = activeChart;
+                demographicsNotice = "Demographics scope reset to Global after an invalid selection.";
+                logEvent("Demographics scope reset to Global after an invalid selection.", "warn");
+            }
+        }
+        else if (activeChart !== "global" && !NATIONS.includes(activeChart)) {
+            activeChart = "global";
+            state.ui.activeChart = activeChart;
+            demographicsNotice = "Demographics scope reset to Global after an invalid selection.";
+            logEvent("Demographics scope reset to Global after an invalid selection.", "warn");
         }
     }
     else if (activeChart !== "global" && !NATIONS.includes(activeChart) && !regionIds.has(activeChart)) {
@@ -5132,8 +5157,12 @@ function renderCharts() {
     }
     const chartWeekBtn = $("chartWeekBtn");
     if (chartWeekBtn) {
-        chartWeekBtn.disabled = isActs;
-        chartWeekBtn.title = isActs ? "History snapshots are available for charts only." : "";
+        chartWeekBtn.disabled = isActs || isDemographics;
+        chartWeekBtn.title = isActs
+            ? "History snapshots are available for charts only."
+            : isDemographics
+                ? "Population snapshots update yearly."
+                : "";
     }
     if (isActs) {
         if (regionTabs) {
@@ -5224,7 +5253,7 @@ function renderCharts() {
         btn.classList.toggle("active", !!isActive);
     });
     if (regionTabs) {
-        if (!activeNation) {
+        if (!activeNation || isDemographics) {
             regionTabs.innerHTML = "";
             regionTabs.classList.add("hidden");
         }
@@ -5233,6 +5262,105 @@ function renderCharts() {
             regionTabs.classList.toggle("hidden", nationRegions.length === 0);
             regionTabs.innerHTML = nationRegions.map((region) => (`<button class="tab${region.id === activeChart ? " active" : ""}" data-chart="${region.id}" type="button">${region.label} Regional</button>`)).join("");
         }
+    }
+    if (isDemographics) {
+        const snapshot = computePopulationSnapshot();
+        const scopeEntry = activeNation
+            ? snapshot?.nations?.find((entry) => entry.nation === activeNation)
+            : snapshot;
+        const scopeLabel = activeNation || "Gaia";
+        const stageLabel = snapshot?.stage || "Campaign Era";
+        if ($("chartWeekRange"))
+            $("chartWeekRange").textContent = `Year ${currentYear()}`;
+        if ($("chartHistoryNotice")) {
+            $("chartHistoryNotice").textContent = demographicsNotice;
+        }
+        const meta = $("chartMeta");
+        if (meta) {
+            meta.textContent = `Population | ${scopeLabel} | ${stageLabel} | Age pyramid in 4-year bins`;
+        }
+        if (!scopeEntry || !Array.isArray(scopeEntry.ageGroups) || !scopeEntry.ageGroups.length) {
+            $("chartList").innerHTML = `<div class="muted">No population snapshot available yet.</div>`;
+            return;
+        }
+        const scopeTotal = Number.isFinite(scopeEntry.total) ? scopeEntry.total : snapshot?.total || 0;
+        const segmentDefs = [
+            { label: "0-20", min: 0, max: 20 },
+            { label: "21-40", min: 21, max: 40 },
+            { label: "41-60", min: 41, max: 60 },
+            { label: "61+", min: 61, max: 119 }
+        ];
+        const segmentLine = segmentDefs.map((segment) => {
+            const share = scopeEntry.ageGroups.reduce((sum, group) => {
+                const midpoint = (group.minAge + group.maxAge) / 2;
+                if (midpoint < segment.min || midpoint > segment.max)
+                    return sum;
+                const pct = Number.isFinite(group.share)
+                    ? group.share
+                    : scopeTotal ? (group.count || 0) / scopeTotal : 0;
+                return sum + pct;
+            }, 0);
+            return `${segment.label}: ${Math.round(share * 100)}%`;
+        }).join(" | ");
+        const ageCards = scopeEntry.ageGroups.map((group) => {
+            const pct = Number.isFinite(group.share)
+                ? Math.round(group.share * 100)
+                : scopeTotal ? Math.round(((group.count || 0) / scopeTotal) * 100) : 0;
+            const count = Number.isFinite(group.count)
+                ? group.count
+                : scopeTotal ? Math.round(scopeTotal * (group.share || 0)) : 0;
+            const midpoint = (group.minAge + group.maxAge) / 2;
+            const budget = computeAudienceWeeklyBudget(midpoint, { stable: true });
+            const engagement = computeAudienceEngagementRate(midpoint, { stable: true });
+            const hours = computeAudienceWeeklyHours(midpoint, { stable: true });
+            return `
+        <div class="demographic-card">
+          <div class="item-title">${group.label}</div>
+          <div class="muted">${formatCount(count)} (${pct}%)</div>
+          <div class="tiny muted">Budget ${formatMoney(budget)} / wk | Engage ${Math.round(engagement * 100)}% | Time ${formatCount(hours)}h</div>
+        </div>
+      `;
+        }).join("");
+        const nationLines = snapshot?.nations?.map((entry) => {
+            const share = snapshot.total ? Math.round((entry.total / snapshot.total) * 100) : 0;
+            const detail = activeNation
+                ? `Capital ${formatCount(entry.capital)} | Elsewhere ${formatCount(entry.elsewhere)}`
+                : `${share}% of Gaia`;
+            return `
+        <div class="list-item">
+          <div class="list-row">
+            <div>
+              <div class="item-title">${entry.nation}</div>
+              <div class="muted">${detail}</div>
+            </div>
+            <div class="pill">${formatCount(entry.total)}</div>
+          </div>
+        </div>
+      `;
+        }).join("") || "";
+        $("chartList").innerHTML = `
+      <div class="callout">
+        Demographics uses the seeded age pyramid per nation. Higher engagement flags streaming pressure, while higher budgets hint at future sales lift as cohorts age.
+      </div>
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${scopeLabel} Population</div>
+            <div class="muted">${stageLabel} | Updates yearly</div>
+          </div>
+          <div class="pill">${formatCount(scopeTotal)}</div>
+        </div>
+      </div>
+      <div class="list-item">
+        <div class="item-title">Age Segments</div>
+        <div class="muted">${segmentLine}</div>
+      </div>
+      ${nationLines}
+      <div class="demographics-grid">
+        ${ageCards}
+      </div>
+    `;
+        return;
     }
     const chartSource = contentType === "promotions"
         ? state.promoCharts

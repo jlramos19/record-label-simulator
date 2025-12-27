@@ -68,7 +68,7 @@
 
 `Charts Hierarchy: Charts update weekly. Global Top 100, Nation Top 40, and Region Top 10 lists are computed from a score that starts with quality, adds alignment/theme/mood matches, trend and promo bonuses, noise, and applies weekly decay (5% per week, floor 40%).`
 
-`Display Metrics: Sales/streaming/airplay/social figures are derived from the score using weights (0.3/0.3/0.3/0.1) for UI reporting, but they do not drive ranking in the current MVP.`
+`Display Metrics: Sales/streaming/airplay/social figures are derived from the score using weights (0.35/0.20/0.30/0.15) for UI reporting; streams also apply a 5x volume multiplier to keep counts higher, but they do not drive ranking in the current MVP.`
 
 `Feedback Loops: Chart performance feeds trend momentum, label reach, and strategic decisions. Rival releases and promo pushes shift rankings week to week, so pacing releases and promotions is a core loop.`
 

@@ -84,7 +84,7 @@ Applies to achievements \#2, \#5, \#8, \#11.
 
 Primary scoring rule (per calendar year):
 
-1\. Compute the global total for the year for the relevant measure (sales \+ streams, views, or attendance, depending on the achievement wording).
+1\. Compute the global total for the year for the relevant measure (sales + streams weighted at 0.1, views, or attendance, depending on the achievement wording).
 
 2\. Winner Act is the Act with the highest global total for that year.
 
@@ -106,7 +106,7 @@ If still tied, Awards are used next (see tie-break ladder).
 
 If a tie remains after the primary scoring for a given achievement, resolve it using the following ladder, stopping as soon as a single winner exists. (Never use chart position details.)
 
-1\. Sales/Streams: compare global total for the same calendar year.
+1\. Sales/Streams: compare global total for the same calendar year (streams weighted at 0.1).
 
 2\. Critics: compare year-bounded critics outcome using scope weights (Regional=1, National=2, Global=3).
 
@@ -123,7 +123,7 @@ If two (or more) Acts remain tied after Sales/Streams, Critics, and Awards compa
 This example illustrates the intended behavior. Numbers are illustrative.
 
 * Two Acts end the year with identical Chart-Topping Scores.  
-* Tie-break step 1 compares global total sales/streams for that year; the Act with higher global total wins immediately.  
+* Tie-break step 1 compares global total sales/streams for that year (streams weighted at 0.1); the Act with higher global total wins immediately.  
 * Critics and Awards are only consulted if Sales/Streams still ties.  
 * Chart position details (peak rank, weeks-on-chart, etc.) are never used to break the tie.
 

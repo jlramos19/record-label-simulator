@@ -4,7 +4,7 @@
 
 1. **`Location`**`: The country where the audience chunk currently is. It decides which country's music charts are impacted when they listen to or buy music.`
 
-2. **`Age Group`**`: Places each audience into age groups of 4-year cycles, like 16-19, 20-23, and so on. Only groups aged between 16 and 40 can have kids, which means they can create new audience chunks.`
+2. **`Age Group`**`: Places each audience into age groups of 4-year cycles, like 16-19, 20-23, and so on. Only groups aged between 16 and 40 can have kids, which means they can create new audience chunks. Ages are seeded from the current population age pyramid per nation and skew younger, with 0-20 remaining eligible.`
 
 3. **`Generation`**`: A 16-year period that groups the audience chunk, affecting what music they've grown up with and still enjoy.`
 
@@ -38,7 +38,7 @@
 
 1. **`Location`**`: Determines the regional music market affected by an audience chunk’s activity, shaped by cultural and geographic influences.`
 
-2. **`Age Group`**`: Defines the demographic category of the audience, affecting music preferences and the capacity to generate new audience chunks.`
+2. **`Age Group`**`: Defines the demographic category of the audience, affecting music preferences and the capacity to generate new audience chunks; ages seed from the national population pyramid (youth-weighted, 0-119 range).`
 
 3. **`Generation`**`: Categorizes the audience based on the historical period of their upbringing, influencing their long-standing music tastes.`
 
@@ -68,4 +68,3 @@
 14. **`Emigration Rate`**`: Measures the propensity for audience chunks to relocate, simulating cultural cross-pollination and chart impacts.`
 
 `Each property plays a specific role in simulating a realistic and dynamic music market, where audience behaviors collectively impact the music industry ecosystem within your game.`
-

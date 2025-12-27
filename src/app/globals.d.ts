@@ -63,9 +63,21 @@ declare const ROLLOUT_STRATEGY_TEMPLATES: {
 declare const CHART_SIZES: { global: number; nation: number; region: number };
 declare const CHART_WEIGHTS: { sales: number; streaming: number; airplay: number; social: number };
 declare const REGION_CONSUMPTION_WEIGHTS: Record<string, { sales: number; streaming: number; airplay: number; social: number }>;
+declare const CONSUMPTION_VOLUME_MULTIPLIERS: { sales: number; streaming: number; airplay: number; social: number };
+declare const CONSUMPTION_VALUE_WEIGHTS: { sales: number; streaming: number; airplay: number; social: number };
 declare const NATIONS: string[];
 declare const REGION_DEFS: { id: string; nation: string; label: string }[];
 declare const NATION_PROFILES: Record<string, { alignment: string; theme: string; moods: string[] }>;
+declare const NATION_AGE_PYRAMID_PROFILES: Record<string, {
+  youthPeak: number;
+  youthSpread: number;
+  adultPeak: number;
+  adultSpread: number;
+  youthWeight: number;
+  adultWeight: number;
+  seniorDrop: number;
+  childBoost: number;
+}>;
 declare const REGION_PROFILES: Record<string, { alignment: string; theme: string; moods: string[] }>;
 declare const POPULATION_START_YEAR: number;
 declare const POPULATION_START: number;

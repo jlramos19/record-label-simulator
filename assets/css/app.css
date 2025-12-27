@@ -1634,6 +1634,23 @@ select.theme-select {
   color: var(--muted);
   font-weight: 600;
 }
+.demographics-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin-top: 4px;
+}
+.demographic-card {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: var(--line-width) solid var(--line);
+}
+.demographic-card .item-title {
+  font-size: 12px;
+}
 .log {
   max-height: none;
   overflow: visible;

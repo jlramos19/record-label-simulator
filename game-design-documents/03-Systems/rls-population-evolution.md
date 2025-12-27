@@ -56,7 +56,15 @@ At each yearly update cycle:
 4\. Population counts are rounded up to the nearest 1,000.  
 5\. Additional subdivisions (e.g., capital vs elsewhere) occur afterward.
 
-## **6\. Document Status**
+## **6\. Age Pyramid Distribution**
+
+- Population snapshots track 4-year age groups from 0-119 (0-3, 4-7, ...).
+- Each nation uses a distinct age-pyramid profile to keep distributions realistic and youth-weighted.
+- Gaia (global) age splits aggregate the national distributions, weighted by each nation's population share.
+- Audience chunks seed their ages from the current population distribution for their nation; ages 0-20 remain eligible.
+- Creator ID ages sample from 20+ only, with additional bias toward younger cohorts.
+
+## **7\. Document Status**
 
 This file defines the authoritative population evolution system and supersedes all earlier drafts.
 

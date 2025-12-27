@@ -1,5 +1,19 @@
 # Patch Notes
 
+## 2025-12-27 (RLS-PATCH-20251227-0406Z)
+- Creator portraits now pick from any preferred theme+mood pairing with available images, then keep the chosen genre for future age-bin updates while rechecking on preference changes.
+
+## 2025-12-27 (RLS-PATCH-20251227-0330Z)
+- Population snapshots now use nation-specific age pyramids, with Gaia age splits aggregated from the national distributions.
+- Audience chunks now seed ages from the current population pyramid per nation, keeping 0-20 cohorts in the mix.
+- Creator ID ages now skew younger (20+ only), drawing from a youth-biased age profile.
+- Charts now include a Demographics tab that breaks down Gaia or nation population age splits with budget/engagement signals.
+
+## 2025-12-27 (RLS-PATCH-20251227-0318Z)
+- Chart weights now downshift streaming share across default and regional consumption mixes.
+- Chart metrics now apply a 5x streaming volume multiplier so stream counts run higher than sales.
+- Annual sales/streams awards now compute sales-equivalent totals with streams weighted at 0.1.
+
 ## 2025-12-27 (RLS-PATCH-20251227-0246Z)
 - Dashboard now includes an Audience Chunks panel that surfaces age, generation, budget, engagement, and preference snapshots from the simulated chunk sample.
 - Audience chunks now simulate yearly evolution (age, budget, engagement, time profile, preference drift) with reproduction/emigration events tied to age brackets.

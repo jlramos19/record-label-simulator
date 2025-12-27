@@ -351,7 +351,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
 ];
 
 const CHART_SIZES = { global: 100, nation: 40, region: 10 };
-const CHART_WEIGHTS = { sales: 0.3, streaming: 0.3, airplay: 0.3, social: 0.1 };
+const CHART_WEIGHTS = { sales: 0.35, streaming: 0.2, airplay: 0.3, social: 0.15 };
 const NATIONS = ["Annglora", "Bytenza", "Crowlya"];
 const REGION_DEFS = [
   { id: "Annglora Capital", nation: "Annglora", label: "Bloomville" },
@@ -362,17 +362,51 @@ const REGION_DEFS = [
   { id: "Crowlya Elsewhere", nation: "Crowlya", label: "Crowlya Elsewhere" }
 ];
 const REGION_CONSUMPTION_WEIGHTS = {
-  "Annglora Capital": { sales: 0.28, streaming: 0.32, airplay: 0.25, social: 0.15 },
-  "Annglora Elsewhere": { sales: 0.35, streaming: 0.24, airplay: 0.31, social: 0.1 },
-  "Bytenza Capital": { sales: 0.2, streaming: 0.4, airplay: 0.2, social: 0.2 },
-  "Bytenza Elsewhere": { sales: 0.25, streaming: 0.35, airplay: 0.25, social: 0.15 },
-  "Crowlya Capital": { sales: 0.25, streaming: 0.25, airplay: 0.35, social: 0.15 },
-  "Crowlya Elsewhere": { sales: 0.32, streaming: 0.2, airplay: 0.33, social: 0.15 }
+  "Annglora Capital": { sales: 0.33, streaming: 0.22, airplay: 0.3, social: 0.15 },
+  "Annglora Elsewhere": { sales: 0.39, streaming: 0.16, airplay: 0.35, social: 0.1 },
+  "Bytenza Capital": { sales: 0.24, streaming: 0.28, airplay: 0.24, social: 0.24 },
+  "Bytenza Elsewhere": { sales: 0.3, streaming: 0.22, airplay: 0.28, social: 0.2 },
+  "Crowlya Capital": { sales: 0.29, streaming: 0.18, airplay: 0.38, social: 0.15 },
+  "Crowlya Elsewhere": { sales: 0.35, streaming: 0.15, airplay: 0.35, social: 0.15 }
 };
+const CONSUMPTION_VOLUME_MULTIPLIERS = { sales: 1, streaming: 5, airplay: 1, social: 1 };
+const CONSUMPTION_VALUE_WEIGHTS = { sales: 1, streaming: 0.1, airplay: 0, social: 0 };
 const NATION_PROFILES = {
   Annglora: { alignment: "Safe", theme: "Freedom", moods: ["Calming", "Cheering", "Uplifting"] },
   Bytenza: { alignment: "Neutral", theme: "Ambition", moods: ["Energizing", "Uplifting", "Calming"] },
   Crowlya: { alignment: "Risky", theme: "Power", moods: ["Daring", "Thrilling", "Angering"] }
+};
+const NATION_AGE_PYRAMID_PROFILES = {
+  Annglora: {
+    youthPeak: 22,
+    youthSpread: 14,
+    adultPeak: 38,
+    adultSpread: 24,
+    youthWeight: 1.05,
+    adultWeight: 0.75,
+    seniorDrop: 0.65,
+    childBoost: 0.12
+  },
+  Bytenza: {
+    youthPeak: 20,
+    youthSpread: 12,
+    adultPeak: 34,
+    adultSpread: 20,
+    youthWeight: 1.2,
+    adultWeight: 0.6,
+    seniorDrop: 0.55,
+    childBoost: 0.18
+  },
+  Crowlya: {
+    youthPeak: 24,
+    youthSpread: 14,
+    adultPeak: 40,
+    adultSpread: 26,
+    youthWeight: 0.95,
+    adultWeight: 0.8,
+    seniorDrop: 0.7,
+    childBoost: 0.1
+  }
 };
 const REGION_PROFILES = {
   "Annglora Capital": { alignment: "Safe", theme: "Freedom", moods: ["Uplifting", "Cheering", "Calming"] },

@@ -17,7 +17,7 @@ Each in-game calendar year, the simulation computes 12 CEO Request awards at Gai
   - Each week, each scope grants points to the #1 entry (Regional = 1, National = 2, Global = 3).
   - Totals are summed across the year for the winner.
 - Sales/streams/views/attendance awards (#2, #5, #8, #11):
-  - Tracks/projects: global yearly total of sales + streaming.
+  - Tracks/projects: global yearly total of sales + (streaming * 0.1) sales-equivalent weighting.
   - Promotions: global yearly total of the primary promo metric (views/likes/comments/concurrent).
   - Tours: global yearly total attendance.
 - Critics awards (#3, #6, #9, #12):
@@ -25,7 +25,7 @@ Each in-game calendar year, the simulation computes 12 CEO Request awards at Gai
   - Critics scores combine quality, alignment fit, and theme/mood fit, with stringency and saturation penalties.
 
 ## Tie-break ladder (no ties)
-1. Sales/Streams (global yearly totals).
+1. Sales/Streams (global yearly totals, streaming weighted to sales-equivalent).
 2. Critics (weighted by scope).
 3. Awards (Critics Pick threshold = 90, weighted by scope).
 4. First lead week (earliest week leading the primary metric).
