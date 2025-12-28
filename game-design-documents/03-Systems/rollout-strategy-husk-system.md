@@ -1,12 +1,12 @@
-## **`Rollout Strategy Husk System`**
+## **`Rollout Strategy Plan System`**
 
-`(Era template, Calendar scheduling, shared access, and Rival Record Label behavior)`
+`(Plan templates, Calendar scheduling, shared access, and Rival Record Label behavior)`
 
 ### **`Purpose`**
 
-`A Rollout Strategy is the main planning and replay object for an Act’s Era. It exists to (1) make Era execution repeatable and readable, (2) keep competition legible across Record Labels, and (3) keep the loop alive by making timing, Trends, and counter-programming matter week over week.`
+`A Rollout Strategy Plan is the main planning and replay object for an Act's Era or a focused release push. It exists to (1) make rollout execution repeatable and readable, (2) keep competition legible across Record Labels, and (3) keep the loop alive by making timing, Trends, and counter-programming matter week over week.`
 
-`This document defines the Rollout Strategy as a Husk and specifies how the Player and the other Record Labels use it.`
+`This document defines the Rollout Strategy as a Plan and specifies how the Player and the other Record Labels use it.`
 
 ---
 
@@ -14,19 +14,17 @@
 
 ### **`Era`**
 
-`An Era is the strategic run for an Act conducted through the four stages already used in the game: Direction → Creation → Promotion → Legacy. The Era is the container that evaluation systems grade (Flop/Mid/Successful/Iconic), and it is the scope that Rollout Strategies attach to.`
+`An Era is the strategic run for an Act conducted through the four stages already used in the game: Direction / Creation / Promotion / Legacy. The Era is the container that evaluation systems grade (Flop/Mid/Successful/Iconic), and it is the scope that Rollout Strategy Plans attach to by default.`
 
-### **`Rollout Strategy`**
+### **`Rollout Strategy Plan`**
 
-`A Rollout Strategy is a structured “how this Era is rolled out” plan object. It is editable while the Era is ongoing.`
+`A Rollout Strategy Plan is a structured "how this rollout is executed" plan object. It is editable while the plan is ongoing and can focus on an Era, a single release, a project release, a tour, or a promo campaign.`
 
-### **`Rollout Strategy Husk`**
+### **`Plan Slots`**
 
-`A Rollout Strategy is specifically treated as a Husk:`
+`A Rollout Strategy Plan is treated as a fixed-length sequence of week slots with Content drops and Events on a fixed schedule cadence.`
 
-`A fixed-length sequence of weeks with Content drops and Events on a fixed schedule cadence.`
-
-`Think of it as the Era’s schedule skeleton. You fill it with Content and Events, then schedule it to the Calendar.`
+`Week slots are displayed as compact date ranges: YY-MMM-DD to YY-MMM-DD (UTC).`
 
 ### **`Content drop and Event`**
 
@@ -40,7 +38,7 @@
 
 ### **`Rule A: Content must exist before it can be scheduled`**
 
-`The Player must create Content through the Creation pipeline first (Theme + Mood → mastered Track / finalized release-ready Content). Only then can it be placed into any schedule container.`
+`The Player must create Content through the Creation pipeline first (Theme + Mood / mastered Track / finalized release-ready Content). Only then can it be placed into any schedule container.`
 
 ### **`Rule B: Two ways to schedule to the Calendar`**
 
@@ -50,15 +48,15 @@
 
     `You can drop Content directly into the Calendar as a one-off.`
 
-2. `Rollout Strategy scheduling (Husk → Calendar)`
+2. `Rollout Strategy scheduling (Plan -> Calendar)`
 
-    `You place Content into Rollout Strategy Husk slots, then you drop the Rollout Strategy into the Calendar. This expands into the dated schedule.`
+    `You place Content into Rollout Strategy Plan slots, then you drop the Rollout Strategy into the Calendar. This expands into the dated schedule.`
 
 `Both paths are valid gameplay.`
 
-### **`Rule B2: Auto-Run (Idle) Rollout Mode`**
+### **`Rule B2: Auto-Run (Idle) Plan Mode`**
 
-`The Player can enable an auto-run option for a Rollout Strategy Husk.`
+`The Player can enable an auto-run option for a Rollout Strategy Plan.`
 
 * `Auto-run executes scheduled drops/events when gating conditions are met (content ready, slots free, calendar window available).`
 * `If conditions fail, auto-run pauses and logs the reason.`
@@ -66,17 +64,17 @@
 
 ---
 
-## **`End-of-Era Rollout Strategy Generation`**
+## **`End-of-Era Plan Snapshot`**
 
-### **`Rule C: A Rollout Strategy is generated at Era end by default`**
+### **`Rule C: A Plan Snapshot is generated at Era end by default`**
 
-`At the end of every Era, the game generates a Rollout Strategy Husk template of the Era just conducted, even if the Player never used a Rollout Strategy during that Era.`
+`At the end of every Era, the game generates a Rollout Strategy Plan snapshot of the Era just conducted, even if the Player never used a Rollout Strategy during that Era.`
 
-`This generated Husk represents what actually happened during the Era window: weeks, scheduled drops, and scheduled events in the order they occurred.`
+`This generated Plan represents what actually happened during the Era window: week slots, scheduled drops, and scheduled events in the order they occurred.`
 
 ### **`Rule D: Player opt-out`**
 
-`The Player can opt out of receiving/saving the generated Rollout Strategy. If the Player opts out, the game does not preserve the generated Husk.`
+`The Player can opt out of receiving/saving the generated Rollout Strategy. If the Player opts out, the game does not preserve the generated Plan.`
 
 ---
 
@@ -84,17 +82,17 @@
 
 ### **`Rule E: Same access for everyone`**
 
-`All Record Labels (the Player and the other seven) have the same form of access to Rollout Strategy Husks.`
+`All Record Labels (the Player and the other seven) have the same form of access to Rollout Strategy Plans.`
 
-`This is not “special Player visibility” and not “AI-only scouting.” It is symmetrical: a Rollout Strategy is the shared unit of readable intent.`
+`This is not "special Player visibility" and not "AI-only scouting." It is symmetrical: a Rollout Strategy is the shared unit of readable intent.`
 
 ### **`What this means in practice`**
 
-* `When a Record Label has an Era’s Rollout Strategy Husk, other Record Labels can reference that same Husk as an input to their own Era planning.`
+* `When a Record Label has an Era's Rollout Strategy Plan, other Record Labels can reference that same Plan as an input to their own rollout planning.`
 
 * `This enables counter-programming and prevents the simulation from feeling like hidden dice rolls.`
 
-`(This access rule is about the Husk itself: a number of weeks with Content and Events on a fixed schedule.)`
+`(This access rule is about the Plan itself: a number of week slots with Content and Events on a fixed schedule.)`
 
 ---
 
@@ -102,11 +100,11 @@
 
 ### **`AI Record Labels use Rollout Strategies as their primary planning primitive`**
 
-`The other seven Record Labels operate using Rollout Strategies (Husks) to conduct their Acts’ Eras.`
+`The other seven Record Labels operate using Rollout Strategy Plans to conduct their Acts' Eras and content campaigns.`
 
-### **`Simplification rule: Default Husks instead of complex behavior trees`**
+### **`Simplification rule: Default Plans instead of complex behavior trees`**
 
-`To keep their logic stable and avoid large behavior trees, AI Record Labels use default pre-defined Rollout Strategy Husks as templates. Each week, they adjust choices based on Trends and preference context, rather than “inventing plans from scratch.”`
+`To keep their logic stable and avoid large behavior trees, AI Record Labels use default pre-defined Rollout Strategy Plans as templates. Each week, they adjust choices based on Trends and preference context, rather than "inventing plans from scratch."`
 
 `This keeps the charts active while keeping AI logic debuggable.`
 
@@ -128,23 +126,37 @@
 
 ---
 
+## **`Outcome + Market Context`**
+
+`Every Plan Snapshot stores outcomes and the market conditions that produced them.`
+
+`Examples of stored context:`
+
+* `Release count, average quality, average chart peak, and average weeks-on-chart.`
+* `Trend rank positions at the moment each release landed.`
+* `Top trends at the time of the rollout window.`
+
+`This lets players and rivals learn what worked, under which conditions, and reuse those plans later.`
+
+---
+
 ## **`Keeping the Game Loop Alive`**
 
-`(What this Husk system adds to prevent stagnation and keep Eras evolving)`
+`(What this Plan system adds to prevent stagnation and keep Eras evolving)`
 
-### **`1) Legible competition creates an actual “counter-game”`**
+### **`1) Legible competition creates an actual "counter-game"`**
 
-`Because Husks are shared and readable, the Player is not guessing blindly. You can see the weekly shape of what other Record Labels are doing and plan around it. Rivals can also react to your Husk patterns. The result is an evolving meta: timing and scheduling strategy stays relevant even late game.`
+`Because Plans are shared and readable, the Player is not guessing blindly. You can see the weekly shape of what other Record Labels are doing and plan around it. Rivals can also react to your Plan patterns. The result is an evolving meta: timing and scheduling strategy stays relevant even late game.`
 
 ### **`2) Weekly cadence becomes the natural decision checkpoint`**
 
-`Trends update weekly. The Husk is week-based. That locks together: every week becomes a meaningful moment to (a) stay on the Husk, (b) modify the Husk, or (c) pivot the Era.`
+`Trends update weekly. The Plan is week-based. That locks together: every week becomes a meaningful moment to (a) stay on the Plan, (b) modify the Plan, or (c) pivot the rollout.`
 
 ### **`3) Templates preserve learning while allowing variation`**
 
-`End-of-Era generation turns every Era into a reusable template. The loop stays alive because the Player and rivals can reuse what worked—but Trends, competition, and audience response force iteration instead of permanent dominance.`
+`End-of-Era generation turns every Era into a reusable template. The loop stays alive because the Player and rivals can reuse what worked - but Trends, competition, and audience response force iteration instead of permanent dominance.`
 
-### **`4) “National-first” prevents global homogenization`**
+### **`4) "National-first" prevents global homogenization`**
 
 `Without market bias, everyone converges to the same global-max strategy. National-first keeps the world diverse: regional scenes remain competitive, and global dominance becomes an earned escalation instead of the default.`
 
@@ -158,15 +170,15 @@
 
 `Use exponential smoothing so Trends evolve without whiplash:`
 
-* `Trend_next = (1 - α) * Trend_current + α * Trend_signal_this_week`
+* `Trend_next = (1 - a) * Trend_current + a * Trend_signal_this_week`
 
-`This makes week-by-week Husk planning meaningful because Trends don’t instantly flip from one week to the next.`
+`This makes week-by-week Plan decisions meaningful because Trends do not instantly flip from one week to the next.`
 
-### **`AI Husks: weighted scoring + softmax selection`**
+### **`AI Plans: weighted scoring + softmax selection`**
 
-`For AI Rollout Strategy selection, score candidate Husks using your existing nouns:`
+`For AI Rollout Strategy selection, score candidate Plans using your existing nouns:`
 
-* `Market priority fit (National → Global → other two countries)`
+* `Market priority fit (National / Global / other two countries)`
 
 * `Trend fit (content Genre alignment with current Trends)`
 
@@ -174,11 +186,11 @@
 
 `Then choose using softmax (consistent but not identical every run):`
 
-* `P(husk_i) = exp(score_i / τ) / Σ exp(score_j / τ)`
+* `P(plan_i) = exp(score_i / t) / sum exp(score_j / t)`
 
-`Lower temperature (τ) makes AI more deterministic; higher makes it more varied.`
+`Lower temperature (t) makes AI more deterministic; higher makes it more varied.`
 
-### **`Diminishing returns: prevent “spam the same week” dominance`**
+### **`Diminishing returns: prevent "spam the same week" dominance`**
 
 `When too many major drops/events are clustered into the same week targeting the same Audience scope, apply a diminishing returns factor so spacing and pacing matter.`
 
@@ -186,7 +198,7 @@
 
 * `EffectiveImpact = RawImpact / (1 + k * OverlapCount)`
 
-`This keeps Husk cadence decisions meaningful and prevents degenerate stacking.`
+`This keeps Plan cadence decisions meaningful and prevents degenerate stacking.`
 
 ### **`Determinism with event logging`**
 
@@ -198,10 +210,12 @@
 
 `To fully operationalize this system without ambiguity, these pieces should be defined next (still in your vocabulary):`
 
-* `Rollout Strategy Husk slot types (what “drops” and “events” are valid categories)`
+* `Rollout Strategy Plan slot types (what "drops" and "events" are valid categories)`
 
-* `Minimum and maximum Husk length in weeks`
+* `Minimum and maximum Plan length in weeks`
 
-* `What parts of a Husk are visible via shared access (week structure only vs including all scheduled subjects)`
+* `What parts of a Plan are visible via shared access (slot structure only vs including scheduled subjects)`
 
-* `How “popularity order” of the other two countries in a region is represented as data (so AI can sort it deterministically)`  
+* `How "popularity order" of the other two countries in a region is represented as data (so AI can sort it deterministically)`
+
+* `How trend ranks and market conditions are surfaced in the Plan Library UI`

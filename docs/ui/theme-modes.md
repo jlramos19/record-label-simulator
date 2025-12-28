@@ -1,20 +1,20 @@
 # UI Theme Modes
 
 This document defines the canonical UI neutral palettes for light/dark mode and the pill styling rules.
-All neutral hex values follow the hex-step grid rule (00/33/66/99/CC/FF).
+Neutral hex values are tuned for contrast and may deviate from the hex-step grid when art direction requires it.
 
 ## Dark Mode (Warm)
 
-- Background base: `#330000`
-- Background depth: `#333300`
-- Panel surface: `#663300`
-- Panel depth: `#333300`
-- Text: `#ffcc99`
-- Muted text: `#cc9966`
-- Lines: `#663333`
-- Pill background: `#330000`
-- Pill risky background: `#ffcc99`
-- Pill ink: `#ffcc99`
+- Background base: `#0a0703`
+- Background depth: `#0f0b06`
+- Panel surface: `#1a1009`
+- Panel depth: `#120b06`
+- Text: `#f5d6b8`
+- Muted text: `#c49b75`
+- Lines: `#120805`
+- Pill background: `#130b06`
+- Pill risky background: `#f3d4b9`
+- Pill ink: `#f5d6b8`
 - Pill shadow: `-2px 2px 0 #000000`
 
 ## Light Mode (Cool)

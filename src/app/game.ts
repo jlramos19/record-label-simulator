@@ -154,7 +154,9 @@ const session = {
   uiLogStart: 0,
   lastSlotPayload: null,
   lastLiveSyncAt: 0,
-  lastPerfThrottleAt: 0
+  lastPerfThrottleAt: 0,
+  localStorageDisabled: false,
+  localStorageWarned: false
 };
 
 const AUTO_PROMO_SLOT_LIMIT = 4;
@@ -8856,10 +8858,22 @@ function formatShortDate(ms) {
   return `${month.slice(0, 3)} ${day}, ${year}`;
 }
 
+function formatCompactDate(ms) {
+  const d = new Date(ms);
+  const month = MONTHS[d.getUTCMonth()] || "MMM";
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const year = String(d.getUTCFullYear()).slice(-2).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatCompactDateRange(startMs, endMs) {
+  return `${formatCompactDate(startMs)} to ${formatCompactDate(endMs)}`;
+}
+
 function formatWeekRangeLabel(week) {
-  const start = getWeekAnchorEpochMs() + (week - 1) * WEEK_HOURS * HOUR_MS;
-  const end = start + WEEK_HOURS * HOUR_MS - 1;
-  return `Week ${week} | ${formatShortDate(start)} - ${formatShortDate(end)}`;
+  const start = weekStartEpochMs(week);
+  const end = weekStartEpochMs(week + 1) - 1;
+  return formatCompactDateRange(start, end);
 }
 
 function buildChartSnapshot(scope, entries) {
@@ -17498,13 +17512,44 @@ async function getSlotDataWithExternal(index) {
   return external;
 }
 
+function isQuotaExceededError(error) {
+  if (!error) return false;
+  if (error.name === "QuotaExceededError") return true;
+  if (error.name === "NS_ERROR_DOM_QUOTA_REACHED") return true;
+  if (error.code === 22 || error.code === 1014) return true;
+  const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
+  return message.includes("quota");
+}
+
+function warnLocalStorageIssue(message) {
+  if (session.localStorageWarned) return;
+  session.localStorageWarned = true;
+  logEvent(message, "warn");
+}
+
 function saveToSlot(index) {
   if (!index) return;
   state.meta.savedAt = Date.now();
   if (state.meta.autoSave) state.meta.autoSave.lastSavedAt = state.meta.savedAt;
   const payload = JSON.stringify(state);
-  localStorage.setItem(slotKey(index), payload);
-  if (session.activeSlot === index) {
+  let storedLocal = false;
+  if (typeof localStorage !== "undefined" && !session.localStorageDisabled) {
+    try {
+      localStorage.setItem(slotKey(index), payload);
+      storedLocal = true;
+    } catch (error) {
+      console.warn(`[storage] Failed to save slot ${index} to localStorage.`, error);
+      if (isQuotaExceededError(error)) {
+        session.localStorageDisabled = true;
+        warnLocalStorageIssue(
+          "Local save storage is full. Configure External Storage in Internal Log to keep saves synced."
+        );
+      } else {
+        warnLocalStorageIssue("Local save failed. Check browser storage settings.");
+      }
+    }
+  }
+  if (storedLocal && session.activeSlot === index) {
     session.lastSlotPayload = payload;
   }
   queueSaveSlotWrite(index, payload);
@@ -19778,6 +19823,8 @@ export {
   formatGenreLabel,
   formatHourCountdown,
   formatMoney,
+  formatCompactDate,
+  formatCompactDateRange,
   formatShortDate,
   formatWeekRangeLabel,
   getAct,

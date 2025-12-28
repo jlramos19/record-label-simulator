@@ -1,14 +1,19 @@
-# Game Mechanic: Rollout Strategy of the Era of an Act in Record Label Simulator
+# Game Mechanic: Rollout Strategy Plans in Record Label Simulator
 
-In Record Label Simulator, the Player can design Rollout Strategies, to conduct the Act(s) Era. The Player can intervene and modify the Rollout Strategy at any point during gameplay.
+In Record Label Simulator, the Player can design Rollout Strategy Plans to conduct an Act's Era or to focus on a single release, project release, tour, or promo campaign. The Player can intervene and modify the Rollout Strategy Plan at any point during gameplay.
 
-## Rollout Template System (canon)
+## Rollout Plan Library (canon)
 
-- Rollout strategies can be saved as templates.
-- Each template stores:
+- Rollout strategies are saved into a shared Plan Library (starter plans + player-used plans + rival-used plans).
+- Each plan stores:
   - Success score and profitability score.
   - The results that earned those scores.
-  - An execution context snapshot (including what was trending at the time of rollout).
+  - An execution context snapshot (including trend rank positions at the time of release).
+
+## Multipurpose Scope
+
+- Plans can scope to an Era, a single release, a project release, a tour, or a promo campaign.
+- Scope is stored on the plan so outcomes can be compared across similar focus targets.
 
 ## Auto-Rollout Toggle (hooks)
 
@@ -17,7 +22,7 @@ In Record Label Simulator, the Player can design Rollout Strategies, to conduct 
 
 ## Early-Game Discovery
 
-- Early game templates are discovered by JL and the 7 AI Record Labels experimenting per era.
+- Early game plans are discovered by JL and the 7 AI Record Labels experimenting per era.
 - Template confidence grows from outcomes over time (first-win does not dominate).
 
 ## Auto-Run (Idle) Rollout Option

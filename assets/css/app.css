@@ -1,44 +1,46 @@
 :root {
   color-scheme: dark;
-  --bg-1: #260f00;
-  --bg-2: #260f00;
-  --panel: #2f1300;
-  --panel-2: #1f0c00;
-  --accent: #ff9933;
-  --accent-2: #99cc66;
-  --danger: #ff3333;
-  --text: #ffcc99;
-  --muted: #cc9966;
-  --line: #140700;
+  --bg-1: #0a0703;
+  --bg-2: #0f0b06;
+  --panel: #1a1009;
+  --panel-2: #120b06;
+  --accent: #f5a03d;
+  --accent-2: #8fcf7a;
+  --danger: #ff4d4d;
+  --text: #f5d6b8;
+  --muted: #c49b75;
+  --line: #120805;
   --line-width: 2px;
-  --shadow: rgba(0, 0, 0, 0.45);
-  --accent-rgb: 255, 153, 51;
-  --accent-2-rgb: 153, 204, 102;
-  --danger-rgb: 255, 51, 51;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --accent-rgb: 245, 160, 61;
+  --accent-2-rgb: 143, 207, 122;
+  --danger-rgb: 255, 77, 77;
+  --accent-ink: #1a0f08;
+  --accent-ink-strong: #1a0f08;
   --button-gradient: linear-gradient(180deg, rgba(var(--accent-rgb), 0.98), rgba(var(--accent-rgb), 0.72));
   --button-gradient-strong: linear-gradient(180deg, rgba(var(--accent-rgb), 1), rgba(var(--accent-rgb), 0.68));
   --progress-gradient: linear-gradient(180deg, rgba(var(--accent-rgb), 0.92), rgba(var(--accent-rgb), 0.6));
-  --pill-bg: #1a0800;
-  --pill-bg-risky: #ffcc99;
-  --pill-ink: #ffcc99;
+  --pill-bg: #130b06;
+  --pill-bg-risky: #f3d4b9;
+  --pill-ink: #f5d6b8;
   --pill-shadow: -2px 2px 0 #000000;
   --tag-width-theme: clamp(110px, 16vw, 145px);
   --tag-width-mood: clamp(130px, 20vw, 175px);
   --tag-width-country: clamp(110px, 18vw, 150px);
   --tag-width-alignment: clamp(96px, 14vw, 130px);
   --tag-width-label: clamp(140px, 22vw, 190px);
-  --surface-1: rgba(38, 15, 0, 0.6);
-  --surface-1-soft: rgba(38, 15, 0, 0.52);
-  --surface-1-mid: rgba(38, 15, 0, 0.38);
-  --surface-1-muted: rgba(38, 15, 0, 0.32);
-  --surface-1-strong: rgba(38, 15, 0, 0.78);
-  --surface-2: rgba(22, 9, 0, 0.95);
-  --surface-2-mid: rgba(22, 9, 0, 0.9);
-  --surface-3: rgba(52, 21, 0, 0.8);
-  --surface-3-strong: rgba(52, 21, 0, 0.86);
-  --surface-4: rgba(32, 13, 0, 0.82);
-  --surface-4-muted: rgba(32, 13, 0, 0.5);
-  --surface-4-strong: rgba(32, 13, 0, 0.7);
+  --surface-1: rgba(20, 12, 6, 0.6);
+  --surface-1-soft: rgba(20, 12, 6, 0.52);
+  --surface-1-mid: rgba(20, 12, 6, 0.38);
+  --surface-1-muted: rgba(20, 12, 6, 0.32);
+  --surface-1-strong: rgba(20, 12, 6, 0.78);
+  --surface-2: rgba(14, 8, 5, 0.95);
+  --surface-2-mid: rgba(14, 8, 5, 0.9);
+  --surface-3: rgba(36, 22, 13, 0.8);
+  --surface-3-strong: rgba(36, 22, 13, 0.86);
+  --surface-4: rgba(28, 17, 9, 0.82);
+  --surface-4-muted: rgba(28, 17, 9, 0.5);
+  --surface-4-strong: rgba(28, 17, 9, 0.7);
   --overlay: rgba(0, 0, 0, 0.85);
   --header-bg: var(--bg-1);
   --body-glow-1: rgba(var(--accent-rgb), 0.2);
@@ -79,6 +81,8 @@
   --accent-rgb: 51, 153, 255;
   --accent-2-rgb: 102, 204, 255;
   --danger-rgb: 255, 51, 51;
+  --accent-ink: #1b1200;
+  --accent-ink-strong: #071116;
   --line-width: 1px;
   --pill-bg: #003366;
   --pill-bg-risky: #ccffff;
@@ -643,7 +647,7 @@ body::before {
   .time-controls .time-btn.active, .time-controls .time-btn[aria-pressed="true"] {
     background-color: var(--accent);
     background-image: var(--button-gradient-strong);
-    color: #071116;
+    color: var(--accent-ink-strong);
     border-color: rgba(var(--accent-rgb), 0.14);
   }
   .time-display { font-size: 17px; font-weight: 800; }
@@ -673,6 +677,9 @@ body::before {
   text-transform: uppercase;
 }
 .label-meta { display: grid; gap: 4px; }
+.label-meta-row { display: flex; align-items: center; gap: 8px; }
+.label-settings-btn { display: inline-flex; align-items: center; gap: 4px; }
+.label-settings-btn .icon-glyph { font-size: 16px; }
 .stat-mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .stat-mini {
   padding: 5px;
@@ -1415,7 +1422,7 @@ button, .ghost, .file-btn {
   cursor: pointer;
   background-color: var(--accent);
   background-image: var(--button-gradient);
-  color: #1b1200;
+  color: var(--accent-ink);
   font-size: 12px;
   letter-spacing: 0.04em;
   transition: transform 0.12s ease, filter 0.12s ease, background 0.12s ease, border-color 0.12s ease;
@@ -1434,7 +1441,7 @@ button:active, .ghost:active, .file-btn:active { transform: scale(0.97); }
 .primary {
   background-color: var(--accent);
   background-image: var(--button-gradient-strong);
-  color: #1b1200;
+  color: var(--accent-ink);
   border: var(--line-width) solid rgba(var(--accent-rgb), 0.6);
   box-shadow: 0 6px 14px rgba(var(--accent-rgb), 0.2);
 }
@@ -1442,7 +1449,7 @@ button:active, .ghost:active, .file-btn:active { transform: scale(0.97); }
 button.active, .ghost.active {
   background-color: var(--accent);
   background-image: var(--button-gradient-strong);
-  color: #1b1200;
+  color: var(--accent-ink);
   border-color: var(--accent);
   filter: brightness(0.95);
 }
@@ -1533,7 +1540,7 @@ select.theme-select {
 .stage-buttons--compact .stage-btn.active {
   background-color: var(--accent);
   background-image: var(--button-gradient-strong);
-  color: #1b1200;
+  color: var(--accent-ink);
   filter: brightness(0.95);
 }
 .stage-buttons--compact .stage-btn + .stage-btn {
@@ -2778,6 +2785,23 @@ select.theme-select {
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
+}
+.calendar-footer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.calendar-footer-panel.is-collapsed {
+  min-height: 52px;
+}
+.calendar-footer-panel.is-collapsed .calendar-footer {
+  gap: 4px;
+}
+.calendar-footer-panel.is-collapsed .calendar-upcoming {
+  display: none;
+}
+.calendar-footer-panel.is-collapsed .card-body {
+  padding-bottom: 6px;
 }
 .calendar-upcoming {
   display: flex;

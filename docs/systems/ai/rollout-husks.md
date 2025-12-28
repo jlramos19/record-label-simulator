@@ -1,39 +1,41 @@
-# Rival Husk Planner (Web MVP)
+# Rival Rollout Plan Planner (Web MVP)
 
 ## Intent
-Rival labels plan releases and promos from a shared husk library rather than targeting the player. All rivals use the same eligibility rules with no forced anchor participant.
+Rival labels plan releases and promos from a shared rollout plan library rather than targeting the player. All rivals use the same eligibility rules with no forced anchor participant.
 
-## Husk Library
-- Starter husks: baseline rollout templates for early game or fallback.
-- Era husks: generated from completed eras (status `Complete`) regardless of owner.
+## Plan Library
+- Starter plans: baseline rollout templates for early game or fallback.
+- Era plans: generated from completed eras (status `Complete`) regardless of owner.
+- Rival plans: plans that rivals actually executed, recorded with outcomes + market conditions.
 
-Starter husks (shared rollout templates):
+Starter plans (shared rollout templates):
 - Single Drip: 1 release + eyeriSocial post in week 0.
 - Pulse Loop: 2 weekly single drops with matching social promo.
 - Project Ladder: 3 spaced drops with interview support to build project momentum.
 - Video Blitz: 2 drops with music video promo spikes.
 - Tour Warmup: early drop, interview, then a live performance follow-up.
 
-Each husk exposes:
+Each plan exposes:
 - Cadence: a week-pattern of drops/events (release + promo steps with day/hour offsets).
 - Eligible categories: expected release types and promo types.
-- Context signature: alignment tags, trend/genre tags, and an outcome score (0-100).
+- Focus type: Era/Release/Project/Tour/Campaign.
+- Context signature: alignment tags, trend/genre tags, outcome score (0-100), and market conditions (trend ranks at release time).
 
 ## Decision Tree (Weekly)
 At weekly checkpoints, each rival label:
-1. Builds candidate husks from the shared library.
+1. Builds candidate plans from the shared library.
 2. Scores candidates using public world inputs:
-   - Trend fit (current trends vs husk tags).
-   - Alignment fit (label alignment vs husk tags).
+   - Trend fit (current trends vs plan tags).
+   - Alignment fit (label alignment vs plan tags).
    - Budget fit (wallet cash vs implied promo intensity).
-3. Picks the highest score with deterministic tie-breaks (seeded by week + label + husk ID).
-4. Falls back to a default starter husk if no candidate is eligible.
+3. Picks the highest score with deterministic tie-breaks (seeded by week + label + plan ID).
+4. Falls back to a default starter plan if no candidate is eligible.
 
 ## Competitive Rollout Mode (Definition)
 A rival is in competitive rollout mode when it:
-- Selects a husk and commits to it for the husk's era window.
+- Selects a plan and commits to it for the plan's window.
 - Schedules at least one upcoming release drop into the calendar stores.
-- Schedules at least one promo/event action when the husk requires it (subject to budget/capacity).
+- Schedules at least one promo/event action when the plan requires it (subject to budget/capacity).
 
 ## Participation Rule
 - Planning cycle checkpoints: new game seed and weekly planning.
@@ -75,5 +77,5 @@ Rivals are eligible to compete when they can cover:
 
 ## Notes
 - AI promo budgets use a fixed AI percent, independent of player settings.
-- Rival focus themes/moods absorb husk trend tags over time to keep label templates adaptive.
-- New AI metadata is optional and safe for existing saves.
+- Rival focus themes/moods absorb plan trend tags over time to keep label templates adaptive.
+- New plan metadata is optional and safe for existing saves.

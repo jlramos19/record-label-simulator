@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] RLS-ROLLOUT-LIBRARY-001: Rename rollout husks to rollout plans, add multipurpose rollout scopes, shared plan library outcomes/market context, and compact date-range labels. (Agent Codex, started 2025-12-27 21:51:36 -04:00)
 - [x] RLS-UI-LAYOUT-002: Split Harmony Hub + Calendar into resizable acts/creators and calendar/structures panels; restore Advanced studio slot visibility; limit release project drafting to mastered tracks with Acts. (Agent Codex, started 2025-12-27 20:57:44 -04:00, completed 2025-12-27 21:06:16 -04:00)
 - [x] RLS-CHARTS-DEMOGRAPHICS-001: Add Charts demographics view + per-nation age pyramid seeding for audience/creator ages. (Agent Codex, started 2025-12-26 23:18:10 -04:00, completed 2025-12-27 17:02:54 -04:00)
 - [x] RLS-AUDIENCE-CHUNKS-002: Simulate audience chunks with age/evolution properties, surface them on the Dashboard, and add cheater CCC injection for creator ID testing. (Agent Codex, started 2025-12-26 22:25:23 -04:00, completed 2025-12-27 17:02:54 -04:00)
@@ -20,7 +21,7 @@
 - [x] RLS-DOC-CHART-NAMING-001: Document chart scope naming (Gaia/Global, Nation/National, Region/Regional) and update chart/handle labels. (Agent Codex, started 2025-12-26 16:13:48 -04:00, completed 2025-12-26 16:16:51 -04:00)
 - [x] RLS-UI-CHARTS-SCOPE-001: Replace Charts scope tabs with nation -> region drilldown and keep content-type filters accessible in the Charts view.
 - [x] RLS-CCC-DECLINE-001: Add decline reason logic + player-facing feedback for CCC signing, and update tutorial to split loops vs concepts.
-- [x] RLS-AI-HUSK-001: Replace rival planning with husk-library decision trees and scheduled releases/promos (no player targeting).
+- [x] RLS-AI-HUSK-001: Replace rival planning with rollout plan library decision trees and scheduled releases/promos (no player targeting).
 - [x] RLS-AI-COMPETE-001: Remove the anchor rival guarantee so all rivals use identical rollout eligibility rules (no forced participant).
 - [x] RLS-AI-ACHIEVEMENTS-001: Track CEO Requests for rival labels, surface the race on the Dashboard, and tune AI ambition to keep all 7 labels competitive through Year 3000. (Agent Codex, started 2025-12-26 16:14:27 -04:00, completed 2025-12-26 16:14:27 -04:00)
 - [x] RLS-REQ-RACE-002: Expand CEO Requests label race with per-label progress drilldowns and rival tour chart support for annual awards. (Agent Codex, started 2025-12-27 18:45:00 -04:00, completed 2025-12-27 18:45:00 -04:00)
@@ -33,7 +34,7 @@
 - [x] RLS-OPS-LIVEEDIT-001: Define live-edit guardrails, release patch stamping, and cache/version rules for hosted builds.
 - [x] RLS-PROMO-LOGS-001: Remove Loss Archives and Debug Bundle panels from Promotions view; keep internal logging for balance review.
 - [x] RLS-CALENDAR-PROJ-001: Add the Calendar projection view (Releases -> Calendar), merge the Eras calendar panel, and keep scheduling data backward compatible.
-- [x] RLS-ERA-ROLLOUT-001: Implement rollout strategies (data model + Era planning + calendar expansion + auto-run + era completion husk).
+- [x] RLS-ERA-ROLLOUT-001: Implement rollout strategies (data model + Era planning + calendar expansion + auto-run + era completion plan snapshot).
 - [x] RLS-DOC-PATCH-001: Cross-link new docs, update testing checklist, and add consolidated patch note summary.
 - [x] RLS-ECONOMY-COSTS-001: Balance sheet/demo/master costs with quality scaling, creator supply-demand pressure, and skill progression/decay.
 - [x] RLS-BALANCE-LABEL-DOMINANCE-001: Add label competition pressure and reduce seed bias to prevent runaway dominance.

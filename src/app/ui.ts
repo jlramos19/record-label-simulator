@@ -233,7 +233,7 @@ const GAME_DIFFICULTY_KEY = "rls_game_difficulty_v1";
 const START_PREFS_KEY = "rls_start_prefs_v1";
 const UI_THEME_KEY = "rls_ui_theme_v1";
 const UI_THEME_DEFAULT = "dark";
-const UI_THEME_META = { dark: "#330000", light: "#ccffff" };
+const UI_THEME_META = { dark: "#0a0703", light: "#ccffff" };
 let uiThemeMediaQuery = null;
 let uiThemeMediaBound = false;
 let activeRoute = DEFAULT_ROUTE;
@@ -788,8 +788,7 @@ const VIEW_DEFAULTS = {
   },
   roster: {
     "harmony-acts": VIEW_PANEL_STATES.open,
-    "harmony-creators": VIEW_PANEL_STATES.open,
-    "label-settings": VIEW_PANEL_STATES.open
+    "harmony-creators": VIEW_PANEL_STATES.open
   },
   world: {
     "ccc-market": VIEW_PANEL_STATES.open,
@@ -2706,6 +2705,10 @@ function bindGlobalHandlers() {
     setTutorialTab(state.ui.tutorialTab || "loops");
     openOverlay("tutorialModal");
   });
+  on("labelSettingsBtn", "click", () => {
+    refreshSelectOptions();
+    openOverlay("labelSettingsModal");
+  });
   on("panelMenuBtn", "click", () => {
     renderPanelMenu();
     openOverlay("panelMenu");
@@ -2781,6 +2784,7 @@ function bindGlobalHandlers() {
   });
   on("quickRecipesClose", "click", () => closeOverlay("quickRecipesModal"));
   on("tutorialClose", "click", () => closeOverlay("tutorialModal"));
+  on("labelSettingsClose", "click", () => closeOverlay("labelSettingsModal"));
   const tutorialTabs = $("tutorialTabs");
   if (tutorialTabs) {
     tutorialTabs.addEventListener("click", (e) => {
@@ -3141,6 +3145,28 @@ function bindViewHandlers(route, root) {
       setViewPanelState(route, key, next);
     }
   });
+
+  if (route === "releases") {
+    const footerPanel = root.querySelector("#calendarFooterPanel");
+    const syncFooter = () => {
+      const collapsed = !!state.ui?.calendarFooterCollapsed;
+      if (footerPanel) footerPanel.classList.toggle("is-collapsed", collapsed);
+      const toggleBtn = footerPanel?.querySelector("[data-calendar-footer-toggle]");
+      if (toggleBtn) {
+        toggleBtn.textContent = collapsed ? "Expand" : "Minimize";
+        toggleBtn.setAttribute("aria-pressed", String(collapsed));
+      }
+    };
+    syncFooter();
+    root.addEventListener("click", (event) => {
+      const toggleBtn = event.target.closest("[data-calendar-footer-toggle]");
+      if (!toggleBtn) return;
+      if (!state.ui) state.ui = {};
+      state.ui.calendarFooterCollapsed = !state.ui.calendarFooterCollapsed;
+      syncFooter();
+      saveToActiveSlot();
+    });
+  }
 
   const setActiveChart = (chartKey) => {
     if (!chartKey || state.ui.activeChart === chartKey) return;

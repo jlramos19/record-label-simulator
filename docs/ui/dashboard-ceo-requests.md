@@ -22,4 +22,4 @@ Defines the Dashboard focus tab that surfaces CEO Requests (achievements) and th
 - Cheater mode notices clarify achievements and tasks pause while active.
 
 ## Related
-- `docs/systems/ai/rollout-husks.md`
+- `docs/systems/ai/rollout-husks.md` (rollout plan library + rival planning)

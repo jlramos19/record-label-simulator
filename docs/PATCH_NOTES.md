@@ -1,10 +1,14 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0155Z)
+- Save writes now guard against local storage quota errors, warning to configure External Storage instead of crashing. [PN-20251228-AC31]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0057Z)
 - Harmony Hub now splits Acts and Creators into resizable panels. [PN-20251228-AC27]
 - Calendar now splits Calendar and Structures & Slots into a resizable split view. [PN-20251228-AC28]
 - Create Advanced now expands studio slots to full role limits (15 Songwriters, 10 Recorders, 5 Producers). [PN-20251228-AC29]
 - Release project drafting now ignores unmastered tracks and waits for Act assignments before summarizing projects. [PN-20251228-AC30]
+- Dark mode palette now anchors on `#0a0703`, with retuned panels, lines, text, and surfaces for deeper contrast. [PN-20251228-AC31]
 
 ## 2025-12-28 (RLS-PATCH-20251228-0116Z)
 - Year-end awards now reveal nominees on the scheduled reveal date, cap nominee lists to 3-12 per category, and keep award show nomination counts hidden until reveal. [PN-20251228-AC27]
@@ -43,6 +47,10 @@
 - Win-track HUD copy now reflects the monopoly-loss rule through the full timeline. [PN-20251227-AC09]
 - GitHub Pages deployment now builds the root + UI React bundles and publishes the assembled `site/` folder on main pushes. [PN-20251227-AC10]
 - Monthly award shows now schedule nominations, live performance slots, winner boosts, and task progress with calendar + Promotions visibility. [PN-20251227-AC11]
+
+## 2025-12-27 (RLS-PATCH-20251227-2152Z)
+- Label settings moved out of Signed and into a header button beside the label summary. [PN-20251227-AC31]
+- Calendar defaults to a 2/3 split between Calendar and Structures, and the Upcoming footer can collapse to a compact bar. [PN-20251227-AC32]
 
 ## 2025-12-27 (RLS-PATCH-20251227-2110Z)
 - Simulation ticks now batch quarter-hour processing and surface a catch-up warning to keep fast-forward runs responsive. [PN-20251227-AC06]
@@ -478,13 +486,13 @@
 ## 2025-12-26 (RLS-PATCH-20251226-0517Z)
 - Audience preferences now drift from base regional profiles using recent releases + chart mix, with iconic Risky eras boosting risk appetite.
 - Chart scoring now uses dynamic audience alignment weights and regional trend genres (worker + main thread).
-- Rival focus themes/moods now adapt to husk trend tags as rollout templates evolve.
+- Rival focus themes/moods now adapt to rollout plan trend tags as rollout templates evolve.
 
 ## 2025-12-26 (RLS-PATCH-20251226-0456Z)
 - Rival rollout planning now preserves a cash reserve while scaling lease costs, so more labels schedule releases and promo.
 - Era completion now records outcomes (Flop/Mid/Successful/Iconic) from track economy and alignment, surfaced in logs/social.
 - Rollout strategy planner now shows base vs inflation-adjusted promo budget estimates with planned totals and per-type breakdowns.
-- Era husk generation now includes archived market releases; promo spend is tracked per track.
+- Era plan snapshot generation now includes archived market releases; promo spend is tracked per track.
 
 ## 2025-12-26 (RLS-PATCH-20251226-0446Z)
 - Eras view now uses an Era Performance panel with per-track chart points, sales, costs, earnings, and recommended vinyl runs.
@@ -596,7 +604,7 @@
 
 ## 2025-12-25 (RLS-PATCH-20251225-1605Z)
 - Rival competitive rollout mode now guarantees one deterministic anchor rival per planning cycle, with additional rivals joining only when budget gates pass.
-- Rival husk plans now commit to multi-week windows while keeping releases on Friday 00:00 and promos gated by budget + facility capacity.
+- Rival rollout plans now commit to multi-week windows while keeping releases on Friday 00:00 and promos gated by budget + facility capacity.
 
 ## 2025-12-25 (RLS-PATCH-20251225-1604Z)
 - Simulation ticks now advance in quarter-hour increments while keeping the clock display hour-only.
@@ -604,17 +612,17 @@
 - Progress bars now interpolate smoothly across quarter-hour updates.
 
 ## 2025-12-25 (RLS-PATCH-20251225-1600Z)
-- Rival labels now plan releases/promos from a shared husk library (starter + completed era husks) using deterministic trend/alignment/budget scoring.
+- Rival labels now plan releases/promos from a shared rollout plan library (starter + completed era plans) using deterministic trend/alignment/budget scoring.
 - Rival schedules snap releases to Friday 00:00 and promo events to whole-hour timestamps with duplicate-week guards and fallback to starter cadence.
 - Rival promo budgets now use a fixed AI wallet percentage instead of player auto promo settings.
 
 ## 2025-12-25 (RLS-PATCH-20251225-1552Z)
-- Rollout Strategies now persist per Era/Act with weekly drop/event husks, manual expansion, and auto-run gating that logs deterministic block reasons.
+- Rollout Strategies now persist per Era/Act with weekly drop/event plan slots, manual expansion, and auto-run gating that logs deterministic block reasons.
 - Calendar projection now includes scheduled rollout events alongside release queue entries (all timestamps snap to whole-hour cadence; releases at Friday 00:00).
-- Era completion generates a reusable "what happened" rollout husk with an opt-out flag to limit save bloat.
+- Era completion generates a reusable "what happened" rollout plan snapshot with an opt-out flag to limit save bloat.
 
 ## 2025-12-25 (RLS-PATCH-20251225-1545Z)
-- Rival AI now selects rollout husks (starter + era-derived) to schedule releases and promo events in the rival queue.
+- Rival AI now selects rollout plans (starter + era-derived) to schedule releases and promo events in the rival queue.
 - Rollout events are tracked in `state.scheduledEvents` and surface in Calendar projections alongside scheduled releases.
 - Rival promo budgets now use a fixed wallet-percentage independent of player auto promo settings.
 - Era rollout strategy controls now create strategies, add drops/events, and expand schedules to the calendar.
@@ -711,3 +719,7 @@
 - PN-20251228-AC28 (2025-12-28 00:57Z): Calendar now splits Calendar and Structures & Slots into a resizable split view.
 - PN-20251228-AC29 (2025-12-28 00:57Z): Create Advanced now expands studio slots to full role limits (15 Songwriters, 10 Recorders, 5 Producers).
 - PN-20251228-AC30 (2025-12-28 00:57Z): Release project drafting now ignores unmastered tracks and waits for Act assignments before summarizing projects.
+- PN-20251228-AC31 (2025-12-28 01:55Z): Save writes now guard against local storage quota errors, warning to configure External Storage instead of crashing.
+- PN-20251227-AC31 (2025-12-27 21:52Z): Label settings moved out of Signed and into a header button beside the label summary.
+- PN-20251227-AC32 (2025-12-27 21:52Z): Calendar defaults to a 2/3 split between Calendar and Structures, and the Upcoming footer can collapse to a compact bar.
+- PN-20251228-AC31 (2025-12-28 01:52Z): Dark mode palette now anchors on #0a0703 with retuned panels, lines, text, and surface tones.

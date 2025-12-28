@@ -3287,8 +3287,10 @@ function renderCalendarView() {
     }
     if (list)
         list.classList.remove("hidden");
-    if (footerPanel)
+    if (footerPanel) {
         footerPanel.classList.remove("hidden");
+        footerPanel.classList.toggle("is-collapsed", !!state.ui?.calendarFooterCollapsed);
+    }
     const upcomingWeeks = projection.weeks.length || 1;
     const upcomingProjection = buildCalendarProjection({
         pastWeeks: 0,
@@ -3315,10 +3317,16 @@ function renderCalendarUpcomingFooter(projection, tab) {
         });
     });
     const countLabel = `${daysWithEvents.length} day${daysWithEvents.length === 1 ? "" : "s"}`;
+    const isCollapsed = !!state.ui?.calendarFooterCollapsed;
+    const toggleLabel = isCollapsed ? "Expand" : "Minimize";
+    const togglePressed = isCollapsed ? "true" : "false";
     const header = `
     <div class="calendar-footer-head">
       <div class="subhead">Upcoming</div>
-      <div class="tiny muted">${countLabel}</div>
+      <div class="calendar-footer-actions">
+        <div class="tiny muted">${countLabel}</div>
+        <button type="button" class="ghost mini" data-calendar-footer-toggle aria-pressed="${togglePressed}">${toggleLabel}</button>
+      </div>
     </div>
   `;
     if (!daysWithEvents.length) {

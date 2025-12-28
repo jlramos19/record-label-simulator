@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="assets/css/app.css">
 <link rel="stylesheet" href="assets/js/ui-react/ui-react.css">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#330000">
+  <meta name="theme-color" content="#0a0703">
 <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 </head>
@@ -393,6 +393,37 @@
     <div class="muted">Manage owned areas, equipped tools, and active collaborations.</div>
   </div>
 </div>
+<div id="labelSettingsModal" class="overlay" aria-hidden="true">
+  <div class="overlay-card panel">
+    <div class="card-head">
+      <h2>Label Settings</h2>
+      <button id="labelSettingsClose" type="button" class="ghost">Close</button>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label for="labelNameInput">Record Label Name</label>
+        <div class="input-row">
+          <input id="labelNameInput" type="text" aria-label="Record label name">
+          <button id="labelNameRandom" type="button" class="ghost mini">Rnd</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="renameLabelBtn" type="button" class="ghost">Rename Label</button>
+      </div>
+      <div class="field">
+        <label for="labelAlignment">Label Alignment</label>
+        <select id="labelAlignment"></select>
+      </div>
+      <div class="field">
+        <label for="saveBtn">Save and Load</label>
+        <div class="time-row">
+          <button id="saveBtn" type="button" class="ghost">Save Slot</button>
+          <label class="file-btn">Load File <input type="file" id="loadInput" accept="application/json"></label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="rankingWindow" class="panel floating-window hidden" role="dialog" aria-hidden="true">
   <div id="rankingWindowHead" class="card-head floating-window-head">
@@ -411,7 +442,13 @@
       <div class="label-summary">
         <div id="topActPortrait" class="label-portrait">RLS</div>
         <div class="label-meta">
-          <div id="labelNameDisplay" class="label-title">Record Label</div>
+          <div class="label-meta-row">
+            <div id="labelNameDisplay" class="label-title">Record Label</div>
+            <button id="labelSettingsBtn" type="button" class="ghost mini label-settings-btn" aria-label="Label settings" title="Label settings">
+              <span class="material-symbols-rounded icon-glyph" aria-hidden="true">tune</span>
+              <span>Label</span>
+            </button>
+          </div>
           <div id="topActName" class="label-sub">Top Act: -</div>
         </div>
       </div>
@@ -993,7 +1030,7 @@
 <template id="view-releases">
   <div class="view view--releases view--single">
     <section class="view-main">
-      <div class="split-layout" data-split-key="calendar" data-split-min-left="360" data-split-min-right="320" data-split-default="50">
+      <div class="split-layout" data-split-key="calendar" data-split-min-left="360" data-split-min-right="320" data-split-default="66">
         <div class="panel card panel--scroll panel-fixed split-panel is-left" data-panel="calendar-view">
           <div class="card-head">
             <h2>Calendar</h2>
@@ -1162,7 +1199,7 @@
 </template>
 
 <template id="view-roster">
-  <div class="view view--roster">
+  <div class="view view--roster view--single">
     <section class="view-main">
       <div class="split-layout" data-split-key="harmony-hub" data-split-min-left="360" data-split-min-right="320" data-split-default="50">
         <div class="panel card panel--scroll panel-fixed split-panel is-left" data-panel="harmony-acts">
@@ -1241,34 +1278,6 @@
         </div>
       </div>
     </section>
-    <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="label-settings">
-        <h2>Label Settings</h2>
-        <div class="card-body">
-          <div class="field">
-            <label for="labelNameInput">Record Label Name</label>
-            <div class="input-row">
-              <input id="labelNameInput" type="text" aria-label="Record label name">
-              <button id="labelNameRandom" type="button" class="ghost mini">Rnd</button>
-            </div>
-          </div>
-          <div class="actions">
-            <button id="renameLabelBtn" type="button" class="ghost">Rename Label</button>
-          </div>
-          <div class="field">
-            <label for="labelAlignment">Label Alignment</label>
-            <select id="labelAlignment"></select>
-          </div>
-          <div class="field">
-            <label for="saveBtn">Save and Load</label>
-            <div class="time-row">
-              <button id="saveBtn" type="button" class="ghost">Save Slot</button>
-              <label class="file-btn">Load File <input type="file" id="loadInput" accept="application/json"></label>
-            </div>
-          </div>
-        </div>
-      </div>
-    </aside>
   </div>
 </template>
 
