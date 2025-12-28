@@ -1,9 +1,12 @@
 // @ts-nocheck
 import { fetchChartSnapshot, fetchChartSnapshotsForWeek, listChartWeeks, storeChartSnapshot } from "./db.js";
 import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, readSaveSlotFromExternal } from "./file-storage.js";
+import { recordStorageError, setStorageWarningHandler, updateStorageHealth } from "./storage-health.js";
+import { estimateLocalStorageBytes, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
+import { recordUsageEvent } from "./usage-log.js";
 import {
   CREATOR_NAME_PARTS,
   ERA_NAME_TEMPLATES,
@@ -584,6 +587,7 @@ function makeDefaultState() {
       achievements: 0,
       achievementsUnlocked: [],
       achievementsLocked: false,
+      monopolyLoss: null,
       marketTrackArchive: [],
       bailoutUsed: false,
       bailoutPending: false,
@@ -1198,6 +1202,7 @@ function awardExp(amount, note, silent = false) {
 
 function achievementsDisabled() {
   if (state.meta?.cheaterMode) return true;
+  if (state.meta?.monopolyLoss) return true;
   if (state.meta?.achievementsLocked && !state.meta?.bailoutUsed) return true;
   return false;
 }
@@ -5977,6 +5982,31 @@ function resolveUniqueProjectName(baseName) {
   return `${baseName} II`;
 }
 
+function resolveTrackQualitySeed(track) {
+  if (!track || typeof track !== "object") return makeStableSeed(["qualityPotential", "fallback"]);
+  const trackId = track.id || track.trackId || null;
+  if (trackId) return makeStableSeed([trackId, "qualityPotential"]);
+  const act = track.actId ? getAct(track.actId) : null;
+  const actKey = track.actNameKey || act?.nameKey || track.actName || act?.name || track.actId || "";
+  const title = track.title || "";
+  const projectName = track.projectName || "";
+  const createdAt = Number.isFinite(track.createdAt) ? track.createdAt : "";
+  return makeStableSeed([title, actKey, projectName, createdAt, "qualityPotential"]);
+}
+
+function resolveTrackQualityJitter(track) {
+  if (!track || typeof track !== "object") return 0;
+  if (Number.isFinite(track.qualityJitter)) {
+    const normalized = clamp(Math.round(track.qualityJitter), -5, 5);
+    track.qualityJitter = normalized;
+    return normalized;
+  }
+  const rng = makeSeededRng(resolveTrackQualitySeed(track));
+  const jitter = seededRand(-5, 5, rng);
+  track.qualityJitter = jitter;
+  return jitter;
+}
+
 function computeQualityPotential(track) {
   const writers = getTrackRoleIds(track, "Songwriter").map((id) => getCreator(id)).filter(Boolean);
   const performers = getTrackRoleIds(track, "Performer").map((id) => getCreator(id)).filter(Boolean);
@@ -5986,7 +6016,7 @@ function computeQualityPotential(track) {
     const hits = list.filter(matches).length;
     return hits / list.length;
   };
-  let score = 40 + rand(-5, 5);
+  let score = 40 + resolveTrackQualityJitter(track);
   score += averageSkill(writers, { staminaAdjusted: true }) * 0.2;
   score += averageSkill(performers, { staminaAdjusted: true }) * 0.2;
   score += averageSkill(producers, { staminaAdjusted: true }) * 0.3;
@@ -6007,6 +6037,34 @@ function refreshTrackQuality(track, stageIndex) {
   const stage = STAGES[stageIndex];
   const progress = stage ? stage.progress : 1;
   track.quality = Math.round(track.qualityPotential * progress);
+}
+
+function logQualityPotentialDeterminismCheck(tracks, context = "load") {
+  if (!Array.isArray(tracks) || !tracks.length) return;
+  const sampleSize = Math.min(5, tracks.length);
+  const sample = tracks.slice(0, sampleSize);
+  const results = sample.map((track) => {
+    const stageIndex = Number.isFinite(track.stageIndex) ? track.stageIndex : 0;
+    const probe = { ...track };
+    refreshTrackQuality(probe, stageIndex);
+    const first = probe.qualityPotential;
+    refreshTrackQuality(probe, stageIndex);
+    const second = probe.qualityPotential;
+    return {
+      id: track.id || track.trackId || track.title || "track",
+      stageIndex,
+      stored: track.qualityPotential,
+      first,
+      second,
+      stable: first === second
+    };
+  });
+  const unstableCount = results.filter((entry) => entry.first !== entry.second).length;
+  recordUsageEvent(
+    "debug.track_quality_refresh",
+    { context, unstableCount, sample: results },
+    { reportToConsole: true, level: unstableCount ? "warn" : "info" }
+  );
 }
 
 function ensureTrackEconomy(track) {
@@ -9587,6 +9645,34 @@ function applyCriticsReview({ track = null, marketEntry = null, log = false } = 
   return { criticScore, criticGrade, qualityFinal, criticScores, criticDelta: delta };
 }
 
+function chartScoreWeekIndex(epochMs = state.time?.epochMs) {
+  const safeEpoch = Number.isFinite(epochMs) ? epochMs : BASE_EPOCH;
+  if (!Number.isFinite(safeEpoch) || !Number.isFinite(BASE_EPOCH)) return 0;
+  return Math.max(0, Math.floor((safeEpoch - BASE_EPOCH) / (WEEK_HOURS * HOUR_MS)));
+}
+
+function resolveScoreTrackSeedKey(track) {
+  if (!track) return "";
+  const directId = track.id || track.trackId;
+  if (directId) return String(directId);
+  const actName = track.actName || (track.actId ? getAct(track.actId)?.name : "") || "";
+  const derived = [
+    track.title || "",
+    actName,
+    track.projectName || "",
+    track.label || ""
+  ].join("|");
+  return derived || String(trackKey(track) || "");
+}
+
+function scoreTrackJitter(track, scopeKey, weekIndexOverride) {
+  const scope = scopeKey || "global";
+  const weekIndexValue = Number.isFinite(weekIndexOverride) ? weekIndexOverride : chartScoreWeekIndex();
+  const seed = makeStableSeed([weekIndexValue, scope, resolveScoreTrackSeedKey(track), "scoreTrackJitter"]);
+  const rng = makeSeededRng(seed);
+  return seededRand(-4, 4, rng);
+}
+
 function scoreTrack(track, regionName) {
   const audience = getAudienceProfile(regionName);
   let score = track.quality;
@@ -9611,7 +9697,7 @@ function scoreTrack(track, regionName) {
     score += homelandBonusForScope(originMeta, scopeNation);
     score += internationalBiasForScope(originMeta, scopeNation);
   }
-  score += rand(-4, 4);
+  score += scoreTrackJitter(track, regionName);
   const competitionMultiplier = getLabelCompetitionMultiplier(track.label);
   if (competitionMultiplier !== 1) score = Math.round(score * competitionMultiplier);
   score = applyEmergingTrendDebuff(score, track.genre);
@@ -11996,13 +12082,16 @@ function queueChartSnapshotPersistence(snapshots) {
 function buildChartWorkerPayload() {
   const trackMap = new Map();
   const tracks = [];
+  const chartWeekIndex = chartScoreWeekIndex();
   ensureAudienceBiasStore();
   state.marketTracks.forEach((track) => {
     const key = trackKey(track);
+    const seedKey = resolveScoreTrackSeedKey(track);
     const originMeta = resolveTrackOriginMeta(track);
     trackMap.set(key, track);
     tracks.push({
       key,
+      seedKey,
       quality: track.quality,
       alignment: track.alignment,
       theme: track.theme,
@@ -12052,10 +12141,38 @@ function buildChartWorkerPayload() {
       defaultWeights: CHART_WEIGHTS,
       volumeMultipliers: CONSUMPTION_VOLUME_MULTIPLIERS,
       labelCompetition,
-      regionDefs: REGION_DEFS
+      regionDefs: REGION_DEFS,
+      chartWeekIndex
     },
     trackMap
   };
+}
+
+const CHART_WORKER_PARITY_SAMPLE = 5;
+
+function debugChartWorkerParity(result, trackMap) {
+  if (!state.meta?.cheaterMode) return;
+  const globalScores = Array.isArray(result?.globalScores) ? result.globalScores : [];
+  if (!globalScores.length) return;
+  const samples = globalScores.slice(0, Math.min(CHART_WORKER_PARITY_SAMPLE, globalScores.length));
+  const mismatches = [];
+  samples.forEach((entry) => {
+    const track = trackMap.get(entry.key);
+    if (!track) return;
+    let sum = 0;
+    NATIONS.forEach((nation) => {
+      sum += scoreTrack(track, nation);
+    });
+    const expected = NATIONS.length ? Math.round(sum / NATIONS.length) : 0;
+    if (expected !== entry.score) {
+      mismatches.push({ key: entry.key, expected, worker: entry.score });
+    }
+  });
+  if (mismatches.length) {
+    console.warn("[charts] Worker parity mismatch.", mismatches);
+  } else {
+    console.debug(`[charts] Worker parity ok (${samples.length} samples).`);
+  }
 }
 
 function applyChartWorkerResults(result, trackMap) {
@@ -12486,11 +12603,139 @@ async function computeCharts() {
   try {
     const result = await requestChartWorker("computeCharts", payload);
     if (!result?.charts) return computeChartsLocal();
+    debugChartWorkerParity(result, trackMap);
     return applyChartWorkerResults(result, trackMap);
   } catch (error) {
     console.error("Chart worker failed, falling back to main thread:", error);
     return computeChartsLocal();
   }
+}
+
+const CHART_DETERMINISM_STORAGE_KEY = "rls_chart_determinism_signature_v1";
+
+function resolveChartSignatureKey(entry) {
+  if (!entry) return "";
+  if (entry.track) return trackKey(entry.track);
+  if (entry.actKey) return entry.actKey;
+  if (entry.id) return entry.id;
+  if (entry.trackId) return entry.trackId;
+  if (entry.marketId) return entry.marketId;
+  if (entry.actId) return entry.actId;
+  return entry.title || entry.actName || "";
+}
+
+function buildChartSignatureEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+  return entries.map((entry) => `${resolveChartSignatureKey(entry)}:${Number(entry?.score || 0)}`);
+}
+
+function buildChartSignatureMap() {
+  const signature = new Map();
+  signature.set("charts:global", buildChartSignatureEntries(state.charts?.global || []));
+  NATIONS.forEach((nation) => {
+    signature.set(`charts:nation:${nation}`, buildChartSignatureEntries(state.charts?.nations?.[nation] || []));
+  });
+  REGION_DEFS.forEach((region) => {
+    signature.set(`charts:region:${region.id}`, buildChartSignatureEntries(state.charts?.regions?.[region.id] || []));
+  });
+  signature.set("promo:global", buildChartSignatureEntries(state.promoCharts?.global || []));
+  NATIONS.forEach((nation) => {
+    signature.set(`promo:nation:${nation}`, buildChartSignatureEntries(state.promoCharts?.nations?.[nation] || []));
+  });
+  REGION_DEFS.forEach((region) => {
+    signature.set(`promo:region:${region.id}`, buildChartSignatureEntries(state.promoCharts?.regions?.[region.id] || []));
+  });
+  signature.set("tour:global", buildChartSignatureEntries(state.tourCharts?.global || []));
+  NATIONS.forEach((nation) => {
+    signature.set(`tour:nation:${nation}`, buildChartSignatureEntries(state.tourCharts?.nations?.[nation] || []));
+  });
+  REGION_DEFS.forEach((region) => {
+    signature.set(`tour:region:${region.id}`, buildChartSignatureEntries(state.tourCharts?.regions?.[region.id] || []));
+  });
+  return signature;
+}
+
+function compareChartSignatureMaps(left, right) {
+  const mismatches = [];
+  const keys = new Set([...left.keys(), ...right.keys()]);
+  keys.forEach((key) => {
+    const leftEntries = left.get(key) || [];
+    const rightEntries = right.get(key) || [];
+    if (leftEntries.length !== rightEntries.length) {
+      mismatches.push(key);
+      return;
+    }
+    for (let i = 0; i < leftEntries.length; i += 1) {
+      if (leftEntries[i] !== rightEntries[i]) {
+        mismatches.push(key);
+        return;
+      }
+    }
+  });
+  return mismatches;
+}
+
+function loadChartSignatureSnapshot() {
+  try {
+    const raw = localStorage.getItem(CHART_DETERMINISM_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveChartSignatureSnapshot(signature) {
+  try {
+    const payload = {
+      slot: session.activeSlot,
+      weekIndex: chartScoreWeekIndex(),
+      savedAt: Date.now(),
+      signature: Array.from(signature.entries())
+    };
+    localStorage.setItem(CHART_DETERMINISM_STORAGE_KEY, JSON.stringify(payload));
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function debugChartsDeterminism() {
+  await computeCharts();
+  const firstSignature = buildChartSignatureMap();
+  await computeCharts();
+  const secondSignature = buildChartSignatureMap();
+  const mismatches = compareChartSignatureMaps(firstSignature, secondSignature);
+  if (mismatches.length) {
+    console.warn("[charts] Determinism mismatch after repeat compute.", mismatches);
+  } else {
+    console.info("[charts] Determinism check ok for repeat compute.");
+  }
+
+  const stored = loadChartSignatureSnapshot();
+  if (stored?.signature && Array.isArray(stored.signature)) {
+    const storedSignature = new Map(stored.signature);
+    const refreshMismatches = compareChartSignatureMaps(storedSignature, secondSignature);
+    if (stored.slot !== session.activeSlot) {
+      console.info("[charts] Determinism baseline stored for a different slot.", {
+        storedSlot: stored.slot,
+        currentSlot: session.activeSlot
+      });
+    } else if (stored.weekIndex !== chartScoreWeekIndex()) {
+      console.info("[charts] Determinism baseline stored for a different week.", {
+        storedWeek: stored.weekIndex,
+        currentWeek: chartScoreWeekIndex()
+      });
+    } else if (refreshMismatches.length) {
+      console.warn("[charts] Determinism mismatch vs stored refresh baseline.", refreshMismatches);
+    } else {
+      console.info("[charts] Determinism baseline matches stored refresh snapshot.");
+    }
+  } else {
+    console.info("[charts] Determinism baseline stored; run again after refresh to compare.");
+  }
+  saveChartSignatureSnapshot(secondSignature);
+  return { mismatches };
 }
 
 function buildGenreRanking(totals) {
@@ -13541,6 +13786,33 @@ function monopolyChartLabel(scopeKey, contentType) {
   return `${scopeLabel} ${typeLabel} chart`;
 }
 
+function computeChartLabelShare(entries, size) {
+  if (!Array.isArray(entries) || !entries.length) return null;
+  if (!Number.isFinite(size) || size <= 0) return null;
+  const counts = {};
+  entries.forEach((entry) => {
+    const label = resolveChartEntryLabel(entry);
+    if (!label) return;
+    counts[label] = (counts[label] || 0) + 1;
+  });
+  const ordered = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (!ordered.length) return null;
+  const [label, count] = ordered[0];
+  const share = count / size;
+  return { label, count, share };
+}
+
+function logMonopolyShareCheck(check) {
+  if (!Number.isFinite(MONOPOLY_SHARE)) return;
+  const shareEntry = computeChartLabelShare(check.entries, check.size);
+  if (!shareEntry || shareEntry.share < MONOPOLY_SHARE) return;
+  const ratio = shareEntry.share.toFixed(3);
+  logEvent(
+    `Monopoly check: scope=${check.scope} type=${check.type} label=${shareEntry.label} share=${ratio} size=${check.size}.`,
+    "warn"
+  );
+}
+
 function detectChartMonopoly(entries, size) {
   if (!Array.isArray(entries) || entries.length < size) return null;
   let label = "";
@@ -13581,6 +13853,7 @@ function findChartMonopoly() {
   });
   for (let i = 0; i < checks.length; i += 1) {
     const check = checks[i];
+    logMonopolyShareCheck(check);
     const label = detectChartMonopoly(check.entries, check.size);
     if (label) {
       return { label, chart: monopolyChartLabel(check.scope, check.type) };
@@ -13647,6 +13920,31 @@ function archiveLossGame(reason, slotIndex) {
   return entry;
 }
 
+function applyMonopolyLoss(monopoly) {
+  if (!monopoly) return false;
+  if (state.meta.monopolyLoss) return false;
+  const reason = `Monopoly rule: ${monopoly.label} occupies the ${monopoly.chart}.`;
+  state.meta.monopolyLoss = {
+    reason,
+    year: currentYear(),
+    exp: state.meta.exp,
+    triggeredAt: Date.now()
+  };
+  state.meta.achievementsLocked = true;
+  logEvent(`Monopoly rule triggered: ${monopoly.label} occupies the ${monopoly.chart}.`, "warn");
+  const lines = [
+    { title: reason, detail: `EXP ${formatCount(state.meta.exp)} | ${formatDate(state.time.epochMs)}` },
+    { title: "Achievements disabled", detail: "CEO Requests no longer count toward wins." },
+    { title: "Keep playing", detail: "Continue the sandbox with achievements locked." }
+  ];
+  uiHooks.showEndScreen?.("Monopoly Loss", lines);
+  state.meta.endShown = true;
+  saveToActiveSlot({ immediate: true });
+  archiveLossGame(reason, session.activeSlot);
+  uiHooks.renderLossArchives?.();
+  return true;
+}
+
 function finalizeGame(result, reason) {
   if (state.meta.gameOver) return;
   const endedSlot = session.activeSlot;
@@ -13698,7 +13996,7 @@ function acceptBailout() {
   if (state.meta.bailoutUsed || !state.meta.bailoutPending) return false;
   state.meta.bailoutUsed = true;
   state.meta.bailoutPending = false;
-  if (state.meta.achievementsLocked) state.meta.achievementsLocked = false;
+  if (state.meta.achievementsLocked && !state.meta.monopolyLoss) state.meta.achievementsLocked = false;
   const difficulty = getGameDifficulty(state.meta?.difficulty);
   state.label.cash = difficulty.bailoutAmount;
   logEvent(`Bailout accepted: debt cleared and ${formatMoney(difficulty.bailoutAmount)} granted. Achievements still track; win flagged for leaderboards.`, "warn");
@@ -13732,11 +14030,21 @@ function findRivalAchievementWinner() {
 function checkWinLoss(scores) {
   if (state.meta.gameOver) return;
   const year = currentYear();
+  if (state.meta.monopolyLoss) {
+    if (year >= 4000) {
+      finalizeGame("loss", state.meta.monopolyLoss.reason || "Final Year 4000 verdict.");
+    }
+    return;
+  }
   const achievements = Math.max(state.meta.achievementsUnlocked.length, state.meta.achievements || 0);
   const monopoly = findChartMonopoly();
   if (monopoly) {
-    logEvent(`Monopoly rule triggered: ${monopoly.label} occupies the ${monopoly.chart}.`, "warn");
-    finalizeGame("loss", `Monopoly rule: ${monopoly.label} occupies the ${monopoly.chart}.`);
+    if (year >= 4000) {
+      logEvent(`Monopoly rule triggered: ${monopoly.label} occupies the ${monopoly.chart}.`, "warn");
+      finalizeGame("loss", `Monopoly rule: ${monopoly.label} occupies the ${monopoly.chart}.`);
+    } else {
+      applyMonopolyLoss(monopoly);
+    }
     return;
   }
 
@@ -19099,56 +19407,32 @@ async function getSlotDataWithExternal(index) {
   if (data) return data;
   const external = await readSaveSlotFromExternal(index);
   if (!external) return null;
-  try {
-    localStorage.setItem(slotKey(index), JSON.stringify(external));
-  } catch {
-    // ignore storage errors
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(slotKey(index), JSON.stringify(external));
+    } catch (error) {
+      if (isQuotaExceededError(error)) {
+        session.localStorageDisabled = true;
+        warnLocalStorageIssue(
+          "Local save storage is full; external save loaded but local cache skipped."
+        );
+      }
+      recordStorageError({
+        scope: "localStorage",
+        message: "Failed to cache external save locally.",
+        error
+      });
+    }
   }
   return external;
 }
 
-function isQuotaExceededError(error) {
-  if (!error) return false;
-  if (error.name === "QuotaExceededError") return true;
-  if (error.name === "NS_ERROR_DOM_QUOTA_REACHED") return true;
-  if (error.code === 22 || error.code === 1014) return true;
-  const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
-  return message.includes("quota");
-}
-
 function warnLocalStorageIssue(message) {
+  if (!message) return;
+  recordStorageError({ scope: "localStorage", message });
   if (session.localStorageWarned) return;
   session.localStorageWarned = true;
   logEvent(message, "warn");
-}
-
-function estimateUtf16Bytes(value) {
-  if (!value) return 0;
-  return value.length * 2;
-}
-
-function estimatePayloadBytes(payload) {
-  if (!payload) return 0;
-  if (typeof Blob !== "undefined") {
-    return new Blob([payload]).size;
-  }
-  return estimateUtf16Bytes(payload);
-}
-
-function estimateLocalStorageBytes() {
-  if (typeof localStorage === "undefined") return 0;
-  try {
-    let total = 0;
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-      const value = localStorage.getItem(key) || "";
-      total += key.length + value.length;
-    }
-    return total * 2;
-  } catch {
-    return 0;
-  }
 }
 
 function formatByteSize(bytes) {
@@ -19157,6 +19441,11 @@ function formatByteSize(bytes) {
   if (mb >= 100) return `${Math.round(mb)}MB`;
   if (mb >= 10) return `${mb.toFixed(1)}MB`;
   return `${mb.toFixed(2)}MB`;
+}
+
+function estimateLocalStorageFreeBytes(usedBytes) {
+  if (!Number.isFinite(usedBytes)) return null;
+  return Math.max(0, LOCAL_SAVE_QUOTA_BYTES - usedBytes);
 }
 
 function saveToSlot(index) {
@@ -19291,6 +19580,7 @@ async function loadSlot(index, forceNew = false, options = {}) {
       difficulty: options.difficulty,
       startPreferences: options.startPreferences
     });
+    logQualityPotentialDeterminismCheck(state.tracks, data ? "load" : "seed");
     session.activeSlot = index;
     session.lastSlotPayload = localStorage.getItem(slotKey(index));
     markUiLogStart();
@@ -19864,11 +20154,18 @@ function normalizeState() {
   if (typeof state.meta.achievements !== "number") state.meta.achievements = state.meta.achievementsUnlocked.length;
   state.meta.achievements = Math.max(state.meta.achievements, state.meta.achievementsUnlocked.length);
   if (typeof state.meta.achievementsLocked !== "boolean") state.meta.achievementsLocked = false;
+  if (state.meta.monopolyLoss && typeof state.meta.monopolyLoss !== "object") state.meta.monopolyLoss = null;
+  if (state.meta.monopolyLoss) {
+    if (typeof state.meta.monopolyLoss.reason !== "string") state.meta.monopolyLoss.reason = "Monopoly loss recorded.";
+    if (typeof state.meta.monopolyLoss.year !== "number") state.meta.monopolyLoss.year = currentYear();
+    if (typeof state.meta.monopolyLoss.exp !== "number") state.meta.monopolyLoss.exp = state.meta.exp || 0;
+    if (typeof state.meta.monopolyLoss.triggeredAt !== "number") state.meta.monopolyLoss.triggeredAt = null;
+  }
   if (typeof state.meta.bailoutUsed !== "boolean") state.meta.bailoutUsed = false;
   if (typeof state.meta.bailoutPending !== "boolean") state.meta.bailoutPending = false;
   if (state.meta.bailoutUsed) {
     state.meta.bailoutPending = false;
-    if (state.meta.achievementsLocked) state.meta.achievementsLocked = false;
+    if (state.meta.achievementsLocked && !state.meta.monopolyLoss) state.meta.achievementsLocked = false;
   }
   if (state.meta.winState && typeof state.meta.winState.bailoutUsed !== "boolean") {
     state.meta.winState.bailoutUsed = Boolean(state.meta.bailoutUsed);
@@ -20344,6 +20641,11 @@ function normalizeState() {
       );
       track.quality = clampQuality(track.quality ?? 0);
       track.qualityPotential = clampQuality(track.qualityPotential ?? track.quality);
+      if (!Number.isFinite(track.qualityJitter)) {
+        track.qualityJitter = null;
+      } else {
+        track.qualityJitter = clamp(Math.round(track.qualityJitter), -5, 5);
+      }
       if (!Number.isFinite(track.qualityBase)) track.qualityBase = track.quality;
       if (!Number.isFinite(track.qualityFinal)) track.qualityFinal = track.quality;
       if (Number.isFinite(track.qualityFinal)) track.quality = clampQuality(track.qualityFinal);
@@ -21789,4 +22091,5 @@ if (typeof window !== "undefined") {
   window.rlsState = state;
   window.rlsBuildCalendarProjection = buildCalendarProjection;
   window.rlsBridge = { state, buildCalendarProjection };
+  window.rlsDebugChartsDeterminism = debugChartsDeterminism;
 }

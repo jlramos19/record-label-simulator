@@ -4,6 +4,7 @@ import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, read
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
+import { recordUsageEvent } from "./usage-log.js";
 import { CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLE_TRANSLATIONS, PROJECT_TITLES, generateActNamePair, generateUniqueActNamePairs, getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation } from "./game/names.js";
 import { AI_CREATE_BUDGET_PCT, AI_CREATE_MIN_CASH, AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, ACTIVITY_STAMINA_PROMO, ACTIVITY_STAMINA_TOUR_DATE, TOUR_STAFFING_STAMINA_BOOST_MAX, ACTIVITY_SKILL_GAIN_PER_STAMINA, CREATOR_CATHARSIS_INACTIVITY_GRACE_DAYS, CREATOR_CATHARSIS_INACTIVITY_DAILY_PCT, CREATOR_CATHARSIS_INACTIVITY_MAX_PCT, CREATOR_CATHARSIS_INACTIVITY_RECOVERY_DAYS, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DOMINANCE_DECAY_MAX, TREND_DOMINANCE_MAX_WEEKS, TREND_DOMINANCE_MIN_WEEKS, TREND_EMERGING_ACTIVITY_DEBUFF, TREND_EMERGING_WEEKS, TREND_PEAKING_DISINTEREST_START, TREND_PEAKING_MAX_WEEKS, TREND_PEAKING_TOP_RANK, TREND_RANKING_HISTORY_WEEKS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
 import { evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks, getProjectTrackLimits, normalizeProjectName, normalizeProjectType } from "./game/project-tracks.js";
@@ -424,6 +425,7 @@ function makeDefaultState() {
             achievements: 0,
             achievementsUnlocked: [],
             achievementsLocked: false,
+            monopolyLoss: null,
             marketTrackArchive: [],
             bailoutUsed: false,
             bailoutPending: false,
@@ -1013,6 +1015,8 @@ function awardExp(amount, note, silent = false) {
 }
 function achievementsDisabled() {
     if (state.meta?.cheaterMode)
+        return true;
+    if (state.meta?.monopolyLoss)
         return true;
     if (state.meta?.achievementsLocked && !state.meta?.bailoutUsed)
         return true;
@@ -5826,6 +5830,32 @@ function resolveUniqueProjectName(baseName) {
     }
     return `${baseName} II`;
 }
+function resolveTrackQualitySeed(track) {
+    if (!track || typeof track !== "object")
+        return makeStableSeed(["qualityPotential", "fallback"]);
+    const trackId = track.id || track.trackId || null;
+    if (trackId)
+        return makeStableSeed([trackId, "qualityPotential"]);
+    const act = track.actId ? getAct(track.actId) : null;
+    const actKey = track.actNameKey || act?.nameKey || track.actName || act?.name || track.actId || "";
+    const title = track.title || "";
+    const projectName = track.projectName || "";
+    const createdAt = Number.isFinite(track.createdAt) ? track.createdAt : "";
+    return makeStableSeed([title, actKey, projectName, createdAt, "qualityPotential"]);
+}
+function resolveTrackQualityJitter(track) {
+    if (!track || typeof track !== "object")
+        return 0;
+    if (Number.isFinite(track.qualityJitter)) {
+        const normalized = clamp(Math.round(track.qualityJitter), -5, 5);
+        track.qualityJitter = normalized;
+        return normalized;
+    }
+    const rng = makeSeededRng(resolveTrackQualitySeed(track));
+    const jitter = seededRand(-5, 5, rng);
+    track.qualityJitter = jitter;
+    return jitter;
+}
 function computeQualityPotential(track) {
     const writers = getTrackRoleIds(track, "Songwriter").map((id) => getCreator(id)).filter(Boolean);
     const performers = getTrackRoleIds(track, "Performer").map((id) => getCreator(id)).filter(Boolean);
@@ -5836,7 +5866,7 @@ function computeQualityPotential(track) {
         const hits = list.filter(matches).length;
         return hits / list.length;
     };
-    let score = 40 + rand(-5, 5);
+    let score = 40 + resolveTrackQualityJitter(track);
     score += averageSkill(writers, { staminaAdjusted: true }) * 0.2;
     score += averageSkill(performers, { staminaAdjusted: true }) * 0.2;
     score += averageSkill(producers, { staminaAdjusted: true }) * 0.3;
@@ -5857,6 +5887,30 @@ function refreshTrackQuality(track, stageIndex) {
     const stage = STAGES[stageIndex];
     const progress = stage ? stage.progress : 1;
     track.quality = Math.round(track.qualityPotential * progress);
+}
+function logQualityPotentialDeterminismCheck(tracks, context = "load") {
+    if (!Array.isArray(tracks) || !tracks.length)
+        return;
+    const sampleSize = Math.min(5, tracks.length);
+    const sample = tracks.slice(0, sampleSize);
+    const results = sample.map((track) => {
+        const stageIndex = Number.isFinite(track.stageIndex) ? track.stageIndex : 0;
+        const probe = { ...track };
+        refreshTrackQuality(probe, stageIndex);
+        const first = probe.qualityPotential;
+        refreshTrackQuality(probe, stageIndex);
+        const second = probe.qualityPotential;
+        return {
+            id: track.id || track.trackId || track.title || "track",
+            stageIndex,
+            stored: track.qualityPotential,
+            first,
+            second,
+            stable: first === second
+        };
+    });
+    const unstableCount = results.filter((entry) => entry.first !== entry.second).length;
+    recordUsageEvent("debug.track_quality_refresh", { context, unstableCount, sample: results }, { reportToConsole: true, level: unstableCount ? "warn" : "info" });
 }
 function ensureTrackEconomy(track) {
     if (!track)
@@ -9559,6 +9613,34 @@ function applyCriticsReview({ track = null, marketEntry = null, log = false } = 
     }
     return { criticScore, criticGrade, qualityFinal, criticScores, criticDelta: delta };
 }
+function chartScoreWeekIndex(epochMs = state.time?.epochMs) {
+    const safeEpoch = Number.isFinite(epochMs) ? epochMs : BASE_EPOCH;
+    if (!Number.isFinite(safeEpoch) || !Number.isFinite(BASE_EPOCH))
+        return 0;
+    return Math.max(0, Math.floor((safeEpoch - BASE_EPOCH) / (WEEK_HOURS * HOUR_MS)));
+}
+function resolveScoreTrackSeedKey(track) {
+    if (!track)
+        return "";
+    const directId = track.id || track.trackId;
+    if (directId)
+        return String(directId);
+    const actName = track.actName || (track.actId ? getAct(track.actId)?.name : "") || "";
+    const derived = [
+        track.title || "",
+        actName,
+        track.projectName || "",
+        track.label || ""
+    ].join("|");
+    return derived || String(trackKey(track) || "");
+}
+function scoreTrackJitter(track, scopeKey, weekIndexOverride) {
+    const scope = scopeKey || "global";
+    const weekIndexValue = Number.isFinite(weekIndexOverride) ? weekIndexOverride : chartScoreWeekIndex();
+    const seed = makeStableSeed([weekIndexValue, scope, resolveScoreTrackSeedKey(track), "scoreTrackJitter"]);
+    const rng = makeSeededRng(seed);
+    return seededRand(-4, 4, rng);
+}
 function scoreTrack(track, regionName) {
     const audience = getAudienceProfile(regionName);
     let score = track.quality;
@@ -9587,7 +9669,7 @@ function scoreTrack(track, regionName) {
         score += homelandBonusForScope(originMeta, scopeNation);
         score += internationalBiasForScope(originMeta, scopeNation);
     }
-    score += rand(-4, 4);
+    score += scoreTrackJitter(track, regionName);
     const competitionMultiplier = getLabelCompetitionMultiplier(track.label);
     if (competitionMultiplier !== 1)
         score = Math.round(score * competitionMultiplier);
@@ -12009,13 +12091,16 @@ function queueChartSnapshotPersistence(snapshots) {
 function buildChartWorkerPayload() {
     const trackMap = new Map();
     const tracks = [];
+    const chartWeekIndex = chartScoreWeekIndex();
     ensureAudienceBiasStore();
     state.marketTracks.forEach((track) => {
         const key = trackKey(track);
+        const seedKey = resolveScoreTrackSeedKey(track);
         const originMeta = resolveTrackOriginMeta(track);
         trackMap.set(key, track);
         tracks.push({
             key,
+            seedKey,
             quality: track.quality,
             alignment: track.alignment,
             theme: track.theme,
@@ -12065,10 +12150,40 @@ function buildChartWorkerPayload() {
             defaultWeights: CHART_WEIGHTS,
             volumeMultipliers: CONSUMPTION_VOLUME_MULTIPLIERS,
             labelCompetition,
-            regionDefs: REGION_DEFS
+            regionDefs: REGION_DEFS,
+            chartWeekIndex
         },
         trackMap
     };
+}
+const CHART_WORKER_PARITY_SAMPLE = 5;
+function debugChartWorkerParity(result, trackMap) {
+    if (!state.meta?.cheaterMode)
+        return;
+    const globalScores = Array.isArray(result?.globalScores) ? result.globalScores : [];
+    if (!globalScores.length)
+        return;
+    const samples = globalScores.slice(0, Math.min(CHART_WORKER_PARITY_SAMPLE, globalScores.length));
+    const mismatches = [];
+    samples.forEach((entry) => {
+        const track = trackMap.get(entry.key);
+        if (!track)
+            return;
+        let sum = 0;
+        NATIONS.forEach((nation) => {
+            sum += scoreTrack(track, nation);
+        });
+        const expected = NATIONS.length ? Math.round(sum / NATIONS.length) : 0;
+        if (expected !== entry.score) {
+            mismatches.push({ key: entry.key, expected, worker: entry.score });
+        }
+    });
+    if (mismatches.length) {
+        console.warn("[charts] Worker parity mismatch.", mismatches);
+    }
+    else {
+        console.debug(`[charts] Worker parity ok (${samples.length} samples).`);
+    }
 }
 function applyChartWorkerResults(result, trackMap) {
     const charts = result?.charts || {};
@@ -12499,12 +12614,147 @@ async function computeCharts() {
         const result = await requestChartWorker("computeCharts", payload);
         if (!result?.charts)
             return computeChartsLocal();
+        debugChartWorkerParity(result, trackMap);
         return applyChartWorkerResults(result, trackMap);
     }
     catch (error) {
         console.error("Chart worker failed, falling back to main thread:", error);
         return computeChartsLocal();
     }
+}
+const CHART_DETERMINISM_STORAGE_KEY = "rls_chart_determinism_signature_v1";
+function resolveChartSignatureKey(entry) {
+    if (!entry)
+        return "";
+    if (entry.track)
+        return trackKey(entry.track);
+    if (entry.actKey)
+        return entry.actKey;
+    if (entry.id)
+        return entry.id;
+    if (entry.trackId)
+        return entry.trackId;
+    if (entry.marketId)
+        return entry.marketId;
+    if (entry.actId)
+        return entry.actId;
+    return entry.title || entry.actName || "";
+}
+function buildChartSignatureEntries(entries) {
+    if (!Array.isArray(entries))
+        return [];
+    return entries.map((entry) => `${resolveChartSignatureKey(entry)}:${Number(entry?.score || 0)}`);
+}
+function buildChartSignatureMap() {
+    const signature = new Map();
+    signature.set("charts:global", buildChartSignatureEntries(state.charts?.global || []));
+    NATIONS.forEach((nation) => {
+        signature.set(`charts:nation:${nation}`, buildChartSignatureEntries(state.charts?.nations?.[nation] || []));
+    });
+    REGION_DEFS.forEach((region) => {
+        signature.set(`charts:region:${region.id}`, buildChartSignatureEntries(state.charts?.regions?.[region.id] || []));
+    });
+    signature.set("promo:global", buildChartSignatureEntries(state.promoCharts?.global || []));
+    NATIONS.forEach((nation) => {
+        signature.set(`promo:nation:${nation}`, buildChartSignatureEntries(state.promoCharts?.nations?.[nation] || []));
+    });
+    REGION_DEFS.forEach((region) => {
+        signature.set(`promo:region:${region.id}`, buildChartSignatureEntries(state.promoCharts?.regions?.[region.id] || []));
+    });
+    signature.set("tour:global", buildChartSignatureEntries(state.tourCharts?.global || []));
+    NATIONS.forEach((nation) => {
+        signature.set(`tour:nation:${nation}`, buildChartSignatureEntries(state.tourCharts?.nations?.[nation] || []));
+    });
+    REGION_DEFS.forEach((region) => {
+        signature.set(`tour:region:${region.id}`, buildChartSignatureEntries(state.tourCharts?.regions?.[region.id] || []));
+    });
+    return signature;
+}
+function compareChartSignatureMaps(left, right) {
+    const mismatches = [];
+    const keys = new Set([...left.keys(), ...right.keys()]);
+    keys.forEach((key) => {
+        const leftEntries = left.get(key) || [];
+        const rightEntries = right.get(key) || [];
+        if (leftEntries.length !== rightEntries.length) {
+            mismatches.push(key);
+            return;
+        }
+        for (let i = 0; i < leftEntries.length; i += 1) {
+            if (leftEntries[i] !== rightEntries[i]) {
+                mismatches.push(key);
+                return;
+            }
+        }
+    });
+    return mismatches;
+}
+function loadChartSignatureSnapshot() {
+    try {
+        const raw = localStorage.getItem(CHART_DETERMINISM_STORAGE_KEY);
+        if (!raw)
+            return null;
+        return JSON.parse(raw);
+    }
+    catch {
+        return null;
+    }
+}
+function saveChartSignatureSnapshot(signature) {
+    try {
+        const payload = {
+            slot: session.activeSlot,
+            weekIndex: chartScoreWeekIndex(),
+            savedAt: Date.now(),
+            signature: Array.from(signature.entries())
+        };
+        localStorage.setItem(CHART_DETERMINISM_STORAGE_KEY, JSON.stringify(payload));
+        return payload;
+    }
+    catch {
+        return null;
+    }
+}
+async function debugChartsDeterminism() {
+    await computeCharts();
+    const firstSignature = buildChartSignatureMap();
+    await computeCharts();
+    const secondSignature = buildChartSignatureMap();
+    const mismatches = compareChartSignatureMaps(firstSignature, secondSignature);
+    if (mismatches.length) {
+        console.warn("[charts] Determinism mismatch after repeat compute.", mismatches);
+    }
+    else {
+        console.info("[charts] Determinism check ok for repeat compute.");
+    }
+    const stored = loadChartSignatureSnapshot();
+    if (stored?.signature && Array.isArray(stored.signature)) {
+        const storedSignature = new Map(stored.signature);
+        const refreshMismatches = compareChartSignatureMaps(storedSignature, secondSignature);
+        if (stored.slot !== session.activeSlot) {
+            console.info("[charts] Determinism baseline stored for a different slot.", {
+                storedSlot: stored.slot,
+                currentSlot: session.activeSlot
+            });
+        }
+        else if (stored.weekIndex !== chartScoreWeekIndex()) {
+            console.info("[charts] Determinism baseline stored for a different week.", {
+                storedWeek: stored.weekIndex,
+                currentWeek: chartScoreWeekIndex()
+            });
+        }
+        else if (refreshMismatches.length) {
+            console.warn("[charts] Determinism mismatch vs stored refresh baseline.", refreshMismatches);
+        }
+        else {
+            console.info("[charts] Determinism baseline matches stored refresh snapshot.");
+        }
+    }
+    else {
+        console.info("[charts] Determinism baseline stored; run again after refresh to compare.");
+    }
+    saveChartSignatureSnapshot(secondSignature);
+    return { mismatches };
 }
 function buildGenreRanking(totals) {
     const entries = [];
@@ -13552,6 +13802,34 @@ function monopolyChartLabel(scopeKey, contentType) {
     const typeLabel = contentType === "promotions" ? "Promotions" : contentType === "tours" ? "Tours" : "Tracks";
     return `${scopeLabel} ${typeLabel} chart`;
 }
+function computeChartLabelShare(entries, size) {
+    if (!Array.isArray(entries) || !entries.length)
+        return null;
+    if (!Number.isFinite(size) || size <= 0)
+        return null;
+    const counts = {};
+    entries.forEach((entry) => {
+        const label = resolveChartEntryLabel(entry);
+        if (!label)
+            return;
+        counts[label] = (counts[label] || 0) + 1;
+    });
+    const ordered = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    if (!ordered.length)
+        return null;
+    const [label, count] = ordered[0];
+    const share = count / size;
+    return { label, count, share };
+}
+function logMonopolyShareCheck(check) {
+    if (!Number.isFinite(MONOPOLY_SHARE))
+        return;
+    const shareEntry = computeChartLabelShare(check.entries, check.size);
+    if (!shareEntry || shareEntry.share < MONOPOLY_SHARE)
+        return;
+    const ratio = shareEntry.share.toFixed(3);
+    logEvent(`Monopoly check: scope=${check.scope} type=${check.type} label=${shareEntry.label} share=${ratio} size=${check.size}.`, "warn");
+}
 function detectChartMonopoly(entries, size) {
     if (!Array.isArray(entries) || entries.length < size)
         return null;
@@ -13594,6 +13872,7 @@ function findChartMonopoly() {
     });
     for (let i = 0; i < checks.length; i += 1) {
         const check = checks[i];
+        logMonopolyShareCheck(check);
         const label = detectChartMonopoly(check.entries, check.size);
         if (label) {
             return { label, chart: monopolyChartLabel(check.scope, check.type) };
@@ -13659,6 +13938,32 @@ function archiveLossGame(reason, slotIndex) {
     saveLossArchives(pruned);
     return entry;
 }
+function applyMonopolyLoss(monopoly) {
+    if (!monopoly)
+        return false;
+    if (state.meta.monopolyLoss)
+        return false;
+    const reason = `Monopoly rule: ${monopoly.label} occupies the ${monopoly.chart}.`;
+    state.meta.monopolyLoss = {
+        reason,
+        year: currentYear(),
+        exp: state.meta.exp,
+        triggeredAt: Date.now()
+    };
+    state.meta.achievementsLocked = true;
+    logEvent(`Monopoly rule triggered: ${monopoly.label} occupies the ${monopoly.chart}.`, "warn");
+    const lines = [
+        { title: reason, detail: `EXP ${formatCount(state.meta.exp)} | ${formatDate(state.time.epochMs)}` },
+        { title: "Achievements disabled", detail: "CEO Requests no longer count toward wins." },
+        { title: "Keep playing", detail: "Continue the sandbox with achievements locked." }
+    ];
+    uiHooks.showEndScreen?.("Monopoly Loss", lines);
+    state.meta.endShown = true;
+    saveToActiveSlot({ immediate: true });
+    archiveLossGame(reason, session.activeSlot);
+    uiHooks.renderLossArchives?.();
+    return true;
+}
 function finalizeGame(result, reason) {
     if (state.meta.gameOver)
         return;
@@ -13712,7 +14017,7 @@ function acceptBailout() {
         return false;
     state.meta.bailoutUsed = true;
     state.meta.bailoutPending = false;
-    if (state.meta.achievementsLocked)
+    if (state.meta.achievementsLocked && !state.meta.monopolyLoss)
         state.meta.achievementsLocked = false;
     const difficulty = getGameDifficulty(state.meta?.difficulty);
     state.label.cash = difficulty.bailoutAmount;
@@ -13748,11 +14053,22 @@ function checkWinLoss(scores) {
     if (state.meta.gameOver)
         return;
     const year = currentYear();
+    if (state.meta.monopolyLoss) {
+        if (year >= 4000) {
+            finalizeGame("loss", state.meta.monopolyLoss.reason || "Final Year 4000 verdict.");
+        }
+        return;
+    }
     const achievements = Math.max(state.meta.achievementsUnlocked.length, state.meta.achievements || 0);
     const monopoly = findChartMonopoly();
     if (monopoly) {
-        logEvent(`Monopoly rule triggered: ${monopoly.label} occupies the ${monopoly.chart}.`, "warn");
-        finalizeGame("loss", `Monopoly rule: ${monopoly.label} occupies the ${monopoly.chart}.`);
+        if (year >= 4000) {
+            logEvent(`Monopoly rule triggered: ${monopoly.label} occupies the ${monopoly.chart}.`, "warn");
+            finalizeGame("loss", `Monopoly rule: ${monopoly.label} occupies the ${monopoly.chart}.`);
+        }
+        else {
+            applyMonopolyLoss(monopoly);
+        }
         return;
     }
     if (year < 3000) {
@@ -19652,6 +19968,7 @@ async function loadSlot(index, forceNew = false, options = {}) {
                 difficulty: options.difficulty,
                 startPreferences: options.startPreferences
             });
+        logQualityPotentialDeterminismCheck(state.tracks, data ? "load" : "seed");
         session.activeSlot = index;
         session.lastSlotPayload = localStorage.getItem(slotKey(index));
         markUiLogStart();
@@ -20355,13 +20672,25 @@ function normalizeState() {
     state.meta.achievements = Math.max(state.meta.achievements, state.meta.achievementsUnlocked.length);
     if (typeof state.meta.achievementsLocked !== "boolean")
         state.meta.achievementsLocked = false;
+    if (state.meta.monopolyLoss && typeof state.meta.monopolyLoss !== "object")
+        state.meta.monopolyLoss = null;
+    if (state.meta.monopolyLoss) {
+        if (typeof state.meta.monopolyLoss.reason !== "string")
+            state.meta.monopolyLoss.reason = "Monopoly loss recorded.";
+        if (typeof state.meta.monopolyLoss.year !== "number")
+            state.meta.monopolyLoss.year = currentYear();
+        if (typeof state.meta.monopolyLoss.exp !== "number")
+            state.meta.monopolyLoss.exp = state.meta.exp || 0;
+        if (typeof state.meta.monopolyLoss.triggeredAt !== "number")
+            state.meta.monopolyLoss.triggeredAt = null;
+    }
     if (typeof state.meta.bailoutUsed !== "boolean")
         state.meta.bailoutUsed = false;
     if (typeof state.meta.bailoutPending !== "boolean")
         state.meta.bailoutPending = false;
     if (state.meta.bailoutUsed) {
         state.meta.bailoutPending = false;
-        if (state.meta.achievementsLocked)
+        if (state.meta.achievementsLocked && !state.meta.monopolyLoss)
             state.meta.achievementsLocked = false;
     }
     if (state.meta.winState && typeof state.meta.winState.bailoutUsed !== "boolean") {
@@ -21032,6 +21361,12 @@ function normalizeState() {
             track.creators.producerIds = normalizeRoleIds(track.creators.producerIds || (legacyProducer ? [legacyProducer] : []), "Producer");
             track.quality = clampQuality(track.quality ?? 0);
             track.qualityPotential = clampQuality(track.qualityPotential ?? track.quality);
+            if (!Number.isFinite(track.qualityJitter)) {
+                track.qualityJitter = null;
+            }
+            else {
+                track.qualityJitter = clamp(Math.round(track.qualityJitter), -5, 5);
+            }
             if (!Number.isFinite(track.qualityBase))
                 track.qualityBase = track.quality;
             if (!Number.isFinite(track.qualityFinal))
@@ -22240,5 +22575,6 @@ if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;
     window.rlsBridge = { state, buildCalendarProjection };
+    window.rlsDebugChartsDeterminism = debugChartsDeterminism;
 }
 //# sourceMappingURL=game.js.map

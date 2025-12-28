@@ -17,7 +17,48 @@ const COUNTRY_RELATION_BIAS = {
   Bytenza: { Annglora: -2, Crowlya: 0 },
   Crowlya: { Annglora: 2, Bytenza: 0 }
 };
-const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const CHART_JITTER_SALT = "scoreTrackJitter";
+
+const makeSeededRng = (seed) => {
+  let t = seed >>> 0;
+  return () => {
+    t += 0x6D2B79F5;
+    let x = t;
+    x = Math.imul(x ^ (x >>> 15), x | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const hashString = (value) => {
+  const raw = String(value || "");
+  let hash = 2166136261;
+  for (let i = 0; i < raw.length; i += 1) {
+    hash ^= raw.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+const makeStableSeed = (parts) => hashString(Array.isArray(parts) ? parts.join("|") : parts);
+
+const seededRand = (min, max, rng) => Math.floor(rng() * (max - min + 1)) + min;
+
+function resolveScoreTrackSeedKey(track) {
+  if (!track) return "";
+  if (track.seedKey) return String(track.seedKey);
+  if (track.key) return String(track.key);
+  if (track.title) return String(track.title);
+  return [track.label || "", track.genre || "", track.alignment || ""].join("|");
+}
+
+function scoreTrackJitter(track, scopeKey, weekIndex) {
+  const scope = scopeKey || "global";
+  const weekIndexValue = Number.isFinite(weekIndex) ? weekIndex : 0;
+  const seed = makeStableSeed([weekIndexValue, scope, resolveScoreTrackSeedKey(track), CHART_JITTER_SALT]);
+  const rng = makeSeededRng(seed);
+  return seededRand(-4, 4, rng);
+}
 
 function normalizeChartWeights(weights, fallback) {
   const safe = weights || fallback || FALLBACK_WEIGHTS;
@@ -119,7 +160,7 @@ function internationalBiasForScope(originMeta, scopeNation) {
   return Math.max(-INTERNATIONAL_RELATION_CAP, Math.min(INTERNATIONAL_RELATION_CAP, total));
 }
 
-function scoreTrack(track, regionName, profiles, trends, audience, labelCompetition, regionDefs, nations) {
+function scoreTrack(track, regionName, profiles, trends, audience, labelCompetition, regionDefs, nations, chartWeekIndex) {
   const nationProfiles = profiles?.nations || {};
   const regionProfiles = profiles?.regions || {};
   const fallback = nationProfiles.Annglora || { alignment: "", theme: "", moods: [] };
@@ -151,7 +192,7 @@ function scoreTrack(track, regionName, profiles, trends, audience, labelCompetit
     score += homelandBonusForScope(originMeta, scopeNation);
     score += internationalBiasForScope(originMeta, scopeNation);
   }
-  score += rand(-4, 4);
+  score += scoreTrackJitter(track, regionName, chartWeekIndex);
   const competitionMultiplier = Number.isFinite(labelCompetition?.[track.label]) ? labelCompetition[track.label] : 1;
   if (competitionMultiplier !== 1) score = Math.round(score * competitionMultiplier);
   const boostMultiplier = Number.isFinite(track?.boostMultiplier) ? track.boostMultiplier : 1;
@@ -173,6 +214,7 @@ function computeCharts(payload) {
   const trends = payload?.trends || [];
   const audience = payload?.audience || {};
   const labelCompetition = payload?.labelCompetition || {};
+  const chartWeekIndex = Number.isFinite(payload?.chartWeekIndex) ? payload.chartWeekIndex : 0;
 
   const nationScores = {};
   const regionScores = {};
@@ -187,7 +229,7 @@ function computeCharts(payload) {
   tracks.forEach((track) => {
     let sum = 0;
     nations.forEach((nation) => {
-      const score = scoreTrack(track, nation, profiles, trends, audience, labelCompetition, regionDefs, nations);
+      const score = scoreTrack(track, nation, profiles, trends, audience, labelCompetition, regionDefs, nations, chartWeekIndex);
       const metrics = buildChartMetrics(score, weights?.nations?.[nation], defaultWeights, volumeMultipliers);
       nationScores[nation].push({ key: track.key, score, metrics });
       sum += score;
@@ -199,7 +241,7 @@ function computeCharts(payload) {
       metrics: buildChartMetrics(avg, weights?.global, defaultWeights, volumeMultipliers)
     });
     regionIds.forEach((regionId) => {
-      const score = scoreTrack(track, regionId, profiles, trends, audience, labelCompetition, regionDefs, nations);
+      const score = scoreTrack(track, regionId, profiles, trends, audience, labelCompetition, regionDefs, nations, chartWeekIndex);
       const metrics = buildChartMetrics(score, weights?.regions?.[regionId], defaultWeights, volumeMultipliers);
       regionScores[regionId].push({ key: track.key, score, metrics });
     });

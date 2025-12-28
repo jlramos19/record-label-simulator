@@ -25,10 +25,13 @@ These rules keep the hosted web build runnable while the team iterates quickly.
 - Critical runtime errors surface a console error plus an in-app toast (non-blocking, auto-dismiss) for visibility.
 - If initialization fails, the app surfaces a safe-mode message to avoid silent blank screens.
 - Usage sessions now track session IDs, action trails, and captured errors; debug exports include the active session log.
+- Usage sessions flush on pagehide/visibilitychange and when exporting the debug bundle; external mirrors only write on session end/errors.
 - Internal Log includes an Export Debug Bundle button to download usage sessions plus UI/system logs for sharing.
+- Debug bundles include a storage health snapshot (save size, localStorage estimate, external mirror status).
 
 ## External storage (File System Access API)
 - Optional: logs, saves, and chart history can mirror to a user-selected folder via the Promotions view (route `logs`).
-- On startup, the game prompts to pick a save folder when external storage is not configured.
+- On startup, the game prompts to pick a save folder when external storage is not configured and the prompt has not been dismissed; insecure contexts skip the prompt.
 - Usage sessions mirror to `usage-logs/` on session end or explicit sync; saves and chart history sync to `saves/` and `database/`.
 - Imports pull saves and chart history back into local storage/IndexedDB for recovery.
+- External mirror failures keep the local copy and are recorded in storage diagnostics.

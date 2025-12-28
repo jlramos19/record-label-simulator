@@ -7866,6 +7866,8 @@ function renderAchievements() {
         const notes = [];
         if (state.meta.bailoutUsed)
             notes.push("Bailout used: win flagged for leaderboards.");
+        if (state.meta.monopolyLoss)
+            notes.push("Monopoly loss: achievements disabled.");
         if (state.meta.cheaterMode)
             notes.push("Cheater mode active: achievements paused.");
         const noteText = notes.join(" ");

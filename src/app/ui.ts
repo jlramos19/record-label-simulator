@@ -237,6 +237,7 @@ const GAME_MODE_KEY = "rls_game_mode_v1";
 const GAME_DIFFICULTY_KEY = "rls_game_difficulty_v1";
 const START_PREFS_KEY = "rls_start_prefs_v1";
 const UI_THEME_KEY = "rls_ui_theme_v1";
+const EXTERNAL_STORAGE_PROMPT_KEY = "rls_external_storage_prompt_v1";
 const UI_THEME_DEFAULT = "dark";
 const UI_THEME_META = { dark: "#0a0703", light: "#ccffff" };
 let uiThemeMediaQuery = null;
@@ -333,6 +334,46 @@ function setStoredUiTheme(value) {
   try {
     localStorage.setItem(UI_THEME_KEY, value);
   } catch (error) {
+    // Ignore storage failures (private mode, quota, etc.).
+  }
+}
+
+function getExternalStoragePromptState() {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(EXTERNAL_STORAGE_PROMPT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function isExternalStoragePromptDismissed() {
+  const stored = getExternalStoragePromptState();
+  if (!stored) return false;
+  if (stored === true) return true;
+  if (typeof stored === "string") return stored === "dismissed";
+  return Boolean(stored.dismissedAt);
+}
+
+function setExternalStoragePromptDismissed(reason) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(EXTERNAL_STORAGE_PROMPT_KEY, JSON.stringify({
+      dismissedAt: new Date().toISOString(),
+      reason: reason || "skipped"
+    }));
+  } catch {
+    // Ignore storage failures (private mode, quota, etc.).
+  }
+}
+
+function clearExternalStoragePromptDismissed() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.removeItem(EXTERNAL_STORAGE_PROMPT_KEY);
+  } catch {
     // Ignore storage failures (private mode, quota, etc.).
   }
 }
@@ -1313,6 +1354,7 @@ async function handleExternalStoragePick(root) {
   }
   const usageSession = getUsageSessionSnapshot();
   if (result.ok) {
+    clearExternalStoragePromptDismissed();
     const summary = await syncExternalStorageNow({ usageSession });
     if (summary.ok) {
       logEvent(`External storage synced (${summary.saves} saves, ${summary.charts} charts).`);
@@ -1403,8 +1445,12 @@ async function refreshExternalStoragePromptStatus() {
 async function maybePromptExternalStorageOnStart() {
   if (!isExternalStorageSupported()) return null;
   if (!$("externalStoragePrompt")) return null;
+  if (!session.localStorageDisabled && isExternalStoragePromptDismissed()) return null;
   const status = await refreshExternalStoragePromptStatus();
-  if (status?.status === "ready") return null;
+  if (status?.status === "ready") {
+    clearExternalStoragePromptDismissed();
+    return null;
+  }
   if (externalStoragePromptPromise) return externalStoragePromptPromise;
   openOverlay("externalStoragePrompt");
   externalStoragePromptPromise = new Promise((resolve) => {
@@ -2892,6 +2938,7 @@ function bindGlobalHandlers() {
   });
   on("externalStoragePromptSkipBtn", "click", () => {
     closeOverlay("externalStoragePrompt");
+    setExternalStoragePromptDismissed("skipped");
     logEvent("External storage setup skipped. Saves will remain local.", "warn");
     resolveExternalStoragePrompt();
   });

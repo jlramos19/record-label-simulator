@@ -19,7 +19,10 @@ function isBrowser() {
 }
 
 export function isExternalStorageSupported() {
-  return isBrowser() && typeof window.showDirectoryPicker === "function";
+  if (!isBrowser()) return false;
+  if (typeof window.showDirectoryPicker !== "function") return false;
+  if (typeof window.isSecureContext === "boolean" && !window.isSecureContext) return false;
+  return true;
 }
 
 function nowIso() {

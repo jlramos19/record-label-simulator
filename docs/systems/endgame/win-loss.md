@@ -7,7 +7,7 @@
 
 ## Loss Conditions
 - Bankruptcy after declining or exhausting a bailout.
-- Monopoly rule: if any single label occupies every slot on any chart (tracks, promotions, or tours) at any scope (global, nation, or region), the game ends immediately in a loss.
+- Monopoly rule: if any single label occupies every slot on any chart (tracks, promotions, or tours) at any scope (global, nation, or region), the game records a loss, locks achievements, and shows the loss screen. Play can continue, but new win states are blocked.
 - Rival race: if any rival label completes all 12 CEO Requests before the player has secured a win state, the game ends in a loss.
 
 ## Tracking

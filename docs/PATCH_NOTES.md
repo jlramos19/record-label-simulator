@@ -1,5 +1,14 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-1014Z)
+- Chart scoring jitter is now deterministic per week/scope/track to prevent flicker and non-repro ordering. [PN-20251228-AC74]
+- Added chart determinism diagnostics (worker parity logs, console harness, and monopoly share checks). [PN-20251228-AC75]
+
+## 2025-12-28 (RLS-PATCH-20251228-0946Z)
+- External storage prompts now respect secure contexts and remember a skip choice so the save folder dialog stops blocking play. [PN-20251228-AC72]
+- Monopoly losses now record a loss, disable achievements, and let the run continue instead of forcing a slot exit. [PN-20251228-AC73]
+- Track quality potential now uses deterministic per-track jitter so refreshes stop re-rolling scores. [PN-20251228-AC74]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0900Z)
 - Added a Patch Notes portal view with a designed landing page that links to docs/PATCH_NOTES.md for the full release history. [PN-20251228-AC70]
 - Tutorial Roles now marks rent/plan as live, and the tutorial adds leasing + touring guidance. [PN-20251228-AC71]
@@ -843,3 +852,6 @@
 - PN-20251228-AC69 (2025-12-28 08:34Z): Rival rosters now surface KPI summaries, consumption share breakdowns, era completion drawers, and player-vs-rival deltas with data-staleness warnings.
 - PN-20251228-AC70 (2025-12-28 09:00Z): Added a Patch Notes portal view that links to docs/PATCH_NOTES.md for the full release history.
 - PN-20251228-AC71 (2025-12-28 09:00Z): Tutorial Roles now marks rent/plan as live, and the tutorial adds leasing + touring guidance.
+- PN-20251228-AC72 (2025-12-28 09:46Z): External storage prompts now respect secure contexts and remember a skip choice so the save folder dialog stops blocking play.
+- PN-20251228-AC73 (2025-12-28 09:46Z): Monopoly losses now record a loss, disable achievements, and let the run continue instead of forcing a slot exit.
+- PN-20251228-AC74 (2025-12-28 10:10Z): Track quality potential now uses deterministic per-track jitter so refreshes stop re-rolling scores.

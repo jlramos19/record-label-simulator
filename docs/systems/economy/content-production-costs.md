@@ -20,7 +20,7 @@ Stage cost formula:
 
 ## Quality Inputs
 Quality potential combines:
-- Base score with a small random drift.
+- Base score with a small deterministic jitter per track (seeded by track identity).
 - Effective skill per role (skill adjusted by stamina ratio).
 - Theme/Mood preference matches.
 - Modifier quality delta.
