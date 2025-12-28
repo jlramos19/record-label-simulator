@@ -16,6 +16,9 @@ const CREATOR_PORTRAIT_MANIFEST = {
     "ambition-energizing/age-24-27/bytenza-man": [
       "Default_A_headandshoulders_portrait_An_exotic_and_charming_21y_0.jpg"
     ],
+    "ambition-energizing/age-24-27/crowlya-woman": [
+      "Leonardo_Phoenix_A_photocard_of_an_energetic_female_singer_wea_2.jpg"
+    ],
     "freedom-angering/age-20-23/annglora-man": [
       "Default_A_headandshoulders_portrait_of_a_20yearold_male_He_is_1.jpg"
     ],
@@ -27,6 +30,9 @@ const CREATOR_PORTRAIT_MANIFEST = {
     ],
     "freedom-cheering/age-24-27/annglora-woman": [
       "Leonardo_Phoenix_10_The_image_depicts_a_22yearold_woman_with_a_2.jpg"
+    ],
+    "freedom-daring/age-24-27/annglora-woman": [
+      "Leonardo_Phoenix_A_photocard_of_a_radiant_female_singer_wearin_1.jpg"
     ],
     "freedom-daring/age-28-31/annglora-man": [
       "Default_A_headandshoulders_portrait_A_25yearold_male_He_is_sli_2.jpg"
@@ -49,6 +55,9 @@ const CREATOR_PORTRAIT_MANIFEST = {
     "freedom-uplifting/age-24-27/annglora-man": [
       "Default_A_charming_and_exotic_guy_with_a_cyancolored_tank_top_2.jpg"
     ],
+    "freedom-uplifting/age-36-43/crowlya-woman": [
+      "Leonardo_Phoenix_A_photocard_of_a_stunning_female_singer_weari_1.jpg"
+    ],
     "loyalty-angering/age-28-31/crowlya-woman": [
       "Leonardo_Phoenix_A_solemn_and_devoted_27yearold_female_of_mixe_0.jpg"
     ],
@@ -61,6 +70,9 @@ const CREATOR_PORTRAIT_MANIFEST = {
     "loyalty-calming/age-20-23/annglora-woman": [
       "Default_Create_a_visually_striking_album_cover_for_MONOLOGUE_3.jpg"
     ],
+    "loyalty-calming/age-20-23/bytenza-man": [
+      "impsizeddownfurtherPhotoReal_A_charming_SpanishKorean_mixed_18yearold_guy_He_is_s_2.png"
+    ],
     "loyalty-daring/age-24-27/annglora-man": [
       "Default_This_is_a_headandshoulders_photo_from_a_lowupward_angl_1.jpg"
     ],
@@ -69,6 +81,9 @@ const CREATOR_PORTRAIT_MANIFEST = {
     ],
     "loyalty-thrilling/age-24-27/annglora-woman": [
       "Leonardo_Phoenix_A_photocard_of_an_ethereal_female_singer_wear_3.jpg"
+    ],
+    "loyalty-uplifting/age-20-23/annglora-woman": [
+      "Leonardo_Phoenix_A_photocard_of_an_ethereal_female_singer_wear_1.jpg"
     ],
     "morality-angering/age-36-43/bytenza-woman": [
       "Leonardo_Kino_XL_A_regal_and_elegant_portrait_of_Prime_Ministe_3.jpg"
@@ -91,8 +106,14 @@ const CREATOR_PORTRAIT_MANIFEST = {
     "power-angering/age-20-23/annglora-man": [
       "099ac4e7-a6b2-4088-a1f7-23c64d509af6.jpg"
     ],
+    "power-angering/age-24-27/bytenza-woman": [
+      "Leonardo_Phoenix_A_photocard_of_a_passionate_female_singer_wea_1.jpg"
+    ],
     "power-boring/age-20-23/annglora-man": [
       "4653c0f0-e26e-4d6c-b281-e10648cb5c2c.jpg"
+    ],
+    "power-boring/age-28-31/bytenza-woman": [
+      "Leonardo_Phoenix_A_photocard_of_a_beautiful_female_singer_wear_0.jpg"
     ],
     "power-calming/age-20-23/annglora-man": [
       "766de038-eee1-43a0-88d5-2d9065c27246.jpg",
@@ -101,12 +122,18 @@ const CREATOR_PORTRAIT_MANIFEST = {
     "power-daring/age-20-23/annglora-man": [
       "83288cdb-0841-4d0e-ad94-5b7447df2e08.jpg"
     ],
+    "power-daring/age-28-31/bytenza-woman": [
+      "Leonardo_Phoenix_A_photocard_of_a_beautiful_female_singer_wear_1.jpg"
+    ],
     "power-saddening/age-20-23/annglora-man": [
       "92d62c64-190a-4a47-bd45-cbc0282a5037.jpg",
       "f6425c70-d484-4ddd-897c-f79adc4f8cb4.jpg"
     ],
     "power-thrilling/age-20-23/annglora-man": [
       "f0a37caf-a0dc-4442-95f7-11389922cee9.jpg"
+    ],
+    "power-uplifting/age-28-31/bytenza-woman": [
+      "Leonardo_Phoenix_A_photocard_of_a_beautiful_female_singer_wear_0.jpg"
     ]
   }
 };

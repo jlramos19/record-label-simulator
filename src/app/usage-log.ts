@@ -7,7 +7,7 @@ const SESSION_MAX = 6;
 const EVENT_LIMIT = 360;
 const ERROR_LIMIT = 20;
 const TRAIL_LIMIT = 40;
-const PERSIST_DELAY_MS = 250;
+const PERSIST_DELAY_MS = 1500;
 
 let storage = null;
 let currentSession = null;
@@ -43,6 +43,26 @@ function safeParse(raw, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function setIfDefined(target, key, value) {
+  if (value === null || value === undefined) return;
+  target[key] = value;
+}
+
+function isPlainObject(value) {
+  if (!value || typeof value !== "object") return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function normalizePayload(payload) {
+  if (payload === null || payload === undefined) return undefined;
+  if (Array.isArray(payload)) return payload.length ? payload : undefined;
+  if (isPlainObject(payload)) {
+    return Object.keys(payload).length ? payload : undefined;
+  }
+  return payload;
 }
 
 function loadSessionIndex() {
@@ -100,7 +120,7 @@ function baseContext() {
   };
 }
 
-function persistSession() {
+function persistSession({ syncExternal = false } = {}) {
   if (!currentSession) return;
   if (storage) {
     try {
@@ -109,7 +129,17 @@ function persistSession() {
       // ignore storage errors
     }
   }
-  queueUsageSessionWrite(currentSession);
+  if (syncExternal) {
+    queueUsageSessionWrite(currentSession);
+  }
+}
+
+function flushPersist({ syncExternal = false } = {}) {
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  persistSession({ syncExternal });
 }
 
 function schedulePersist() {
@@ -134,13 +164,14 @@ function appendEvent(entry, { isAction = false, reportToConsole = false, level =
   if (currentSession.events.length > EVENT_LIMIT) currentSession.events.shift();
   currentSession.lastEventAt = entry.ts;
   if (isAction) {
-    actionTrail.push({
+    const trailEntry = {
       ts: entry.ts,
-      type: entry.type,
-      route: entry.route,
-      gameTs: entry.gameTs,
-      payload: entry.payload
-    });
+      type: entry.type
+    };
+    setIfDefined(trailEntry, "route", entry.route);
+    setIfDefined(trailEntry, "gameTs", entry.gameTs);
+    setIfDefined(trailEntry, "payload", entry.payload);
+    actionTrail.push(trailEntry);
     if (actionTrail.length > TRAIL_LIMIT) actionTrail.shift();
     currentSession.trail = actionTrail.slice();
   }
@@ -206,13 +237,14 @@ export function startUsageSession({ release } = {}) {
 
 export function recordUsageEvent(type, payload = {}, { route = null, gameTs = null, isAction = false, reportToConsole = false, level = "info" } = {}) {
   ensureSession();
+  const normalizedPayload = normalizePayload(payload);
   const entry = {
     ts: nowTs(),
-    type,
-    route,
-    gameTs,
-    payload
+    type
   };
+  setIfDefined(entry, "route", route);
+  setIfDefined(entry, "gameTs", gameTs);
+  setIfDefined(entry, "payload", normalizedPayload);
   appendEvent(entry, { isAction, reportToConsole, level });
   return entry;
 }
@@ -245,13 +277,13 @@ export function recordUsageError({
     ts,
     kind,
     message: String(message || "Unknown error"),
-    stack: stack ? String(stack) : null,
-    source: filename ? { filename, lineno, colno } : null,
-    reason: normalizeErrorValue(reason),
-    route,
-    gameTs,
     trail: actionTrail.slice()
   };
+  setIfDefined(entry, "stack", stack ? String(stack) : null);
+  setIfDefined(entry, "source", filename ? { filename, lineno, colno } : null);
+  setIfDefined(entry, "reason", normalizeErrorValue(reason));
+  setIfDefined(entry, "route", route);
+  setIfDefined(entry, "gameTs", gameTs);
   currentSession.errors.push(entry);
   if (currentSession.errors.length > ERROR_LIMIT) currentSession.errors.shift();
   currentSession.status = "error";
@@ -271,7 +303,7 @@ export function recordUsageError({
   if (reportToConsole) {
     logToConsole("error", "[usage] session.error", entry);
   }
-  schedulePersist();
+  flushPersist({ syncExternal: true });
   return entry;
 }
 
@@ -296,7 +328,7 @@ export function finalizeUsageSession(reason = "ended") {
     },
     { reportToConsole: true, level: "info" }
   );
-  persistSession();
+  flushPersist({ syncExternal: true });
   return currentSession;
 }
 

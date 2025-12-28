@@ -7,6 +7,7 @@
 ## Task model (MVP)
 - Fields: id, text, story, reward, expReward, progress, target, createdAt, done, rewarded.
 - Task-to-achievement alignment: each task declares which CEO Requests it supports (one or more IDs).
+- Daily cadence: refresh the task pool once per day at 12AM UTC, topping up missing tasks without replacing active ones.
 
 ## Auto-fulfill button
 - Each task includes an "Auto Fulfill" button in the task list.

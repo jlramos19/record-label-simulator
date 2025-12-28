@@ -5,6 +5,7 @@ Defines the Road to the Top tab that surfaces active tasks aligned to CEO Reques
 ## Purpose
 - Provide short-term objectives that push toward CEO Requests.
 - Show task progress and rewards at a glance.
+- Refresh tasks once per day at 12AM UTC; other events only update progress.
 
 ## Panel layout
 - Summary line: active vs completed count, plus cheater-mode note when paused.

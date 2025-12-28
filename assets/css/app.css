@@ -60,9 +60,10 @@
   --header-height: 112px;
   --footer-height: 44px;
   --side-width: 320px;
-  --font-body: "Ubuntu Mono", "Nanum Gothic Coding", monospace;
-  --font-social: "Ubuntu Sans Mono", "Ubuntu Mono", "Nanum Gothic Coding", monospace;
-  --font-ko: "Nanum Gothic Coding", "Ubuntu Mono", monospace;
+  --font-body: "Ubuntu", "Nanum Gothic Coding", sans-serif;
+  --font-heading: "Ubuntu Mono", "Nanum Gothic Coding", monospace;
+  --font-social: "Ubuntu", "Nanum Gothic Coding", sans-serif;
+  --font-ko: "Nanum Gothic Coding", "Ubuntu", sans-serif;
 }
 
 :root[data-ui-theme="light"] {
@@ -113,6 +114,17 @@ body {
   color: var(--text);
   font-size: 15px;
   font-family: var(--font-body);
+}
+h1, h2, h3, h4, h5, h6,
+.panel-title,
+.panel-title h2,
+.card-head h2,
+.label-title,
+.brand-title,
+.subhead,
+.app-header,
+.time-display {
+  font-family: var(--font-heading);
 }
 body::before {
   content: "";
@@ -269,11 +281,11 @@ body::before {
   justify-items: end;
 }
 .hud-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-end;
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 6px 10px;
+  align-items: start;
+  justify-content: end;
 }
 .hud-trend {
   font-size: 12px;
@@ -292,6 +304,20 @@ body::before {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px 12px;
+}
+.hud-stats {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.hud-stats-grid--primary {
+  grid-template-columns: minmax(0, 1fr);
+}
+.hud-stats-grid--extra {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.hud-stats-more {
+  justify-self: start;
 }
 .hud-left .hud-stat {
   justify-items: start;
@@ -349,6 +375,29 @@ body::before {
   gap: 6px;
   white-space: nowrap;
   padding: 6px 8px;
+  width: 100%;
+  justify-content: flex-start;
+}
+.hud-notification-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: var(--line-width) solid rgba(var(--accent-rgb), 0.5);
+  background: rgba(var(--accent-rgb), 0.2);
+  font-size: 10px;
+  line-height: 1;
+  margin-left: 4px;
+}
+.hud-notification-badge.is-hidden {
+  display: none;
+}
+#notificationsBtn.has-notifications {
+  border-color: rgba(var(--accent-rgb), 0.65);
+  color: var(--accent);
 }
 .view {
   height: 100%;
@@ -401,9 +450,12 @@ body::before {
   flex: 1 1 0;
 }
 .split-handle {
-  flex: 0 0 10px;
+  flex: 0 0 12px;
   position: relative;
   cursor: ew-resize;
+  z-index: 2;
+  touch-action: none;
+  user-select: none;
 }
 .split-handle::before {
   content: "";
@@ -411,7 +463,7 @@ body::before {
   top: 8px;
   bottom: 8px;
   left: 50%;
-  width: 2px;
+  width: 3px;
   border-radius: 999px;
   background: rgba(var(--accent-rgb), 0.25);
   transform: translateX(-50%);
@@ -1040,6 +1092,11 @@ body::before {
 }
 .ccc-market-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.signed-creator-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 12px;
   align-items: start;
 }

@@ -1,5 +1,20 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0506Z)
+- Road to the Top tasks now refresh once per day at 12AM UTC; weekly and award-triggered refreshes were removed. [PN-20251228-AC52]
+- UI typography now uses Ubuntu for body copy with Ubuntu Mono reserved for headings and headers. [PN-20251228-AC53]
+- Label HUD now shows cash only, with a More toggle for studios, slots, and focus-era status. [PN-20251228-AC54]
+- Header actions now stack into a 2x3 grid and include an Alerts button that consolidates Create/Release notifications (nav badges removed). [PN-20251228-AC55]
+- Signed Creator IDs now wrap to fit available width instead of forcing three columns. [PN-20251228-AC56]
+- Calendar split handles now capture pointer drags reliably so the Calendar vs Structures & Slots split can resize. [PN-20251228-AC57]
+
+## 2025-12-28 (RLS-PATCH-20251228-0438Z)
+- Removed the `dev:logs` workflow (and Puppeteer) so dev runs no longer generate a dedicated Edge profile in the repo. [PN-20251228-AC50]
+- Usage session persistence now batches localStorage writes and only mirrors to external storage on session end/errors. [PN-20251228-AC51]
+
+## 2025-12-28 (RLS-PATCH-20251228-0433Z)
+- Favicon now swaps between light and dark variants based on system theme. [PN-20251228-AC49]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0331Z)
 - Creator portrait optimization now supports a watch mode (`npm run watch:portraits`) to auto-process new or changed images. [PN-20251228-AC47]
 - Act/creator/track/rival lookups now use cached indexes to cut repeated scans across UI and gameplay views. [PN-20251228-AC48]
@@ -773,3 +788,12 @@
 - PN-20251228-AC46 (2025-12-28 03:19Z): Community rival label pills now open a Rival Rosters panel with their creators and acts.
 - PN-20251228-AC47 (2025-12-28 03:31Z): Creator portrait optimization now supports a watch mode (npm run watch:portraits) to auto-process new or changed images.
 - PN-20251228-AC48 (2025-12-28 03:33Z): Act/creator/track/rival lookups now use cached indexes to cut repeated scans across UI and gameplay views.
+- PN-20251228-AC49 (2025-12-28 04:33Z): Favicon now swaps between light and dark variants based on system theme.
+- PN-20251228-AC50 (2025-12-28 04:38Z): Removed the dev:logs workflow (and Puppeteer) so dev runs no longer generate a dedicated Edge profile in the repo.
+- PN-20251228-AC51 (2025-12-28 04:38Z): Usage session persistence now batches localStorage writes and only mirrors to external storage on session end/errors.
+- PN-20251228-AC52 (2025-12-28 05:06Z): Road to the Top tasks now refresh once per day at 12AM UTC; weekly and award-triggered refreshes were removed.
+- PN-20251228-AC53 (2025-12-28 05:06Z): UI typography now uses Ubuntu for body copy with Ubuntu Mono reserved for headings and headers.
+- PN-20251228-AC54 (2025-12-28 05:06Z): Label HUD now shows cash only, with a More toggle for studios, slots, and focus-era status.
+- PN-20251228-AC55 (2025-12-28 05:06Z): Header actions now stack into a 2x3 grid and include an Alerts button that consolidates Create/Release notifications (nav badges removed).
+- PN-20251228-AC56 (2025-12-28 05:06Z): Signed Creator IDs now wrap to fit available width instead of forcing three columns.
+- PN-20251228-AC57 (2025-12-28 05:06Z): Calendar split handles now capture pointer drags reliably so the Calendar vs Structures & Slots split can resize.

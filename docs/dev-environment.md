@@ -14,7 +14,8 @@
 - The React islands dev server uses `http://localhost:5174` to avoid conflicts.
 
 ## Observability
-- Use Edge DevTools console (in the browser) for runtime errors and `npm run dev:logs` for session logs in `usage-logs/`.
+- Use Edge DevTools console (in the browser) for runtime errors.
+- Use Internal Log > Export Debug Bundle for usage session + UI/system logs.
 
 ## Linting
 - `npm run lint` runs ESLint across JS/MJS/CJS (compiled output is ignored).

@@ -31,8 +31,8 @@ const ASSETS = [
   "assets/js/data/tracklist.js",
   "assets/js/data/ai_labels.js",
   "assets/js/data/social_templates.js",
-  "assets/icons/icon-192.png",
-  "assets/icons/icon-512.png"
+  "assets/icons/favicon-lightmode-512.png",
+  "assets/icons/favicon-darkmode-512.png"
 ];
 
 self.addEventListener("install", (event) => {

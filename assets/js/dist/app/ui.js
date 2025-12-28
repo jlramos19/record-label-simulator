@@ -2590,6 +2590,14 @@ function bindGlobalHandlers() {
             panel.scrollIntoView({ behavior: "smooth", block: "start" });
         saveToActiveSlot();
     };
+    const toggleHudStatsExpanded = (forceState = null) => {
+        if (!state.ui)
+            state.ui = {};
+        const next = typeof forceState === "boolean" ? forceState : !state.ui.hudStatsExpanded;
+        state.ui.hudStatsExpanded = next;
+        renderStats();
+        saveToActiveSlot();
+    };
     document.addEventListener("pointerdown", (event) => {
         if (event.pointerType === "mouse" && event.button !== 0)
             return;
@@ -2665,11 +2673,24 @@ function bindGlobalHandlers() {
         refreshSelectOptions();
         openOverlay("labelSettingsModal");
     });
+    on("hudStatsMoreBtn", "click", () => toggleHudStatsExpanded());
     on("panelMenuBtn", "click", () => {
         renderPanelMenu();
         openOverlay("panelMenu");
     });
     on("sidePanelsBtn", "click", () => toggleSidePanels());
+    on("notificationsBtn", "click", () => {
+        const target = $("notificationsBtn")?.dataset.notificationTarget;
+        if (!target) {
+            logEvent("No alerts to review right now.", "info");
+            return;
+        }
+        if (target !== "create" && target !== "release") {
+            logEvent("Unknown alert target; refresh the UI and try again.", "warn");
+            return;
+        }
+        window.location.hash = `#/${target}`;
+    });
     on("panelMenuClose", "click", () => closeOverlay("panelMenu"));
     on("resetLayoutBtn", "click", () => {
         resetViewLayout();
@@ -7193,9 +7214,18 @@ function setupSplitLayouts(root) {
         }
         clampSplitLayout(layout);
         handle.addEventListener("pointerdown", (event) => {
-            if (event.button !== 0)
+            if (event.pointerType === "mouse" && event.button !== 0)
                 return;
             event.preventDefault();
+            const pointerId = event.pointerId;
+            if (handle.setPointerCapture) {
+                try {
+                    handle.setPointerCapture(pointerId);
+                }
+                catch {
+                    // Ignore capture errors; drag still works via window listeners.
+                }
+            }
             const rect = layout.getBoundingClientRect();
             const startX = event.clientX;
             const startWidth = left.getBoundingClientRect().width;
@@ -7213,6 +7243,16 @@ function setupSplitLayouts(root) {
             const onUp = () => {
                 window.removeEventListener("pointermove", onMove);
                 window.removeEventListener("pointerup", onUp);
+                window.removeEventListener("pointercancel", onUp);
+                if (handle.releasePointerCapture) {
+                    try {
+                        if (handle.hasPointerCapture?.(pointerId))
+                            handle.releasePointerCapture(pointerId);
+                    }
+                    catch {
+                        // Ignore release errors.
+                    }
+                }
                 if (key && Number.isFinite(lastPct)) {
                     state[key] = Number(lastPct.toFixed(2));
                     saveSplitLayoutState();
@@ -7220,6 +7260,7 @@ function setupSplitLayouts(root) {
             };
             window.addEventListener("pointermove", onMove);
             window.addEventListener("pointerup", onUp);
+            window.addEventListener("pointercancel", onUp);
         });
     });
 }

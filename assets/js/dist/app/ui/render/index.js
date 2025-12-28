@@ -9,8 +9,6 @@ import { buildRolloutBudgetSummary, getModifierCosts, getPromoInflationMultiplie
 const ACCESSIBLE_TEXT = { dark: "#000000", light: "#ffffff" };
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
     .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
-const CREATE_PENDING_EMOJIS = { sheet: "🎼", demo: "🎧" };
-const RELEASE_PENDING_EMOJI = "💿";
 const WORLD_RENDER_THROTTLE_MS = 1200;
 let lastWorldRenderAt = 0;
 function renderRolloutBudgetSummary(strategy) {
@@ -1119,6 +1117,15 @@ function renderStats() {
     $("studioDisplay").textContent = `${counts.total} / ${totalSlots}`;
     $("slotDisplay").textContent = session.activeSlot ? `Slot ${session.activeSlot}` : "-";
     $("slotTargetDisplay").textContent = state.ui.slotTarget ? describeSlot(state.ui.slotTarget) : "-";
+    const hudStatsExtra = $("hudStatsExtra");
+    const hudStatsMore = $("hudStatsMoreBtn");
+    const hudStatsExpanded = Boolean(state.ui?.hudStatsExpanded);
+    if (hudStatsExtra)
+        hudStatsExtra.classList.toggle("hidden", !hudStatsExpanded);
+    if (hudStatsMore) {
+        hudStatsMore.textContent = hudStatsExpanded ? "Less" : "More";
+        hudStatsMore.setAttribute("aria-expanded", String(hudStatsExpanded));
+    }
     if ($("labelNameDisplay")) {
         $("labelNameDisplay").textContent = state.label.name || "Record Label";
     }
@@ -1186,57 +1193,45 @@ function getCreatePendingCounts() {
     });
     return { ...counts, total: counts.sheet + counts.demo };
 }
-function renderCreateNavBadge() {
-    const navItem = document.querySelector(".app-nav [data-route=\"create\"]");
-    const badge = $("createNavBadge");
-    if (!navItem || !badge)
-        return;
-    const totalEl = badge.querySelector("[data-create-pending-total]");
-    const breakdownEl = badge.querySelector("[data-create-pending-breakdown]");
-    const { sheet, demo, total } = getCreatePendingCounts();
-    if (totalEl)
-        totalEl.textContent = formatCount(total);
-    if (breakdownEl) {
-        const sheetLabel = formatCount(sheet);
-        const demoLabel = formatCount(demo);
-        breakdownEl.textContent = `${CREATE_PENDING_EMOJIS.sheet}${sheetLabel} ${CREATE_PENDING_EMOJIS.demo}${demoLabel}`;
-    }
-    badge.classList.toggle("is-hidden", total <= 0);
-    if (total > 0) {
-        const detail = `${sheet} sheet${sheet === 1 ? "" : "s"}, ${demo} demo${demo === 1 ? "" : "s"}`;
-        navItem.setAttribute("aria-label", `Create (${total} pending: ${detail})`);
-        navItem.setAttribute("title", `${total} pending: ${CREATE_PENDING_EMOJIS.sheet}${sheet} ${CREATE_PENDING_EMOJIS.demo}${demo}`);
-    }
-    else {
-        navItem.setAttribute("aria-label", "Create");
-        navItem.setAttribute("title", "Create");
-    }
-}
 function getReleaseReadyCount() {
     if (!Array.isArray(state.tracks))
         return 0;
     return state.tracks.filter((track) => track?.status === "Ready").length;
 }
-function renderReleaseNavBadge() {
-    const navItem = document.querySelector(".app-nav [data-route=\"release\"]");
-    const badge = $("releaseNavBadge");
-    if (!navItem || !badge)
+function renderNotificationsButton() {
+    const button = $("notificationsBtn");
+    if (!button)
         return;
-    const totalEl = badge.querySelector("[data-release-ready-total]");
-    const labelEl = badge.querySelector("[data-release-ready-label]");
-    const total = getReleaseReadyCount();
-    if (totalEl)
-        totalEl.textContent = formatCount(total);
-    if (labelEl)
-        labelEl.textContent = `${RELEASE_PENDING_EMOJI} Ready`;
-    badge.classList.toggle("is-hidden", total <= 0);
-    if (total > 0) {
-        navItem.setAttribute("aria-label", `Release (${total} ready)`);
-        navItem.setAttribute("title", `${total} ready to release`);
+    const badge = button.querySelector("[data-notification-total]");
+    const createCounts = getCreatePendingCounts();
+    const releaseCount = getReleaseReadyCount();
+    const total = createCounts.total + releaseCount;
+    const target = releaseCount > 0 ? "release" : (createCounts.total > 0 ? "create" : "");
+    const titleParts = [];
+    if (releaseCount > 0)
+        titleParts.push(`${formatCount(releaseCount)} ready`);
+    if (createCounts.total > 0) {
+        titleParts.push(`${formatCount(createCounts.total)} pending (${createCounts.sheet} sheet, ${createCounts.demo} demo)`);
+    }
+    if (badge) {
+        badge.textContent = formatCount(total);
+        badge.classList.toggle("is-hidden", total <= 0);
+    }
+    button.classList.toggle("has-notifications", total > 0);
+    if (target) {
+        button.dataset.notificationTarget = target;
     }
     else {
-        navItem.setAttribute("aria-label", "Release");
-        navItem.setAttribute("title", "Release");
+        delete button.dataset.notificationTarget;
+    }
+    if (titleParts.length) {
+        const detail = titleParts.join(" | ");
+        button.setAttribute("aria-label", `Alerts: ${detail}`);
+        button.setAttribute("title", detail);
+    }
+    else {
+        button.setAttribute("aria-label", "Alerts");
+        button.setAttribute("title", "Alerts");
     }
 }
 function buildLabelRankingMeta() {
@@ -8011,8 +8006,7 @@ function renderAll({ save = true } = {}) {
     syncLabelWallets();
     renderTime();
     renderStats();
-    renderCreateNavBadge();
-    renderReleaseNavBadge();
+    renderNotificationsButton();
     renderTopBar();
     if (!shouldHoldActiveViewRender()) {
         renderActiveView(state.ui.activeView);

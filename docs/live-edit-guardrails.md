@@ -30,5 +30,5 @@ These rules keep the hosted web build runnable while the team iterates quickly.
 ## External storage (File System Access API)
 - Optional: logs, saves, and chart history can mirror to a user-selected folder via the Promotions view (route `logs`).
 - On startup, the game prompts to pick a save folder when external storage is not configured.
-- Data is written under `usage-logs/`, `saves/`, and `database/` subfolders in the selected directory.
+- Usage sessions mirror to `usage-logs/` on session end or explicit sync; saves and chart history sync to `saves/` and `database/`.
 - Imports pull saves and chart history back into local storage/IndexedDB for recovery.

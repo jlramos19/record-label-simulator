@@ -272,6 +272,7 @@ function makeDefaultState() {
             trendRankingLimit: COMMUNITY_TREND_RANKING_DEFAULT,
             genreTheme: "All",
             genreMood: "All",
+            hudStatsExpanded: false,
             slotTarget: null,
             createStage: "sheet",
             createMode: "manual",
@@ -15313,7 +15314,6 @@ function weeklyUpdate() {
     awardExp(Math.min(300, Math.round(state.economy.lastRevenue / 500)), null, true);
     updateLabelReach();
     updateQuests();
-    refreshQuestPool();
     advanceEraWeek();
     ageMarketTracks();
     state.rivals.forEach((rival) => updateRivalPlanCompletion(rival));
@@ -16402,7 +16402,6 @@ async function maybeReleaseAnnualAwards(now = state.time.epochMs) {
     evaluateAchievements();
     evaluateRivalAchievements();
     updateQuests();
-    refreshQuestPool();
     const labelScores = computeLabelScoresFromCharts();
     checkWinLoss(labelScores);
     saveToActiveSlot();
@@ -18013,7 +18012,6 @@ async function runAwardShowTimeline(now = state.time.epochMs) {
             }
             logEvent(`Award show resolved: ${show.label}.`);
             updateQuests();
-            refreshQuestPool();
         }
     }
 }
@@ -18162,9 +18160,10 @@ async function runQuarterHourTick() {
     state.time.totalHours = Math.floor(state.time.totalQuarters / QUARTERS_PER_HOUR);
     state.time.epochMs += QUARTER_HOUR_MS;
     const currentDayIndex = Math.floor(state.time.epochMs / DAY_MS);
+    const dayChanged = currentDayIndex !== prevDayIndex;
     const activeOrders = state.workOrders.filter((order) => order.status === "In Progress");
     applyQuarterHourResourceTick(activeOrders, prevDayIndex);
-    if (currentDayIndex !== prevDayIndex) {
+    if (dayChanged) {
         resetDailyUsageForCreators(currentDayIndex);
         updateCreatorCatharsisInactivityForDay(currentDayIndex);
         refreshDailyMarket();
@@ -18177,6 +18176,10 @@ async function runQuarterHourTick() {
     expirePromoFacilityBookings();
     runAutoRolloutStrategies();
     await runScheduledWeeklyEvents(state.time.epochMs);
+    if (dayChanged) {
+        updateQuests();
+        refreshQuestPool();
+    }
     runYearTicksIfNeeded(currentYear());
 }
 let advanceQuartersQueue = Promise.resolve();
@@ -18752,6 +18755,8 @@ function normalizeState() {
         state.ui.genreTheme = "All";
     if (!state.ui.genreMood)
         state.ui.genreMood = "All";
+    if (typeof state.ui.hudStatsExpanded !== "boolean")
+        state.ui.hudStatsExpanded = false;
     if (!state.ui.actSlots)
         state.ui.actSlots = { lead: null, member2: null, member3: null };
     if (!state.ui.trackSlots) {
