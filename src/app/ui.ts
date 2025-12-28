@@ -141,6 +141,7 @@ const {
   releaseTrack,
   scheduleRelease,
   getReleaseAsapHours,
+  scrapTrack,
   buildMarketCreators,
   injectCheaterMarketCreators,
   getRivalByName,
@@ -243,6 +244,7 @@ let uiThemeMediaBound = false;
 let activeRoute = DEFAULT_ROUTE;
 let hasMountedRoute = false;
 let chartHistoryRequestId = 0;
+let lastLoggedLabelAlignment = null;
 const CALENDAR_WHEEL_THRESHOLD = 120;
 const CALENDAR_WHEEL_RESET_MS = 320;
 const CALENDAR_DRAG_THRESHOLD = 80;
@@ -2691,10 +2693,45 @@ function toggleCreatorActsPopover(trigger) {
   }
 }
 
+function setLabelAlignmentStatus(message) {
+  const status = $("labelAlignmentStatus");
+  if (status) status.textContent = message || "";
+}
+
 function bindGlobalHandlers() {
   const on = (id, event, handler) => {
     const el = $(id);
     if (el) el.addEventListener(event, handler);
+  };
+  lastLoggedLabelAlignment = state.label?.alignment || null;
+  setLabelAlignmentStatus(state.label?.alignment ? `Current alignment: ${state.label.alignment}.` : "");
+  const syncLabelAlignmentSelections = (alignment) => {
+    if ($("trackAlignment")) $("trackAlignment").value = alignment;
+    if ($("actAlignmentSelect")) $("actAlignmentSelect").value = alignment;
+  };
+  const applyLabelAlignment = (alignment) => {
+    state.label.alignment = alignment;
+    syncLabelAlignmentSelections(alignment);
+    renderStats();
+    saveToActiveSlot();
+  };
+  const getLabelAlignmentSelection = () => {
+    const select = $("labelAlignment");
+    return select ? select.value : "";
+  };
+  const validateLabelAlignmentSelection = (alignment, logContext) => {
+    const cleaned = String(alignment || "").trim();
+    if (!cleaned) {
+      if (logContext) logEvent("Select a Label Alignment first.", "warn");
+      setLabelAlignmentStatus("Select a label alignment to continue.");
+      return "";
+    }
+    if (Array.isArray(ALIGNMENTS) && !ALIGNMENTS.includes(cleaned)) {
+      if (logContext) logEvent("Select a valid Label Alignment.", "warn");
+      setLabelAlignmentStatus("Select a valid label alignment.");
+      return "";
+    }
+    return cleaned;
   };
   const handleManualSave = (refreshMenu) => {
     if (!session.activeSlot) {
@@ -3149,6 +3186,8 @@ function bindGlobalHandlers() {
           return;
         }
         await loadSlot(slot, false);
+        lastLoggedLabelAlignment = state.label?.alignment || null;
+        setLabelAlignmentStatus(state.label?.alignment ? `Current alignment: ${state.label.alignment}.` : "");
         exitMenuToGame();
         return;
       }
@@ -3162,6 +3201,8 @@ function bindGlobalHandlers() {
         const normalizedPrefs = validation.prefs || startPreferences;
         setStartPreferenceValues(normalizedPrefs);
         await loadSlot(slot, true, { mode, difficulty, startPreferences: normalizedPrefs });
+        lastLoggedLabelAlignment = state.label?.alignment || null;
+        setLabelAlignmentStatus(state.label?.alignment ? `Current alignment: ${state.label.alignment}.` : "");
         exitMenuToGame();
       }
     });
@@ -4436,6 +4477,35 @@ function bindViewHandlers(route, root) {
   }
 
   on("quickActBtn", "click", createQuickAct);
+  on("quickGroupActBtn", "click", createQuickGroupAct);
+  on("quickActResetBtn", "click", resetQuickActFilters);
+  on("quickActGroupSize", "change", (e) => {
+    ensureQuickActFilters().groupSize = e.target.value || "2-3";
+  });
+  on("quickActGenderFilter", "change", (e) => {
+    ensureQuickActFilters().genderIdentity = e.target.value || "";
+  });
+  on("quickActAgeGroupFilter", "change", (e) => {
+    ensureQuickActFilters().ageGroup = e.target.value || "";
+  });
+  on("quickActThemeFilter", "change", (e) => {
+    ensureQuickActFilters().theme = e.target.value || "Any";
+    setThemeSelectAccent(e.target);
+  });
+  on("quickActMoodFilter", "change", (e) => {
+    ensureQuickActFilters().mood = e.target.value || "Any";
+  });
+  on("quickActAlignmentFilter", "change", (e) => {
+    ensureQuickActFilters().alignment = e.target.value || "Label";
+  });
+  on("quickActSkillMin", "change", (e) => {
+    const value = Number(e.target.value);
+    ensureQuickActFilters().minSkillLevel = Number.isFinite(value) ? value : null;
+  });
+  on("quickActSkillMax", "change", (e) => {
+    const value = Number(e.target.value);
+    ensureQuickActFilters().maxSkillLevel = Number.isFinite(value) ? value : null;
+  });
   on("createActBtn", "click", createActFromUI);
   on("actTypeSelect", "change", updateActMemberFields);
 
@@ -4464,11 +4534,26 @@ function bindViewHandlers(route, root) {
     if (target?.dataset) delete target.dataset.nameKey;
   });
   on("labelAlignment", "change", (e) => {
-    state.label.alignment = e.target.value;
-    if ($("trackAlignment")) $("trackAlignment").value = e.target.value;
-    if ($("actAlignmentSelect")) $("actAlignmentSelect").value = e.target.value;
+    const alignment = validateLabelAlignmentSelection(e.target?.value, true);
+    if (!alignment) return;
+    applyLabelAlignment(alignment);
     logEvent(`Label alignment set to ${state.label.alignment}.`);
-    renderStats();
+    lastLoggedLabelAlignment = state.label.alignment;
+    setLabelAlignmentStatus(`Logged label alignment: ${state.label.alignment}.`);
+  });
+  on("labelAlignmentConfirm", "click", () => {
+    const alignment = validateLabelAlignmentSelection(getLabelAlignmentSelection(), true);
+    if (!alignment) return;
+    if (alignment !== state.label.alignment) {
+      applyLabelAlignment(alignment);
+    }
+    if (alignment !== lastLoggedLabelAlignment) {
+      logEvent(`Label alignment confirmed as ${state.label.alignment}.`);
+      lastLoggedLabelAlignment = state.label.alignment;
+      setLabelAlignmentStatus(`Confirmed log: ${state.label.alignment}.`);
+      return;
+    }
+    setLabelAlignmentStatus(`Label alignment already logged: ${state.label.alignment}.`);
   });
 
   on("eraNameRandom", "click", () => {
@@ -4507,6 +4592,8 @@ function bindViewHandlers(route, root) {
       const text = await file.text();
       const parsed = JSON.parse(text);
       resetState(parsed);
+      lastLoggedLabelAlignment = state.label?.alignment || null;
+      setLabelAlignmentStatus(state.label?.alignment ? `Current alignment: ${state.label.alignment}.` : "");
       refreshSelectOptions();
       await computeCharts();
       renderAll();
@@ -5623,6 +5710,18 @@ function startTrackFromUI() {
 }
 
 const CREATOR_ACT_LIMIT = 4;
+const QUICK_ACT_GROUP_SIZES = ["2-3", "2", "3"];
+const QUICK_ACT_GENDER_KEYS = ["man", "woman", "nonbinary", "unspecified"];
+const QUICK_ACT_FILTER_DEFAULTS = {
+  groupSize: "2-3",
+  genderIdentity: "",
+  ageGroup: "",
+  theme: "Any",
+  mood: "Any",
+  alignment: "Label",
+  minSkillLevel: null,
+  maxSkillLevel: null
+};
 
 function buildCreatorActCounts() {
   const counts = {};
@@ -5715,6 +5814,87 @@ function pickUniqueQuickActMembers(pool, sizeOrder, existingKeys) {
     if (members) return members;
   }
   return null;
+}
+
+function ensureQuickActFilters() {
+  if (!state.ui.quickActFilters || typeof state.ui.quickActFilters !== "object") {
+    state.ui.quickActFilters = { ...QUICK_ACT_FILTER_DEFAULTS };
+  }
+  return state.ui.quickActFilters;
+}
+
+function normalizeQuickActGender(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  if (raw === "non-binary") return "nonbinary";
+  if (QUICK_ACT_GENDER_KEYS.includes(raw)) return raw;
+  return "";
+}
+
+function getCreatorSkillLevelForQuickAct(creator) {
+  const skill = Number.isFinite(creator?.skill) ? creator.skill : SKILL_MIN;
+  const bounded = clamp(skill, SKILL_MIN, SKILL_MAX) - SKILL_MIN;
+  const step = Math.max(1, (SKILL_MAX - SKILL_MIN + 1) / 10);
+  return clamp(Math.floor(bounded / step) + 1, 1, 10);
+}
+
+function resolveQuickActFilters() {
+  const raw = ensureQuickActFilters();
+  const groupSize = QUICK_ACT_GROUP_SIZES.includes(raw.groupSize) ? raw.groupSize : "2-3";
+  const genderIdentity = normalizeQuickActGender(raw.genderIdentity);
+  const ageGroup = typeof raw.ageGroup === "string" ? raw.ageGroup : "";
+  const theme = THEMES.includes(raw.theme) ? raw.theme : "Any";
+  const mood = MOODS.includes(raw.mood) ? raw.mood : "Any";
+  const alignment = raw.alignment === "Label" || ALIGNMENTS.includes(raw.alignment) ? raw.alignment : "Label";
+  let minSkillLevel = Number.isFinite(raw.minSkillLevel) ? clamp(Math.round(raw.minSkillLevel), 1, 10) : null;
+  let maxSkillLevel = Number.isFinite(raw.maxSkillLevel) ? clamp(Math.round(raw.maxSkillLevel), 1, 10) : null;
+  if (minSkillLevel && maxSkillLevel && minSkillLevel > maxSkillLevel) {
+    const swap = minSkillLevel;
+    minSkillLevel = maxSkillLevel;
+    maxSkillLevel = swap;
+  }
+  return {
+    groupSize,
+    genderIdentity,
+    ageGroup,
+    theme,
+    mood,
+    alignment,
+    minSkillLevel,
+    maxSkillLevel
+  };
+}
+
+function hasActiveQuickActFilters(filters) {
+  return Boolean(
+    filters.genderIdentity
+    || filters.ageGroup
+    || filters.theme !== "Any"
+    || filters.mood !== "Any"
+    || filters.minSkillLevel
+    || filters.maxSkillLevel
+  );
+}
+
+function filterQuickActCreators(filters, actCounts) {
+  return state.creators.filter((creator) => {
+    if ((actCounts[creator.id] || 0) >= CREATOR_ACT_LIMIT) return false;
+    if (filters.genderIdentity) {
+      const creatorGender = normalizeQuickActGender(creator.genderIdentity);
+      if (filters.genderIdentity === "unspecified") {
+        if (creatorGender) return false;
+      } else if (creatorGender !== filters.genderIdentity) {
+        return false;
+      }
+    }
+    if (filters.ageGroup && creator.ageGroup !== filters.ageGroup) return false;
+    if (filters.theme !== "Any" && !creator.prefThemes?.includes(filters.theme)) return false;
+    if (filters.mood !== "Any" && !creator.prefMoods?.includes(filters.mood)) return false;
+    const skillLevel = getCreatorSkillLevelForQuickAct(creator);
+    if (filters.minSkillLevel && skillLevel < filters.minSkillLevel) return false;
+    if (filters.maxSkillLevel && skillLevel > filters.maxSkillLevel) return false;
+    return true;
+  });
 }
 
 function createActFromUI() {
@@ -5822,6 +6002,63 @@ function createQuickAct() {
   renderCreators();
   renderSlots();
   saveToActiveSlot();
+}
+
+function createQuickGroupAct() {
+  if (!state.creators.length) {
+    logEvent("No creators available to form a group act.", "warn");
+    return;
+  }
+  const actCounts = buildCreatorActCounts();
+  const filters = resolveQuickActFilters();
+  const eligibleCreators = filterQuickActCreators(filters, actCounts);
+  if (!eligibleCreators.length) {
+    const filterNote = hasActiveQuickActFilters(filters)
+      ? " No creators match the current filters."
+      : ` All creators are already in ${CREATOR_ACT_LIMIT} acts.`;
+    logEvent(`Quick Group Act blocked:${filterNote}`, "warn");
+    return;
+  }
+  const pool = eligibleCreators.map((creator) => creator.id);
+  const minRequired = filters.groupSize === "3" ? 3 : 2;
+  if (pool.length < minRequired) {
+    logEvent(`Quick Group Act blocked: need ${minRequired} creators, found ${pool.length}.`, "warn");
+    return;
+  }
+  const existingKeys = buildExistingActMemberKeys();
+  const sizeOrder = (() => {
+    if (filters.groupSize === "2") return [2];
+    if (filters.groupSize === "3") return [3];
+    return Math.random() < 0.5 ? [2, 3] : [3, 2];
+  })();
+  const memberIds = pickUniqueQuickActMembers(pool, sizeOrder, existingKeys);
+  if (!memberIds) {
+    logEvent("Quick Group Act skipped: all eligible member lineups already exist. Create an act manually to reuse members.", "warn");
+    return;
+  }
+  const actNameEntry = makeActNameEntry({ actKind: "group", memberIds });
+  const alignment = filters.alignment === "Label" ? state.label.alignment : filters.alignment;
+  const act = makeAct({
+    name: actNameEntry.name,
+    nameKey: actNameEntry.nameKey,
+    type: "Group Act",
+    alignment,
+    memberIds
+  });
+  state.acts.push(act);
+  logUiEvent("action_submit", { action: "create_act_quick_group", actId: act.id, type: act.type });
+  logEvent(`Created ${act.type} "${act.name}".`);
+  state.ui.trackSlots.actId = act.id;
+  renderActs();
+  renderCreators();
+  renderSlots();
+  saveToActiveSlot();
+}
+
+function resetQuickActFilters() {
+  state.ui.quickActFilters = { ...QUICK_ACT_FILTER_DEFAULTS };
+  refreshSelectOptions();
+  renderAll();
 }
 
 function startEraFromUI() {
@@ -6618,6 +6855,32 @@ function handleReleaseActRecommendation(e) {
 }
 
 function handleReleaseAction(e) {
+  const scrapBtn = e.target.closest("button[data-track-scrap]");
+  if (scrapBtn) {
+    const trackId = scrapBtn.dataset.trackScrap;
+    const track = getTrack(trackId);
+    if (!track) {
+      logEvent(`Scrap failed: track ${trackId || "unknown"} not found.`, "warn");
+      shakeElement(scrapBtn);
+      return;
+    }
+    const ok = confirm(`Scrap "${track.title}"? This removes the track from the release pipeline. Costs are not refunded.`);
+    if (!ok) return;
+    const result = scrapTrack(trackId, { reason: "release desk" });
+    logUiEvent("action_submit", {
+      action: "scrap_track",
+      trackId,
+      status: track.status,
+      outcome: result.ok ? "success" : "failed",
+      reason: result.reason
+    });
+    if (!result.ok) {
+      shakeElement(scrapBtn);
+      return;
+    }
+    renderAll();
+    return;
+  }
   const btn = e.target.closest("button[data-release]");
   if (!btn) return;
   const trackId = btn.dataset.track;
@@ -6736,6 +6999,8 @@ export async function initUI() {
     const data = getSlotData(stored);
     if (data) {
       resetState(data);
+      lastLoggedLabelAlignment = state.label?.alignment || null;
+      setLabelAlignmentStatus(state.label?.alignment ? `Current alignment: ${state.label.alignment}.` : "");
       refreshSelectOptions();
       await computeCharts();
       renderAll();

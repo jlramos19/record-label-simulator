@@ -430,7 +430,11 @@
       </div>
       <div class="field">
         <label for="labelAlignment">Label Alignment</label>
-        <select id="labelAlignment"></select>
+        <div class="input-row label-alignment-row">
+          <select id="labelAlignment"></select>
+          <button id="labelAlignmentConfirm" type="button" class="ghost mini">Confirm Alignment</button>
+        </div>
+        <div id="labelAlignmentStatus" class="tiny muted" role="status" aria-live="polite"></div>
       </div>
       <div class="field">
         <label for="saveBtn">Save and Load</label>
@@ -1259,6 +1263,46 @@
             <div class="actions">
               <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
             </div>
+            <div class="subhead">Quick Group Act</div>
+            <div class="slot-grid slot-grid--multi">
+              <div class="field">
+                <label for="quickActGroupSize">Group Size</label>
+                <select id="quickActGroupSize"></select>
+              </div>
+              <div class="field">
+                <label for="quickActGenderFilter">Gender Identity</label>
+                <select id="quickActGenderFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActAgeGroupFilter">Age Group</label>
+                <select id="quickActAgeGroupFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActThemeFilter">Preferred Theme</label>
+                <select id="quickActThemeFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActMoodFilter">Preferred Mood</label>
+                <select id="quickActMoodFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActAlignmentFilter">Act Alignment</label>
+                <select id="quickActAlignmentFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActSkillMin">Skill Level Min</label>
+                <select id="quickActSkillMin"></select>
+              </div>
+              <div class="field">
+                <label for="quickActSkillMax">Skill Level Max</label>
+                <select id="quickActSkillMax"></select>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="quickGroupActBtn" type="button" class="ghost">Quick Group Act</button>
+              <button id="quickActResetBtn" type="button" class="ghost mini">Reset Filters</button>
+            </div>
+            <div class="tiny muted">Filters apply to Quick Group Act. Alignment sets the Act alignment (Label default).</div>
             <div class="subhead">Create Act</div>
             <div class="slot-grid slot-grid--multi">
               <div class="field">

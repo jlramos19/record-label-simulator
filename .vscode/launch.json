@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "RLS: Edge",
-      "type": "pwa-msedge",
+      "type": "msedge",
       "request": "launch",
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}",

@@ -1033,6 +1033,85 @@ function refreshSelectOptions() {
   if (cccMoodFilter) {
     cccMoodFilter.innerHTML = buildMoodOptions([{ value: "All", label: "All Moods" }]);
   }
+  const quickActFilters = state.ui.quickActFilters || {};
+  const quickActGroupSize = $("quickActGroupSize");
+  if (quickActGroupSize) {
+    const options = [
+      { value: "2-3", label: "2-3 (random)" },
+      { value: "2", label: "2 members" },
+      { value: "3", label: "3 members" }
+    ];
+    quickActGroupSize.innerHTML = options.map((opt) => `<option value="${opt.value}">${opt.label}</option>`).join("");
+    quickActGroupSize.value = quickActFilters.groupSize || "2-3";
+  }
+  const quickActGenderFilter = $("quickActGenderFilter");
+  if (quickActGenderFilter) {
+    const options = [
+      { value: "", label: "Any Gender" },
+      { value: "man", label: "Man" },
+      { value: "woman", label: "Woman" },
+      { value: "nonbinary", label: "Non-binary" },
+      { value: "unspecified", label: "Unspecified" }
+    ];
+    quickActGenderFilter.innerHTML = options.map((opt) => `<option value="${opt.value}">${opt.label}</option>`).join("");
+    quickActGenderFilter.value = quickActFilters.genderIdentity || "";
+  }
+  const quickActAgeGroupFilter = $("quickActAgeGroupFilter");
+  if (quickActAgeGroupFilter) {
+    const groups = Array.from(new Set((state.creators || []).map((creator) => creator.ageGroup).filter(Boolean)));
+    const toStart = (label) => {
+      const start = Number(String(label).split("-")[0]);
+      return Number.isFinite(start) ? start : 0;
+    };
+    groups.sort((a, b) => toStart(a) - toStart(b) || String(a).localeCompare(String(b)));
+    quickActAgeGroupFilter.innerHTML = [
+      `<option value="">Any Age Group</option>`,
+      ...groups.map((group) => `<option value="${group}">${group}</option>`)
+    ].join("");
+    quickActAgeGroupFilter.value = quickActFilters.ageGroup || "";
+  }
+  const quickActThemeFilter = $("quickActThemeFilter");
+  if (quickActThemeFilter) {
+    quickActThemeFilter.innerHTML = buildThemeOptions([{ value: "Any", label: "Any Theme" }]);
+    quickActThemeFilter.value = quickActFilters.theme || "Any";
+    bindThemeSelectAccent(quickActThemeFilter);
+  }
+  const quickActMoodFilter = $("quickActMoodFilter");
+  if (quickActMoodFilter) {
+    quickActMoodFilter.innerHTML = buildMoodOptions([{ value: "Any", label: "Any Mood" }]);
+    quickActMoodFilter.value = quickActFilters.mood || "Any";
+  }
+  const quickActAlignmentFilter = $("quickActAlignmentFilter");
+  if (quickActAlignmentFilter) {
+    const options = ["Label", ...ALIGNMENTS];
+    quickActAlignmentFilter.innerHTML = options.map((value) => {
+      const label = value === "Label" ? "Label Alignment" : value;
+      return `<option value="${value}">${label}</option>`;
+    }).join("");
+    quickActAlignmentFilter.value = quickActFilters.alignment || "Label";
+  }
+  const quickActSkillMin = $("quickActSkillMin");
+  if (quickActSkillMin) {
+    const options = [
+      `<option value="">Any</option>`,
+      ...Array.from({ length: 10 }, (_, index) => `<option value="${index + 1}">Level ${index + 1}</option>`)
+    ];
+    quickActSkillMin.innerHTML = options.join("");
+    quickActSkillMin.value = Number.isFinite(quickActFilters.minSkillLevel)
+      ? String(quickActFilters.minSkillLevel)
+      : "";
+  }
+  const quickActSkillMax = $("quickActSkillMax");
+  if (quickActSkillMax) {
+    const options = [
+      `<option value="">Any</option>`,
+      ...Array.from({ length: 10 }, (_, index) => `<option value="${index + 1}">Level ${index + 1}</option>`)
+    ];
+    quickActSkillMax.innerHTML = options.join("");
+    quickActSkillMax.value = Number.isFinite(quickActFilters.maxSkillLevel)
+      ? String(quickActFilters.maxSkillLevel)
+      : "";
+  }
   const trendScopeSelect = $("trendScopeSelect");
   if (trendScopeSelect) trendScopeSelect.value = state.ui.trendScopeType || "global";
   const eraRolloutSelect = $("eraRolloutSelect");
@@ -4429,14 +4508,18 @@ function renderMarket() {
   const unsignedPill = renderCreatorLabelPill({ unsigned: true });
 
   const sortCreators = (list) => {
-    if (!sortMode || sortMode === "default") return list;
-    const entries = list.map((creator, index) => ({ creator, index }));
+    const entries = list.map((creator, index) => ({
+      creator,
+      index,
+      isLocked: Boolean(getCreatorSignLockout(creator.id, now))
+    }));
     const byText = (a, b) => a.localeCompare(b);
     const themeKey = (creator) => (creator.prefThemes?.[0] ? creator.prefThemes[0] : "");
     const themeKey2 = (creator) => (creator.prefThemes?.[1] ? creator.prefThemes[1] : "");
     const moodKey = (creator) => (creator.prefMoods?.[0] ? creator.prefMoods[0] : "");
     const moodKey2 = (creator) => (creator.prefMoods?.[1] ? creator.prefMoods[1] : "");
-    entries.sort((a, b) => {
+    const compareBySort = (a, b) => {
+      if (!sortMode || sortMode === "default") return a.index - b.index;
       if (sortMode === "quality-desc") {
         return (b.creator.skill || 0) - (a.creator.skill || 0)
           || byText(a.creator.name || "", b.creator.name || "")
@@ -4472,6 +4555,10 @@ function renderMarket() {
           || a.index - b.index;
       }
       return a.index - b.index;
+    };
+    entries.sort((a, b) => {
+      if (a.isLocked !== b.isLocked) return a.isLocked ? 1 : -1;
+      return compareBySort(a, b);
     });
     return entries.map((entry) => entry.creator);
   };
@@ -5708,12 +5795,13 @@ function renderReleaseDesk() {
             </div>
             <div class="time-row">
               <div>
-                <button type="button" data-release="asap" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Release ASAP (${selectedFeeLabel})</button>
+              <button type="button" data-release="asap" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Release ASAP (${selectedFeeLabel})</button>
                 <div class="time-meta">${asapLabel} (earliest Friday at midnight)</div>
               </div>
               <button type="button" class="ghost" data-release="week" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+7d (${selectedFeeLabel})</button>
               <button type="button" class="ghost" data-release="fortnight" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+14d (${selectedFeeLabel})</button>
               <button type="button" class="ghost" data-release="recommend" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Use Recommended (${recFeeLabel})</button>
+              <button type="button" class="ghost" data-track-scrap="${track.id}" title="Scrap this mastered track (removes it from the pipeline).">Scrap</button>
             </div>
           </div>
         </div>

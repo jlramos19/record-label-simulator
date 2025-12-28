@@ -442,6 +442,16 @@ function makeDefaultState() {
       createAdvancedOpen: false,
       trackPanelTab: "active",
       actSlots: { lead: null, member2: null, member3: null },
+      quickActFilters: {
+        groupSize: "2-3",
+        genderIdentity: "",
+        ageGroup: "",
+        theme: "Any",
+        mood: "Any",
+        alignment: "Label",
+        minSkillLevel: null,
+        maxSkillLevel: null
+      },
       trackSlots: {
         actId: null,
         songwriterIds: buildEmptyTrackSlotList("Songwriter"),
@@ -5928,6 +5938,120 @@ function assignTrackAct(trackId, actId) {
   }
   logEvent(`Assigned "${track.title}" to Act "${act.name}".`);
   return true;
+}
+
+function removeTrackFromEraContent(trackId) {
+  if (!trackId) return 0;
+  const eras = []
+    .concat(Array.isArray(state.era?.active) ? state.era.active : [])
+    .concat(Array.isArray(state.era?.history) ? state.era.history : []);
+  let removed = 0;
+  eras.forEach((era) => {
+    if (!era || !Array.isArray(era.contentItems)) return;
+    const before = era.contentItems.length;
+    era.contentItems = era.contentItems.filter((item) => !(item?.type === "Track" && item.id === trackId));
+    const delta = before - era.contentItems.length;
+    if (delta <= 0) return;
+    removed += delta;
+    if (Array.isArray(era.contentTypes) && !era.contentItems.some((item) => item?.type === "Track")) {
+      era.contentTypes = era.contentTypes.filter((type) => type !== "Track");
+    }
+  });
+  return removed;
+}
+
+function clearTrackUiSelections(trackId) {
+  if (!state.ui) return;
+  if (state.ui.createTrackId === trackId) state.ui.createTrackId = null;
+  if (state.ui.createTrackIds) {
+    if (state.ui.createTrackIds.demo === trackId) state.ui.createTrackIds.demo = null;
+    if (state.ui.createTrackIds.master === trackId) state.ui.createTrackIds.master = null;
+  }
+  if (state.ui.promoSlots?.trackId === trackId) state.ui.promoSlots.trackId = null;
+  if (state.ui.autoPromoSlots?.trackIds) {
+    state.ui.autoPromoSlots.trackIds = state.ui.autoPromoSlots.trackIds.map((id) => (id === trackId ? null : id));
+  }
+  if (state.ui.socialSlots?.trackId === trackId) state.ui.socialSlots.trackId = null;
+  if (state.ui.awardBidTrackId === trackId) state.ui.awardBidTrackId = null;
+}
+
+function removeTrackFromRolloutPlans(trackId) {
+  let drops = 0;
+  let events = 0;
+  if (!Array.isArray(state.rolloutStrategies)) return { drops, events };
+  state.rolloutStrategies.forEach((strategy) => {
+    if (!Array.isArray(strategy?.weeks)) return;
+    strategy.weeks.forEach((week) => {
+      if (Array.isArray(week?.drops)) {
+        const before = week.drops.length;
+        week.drops = week.drops.filter((drop) => drop?.contentId !== trackId);
+        drops += before - week.drops.length;
+      }
+      if (Array.isArray(week?.events)) {
+        const before = week.events.length;
+        week.events = week.events.filter((eventItem) => eventItem?.contentId !== trackId);
+        events += before - week.events.length;
+      }
+    });
+  });
+  return { drops, events };
+}
+
+function removeTrackScheduledEvents(trackId) {
+  if (!Array.isArray(state.scheduledEvents)) return 0;
+  const before = state.scheduledEvents.length;
+  state.scheduledEvents = state.scheduledEvents.filter((entry) => entry?.contentId !== trackId);
+  return before - state.scheduledEvents.length;
+}
+
+function scrapTrack(trackId, { reason } = {}) {
+  if (!trackId) {
+    logEvent("Track scrap failed: invalid track ID.", "warn");
+    return { ok: false, reason: "INVALID_ID" };
+  }
+  const track = getTrack(trackId);
+  if (!track) {
+    logEvent("Track scrap failed: track not found.", "warn");
+    return { ok: false, reason: "NOT_FOUND" };
+  }
+  if (track.status === "Released") {
+    logEvent("Cannot scrap released tracks.", "warn");
+    return { ok: false, reason: "RELEASED" };
+  }
+  const ordersBefore = state.workOrders.length;
+  state.workOrders = state.workOrders.filter((order) => order.trackId !== trackId);
+  const removedOrders = ordersBefore - state.workOrders.length;
+  const queueBefore = state.releaseQueue.length;
+  state.releaseQueue = state.releaseQueue.filter((entry) => entry.trackId !== trackId);
+  const removedQueue = queueBefore - state.releaseQueue.length;
+  const removedScheduled = removeTrackScheduledEvents(trackId);
+  const rolloutRemoved = removeTrackFromRolloutPlans(trackId);
+  const eraRemoved = removeTrackFromEraContent(trackId);
+  clearTrackUiSelections(trackId);
+  state.tracks = state.tracks.filter((entry) => entry.id !== trackId);
+  syncStudioUsage();
+  const details = [];
+  if (removedOrders) details.push(`${removedOrders} work order${removedOrders === 1 ? "" : "s"}`);
+  if (removedQueue) details.push(`${removedQueue} release queue entr${removedQueue === 1 ? "y" : "ies"}`);
+  if (rolloutRemoved.drops) details.push(`${rolloutRemoved.drops} rollout drop${rolloutRemoved.drops === 1 ? "" : "s"}`);
+  if (rolloutRemoved.events) details.push(`${rolloutRemoved.events} rollout event${rolloutRemoved.events === 1 ? "" : "s"}`);
+  if (removedScheduled) details.push(`${removedScheduled} scheduled event${removedScheduled === 1 ? "" : "s"}`);
+  if (eraRemoved) details.push(`${eraRemoved} era content tag${eraRemoved === 1 ? "" : "s"}`);
+  const detailText = details.length ? ` (${details.join(", ")})` : "";
+  const reasonText = reason ? ` Reason: ${reason}.` : "";
+  logEvent(`Scrapped "${track.title}" (${track.status}).${detailText}${reasonText}`);
+  return {
+    ok: true,
+    trackId: track.id,
+    removed: {
+      workOrders: removedOrders,
+      releaseQueue: removedQueue,
+      rolloutDrops: rolloutRemoved.drops,
+      rolloutEvents: rolloutRemoved.events,
+      scheduledEvents: removedScheduled,
+      eraContent: eraRemoved
+    }
+  };
 }
 
 function isTrackPipelineActive(track) {
@@ -18309,6 +18433,16 @@ function normalizeState() {
       genreMood: "All",
       slotTarget: null,
       actSlots: { lead: null, member2: null, member3: null },
+      quickActFilters: {
+        groupSize: "2-3",
+        genderIdentity: "",
+        ageGroup: "",
+        theme: "Any",
+        mood: "Any",
+        alignment: "Label",
+        minSkillLevel: null,
+        maxSkillLevel: null
+      },
       trackSlots: {
         actId: null,
         songwriterIds: buildEmptyTrackSlotList("Songwriter"),
@@ -18393,6 +18527,41 @@ function normalizeState() {
   if (!state.ui.genreMood) state.ui.genreMood = "All";
   if (typeof state.ui.hudStatsExpanded !== "boolean") state.ui.hudStatsExpanded = false;
   if (!state.ui.actSlots) state.ui.actSlots = { lead: null, member2: null, member3: null };
+  if (!state.ui.quickActFilters || typeof state.ui.quickActFilters !== "object") {
+    state.ui.quickActFilters = {
+      groupSize: "2-3",
+      genderIdentity: "",
+      ageGroup: "",
+      theme: "Any",
+      mood: "Any",
+      alignment: "Label",
+      minSkillLevel: null,
+      maxSkillLevel: null
+    };
+  } else {
+    const filters = state.ui.quickActFilters;
+    if (!["2-3", "2", "3"].includes(filters.groupSize)) filters.groupSize = "2-3";
+    const rawGender = String(filters.genderIdentity || "").trim().toLowerCase();
+    const normalizedGender = rawGender === "non-binary" ? "nonbinary" : rawGender;
+    if (!normalizedGender || !["man", "woman", "nonbinary", "unspecified"].includes(normalizedGender)) {
+      filters.genderIdentity = "";
+    } else {
+      filters.genderIdentity = normalizedGender;
+    }
+    if (typeof filters.ageGroup !== "string") filters.ageGroup = "";
+    if (filters.theme !== "Any" && !THEMES.includes(filters.theme)) filters.theme = "Any";
+    if (filters.mood !== "Any" && !MOODS.includes(filters.mood)) filters.mood = "Any";
+    if (filters.alignment !== "Label" && !ALIGNMENTS.includes(filters.alignment)) filters.alignment = "Label";
+    const minSkill = Number(filters.minSkillLevel);
+    const maxSkill = Number(filters.maxSkillLevel);
+    filters.minSkillLevel = Number.isFinite(minSkill) ? clamp(Math.round(minSkill), 1, SKILL_LEVEL_COUNT) : null;
+    filters.maxSkillLevel = Number.isFinite(maxSkill) ? clamp(Math.round(maxSkill), 1, SKILL_LEVEL_COUNT) : null;
+    if (filters.minSkillLevel && filters.maxSkillLevel && filters.minSkillLevel > filters.maxSkillLevel) {
+      const swap = filters.minSkillLevel;
+      filters.minSkillLevel = filters.maxSkillLevel;
+      filters.maxSkillLevel = swap;
+    }
+  }
   if (!state.ui.trackSlots) {
     state.ui.trackSlots = {
       actId: null,
@@ -20664,6 +20833,7 @@ export {
   safeAvatarUrl,
   saveToActiveSlot,
   scheduleRelease,
+  scrapTrack,
   scoreGrade,
   session,
   setCheaterEconomyOverride,

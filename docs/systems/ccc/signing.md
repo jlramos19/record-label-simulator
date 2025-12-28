@@ -13,6 +13,7 @@
 - CCC pool persists until the next 12AM refresh or a manual refresh action.
 - Filters: role, preferred Theme, preferred Mood.
 - Sorting: preferred Theme/Mood (A-Z or Z-A) and quality (creator skill, hidden on cards) high/low.
+- Locked (rejected) creators are sorted to the bottom of the CCC list within the active sort mode.
 - Sign buttons disable when wallet cash is short and show "(not enough money)" in the label.
 - Creator cards reserve a fixed 2:3 portrait placeholder for head-and-shoulders art.
 

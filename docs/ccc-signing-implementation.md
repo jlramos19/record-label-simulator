@@ -12,6 +12,7 @@ Ensure CCC signing only deducts cash on successful sign attempts and that failed
 - Rejections lock the creator's sign action until the next midnight refresh.
 - Precondition failures (insufficient funds, roster full) do not lock out the creator.
  - Rejections log a decline reason and store a short tag on the lockout for UI feedback.
+- Rejected creators are pushed to the bottom of the CCC list within the current sort mode.
 
 ## Implementation Plan
 1. CCC signing flow (`src/app/game.ts` + `src/app/ui.ts`):

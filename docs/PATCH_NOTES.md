@@ -1,5 +1,15 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0742Z)
+- Harmony Hub now offers Quick Group Act filters for gender identity, age group, preferred theme/mood, act alignment, and skill level range. [PN-20251228-AC63]
+
+## 2025-12-28 (RLS-PATCH-20251228-0730Z)
+- CCC rejected creators now drop to the bottom of CCC lists within the active sort mode. [PN-20251228-AC61]
+- Release Desk now lets you scrap mastered tracks, clearing them from the pipeline before release. [PN-20251228-AC62]
+
+## 2025-12-28 (RLS-PATCH-20251228-0729Z)
+- Label settings now include a confirm alignment button with a logged status line, and the alignment control row now stacks on smaller screens. [PN-20251228-AC60]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0709Z)
 - Harmony Hub acts now wrap inside a capped grid so the Quick Act button stays put as the list grows. [PN-20251228-AC59]
 
@@ -805,3 +815,6 @@
 - PN-20251228-AC57 (2025-12-28 05:06Z): Calendar split handles now capture pointer drags reliably so the Calendar vs Structures & Slots split can resize.
 - PN-20251228-AC58 (2025-12-28 06:01Z): Create view creator slots now fall back to legacy rendering when the React island is not mounted (e.g., after route changes).
 - PN-20251228-AC59 (2025-12-28 07:09Z): Harmony Hub acts now wrap inside a capped grid so the Quick Act button stays put as the list grows.
+- PN-20251228-AC60 (2025-12-28 07:29Z): Label settings now include a confirm alignment button with a logged status line, and the alignment control row now stacks on smaller screens.
+- PN-20251228-AC61 (2025-12-28 07:30Z): CCC rejected creators now drop to the bottom of CCC lists within the active sort mode.
+- PN-20251228-AC62 (2025-12-28 07:30Z): Release Desk now lets you scrap mastered tracks, clearing them from the pipeline before release.

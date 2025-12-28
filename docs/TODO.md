@@ -1,5 +1,7 @@
 # TODO
 
+- [x] RLS-CCC-REJECT-SORT-001: Move rejected CCC creators to the bottom of the list within the active sort mode. (Agent Codex, started 2025-12-28 03:25:20 -04:00, completed 2025-12-28 03:25:20 -04:00)
+- [x] RLS-TRACK-SCRAP-001: Allow scrapping mastered tracks from the Release Desk. (Agent Codex, started 2025-12-28 03:25:20 -04:00, completed 2025-12-28 03:25:20 -04:00)
 - [x] RLS-DATA-INDEX-001: Add cached lookup indexes for acts/creators/tracks/rivals to speed cross-view data references. (Agent Codex, started 2025-12-27 23:33:40 -04:00, completed 2025-12-27 23:33:40 -04:00)
 - [x] RLS-ROLLOUT-LIBRARY-001: Rename rollout husks to rollout plans, add multipurpose rollout scopes, shared plan library outcomes/market context, and compact date-range labels. (Agent Codex, started 2025-12-27 21:51:36 -04:00, completed 2025-12-27 23:17:27 -04:00)
 - [x] RLS-AWARDS-YEAREND-CHARTS-UI-001: Add a Year-End Charts tab in Awards with chart-type list + detail rankings from the ledger. (Agent Codex, started 2025-12-27 22:34:33 -04:00, completed 2025-12-27 22:34:33 -04:00)
