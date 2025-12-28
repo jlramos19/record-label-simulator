@@ -104,6 +104,7 @@ import {
   getTopActSnapshot,
   getTopTrendGenre,
   getTrack,
+  getMarketTrackByTrackId,
   getTrackRoleIds,
   getTrackRoleIdsFromSlots,
   getSelectedTourDraft,
@@ -151,6 +152,7 @@ import {
   shortGameModeLabel,
   slugify,
   staminaRequirement,
+  session,
   state,
   selectTourDraft,
   syncLabelWallets,
@@ -185,8 +187,21 @@ const ACCESSIBLE_TEXT = { dark: "#000000", light: "#ffffff" };
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
   .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
 const WORLD_RENDER_THROTTLE_MS = 1200;
+const CHART_RENDER_THROTTLE_MS = 1500;
+const WORLD_RENDER_FAST_HOUR_STEP = 6;
+const CHART_RENDER_FAST_HOUR_STEP = 6;
+const MARKET_RENDER_LOG_MS = 24;
+const MARKET_RENDER_LOG_COOLDOWN_MS = 15000;
 
 let lastWorldRenderAt = 0;
+let lastWorldRenderHour = null;
+let lastChartsRenderAt = 0;
+let lastChartsRenderHour = null;
+let lastMarketPerfLogAt = 0;
+
+const perfNow = () => (typeof performance !== "undefined" && typeof performance.now === "function"
+  ? performance.now()
+  : Date.now());
 
 
 function renderRolloutBudgetSummary(strategy) {
@@ -865,7 +880,7 @@ function renderSlots() {
   const trackAct = getAct(state.ui.trackSlots.actId);
   const eraAct = getAct(state.ui.eraSlots.actId);
   const promoProject = state.ui.promoSlots.projectId ? parsePromoProjectKey(state.ui.promoSlots.projectId) : null;
-  const promoTrack = state.marketTracks.find((entry) => entry.trackId === state.ui.promoSlots.trackId)
+  const promoTrack = getMarketTrackByTrackId(state.ui.promoSlots.trackId)
     || getTrack(state.ui.promoSlots.trackId);
   const socialTrack = getTrack(state.ui.socialSlots.trackId);
 
@@ -931,7 +946,7 @@ function renderSlots() {
       let trackLabel = track ? track.title : unassignedLabel;
       const isPromoTrackSlot = target === "promo-track" || (typeof target === "string" && target.startsWith("auto-promo-track-"));
       if (!track && isPromoTrackSlot && value) {
-        const marketEntry = state.marketTracks.find((entry) => entry.trackId === value);
+        const marketEntry = getMarketTrackByTrackId(value);
         if (marketEntry?.title) trackLabel = marketEntry.title;
       }
       valueEl.innerHTML = trackLabel ? renderTrackTitle(trackLabel) : trackLabel;
@@ -4481,7 +4496,12 @@ function renderCheaterCccControls() {
   }
 }
 
-function renderMarket() {
+function renderMarket({ skipThrottle = false } = {}) {
+  if (!skipThrottle) {
+    if (shouldThrottleWorldRender()) return;
+    recordWorldRender();
+  }
+  const perfStart = perfNow();
   ensureMarketCreators({}, { replenish: false });
   renderCheaterCccControls();
   const listEl = $("marketList");
@@ -4663,6 +4683,14 @@ function renderMarket() {
     `;
   });
   listEl.innerHTML = columns.join("");
+  const durationMs = perfNow() - perfStart;
+  if (durationMs > MARKET_RENDER_LOG_MS) {
+    const now = perfNow();
+    if (now - lastMarketPerfLogAt >= MARKET_RENDER_LOG_COOLDOWN_MS) {
+      lastMarketPerfLogAt = now;
+      logEvent(`[perf] Market render ${durationMs.toFixed(2)}ms (creators ${pool.length})`, "warn");
+    }
+  }
 }
 
 function buildRivalActSummary(labelName) {
@@ -6046,7 +6074,7 @@ function renderEraPerformance() {
     const act = getAct(track.actId);
     const economy = track.economy || {};
     const isReleased = track.status === "Released";
-    const marketEntry = state.marketTracks.find((entry) => entry.trackId === track.id)
+    const marketEntry = getMarketTrackByTrackId(track.id)
       || state.meta?.marketTrackArchive?.find((entry) => entry.trackId === track.id);
     const history = marketEntry?.chartHistory?.global || null;
     const peakLabel = history?.peak ? `#${history.peak}` : "-";
@@ -7245,6 +7273,8 @@ function renderStudiosList() {
 }
 
 function renderCharts() {
+  if (shouldThrottleChartsRender()) return;
+  recordChartsRender();
   const contentType = state.ui.chartContentType || "tracks";
   const isActs = contentType === "acts";
   const isDemographics = contentType === "demographics";
@@ -8661,12 +8691,36 @@ function shouldThrottleWorldRender() {
   if (state.time?.speed === "pause") return false;
   if (state.ui?.forceWorldRender) return false;
   const now = Date.now();
+  const totalHours = Number.isFinite(state.time?.totalHours) ? state.time.totalHours : null;
+  const isFast = state.time?.speed === "fast" || session.timeJumpActive;
+  if (isFast && Number.isFinite(totalHours) && Number.isFinite(lastWorldRenderHour)) {
+    if (totalHours - lastWorldRenderHour < WORLD_RENDER_FAST_HOUR_STEP) return true;
+  }
   return now - lastWorldRenderAt < WORLD_RENDER_THROTTLE_MS;
 }
 
 function recordWorldRender() {
   lastWorldRenderAt = Date.now();
+  if (Number.isFinite(state.time?.totalHours)) lastWorldRenderHour = state.time.totalHours;
   if (state.ui?.forceWorldRender) state.ui.forceWorldRender = false;
+}
+
+function shouldThrottleChartsRender() {
+  if (state.time?.speed === "pause") return false;
+  if (state.ui?.forceChartsRender) return false;
+  const now = Date.now();
+  const totalHours = Number.isFinite(state.time?.totalHours) ? state.time.totalHours : null;
+  const isFast = state.time?.speed === "fast" || session.timeJumpActive;
+  if (isFast && Number.isFinite(totalHours) && Number.isFinite(lastChartsRenderHour)) {
+    if (totalHours - lastChartsRenderHour < CHART_RENDER_FAST_HOUR_STEP) return true;
+  }
+  return now - lastChartsRenderAt < CHART_RENDER_THROTTLE_MS;
+}
+
+function recordChartsRender() {
+  lastChartsRenderAt = Date.now();
+  if (Number.isFinite(state.time?.totalHours)) lastChartsRenderHour = state.time.totalHours;
+  if (state.ui?.forceChartsRender) state.ui.forceChartsRender = false;
 }
 
 function renderActiveView(view) {
@@ -8708,7 +8762,7 @@ function renderActiveView(view) {
   } else if (active === "world") {
     if (shouldThrottleWorldRender()) return;
     recordWorldRender();
-    renderMarket();
+    renderMarket({ skipThrottle: true });
     renderModifierTools();
     renderRivalRosterPanel();
     renderPopulation();

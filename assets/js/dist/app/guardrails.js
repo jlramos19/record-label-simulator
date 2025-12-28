@@ -1,5 +1,5 @@
 import { saveToActiveSlot, session } from "./game.js";
-import { finalizeUsageSession, recordUsageError, recordUsageEvent, startUsageSession } from "./usage-log.js";
+import { finalizeUsageSession, flushUsageSession, recordUsageError, recordUsageEvent, startUsageSession } from "./usage-log.js";
 const RELEASE_STORAGE_KEY = "rls_release_patch_id";
 const TOAST_STACK_ID = "rls-toast-stack";
 const SAVE_THROTTLE_MS = 1500;
@@ -176,6 +176,7 @@ export function installLiveEditGuardrails(release) {
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "hidden") {
                 recordUsageEvent("session.hidden", { visibility: document.visibilityState });
+                flushUsageSession();
                 safeSave("hidden");
             }
         });

@@ -4,12 +4,14 @@ import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails, PROMO_TYPE_DETAILS } from "./promo_types.js";
 import { setUiHooks } from "./game/ui-hooks.js";
-import { getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
+import { flushUsageSession, getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
+import { getStorageHealthSnapshot, recordStorageError } from "./storage-health.js";
+import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
 import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistoryFromExternal, importSavesFromExternal, isExternalStorageSupported, requestExternalStorageHandle, syncExternalStorageNow } from "./file-storage.js";
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -39,6 +41,7 @@ const ROUTE_ALIASES = {
 };
 const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
 const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
+const UI_EVENT_LOG_MAX_BYTES = 1024 * 1024;
 const GAME_MODE_KEY = "rls_game_mode_v1";
 const GAME_DIFFICULTY_KEY = "rls_game_difficulty_v1";
 const START_PREFS_KEY = "rls_start_prefs_v1";
@@ -97,6 +100,10 @@ function requestWorldRender() {
     const ui = ensureUiState();
     ui.forceWorldRender = true;
 }
+function requestChartsRender() {
+    const ui = ensureUiState();
+    ui.forceChartsRender = true;
+}
 function isUiRenderHoldTarget(target) {
     if (!target || !target.closest)
         return false;
@@ -123,6 +130,48 @@ function normalizeUiTheme(value) {
         return value;
     return UI_THEME_DEFAULT;
 }
+function handleLocalStorageWriteError(context, error) {
+    const label = context || "local storage";
+    if (isQuotaExceededError(error)) {
+        recordStorageError({
+            scope: "localStorage",
+            message: `Local storage is full; ${label} update skipped.`,
+            error,
+            notify: "localStorageQuota"
+        });
+        return;
+    }
+    recordStorageError({ scope: "localStorage", message: `${label} update failed.`, error });
+}
+function safeSetLocalStoragePayload(key, payload, { context = "local storage", maxBytes = null } = {}) {
+    if (typeof localStorage === "undefined")
+        return false;
+    if (Number.isFinite(maxBytes)) {
+        const bytes = estimatePayloadBytes(payload);
+        if (bytes > maxBytes) {
+            recordStorageError({
+                scope: "localStorage",
+                message: `Local storage is full; ${context} update skipped.`,
+                notify: "localStorageQuota"
+            });
+            return false;
+        }
+    }
+    try {
+        localStorage.setItem(key, payload);
+        return true;
+    }
+    catch (error) {
+        handleLocalStorageWriteError(context, error);
+        return false;
+    }
+}
+function safeSetLocalStorageJson(key, value, options = {}) {
+    return safeSetLocalStoragePayload(key, JSON.stringify(value), options);
+}
+function safeSetLocalStorageString(key, value, options = {}) {
+    return safeSetLocalStoragePayload(key, String(value), options);
+}
 function getStoredUiTheme() {
     try {
         return normalizeUiTheme(localStorage.getItem(UI_THEME_KEY));
@@ -132,12 +181,7 @@ function getStoredUiTheme() {
     }
 }
 function setStoredUiTheme(value) {
-    try {
-        localStorage.setItem(UI_THEME_KEY, value);
-    }
-    catch (error) {
-        // Ignore storage failures (private mode, quota, etc.).
-    }
+    safeSetLocalStorageString(UI_THEME_KEY, value, { context: "UI theme" });
 }
 function getExternalStoragePromptState() {
     if (typeof localStorage === "undefined")
@@ -165,15 +209,10 @@ function isExternalStoragePromptDismissed() {
 function setExternalStoragePromptDismissed(reason) {
     if (typeof localStorage === "undefined")
         return;
-    try {
-        localStorage.setItem(EXTERNAL_STORAGE_PROMPT_KEY, JSON.stringify({
-            dismissedAt: new Date().toISOString(),
-            reason: reason || "skipped"
-        }));
-    }
-    catch {
-        // Ignore storage failures (private mode, quota, etc.).
-    }
+    safeSetLocalStorageJson(EXTERNAL_STORAGE_PROMPT_KEY, {
+        dismissedAt: new Date().toISOString(),
+        reason: reason || "skipped"
+    }, { context: "external storage prompt status" });
 }
 function clearExternalStoragePromptDismissed() {
     if (typeof localStorage === "undefined")
@@ -687,7 +726,7 @@ function loadSideLayout() {
     }
 }
 function saveSideLayout() {
-    localStorage.setItem(SIDE_LAYOUT_KEY, JSON.stringify(sideLayout));
+    safeSetLocalStorageJson(SIDE_LAYOUT_KEY, sideLayout, { context: "side panel layout" });
 }
 function updateSideToggleButtons(leftCollapsed, rightCollapsed) {
     const leftBtn = $("toggleLeftBtn");
@@ -711,7 +750,7 @@ function getStoredGameMode() {
 function setStoredGameMode(modeId) {
     if (typeof localStorage === "undefined")
         return;
-    localStorage.setItem(GAME_MODE_KEY, modeId);
+    safeSetLocalStorageString(GAME_MODE_KEY, modeId, { context: "game mode" });
 }
 function getSelectedGameModeId() {
     const select = $("gameModeSelect");
@@ -748,7 +787,7 @@ function getStoredGameDifficulty() {
 function setStoredGameDifficulty(difficultyId) {
     if (typeof localStorage === "undefined")
         return;
-    localStorage.setItem(GAME_DIFFICULTY_KEY, difficultyId);
+    safeSetLocalStorageString(GAME_DIFFICULTY_KEY, difficultyId, { context: "game difficulty" });
 }
 function getSelectedGameDifficultyId() {
     const select = $("difficultySelect");
@@ -793,7 +832,7 @@ function loadStartPreferences() {
 function saveStartPreferences(prefs) {
     if (typeof localStorage === "undefined")
         return;
-    localStorage.setItem(START_PREFS_KEY, JSON.stringify(prefs));
+    safeSetLocalStorageJson(START_PREFS_KEY, prefs, { context: "start preferences" });
 }
 function getStartPreferenceElements() {
     const theme1 = $("startTheme1");
@@ -1015,7 +1054,7 @@ function loadViewPanelState() {
     }
 }
 function saveViewPanelState(state) {
-    localStorage.setItem(VIEW_PANEL_STATE_KEY, JSON.stringify(state));
+    safeSetLocalStorageJson(VIEW_PANEL_STATE_KEY, state, { context: "view panel state" });
 }
 function normalizeViewPanelState(state) {
     return state === VIEW_PANEL_STATES.hidden ? VIEW_PANEL_STATES.hidden : VIEW_PANEL_STATES.open;
@@ -1068,7 +1107,17 @@ function logUiEvent(type, payload = {}) {
     log.push(entry);
     if (log.length > 800)
         log.shift();
-    localStorage.setItem(UI_EVENT_LOG_KEY, JSON.stringify(log));
+    let serialized = JSON.stringify(log);
+    let bytes = estimatePayloadBytes(serialized);
+    while (log.length && bytes > UI_EVENT_LOG_MAX_BYTES) {
+        log.shift();
+        serialized = JSON.stringify(log);
+        bytes = estimatePayloadBytes(serialized);
+    }
+    safeSetLocalStoragePayload(UI_EVENT_LOG_KEY, serialized, {
+        context: "UI event log",
+        maxBytes: UI_EVENT_LOG_MAX_BYTES
+    });
     const isAction = type === "action_submit" || type === "route_change";
     recordUsageEvent(`ui.${type}`, payload, {
         route: entry.route,
@@ -1292,6 +1341,7 @@ function resetChartHistoryView({ render = true } = {}) {
     state.ui.chartHistorySnapshot = null;
     saveToActiveSlot();
     if (render && $("chartList")) {
+        requestChartsRender();
         renderCharts();
     }
 }
@@ -1313,6 +1363,7 @@ async function applyChartHistoryWeek(week, chartKey) {
     state.ui.chartHistorySnapshot = snapshot || null;
     saveToActiveSlot();
     if ($("chartList")) {
+        requestChartsRender();
         renderCharts();
     }
 }
@@ -1551,6 +1602,10 @@ function updateRoute(route) {
     }
     activeRoute = next;
     state.ui.activeView = next;
+    if (next === "charts")
+        requestChartsRender();
+    if (next === "world")
+        requestWorldRender();
     document.querySelectorAll(".app-nav a[data-route]").forEach((link) => {
         link.classList.toggle("active", link.dataset.route === next);
     });
@@ -2340,16 +2395,16 @@ function updateAutoPromoSummary(scope) {
             continue;
         const context = getPromoTargetContext(trackId, projectId, actId);
         const market = context.track?.marketId
-            ? state.marketTracks.find((entry) => entry.id === context.track.marketId)
+            ? getMarketTrackById(context.track.marketId)
             : context.track
-                ? state.marketTracks.find((entry) => entry.trackId === context.track.id)
+                ? getMarketTrackByTrackId(context.track.id)
                 : null;
         const projectTargets = context.project ? listPromoEligibleTracks(context.projectTracks) : [];
         const projectBoostable = projectTargets.some((entry) => {
             if (entry.status === "Released") {
                 const entryMarket = entry.marketId
-                    ? state.marketTracks.find((candidate) => candidate.id === entry.marketId)
-                    : state.marketTracks.find((candidate) => candidate.trackId === entry.id);
+                    ? getMarketTrackById(entry.marketId)
+                    : getMarketTrackByTrackId(entry.id);
                 return entryMarket && (entryMarket.promoWeeks || 0) <= 0;
             }
             return Math.max(0, entry.promo?.preReleaseWeeks || 0) <= 0;
@@ -3324,6 +3379,7 @@ function bindViewHandlers(route, root) {
             applyChartHistoryWeek(state.ui.chartHistoryWeek, state.ui.activeChart);
         }
         else {
+            requestChartsRender();
             renderCharts();
         }
     };
@@ -3355,6 +3411,7 @@ function bindViewHandlers(route, root) {
             if (next === state.ui.chartContentType)
                 return;
             state.ui.chartContentType = next;
+            requestChartsRender();
             renderCharts();
         });
     }
@@ -4417,6 +4474,7 @@ function bindViewHandlers(route, root) {
     on("cheatCccInjectBtn", "click", () => {
         if (!state.meta?.cheaterMode) {
             logEvent("Enable Cheater Mode in Settings to inject Creator IDs.", "warn");
+            requestWorldRender();
             renderMarket();
             return;
         }
@@ -4446,6 +4504,7 @@ function bindViewHandlers(route, root) {
             status.textContent = result.message || "";
         if (result.ok)
             saveToActiveSlot();
+        requestWorldRender();
         renderMarket();
     });
     on("cheatCccClearBtn", "click", () => {
@@ -4722,9 +4781,11 @@ function bindViewHandlers(route, root) {
     on("exportDebugBtn", "click", exportDebugBundle);
 }
 function exportDebugBundle() {
+    flushUsageSession();
     const log = loadUiEventLog();
     const eventLog = Array.isArray(state.events) ? state.events : [];
     const usageSession = getUsageSessionSnapshot();
+    const storageHealth = getStorageHealthSnapshot();
     const snapshot = {
         route: state.ui.activeView || activeRoute,
         week: weekIndex() + 1,
@@ -4763,6 +4824,7 @@ function exportDebugBundle() {
     downloadFile("simulation_event_log.json", JSON.stringify(eventLog, null, 2), "application/json");
     downloadFile("usage_session_summary.md", summary, "text/markdown");
     downloadFile("state_snapshot.json", JSON.stringify(snapshot, null, 2), "application/json");
+    downloadFile("storage_health.json", JSON.stringify(storageHealth, null, 2), "application/json");
     if (usageSession?.id) {
         downloadFile(`usage_session_${usageSession.id}.json`, JSON.stringify(usageSession, null, 2), "application/json");
     }
@@ -4867,7 +4929,7 @@ function savePanelLayout() {
             marginTop: panel.style.marginTop || ""
         };
     });
-    localStorage.setItem(PANEL_LAYOUT_KEY, JSON.stringify(layout));
+    safeSetLocalStorageJson(PANEL_LAYOUT_KEY, layout, { context: "panel layout" });
 }
 function loadPanelLayout() {
     const raw = localStorage.getItem(PANEL_LAYOUT_KEY);
@@ -6597,7 +6659,7 @@ function runPromotion() {
             ? formatDate(projectReleaseAt)
             : formatDate(state.time.epochMs);
     const market = trackContext.isReleased && trackContext.track
-        ? state.marketTracks.find((entry) => entry.id === trackContext.track.marketId)
+        ? getMarketTrackById(trackContext.track.marketId)
         : null;
     if (trackContext.isReleased && trackContext.track && !market) {
         logEvent("Track is not active on the market.", "warn");
@@ -6701,9 +6763,9 @@ function runPromotion() {
         if (!entry)
             return null;
         if (entry.marketId) {
-            return state.marketTracks.find((marketEntry) => marketEntry.id === entry.marketId) || null;
+            return getMarketTrackById(entry.marketId) || null;
         }
-        return state.marketTracks.find((marketEntry) => marketEntry.trackId === entry.id) || null;
+        return getMarketTrackByTrackId(entry.id) || null;
     };
     if (trackContext.track) {
         const promo = trackContext.track.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
@@ -7390,10 +7452,29 @@ function formatQuickSkipDescriptor(config) {
         return `+${formatCount(config.hours)}h`;
     return "";
 }
-function buildQuickSkipButtonLabel(button, baseLabel) {
+function buildQuickSkipButtonParts(button, baseLabel) {
     const config = getQuickSkipConfig(button);
     const descriptor = formatQuickSkipDescriptor(config);
-    return descriptor ? `${baseLabel} (${descriptor})` : baseLabel;
+    return {
+        label: baseLabel,
+        detail: descriptor ? `(${descriptor})` : ""
+    };
+}
+function setTimeControlLabel(button, label, detail) {
+    if (!button)
+        return;
+    const title = button.ownerDocument.createElement("span");
+    title.className = "time-btn-title";
+    title.textContent = label;
+    button.textContent = "";
+    button.appendChild(title);
+    if (detail) {
+        const sub = button.ownerDocument.createElement("span");
+        sub.className = "time-btn-sub";
+        sub.textContent = detail;
+        button.appendChild(sub);
+    }
+    button.classList.add("time-control-btn");
 }
 function daysInUtcMonth(year, monthIndex) {
     return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
@@ -7486,7 +7567,7 @@ function getSplitLayoutState() {
 function saveSplitLayoutState() {
     if (!splitLayoutState)
         return;
-    localStorage.setItem(SPLIT_LAYOUT_STATE_KEY, JSON.stringify(splitLayoutState));
+    safeSetLocalStorageJson(SPLIT_LAYOUT_STATE_KEY, splitLayoutState, { context: "split layout state" });
 }
 function clampSplitLayout(layout) {
     if (!layout?.isConnected)
@@ -7591,25 +7672,27 @@ function setupSplitLayouts(root) {
 }
 function updateTimeControlLabels() {
     const pauseBtn = $("pauseBtn");
-    if (pauseBtn)
-        pauseBtn.textContent = "Pause (stopped)";
+    setTimeControlLabel(pauseBtn, "Pause", "(stopped)");
     const playBtn = $("playBtn");
     if (playBtn) {
-        playBtn.textContent = `Play (1h = ${formatRealTimeSeconds(state.time?.secPerHourPlay)})`;
+        setTimeControlLabel(playBtn, "Play", `(1h = ${formatRealTimeSeconds(state.time?.secPerHourPlay)})`);
     }
     const fastBtn = $("fastBtn");
     if (fastBtn) {
-        fastBtn.textContent = `Fast (1h = ${formatRealTimeSeconds(state.time?.secPerHourFast)})`;
+        setTimeControlLabel(fastBtn, "Fast", `(1h = ${formatRealTimeSeconds(state.time?.secPerHourFast)})`);
     }
     const autoDayBtn = $("autoSkipDayBtn");
-    if (autoDayBtn)
-        autoDayBtn.textContent = buildQuickSkipButtonLabel(autoDayBtn, "Auto Day");
+    if (autoDayBtn) {
+        const { label, detail } = buildQuickSkipButtonParts(autoDayBtn, "Auto Day");
+        setTimeControlLabel(autoDayBtn, label, detail);
+    }
     const autoWeekBtn = $("autoSkipWeekBtn");
-    if (autoWeekBtn)
-        autoWeekBtn.textContent = buildQuickSkipButtonLabel(autoWeekBtn, "Auto Week");
+    if (autoWeekBtn) {
+        const { label, detail } = buildQuickSkipButtonParts(autoWeekBtn, "Auto Week");
+        setTimeControlLabel(autoWeekBtn, label, detail);
+    }
     const skipBtn = $("skipTimeBtn");
-    if (skipBtn)
-        skipBtn.textContent = "Skip (custom)";
+    setTimeControlLabel(skipBtn, "Skip", "(custom)");
 }
 function updateTimeControlButtons() {
     updateTimeControlLabels();
@@ -7661,6 +7744,7 @@ function runTimeJump(totalHours, label) {
         return;
     }
     timeJumpInFlight = true;
+    session.timeJumpActive = true;
     const chunkSize = totalHours >= 24 * 365 ? 48 : totalHours >= 24 * 90 ? 24 : 12;
     let completed = 0;
     let cancelled = false;
@@ -7674,6 +7758,7 @@ function runTimeJump(totalHours, label) {
     }
     const finish = () => {
         timeJumpInFlight = false;
+        session.timeJumpActive = false;
         closeSkipProgress();
         renderAll();
     };

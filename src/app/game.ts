@@ -166,17 +166,23 @@ const session = {
   lastPerfThrottleAt: 0,
   localStorageDisabled: false,
   localStorageWarned: false,
-  suppressWeeklyRender: false
+  suppressWeeklyRender: false,
+  timeJumpActive: false
 };
 
 const AUTO_PROMO_SLOT_LIMIT = 4;
 const PERF_THROTTLE_LOG_COOLDOWN_MS = 30000;
+const PERF_LOG_COOLDOWN_MS = 12000;
+const PERF_CHART_REBUILD_LOG_MS = 30;
+const PERF_TREND_REFRESH_LOG_MS = 12;
+const PERF_INDEX_REBUILD_LOG_MS = 4;
 const LOCAL_SAVE_QUOTA_BYTES = 4.5 * 1024 * 1024;
 const SAVE_DEBOUNCE_MS = 1500;
 const LABEL_KPI_PROJECTION_WEEKS = 4;
 
 let saveDebounceTimer = null;
 let saveDebounceQueued = false;
+const perfLogLast = new Map();
 
 function buildAutoPromoSlotList() {
   return Array.from({ length: AUTO_PROMO_SLOT_LIMIT }, () => null);
@@ -228,6 +234,23 @@ function logDuration(label, startTime, thresholdMs, context = "") {
     const contextSuffix = context ? ` ${context}` : "";
     console.warn(`[perf] ${label} took ${durationMs.toFixed(2)}ms${contextSuffix}.`);
   }
+  return durationMs;
+}
+
+function shouldLogPerf(label, now) {
+  const last = perfLogLast.get(label) || 0;
+  if (now - last < PERF_LOG_COOLDOWN_MS) return false;
+  perfLogLast.set(label, now);
+  return true;
+}
+
+function logPerfEvent(label, startTime, thresholdMs, context = "") {
+  const durationMs = nowMs() - startTime;
+  if (!Number.isFinite(thresholdMs) || durationMs < thresholdMs) return durationMs;
+  const now = nowMs();
+  if (!shouldLogPerf(label, now)) return durationMs;
+  const contextSuffix = context ? ` ${context}` : "";
+  logEvent(`[perf] ${label} ${durationMs.toFixed(2)}ms${contextSuffix}`, "warn");
   return durationMs;
 }
 
@@ -753,7 +776,14 @@ function loadSeedCalibration() {
 
 function saveSeedCalibration(calibration) {
   if (!calibration || typeof localStorage === "undefined") return;
-  localStorage.setItem(SEED_CALIBRATION_KEY, JSON.stringify(calibration));
+  try {
+    localStorage.setItem(SEED_CALIBRATION_KEY, JSON.stringify(calibration));
+  } catch (error) {
+    if (isQuotaExceededError(error)) {
+      warnLocalStorageIssue("Local storage is full; seed calibration could not be saved.", error);
+    }
+    recordStorageError({ scope: "localStorage", message: "Seed calibration save failed.", error });
+  }
 }
 
 function populationBoundsForYear(prevPop, year, floor) {
@@ -3454,9 +3484,9 @@ function bestChartPeak(chartHistory) {
 function getTrackPrestigePeak(track) {
   if (!track) return null;
   const marketEntry = track.marketId
-    ? state.marketTracks.find((entry) => entry.id === track.marketId)
+    ? getMarketTrackById(track.marketId)
     : null;
-  const fallbackEntry = state.marketTracks.find((entry) => entry.trackId === track.id);
+  const fallbackEntry = track.id ? getMarketTrackByTrackId(track.id) : null;
   return bestChartPeak((marketEntry || fallbackEntry)?.chartHistory);
 }
 
@@ -3902,7 +3932,14 @@ function loadLossArchives() {
 }
 
 function saveLossArchives(entries) {
-  localStorage.setItem(LOSS_ARCHIVE_KEY, JSON.stringify(entries));
+  try {
+    localStorage.setItem(LOSS_ARCHIVE_KEY, JSON.stringify(entries));
+  } catch (error) {
+    if (isQuotaExceededError(error)) {
+      warnLocalStorageIssue("Local storage is full; loss archive updates were skipped.", error);
+    }
+    recordStorageError({ scope: "localStorage", message: "Loss archive save failed.", error });
+  }
 }
 
 function getLossArchives() {
@@ -5413,13 +5450,16 @@ function makeAct({ name, nameKey = null, type, alignment, memberIds }) {
 
 // Keep lightweight indexes for fast lookups across UI and gameplay surfaces.
 const STATE_INDEXES = {
-  acts: { source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
-  creators: { source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
-  tracks: { source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
-  rivals: { source: null, length: 0, map: new Map(), key: (entry) => entry?.name || null }
+  acts: { label: "acts", source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
+  creators: { label: "creators", source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
+  tracks: { label: "tracks", source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
+  marketTracks: { label: "market-tracks", source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
+  marketTracksByTrackId: { label: "market-tracks-by-track", source: null, length: 0, map: new Map(), key: (entry) => entry?.trackId || null },
+  rivals: { label: "rivals", source: null, length: 0, map: new Map(), key: (entry) => entry?.name || null }
 };
 
 function rebuildStateIndex(index, list) {
+  const perfStart = nowMs();
   const safeList = Array.isArray(list) ? list : [];
   const map = new Map();
   safeList.forEach((entry) => {
@@ -5429,6 +5469,8 @@ function rebuildStateIndex(index, list) {
   index.map = map;
   index.source = list;
   index.length = safeList.length;
+  const label = index.label ? `Index rebuild ${index.label}` : "Index rebuild";
+  logPerfEvent(label, perfStart, PERF_INDEX_REBUILD_LOG_MS, `(size ${safeList.length})`);
   return map;
 }
 
@@ -6124,6 +6166,14 @@ function getCreator(id) {
 
 function getTrack(id) {
   return getStateEntry("tracks", state.tracks, id);
+}
+
+function getMarketTrackById(id) {
+  return getStateEntry("marketTracks", state.marketTracks, id);
+}
+
+function getMarketTrackByTrackId(trackId) {
+  return getStateEntry("marketTracksByTrackId", state.marketTracks, trackId);
 }
 
 function assignTrackAct(trackId, actId) {
@@ -8422,7 +8472,7 @@ function applyScheduledPromoEntry(entry, now) {
     return { ok: false, reason: "Scheduled promo project has no eligible tracks." };
   }
   const market = track && track.status === "Released"
-    ? state.marketTracks.find((entry) => entry.id === track.marketId)
+    ? getMarketTrackById(track.marketId)
     : null;
   if (track && track.status === "Released" && !market) {
     return { ok: false, reason: "Scheduled promo track is not active on the market." };
@@ -8445,8 +8495,8 @@ function applyScheduledPromoEntry(entry, now) {
     projectTargets.forEach((entryTrack) => {
       if (entryTrack.status === "Released") {
         const marketEntry = entryTrack.marketId
-          ? state.marketTracks.find((marketEntry) => marketEntry.id === entryTrack.marketId)
-          : state.marketTracks.find((marketEntry) => marketEntry.trackId === entryTrack.id);
+          ? getMarketTrackById(entryTrack.marketId)
+          : getMarketTrackByTrackId(entryTrack.id);
         if (marketEntry) marketEntry.promoWeeks = Math.max(marketEntry.promoWeeks || 0, boostWeeks);
         return;
       }
@@ -9995,7 +10045,6 @@ function buildChartSnapshot(scope, entries) {
           || entry.criticScores
           || base.criticScores
           || null,
-        projectType: entry.track?.projectType || entry.projectType || base.projectType || "",
         distribution: entry.track?.distribution || entry.distribution || base.distribution || "",
         isPlayer: typeof entry.isPlayer === "boolean" ? entry.isPlayer : !!base.isPlayer
       };
@@ -11400,13 +11449,13 @@ function promoEntryAgeWeeks(entry, currentWeek) {
 function resolvePromoBaseTrack(entry) {
   if (!entry) return null;
   if (entry.marketId) {
-    const market = state.marketTracks.find((track) => track.id === entry.marketId);
+    const market = getMarketTrackById(entry.marketId);
     if (market) return market;
   }
   if (entry.trackId) {
     const track = getTrack(entry.trackId);
     if (track) return track;
-    const market = state.marketTracks.find((candidate) => candidate.trackId === entry.trackId);
+    const market = getMarketTrackByTrackId(entry.trackId);
     if (market) return market;
   }
   const actId = entry.actId || null;
@@ -11542,7 +11591,7 @@ function recordPromoContent({
   const resolvedType = promoType || DEFAULT_PROMO_TYPE;
   const details = getPromoTypeDetails(resolvedType);
   const act = actId ? getAct(actId) : null;
-  const market = marketId ? state.marketTracks.find((entry) => entry.id === marketId) : null;
+  const market = marketId ? getMarketTrackById(marketId) : null;
   const track = trackId ? getTrack(trackId) : null;
   const base = market || track || null;
   const resolvedLabel = label || base?.label || (isPlayer ? state.label?.name : "") || "";
@@ -12013,11 +12062,26 @@ function computeTourCharts() {
 
 let chartWorker = null;
 let chartWorkerRequestId = 0;
+const CHART_WORKER_TIMEOUT_MS = 8000;
 const chartWorkerRequests = new Map();
 
 function rejectChartWorkerRequests(error) {
-  chartWorkerRequests.forEach((entry) => entry.reject(error));
+  chartWorkerRequests.forEach((entry) => {
+    clearTimeout(entry.timeoutId);
+    entry.reject(error);
+  });
   chartWorkerRequests.clear();
+}
+
+function terminateChartWorker(reason) {
+  const error = reason instanceof Error
+    ? reason
+    : new Error(String(reason || "Chart worker terminated."));
+  rejectChartWorkerRequests(error);
+  if (chartWorker) {
+    chartWorker.terminate();
+    chartWorker = null;
+  }
 }
 
 function getChartWorker() {
@@ -12028,6 +12092,7 @@ function getChartWorker() {
       const message = event?.data || {};
       const pending = chartWorkerRequests.get(message.id);
       if (!pending) return;
+      clearTimeout(pending.timeoutId);
       chartWorkerRequests.delete(message.id);
       if (message.type === "chartsComputed" || message.type === "snapshotsPersisted") {
         pending.resolve(message.payload);
@@ -12037,11 +12102,11 @@ function getChartWorker() {
     });
     chartWorker.addEventListener("messageerror", (event) => {
       console.error("Chart worker message error:", event);
-      rejectChartWorkerRequests(new Error("Chart worker message error."));
+      terminateChartWorker(new Error("Chart worker message error."));
     });
     chartWorker.addEventListener("error", (event) => {
       console.error("Chart worker error:", event);
-      rejectChartWorkerRequests(new Error("Chart worker error."));
+      terminateChartWorker(new Error("Chart worker error."));
     });
   } catch (error) {
     console.error("Chart worker init failed:", error);
@@ -12056,7 +12121,11 @@ function requestChartWorker(type, payload) {
   chartWorkerRequestId += 1;
   const id = chartWorkerRequestId;
   return new Promise((resolve, reject) => {
-    chartWorkerRequests.set(id, { resolve, reject });
+    const timeoutId = setTimeout(() => {
+      chartWorkerRequests.delete(id);
+      reject(new Error("Chart worker request timed out."));
+    }, CHART_WORKER_TIMEOUT_MS);
+    chartWorkerRequests.set(id, { resolve, reject, timeoutId });
     worker.postMessage({ type, id, payload });
   });
 }
@@ -12337,6 +12406,8 @@ function paginateMarketTracks() {
 }
 
 function computeChartsLocal(marketTracks = paginateMarketTracks()) {
+  const perfStart = nowMs();
+  const trackCount = Array.isArray(marketTracks) ? marketTracks.length : 0;
   const nationScores = {};
   const regionScores = {};
   const nationWeights = {};
@@ -12423,6 +12494,7 @@ function computeChartsLocal(marketTracks = paginateMarketTracks()) {
     computePromoCharts();
     computeTourCharts();
     persistChartHistorySnapshots();
+    logPerfEvent("Chart rebuild (local)", perfStart, PERF_CHART_REBUILD_LOG_MS, `(tracks ${trackCount})`);
     return { globalScores };
   }
 
@@ -12599,12 +12671,17 @@ function computeChartProjectionForScope({ targetEpochMs, scopeType = "global", s
 async function computeCharts() {
   const worker = getChartWorker();
   if (!worker) return computeChartsLocal();
+  paginateMarketTracks();
+  const perfStart = nowMs();
   const { payload, trackMap } = buildChartWorkerPayload();
+  const trackCount = Array.isArray(payload?.tracks) ? payload.tracks.length : 0;
   try {
     const result = await requestChartWorker("computeCharts", payload);
     if (!result?.charts) return computeChartsLocal();
     debugChartWorkerParity(result, trackMap);
-    return applyChartWorkerResults(result, trackMap);
+    const applied = applyChartWorkerResults(result, trackMap);
+    logPerfEvent("Chart rebuild (worker)", perfStart, PERF_CHART_REBUILD_LOG_MS, `(tracks ${trackCount})`);
+    return applied;
   } catch (error) {
     console.error("Chart worker failed, falling back to main thread:", error);
     return computeChartsLocal();
@@ -12695,7 +12772,11 @@ function saveChartSignatureSnapshot(signature) {
     };
     localStorage.setItem(CHART_DETERMINISM_STORAGE_KEY, JSON.stringify(payload));
     return payload;
-  } catch {
+  } catch (error) {
+    if (isQuotaExceededError(error)) {
+      warnLocalStorageIssue("Local storage is full; chart signature snapshot skipped.", error);
+    }
+    recordStorageError({ scope: "localStorage", message: "Chart signature snapshot save failed.", error });
     return null;
   }
 }
@@ -16201,9 +16282,9 @@ function runAutoPromoForPlayer() {
   const findMarketEntry = (entry) => {
     if (!entry) return null;
     if (entry.marketId) {
-      return state.marketTracks.find((candidate) => candidate.id === entry.marketId) || null;
+      return getMarketTrackById(entry.marketId) || null;
     }
-    return state.marketTracks.find((candidate) => candidate.trackId === entry.id) || null;
+    return getMarketTrackByTrackId(entry.id) || null;
   };
   const rawTypes = Array.isArray(state.ui?.promoTypes) && state.ui.promoTypes.length
     ? state.ui.promoTypes
@@ -16227,7 +16308,7 @@ function runAutoPromoForPlayer() {
       if (track.status !== "Released" || !track.marketId) return;
       era = track.eraId ? getEraById(track.eraId) : null;
       if (!era || era.status !== "Active") return;
-      market = state.marketTracks.find((entry) => entry.id === track.marketId);
+      market = getMarketTrackById(track.marketId);
       if (!market || (market.promoWeeks || 0) > 0) return;
       act = track.actId ? getAct(track.actId) : act;
       promoTargetType = "track";
@@ -16505,7 +16586,7 @@ function maybeRunAutoPromo() {
   runAutoPromoForPlayer();
 }
 
-function weeklyUpdate() {
+async function weeklyUpdate() {
   const startTime = nowMs();
   const week = weekIndex() + 1;
   ensureMarketCreators();
@@ -16518,7 +16599,7 @@ function weeklyUpdate() {
   recruitRivalCreators();
   generateRivalReleases();
   resolveTourBookings();
-  const { globalScores } = computeChartsLocal();
+  const { globalScores } = await computeCharts();
   updateAudienceBiasFromCharts();
   const labelScores = computeLabelScoresFromCharts();
   const labelCompetition = refreshLabelCompetition(labelScores);
@@ -19028,7 +19109,9 @@ async function runScheduledWeeklyEvents(now) {
     processRivalReleaseQueue();
   }
   if (isScheduledTime(now, WEEKLY_SCHEDULE.trendsUpdate)) {
+    const perfStart = nowMs();
     refreshTrendsFromLedger();
+    logPerfEvent("Trend refresh", perfStart, PERF_TREND_REFRESH_LOG_MS, `(week ${weekIndex() + 1})`);
     logEvent("Trends refreshed for the week.");
   }
   if (isScheduledTime(now, WEEKLY_SCHEDULE.chartUpdate)) {
@@ -19414,7 +19497,8 @@ async function getSlotDataWithExternal(index) {
       if (isQuotaExceededError(error)) {
         session.localStorageDisabled = true;
         warnLocalStorageIssue(
-          "Local save storage is full; external save loaded but local cache skipped."
+          "Local save storage is full; external save loaded but local cache skipped.",
+          error
         );
       }
       recordStorageError({
@@ -19427,13 +19511,21 @@ async function getSlotDataWithExternal(index) {
   return external;
 }
 
-function warnLocalStorageIssue(message) {
+function warnLocalStorageIssue(message, error = null) {
   if (!message) return;
-  recordStorageError({ scope: "localStorage", message });
+  recordStorageError({ scope: "localStorage", message, error });
   if (session.localStorageWarned) return;
   session.localStorageWarned = true;
   logEvent(message, "warn");
 }
+
+setStorageWarningHandler(({ message, kind }) => {
+  if (kind === "localStorageQuota") {
+    warnLocalStorageIssue(message);
+    return;
+  }
+  logEvent(message, "warn");
+});
 
 function formatByteSize(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0MB";
@@ -19454,9 +19546,16 @@ function saveToSlot(index) {
   if (state.meta.autoSave) state.meta.autoSave.lastSavedAt = state.meta.savedAt;
   const payload = JSON.stringify(state);
   const payloadBytes = estimatePayloadBytes(payload);
+  const localStorageAvailable = typeof localStorage !== "undefined";
+  const storageBytes = localStorageAvailable ? estimateLocalStorageBytes() : 0;
+  const freeBytes = localStorageAvailable ? estimateLocalStorageFreeBytes(storageBytes) : null;
+  updateStorageHealth({
+    saveSizeBytes: payloadBytes,
+    localStorageUsedBytes: localStorageAvailable ? storageBytes : null,
+    localStorageFreeBytes: freeBytes
+  });
   let storedLocal = false;
-  if (typeof localStorage !== "undefined" && !session.localStorageDisabled) {
-    const storageBytes = estimateLocalStorageBytes();
+  if (localStorageAvailable && !session.localStorageDisabled) {
     const projectedBytes = storageBytes ? storageBytes + payloadBytes : payloadBytes;
     if (projectedBytes > LOCAL_SAVE_QUOTA_BYTES) {
       session.localStorageDisabled = true;
@@ -19472,10 +19571,11 @@ function saveToSlot(index) {
         if (isQuotaExceededError(error)) {
           session.localStorageDisabled = true;
           warnLocalStorageIssue(
-            "Local save storage is full. Configure External Storage in Internal Log to keep saves synced."
+            "Local save storage is full. Configure External Storage in Internal Log to keep saves synced.",
+            error
           );
         } else {
-          warnLocalStorageIssue("Local save failed. Check browser storage settings.");
+          warnLocalStorageIssue("Local save failed. Check browser storage settings.", error);
         }
       }
     }
@@ -21980,6 +22080,8 @@ export {
   getTopActSnapshot,
   getTopTrendGenre,
   getTrack,
+  getMarketTrackById,
+  getMarketTrackByTrackId,
   getTrackRoleIds,
   getTrackRoleIdsFromSlots,
   getSelectedTourDraft,

@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { clearFileHandle, fetchFileHandle, listChartSnapshots, storeFileHandle, storeChartSnapshot } from "./db.js";
+import { recordExternalMirrorStatus, recordStorageError, updateStorageHealth } from "./storage-health.js";
+import { isQuotaExceededError } from "./storage-utils.js";
 const STORAGE_HANDLE_ID = "rls_external_storage_root_v1";
 const STORAGE_MANIFEST_NAME = "rls-storage.json";
 const USAGE_DIR = "usage-logs";
@@ -68,16 +70,22 @@ async function ensurePermission(handle, requestPermission = false) {
     return permission === "granted";
 }
 export async function getExternalStorageHandle({ requestPermission = false } = {}) {
-    if (!isExternalStorageSupported())
+    if (!isExternalStorageSupported()) {
+        updateStorageHealth({ externalConfigured: false });
         return null;
+    }
     const handle = await loadStoredHandle();
-    if (!handle)
+    if (!handle) {
+        updateStorageHealth({ externalConfigured: false });
         return null;
+    }
     const allowed = await ensurePermission(handle, requestPermission);
+    updateStorageHealth({ externalConfigured: allowed });
     return allowed ? handle : null;
 }
 export async function requestExternalStorageHandle() {
     if (!isExternalStorageSupported()) {
+        updateStorageHealth({ externalConfigured: false });
         return { ok: false, reason: "unsupported" };
     }
     try {
@@ -85,27 +93,34 @@ export async function requestExternalStorageHandle() {
         cachedHandle = handle;
         await storeFileHandle(STORAGE_HANDLE_ID, handle);
         const allowed = await ensurePermission(handle, true);
-        if (!allowed)
+        if (!allowed) {
+            updateStorageHealth({ externalConfigured: false });
             return { ok: false, reason: "permission" };
+        }
+        updateStorageHealth({ externalConfigured: true });
         await writeStorageManifest(handle, { configuredAt: nowIso() });
         return { ok: true, handle };
     }
     catch (error) {
         if (error?.name === "AbortError")
             return { ok: false, reason: "cancelled" };
+        updateStorageHealth({ externalConfigured: false });
         return { ok: false, reason: "error", error };
     }
 }
 export async function clearExternalStorageHandle() {
     cachedHandle = null;
+    updateStorageHealth({ externalConfigured: false });
     return clearFileHandle(STORAGE_HANDLE_ID);
 }
 export async function getExternalStorageStatus() {
     if (!isExternalStorageSupported()) {
+        updateStorageHealth({ externalConfigured: false });
         return { supported: false, status: "unsupported" };
     }
     const handle = await loadStoredHandle();
     if (!handle) {
+        updateStorageHealth({ externalConfigured: false });
         return { supported: true, status: "not-set" };
     }
     const permission = await (async () => {
@@ -118,11 +133,13 @@ export async function getExternalStorageStatus() {
             return "unknown";
         }
     })();
-    return {
+    const status = {
         supported: true,
         status: permission === "granted" ? "ready" : permission,
         name: handle.name || "External folder"
     };
+    updateStorageHealth({ externalConfigured: status.status === "ready" });
+    return status;
 }
 async function resolveDirectory(root, parts, create = true) {
     let current = root;
@@ -190,10 +207,21 @@ export function queueUsageSessionWrite(session) {
             return;
         enqueueWrite(async () => {
             const root = await getExternalStorageHandle();
-            if (!root)
+            if (!root) {
+                recordExternalMirrorStatus({ target: "usage", status: "skipped", reason: "not-configured" });
                 return;
-            await writeTextFile(root, [USAGE_DIR, `usage-session-${snapshot.id}.json`], JSON.stringify(snapshot, null, 2));
-            await writeStorageManifest(root, { lastUsageSession: snapshot.id, lastUsageSyncAt: nowIso() });
+            }
+            const ok = await writeTextFile(root, [USAGE_DIR, `usage-session-${snapshot.id}.json`], JSON.stringify(snapshot, null, 2));
+            if (!ok) {
+                recordExternalMirrorStatus({ target: "usage", status: "failed", reason: "write-failed" });
+                return;
+            }
+            const manifestOk = await writeStorageManifest(root, { lastUsageSession: snapshot.id, lastUsageSyncAt: nowIso() });
+            if (!manifestOk) {
+                recordExternalMirrorStatus({ target: "usage", status: "failed", reason: "manifest-failed" });
+                return;
+            }
+            recordExternalMirrorStatus({ target: "usage", status: "ok" });
         });
     }, USAGE_WRITE_DEBOUNCE_MS);
 }
@@ -202,10 +230,21 @@ export function queueSaveSlotWrite(index, payload) {
         return;
     enqueueWrite(async () => {
         const root = await getExternalStorageHandle();
-        if (!root)
+        if (!root) {
+            recordExternalMirrorStatus({ target: "saves", status: "skipped", reason: "not-configured" });
             return;
-        await writeTextFile(root, [SAVES_DIR, `slot-${index}.json`], payload);
-        await writeStorageManifest(root, { lastSaveSyncAt: nowIso(), lastSaveSlot: index });
+        }
+        const ok = await writeTextFile(root, [SAVES_DIR, `slot-${index}.json`], payload);
+        if (!ok) {
+            recordExternalMirrorStatus({ target: "saves", status: "failed", reason: "write-failed" });
+            return;
+        }
+        const manifestOk = await writeStorageManifest(root, { lastSaveSyncAt: nowIso(), lastSaveSlot: index });
+        if (!manifestOk) {
+            recordExternalMirrorStatus({ target: "saves", status: "failed", reason: "manifest-failed" });
+            return;
+        }
+        recordExternalMirrorStatus({ target: "saves", status: "ok" });
     });
 }
 export function queueSaveSlotDelete(index) {
@@ -213,10 +252,21 @@ export function queueSaveSlotDelete(index) {
         return;
     enqueueWrite(async () => {
         const root = await getExternalStorageHandle();
-        if (!root)
+        if (!root) {
+            recordExternalMirrorStatus({ target: "saves", status: "skipped", reason: "not-configured" });
             return;
-        await deleteFile(root, [SAVES_DIR, `slot-${index}.json`]);
-        await writeStorageManifest(root, { lastSaveSyncAt: nowIso(), lastSaveSlot: index, lastSaveAction: "delete" });
+        }
+        const ok = await deleteFile(root, [SAVES_DIR, `slot-${index}.json`]);
+        if (!ok) {
+            recordExternalMirrorStatus({ target: "saves", status: "failed", reason: "delete-failed" });
+            return;
+        }
+        const manifestOk = await writeStorageManifest(root, { lastSaveSyncAt: nowIso(), lastSaveSlot: index, lastSaveAction: "delete" });
+        if (!manifestOk) {
+            recordExternalMirrorStatus({ target: "saves", status: "failed", reason: "manifest-failed" });
+            return;
+        }
+        recordExternalMirrorStatus({ target: "saves", status: "ok" });
     });
 }
 export function queueChartSnapshotsWrite(snapshots) {
@@ -224,11 +274,22 @@ export function queueChartSnapshotsWrite(snapshots) {
         return;
     enqueueWrite(async () => {
         const root = await getExternalStorageHandle();
-        if (!root)
+        if (!root) {
+            recordExternalMirrorStatus({ target: "charts", status: "skipped", reason: "not-configured" });
             return;
+        }
         const lines = snapshots.map((snap) => JSON.stringify(snap)).join("\n") + "\n";
-        await writeTextFile(root, [DB_DIR, "chart-history.ndjson"], lines, { append: true });
-        await writeStorageManifest(root, { lastChartSyncAt: nowIso(), lastChartSnapshots: snapshots.length });
+        const ok = await writeTextFile(root, [DB_DIR, "chart-history.ndjson"], lines, { append: true });
+        if (!ok) {
+            recordExternalMirrorStatus({ target: "charts", status: "failed", reason: "write-failed" });
+            return;
+        }
+        const manifestOk = await writeStorageManifest(root, { lastChartSyncAt: nowIso(), lastChartSnapshots: snapshots.length });
+        if (!manifestOk) {
+            recordExternalMirrorStatus({ target: "charts", status: "failed", reason: "manifest-failed" });
+            return;
+        }
+        recordExternalMirrorStatus({ target: "charts", status: "ok" });
     });
 }
 export async function readSaveSlotFromExternal(index) {
@@ -250,14 +311,18 @@ export async function readSaveSlotFromExternal(index) {
 }
 export async function syncExternalStorageNow({ includeSaves = true, includeCharts = true, usageSession = null } = {}) {
     const root = await getExternalStorageHandle({ requestPermission: true });
-    if (!root)
+    if (!root) {
+        recordExternalMirrorStatus({ target: "sync", status: "failed", reason: "permission" });
         return { ok: false, reason: "permission" };
+    }
     const summary = {
         ok: true,
         saves: 0,
         charts: 0,
-        usage: 0
+        usage: 0,
+        reason: null
     };
+    let mirrorOk = true;
     if (includeSaves && typeof localStorage !== "undefined") {
         const prefix = getSlotPrefix();
         const count = getSlotCount();
@@ -265,32 +330,61 @@ export async function syncExternalStorageNow({ includeSaves = true, includeChart
             const raw = localStorage.getItem(`${prefix}${i}`);
             if (!raw)
                 continue;
-            const ok = await writeTextFile(root, [SAVES_DIR, `slot-${i}.json`], raw);
-            if (ok)
+            const wrote = await writeTextFile(root, [SAVES_DIR, `slot-${i}.json`], raw);
+            if (wrote) {
                 summary.saves += 1;
+            }
+            else if (mirrorOk) {
+                mirrorOk = false;
+                summary.reason = "save-write-failed";
+            }
         }
     }
     if (includeCharts) {
         const snapshots = await listChartSnapshots();
         summary.charts = snapshots.length;
         const payload = JSON.stringify({ exportedAt: nowIso(), count: snapshots.length, snapshots }, null, 2);
-        await writeTextFile(root, [DB_DIR, "chart-history.json"], payload);
+        const chartOk = await writeTextFile(root, [DB_DIR, "chart-history.json"], payload);
+        if (!chartOk && mirrorOk) {
+            mirrorOk = false;
+            summary.reason = "chart-write-failed";
+        }
         if (snapshots.length) {
             const lines = snapshots.map((snap) => JSON.stringify(snap)).join("\n") + "\n";
-            await writeTextFile(root, [DB_DIR, "chart-history.ndjson"], lines);
+            const ndOk = await writeTextFile(root, [DB_DIR, "chart-history.ndjson"], lines);
+            if (!ndOk && mirrorOk) {
+                mirrorOk = false;
+                summary.reason = "chart-write-failed";
+            }
         }
     }
     if (usageSession?.id) {
-        const ok = await writeTextFile(root, [USAGE_DIR, `usage-session-${usageSession.id}.json`], JSON.stringify(usageSession, null, 2));
-        if (ok)
+        const wrote = await writeTextFile(root, [USAGE_DIR, `usage-session-${usageSession.id}.json`], JSON.stringify(usageSession, null, 2));
+        if (wrote) {
             summary.usage = 1;
+        }
+        else if (mirrorOk) {
+            mirrorOk = false;
+            summary.reason = "usage-write-failed";
+        }
     }
-    await writeStorageManifest(root, {
+    const manifestOk = await writeStorageManifest(root, {
         lastSyncAt: nowIso(),
         saveCount: summary.saves,
         chartCount: summary.charts,
         usageCount: summary.usage
     });
+    if (!manifestOk && mirrorOk) {
+        mirrorOk = false;
+        summary.reason = "manifest-failed";
+    }
+    summary.ok = mirrorOk;
+    if (mirrorOk) {
+        recordExternalMirrorStatus({ target: "sync", status: "ok" });
+    }
+    else {
+        recordExternalMirrorStatus({ target: "sync", status: "failed", reason: summary.reason || "write-failed" });
+    }
     return summary;
 }
 export async function importChartHistoryFromExternal() {
@@ -345,8 +439,23 @@ export async function importSavesFromExternal() {
                 const index = Number(name.replace(/[^0-9]/g, ""));
                 if (!Number.isFinite(index) || !data)
                     continue;
-                localStorage.setItem(`${prefix}${index}`, JSON.stringify(data));
-                imported += 1;
+                try {
+                    localStorage.setItem(`${prefix}${index}`, JSON.stringify(data));
+                    imported += 1;
+                }
+                catch (error) {
+                    if (isQuotaExceededError(error)) {
+                        recordStorageError({
+                            scope: "localStorage",
+                            message: "Local storage is full; import skipped.",
+                            error,
+                            notify: "localStorageQuota"
+                        });
+                    }
+                    else {
+                        recordStorageError({ scope: "localStorage", message: "Save import failed.", error });
+                    }
+                }
             }
             catch {
                 // skip invalid save

@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { queueUsageSessionWrite } from "./file-storage.js";
+import { recordStorageError } from "./storage-health.js";
+import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
 
 const SESSION_INDEX_KEY = "rls_usage_session_index_v1";
 const SESSION_KEY_PREFIX = "rls_usage_session_v1:";
@@ -8,6 +10,7 @@ const EVENT_LIMIT = 360;
 const ERROR_LIMIT = 20;
 const TRAIL_LIMIT = 40;
 const PERSIST_DELAY_MS = 1500;
+const SESSION_STORAGE_MAX_BYTES = 1024 * 1024;
 
 let storage = null;
 let currentSession = null;
@@ -21,7 +24,17 @@ function resolveStorage() {
     localStorage.setItem(key, "1");
     localStorage.removeItem(key);
     return localStorage;
-  } catch {
+  } catch (error) {
+    if (isQuotaExceededError(error)) {
+      recordStorageError({
+        scope: "usage-session",
+        message: "Local storage is full; usage logging is limited.",
+        error,
+        notify: "localStorageQuota"
+      });
+      return null;
+    }
+    recordStorageError({ scope: "usage-session", message: "Local storage unavailable for usage logs.", error });
     return null;
   }
 }
@@ -65,6 +78,25 @@ function normalizePayload(payload) {
   return payload;
 }
 
+function buildSessionPayload(session) {
+  if (!session) return { payload: null, bytes: 0, trimmed: false };
+  let payload = JSON.stringify(session);
+  let bytes = estimatePayloadBytes(payload);
+  if (bytes <= SESSION_STORAGE_MAX_BYTES) return { payload, bytes, trimmed: false };
+  const trimmed = {
+    ...session,
+    events: Array.isArray(session.events) ? session.events.slice() : []
+  };
+  let trimmedAny = false;
+  while (trimmed.events.length && bytes > SESSION_STORAGE_MAX_BYTES) {
+    trimmed.events.splice(0, Math.min(10, trimmed.events.length));
+    trimmedAny = true;
+    payload = JSON.stringify(trimmed);
+    bytes = estimatePayloadBytes(payload);
+  }
+  return { payload, bytes, trimmed: trimmedAny };
+}
+
 function loadSessionIndex() {
   if (!storage) return [];
   const raw = storage.getItem(SESSION_INDEX_KEY);
@@ -76,8 +108,17 @@ function saveSessionIndex(index) {
   if (!storage) return;
   try {
     storage.setItem(SESSION_INDEX_KEY, JSON.stringify(index));
-  } catch {
-    // ignore storage errors
+  } catch (error) {
+    if (isQuotaExceededError(error)) {
+      recordStorageError({
+        scope: "usage-session",
+        message: "Local storage is full; usage session index not saved.",
+        error,
+        notify: "localStorageQuota"
+      });
+      return;
+    }
+    recordStorageError({ scope: "usage-session", message: "Usage session index save failed.", error });
   }
 }
 
@@ -123,10 +164,28 @@ function baseContext() {
 function persistSession({ syncExternal = false } = {}) {
   if (!currentSession) return;
   if (storage) {
-    try {
-      storage.setItem(`${SESSION_KEY_PREFIX}${currentSession.id}`, JSON.stringify(currentSession));
-    } catch {
-      // ignore storage errors
+    const { payload, bytes } = buildSessionPayload(currentSession);
+    if (payload && bytes <= SESSION_STORAGE_MAX_BYTES) {
+      try {
+        storage.setItem(`${SESSION_KEY_PREFIX}${currentSession.id}`, payload);
+      } catch (error) {
+        if (isQuotaExceededError(error)) {
+          recordStorageError({
+            scope: "usage-session",
+            message: "Local storage is full; usage session update skipped.",
+            error,
+            notify: "localStorageQuota"
+          });
+        } else {
+          recordStorageError({ scope: "usage-session", message: "Usage session save failed.", error });
+        }
+      }
+    } else {
+      recordStorageError({
+        scope: "usage-session",
+        message: "Usage session payload exceeded storage limit; write skipped.",
+        notify: "localStorageQuota"
+      });
     }
   }
   if (syncExternal) {
@@ -140,6 +199,12 @@ function flushPersist({ syncExternal = false } = {}) {
     persistTimer = null;
   }
   persistSession({ syncExternal });
+}
+
+export function flushUsageSession({ syncExternal = false } = {}) {
+  if (!currentSession) return null;
+  flushPersist({ syncExternal });
+  return currentSession;
 }
 
 function schedulePersist() {

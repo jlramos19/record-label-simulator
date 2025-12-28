@@ -62,7 +62,8 @@ export function recordExternalMirrorStatus({ target = "unknown", status = "ok", 
     at: nowTs(),
     target,
     status,
-    reason: reason || null
+    reason: reason || null,
+    detail: null
   };
   if (error) {
     entry.detail = typeof error.message === "string" ? error.message : String(error);

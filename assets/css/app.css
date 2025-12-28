@@ -1230,6 +1230,19 @@ body::before {
 .brand-sub { color: var(--muted); margin-top: 4px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; }
 .time-display { font-size: 17px; font-weight: 700; }
 .time-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.time-control-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.1;
+}
+.time-control-btn .time-btn-sub {
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
 .input-row { display: flex; gap: 8px; align-items: center; }
 .input-row input, .input-row select { flex: 1; }
 .label-alignment-row { flex-wrap: wrap; }

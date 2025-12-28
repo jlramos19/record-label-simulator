@@ -4,7 +4,9 @@ import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails, PROMO_TYPE_DETAILS } from "./promo_types.js";
 import { setUiHooks } from "./game/ui-hooks.js";
-import { getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
+import { flushUsageSession, getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
+import { getStorageHealthSnapshot, recordStorageError } from "./storage-health.js";
+import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
 import {
   clearExternalStorageHandle,
   getExternalStorageStatus,
@@ -137,6 +139,8 @@ const {
   weekIndex,
   clamp,
   getTrack,
+  getMarketTrackById,
+  getMarketTrackByTrackId,
   assignTrackAct,
   releaseTrack,
   scheduleRelease,
@@ -233,6 +237,7 @@ const ROUTE_ALIASES = {
 };
 const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
 const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
+const UI_EVENT_LOG_MAX_BYTES = 1024 * 1024;
 const GAME_MODE_KEY = "rls_game_mode_v1";
 const GAME_DIFFICULTY_KEY = "rls_game_difficulty_v1";
 const START_PREFS_KEY = "rls_start_prefs_v1";
@@ -294,6 +299,11 @@ function requestWorldRender() {
   ui.forceWorldRender = true;
 }
 
+function requestChartsRender() {
+  const ui = ensureUiState();
+  ui.forceChartsRender = true;
+}
+
 function isUiRenderHoldTarget(target) {
   if (!target || !target.closest) return false;
   return Boolean(target.closest(UI_RENDER_HOLD_SELECTOR));
@@ -322,6 +332,50 @@ function normalizeUiTheme(value) {
   return UI_THEME_DEFAULT;
 }
 
+function handleLocalStorageWriteError(context, error) {
+  const label = context || "local storage";
+  if (isQuotaExceededError(error)) {
+    recordStorageError({
+      scope: "localStorage",
+      message: `Local storage is full; ${label} update skipped.`,
+      error,
+      notify: "localStorageQuota"
+    });
+    return;
+  }
+  recordStorageError({ scope: "localStorage", message: `${label} update failed.`, error });
+}
+
+function safeSetLocalStoragePayload(key, payload, { context = "local storage", maxBytes = null } = {}) {
+  if (typeof localStorage === "undefined") return false;
+  if (Number.isFinite(maxBytes)) {
+    const bytes = estimatePayloadBytes(payload);
+    if (bytes > maxBytes) {
+      recordStorageError({
+        scope: "localStorage",
+        message: `Local storage is full; ${context} update skipped.`,
+        notify: "localStorageQuota"
+      });
+      return false;
+    }
+  }
+  try {
+    localStorage.setItem(key, payload);
+    return true;
+  } catch (error) {
+    handleLocalStorageWriteError(context, error);
+    return false;
+  }
+}
+
+function safeSetLocalStorageJson(key, value, options = {}) {
+  return safeSetLocalStoragePayload(key, JSON.stringify(value), options);
+}
+
+function safeSetLocalStorageString(key, value, options = {}) {
+  return safeSetLocalStoragePayload(key, String(value), options);
+}
+
 function getStoredUiTheme() {
   try {
     return normalizeUiTheme(localStorage.getItem(UI_THEME_KEY));
@@ -331,11 +385,7 @@ function getStoredUiTheme() {
 }
 
 function setStoredUiTheme(value) {
-  try {
-    localStorage.setItem(UI_THEME_KEY, value);
-  } catch (error) {
-    // Ignore storage failures (private mode, quota, etc.).
-  }
+  safeSetLocalStorageString(UI_THEME_KEY, value, { context: "UI theme" });
 }
 
 function getExternalStoragePromptState() {
@@ -359,14 +409,14 @@ function isExternalStoragePromptDismissed() {
 
 function setExternalStoragePromptDismissed(reason) {
   if (typeof localStorage === "undefined") return;
-  try {
-    localStorage.setItem(EXTERNAL_STORAGE_PROMPT_KEY, JSON.stringify({
+  safeSetLocalStorageJson(
+    EXTERNAL_STORAGE_PROMPT_KEY,
+    {
       dismissedAt: new Date().toISOString(),
       reason: reason || "skipped"
-    }));
-  } catch {
-    // Ignore storage failures (private mode, quota, etc.).
-  }
+    },
+    { context: "external storage prompt status" }
+  );
 }
 
 function clearExternalStoragePromptDismissed() {
@@ -880,7 +930,7 @@ function loadSideLayout() {
 }
 
 function saveSideLayout() {
-  localStorage.setItem(SIDE_LAYOUT_KEY, JSON.stringify(sideLayout));
+  safeSetLocalStorageJson(SIDE_LAYOUT_KEY, sideLayout, { context: "side panel layout" });
 }
 
 function updateSideToggleButtons(leftCollapsed, rightCollapsed) {
@@ -905,7 +955,7 @@ function getStoredGameMode() {
 
 function setStoredGameMode(modeId) {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(GAME_MODE_KEY, modeId);
+  safeSetLocalStorageString(GAME_MODE_KEY, modeId, { context: "game mode" });
 }
 
 function getSelectedGameModeId() {
@@ -941,7 +991,7 @@ function getStoredGameDifficulty() {
 
 function setStoredGameDifficulty(difficultyId) {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(GAME_DIFFICULTY_KEY, difficultyId);
+  safeSetLocalStorageString(GAME_DIFFICULTY_KEY, difficultyId, { context: "game difficulty" });
 }
 
 function getSelectedGameDifficultyId() {
@@ -983,7 +1033,7 @@ function loadStartPreferences() {
 
 function saveStartPreferences(prefs) {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(START_PREFS_KEY, JSON.stringify(prefs));
+  safeSetLocalStorageJson(START_PREFS_KEY, prefs, { context: "start preferences" });
 }
 
 function getStartPreferenceElements() {
@@ -1211,7 +1261,7 @@ function loadViewPanelState() {
 }
 
 function saveViewPanelState(state) {
-  localStorage.setItem(VIEW_PANEL_STATE_KEY, JSON.stringify(state));
+  safeSetLocalStorageJson(VIEW_PANEL_STATE_KEY, state, { context: "view panel state" });
 }
 
 function normalizeViewPanelState(state) {
@@ -1264,7 +1314,17 @@ function logUiEvent(type, payload = {}) {
   };
   log.push(entry);
   if (log.length > 800) log.shift();
-  localStorage.setItem(UI_EVENT_LOG_KEY, JSON.stringify(log));
+  let serialized = JSON.stringify(log);
+  let bytes = estimatePayloadBytes(serialized);
+  while (log.length && bytes > UI_EVENT_LOG_MAX_BYTES) {
+    log.shift();
+    serialized = JSON.stringify(log);
+    bytes = estimatePayloadBytes(serialized);
+  }
+  safeSetLocalStoragePayload(UI_EVENT_LOG_KEY, serialized, {
+    context: "UI event log",
+    maxBytes: UI_EVENT_LOG_MAX_BYTES
+  });
   const isAction = type === "action_submit" || type === "route_change";
   recordUsageEvent(`ui.${type}`, payload, {
     route: entry.route,
@@ -1482,6 +1542,7 @@ function resetChartHistoryView({ render = true } = {}) {
   state.ui.chartHistorySnapshot = null;
   saveToActiveSlot();
   if (render && $("chartList")) {
+    requestChartsRender();
     renderCharts();
   }
 }
@@ -1502,6 +1563,7 @@ async function applyChartHistoryWeek(week, chartKey) {
   state.ui.chartHistorySnapshot = snapshot || null;
   saveToActiveSlot();
   if ($("chartList")) {
+    requestChartsRender();
     renderCharts();
   }
 }
@@ -1734,6 +1796,8 @@ function updateRoute(route) {
   }
   activeRoute = next;
   state.ui.activeView = next;
+  if (next === "charts") requestChartsRender();
+  if (next === "world") requestWorldRender();
   document.querySelectorAll(".app-nav a[data-route]").forEach((link) => {
     link.classList.toggle("active", link.dataset.route === next);
   });
@@ -2498,16 +2562,16 @@ function updateAutoPromoSummary(scope) {
     if (!hasTarget && pct <= 0) continue;
     const context = getPromoTargetContext(trackId, projectId, actId);
     const market = context.track?.marketId
-      ? state.marketTracks.find((entry) => entry.id === context.track.marketId)
+      ? getMarketTrackById(context.track.marketId)
       : context.track
-        ? state.marketTracks.find((entry) => entry.trackId === context.track.id)
+        ? getMarketTrackByTrackId(context.track.id)
         : null;
     const projectTargets = context.project ? listPromoEligibleTracks(context.projectTracks) : [];
     const projectBoostable = projectTargets.some((entry) => {
       if (entry.status === "Released") {
         const entryMarket = entry.marketId
-          ? state.marketTracks.find((candidate) => candidate.id === entry.marketId)
-          : state.marketTracks.find((candidate) => candidate.trackId === entry.id);
+          ? getMarketTrackById(entry.marketId)
+          : getMarketTrackByTrackId(entry.id);
         return entryMarket && (entryMarket.promoWeeks || 0) <= 0;
       }
       return Math.max(0, entry.promo?.preReleaseWeeks || 0) <= 0;
@@ -3415,6 +3479,7 @@ function bindViewHandlers(route, root) {
     if (state.ui.chartHistoryWeek) {
       applyChartHistoryWeek(state.ui.chartHistoryWeek, state.ui.activeChart);
     } else {
+      requestChartsRender();
       renderCharts();
     }
   };
@@ -3445,6 +3510,7 @@ function bindViewHandlers(route, root) {
       const next = tab.dataset.chartContent || "tracks";
       if (next === state.ui.chartContentType) return;
       state.ui.chartContentType = next;
+      requestChartsRender();
       renderCharts();
     });
   }
@@ -4442,6 +4508,7 @@ function bindViewHandlers(route, root) {
   on("cheatCccInjectBtn", "click", () => {
     if (!state.meta?.cheaterMode) {
       logEvent("Enable Cheater Mode in Settings to inject Creator IDs.", "warn");
+      requestWorldRender();
       renderMarket();
       return;
     }
@@ -4469,6 +4536,7 @@ function bindViewHandlers(route, root) {
     const status = $("cheatCccStatus");
     if (status) status.textContent = result.message || "";
     if (result.ok) saveToActiveSlot();
+    requestWorldRender();
     renderMarket();
   });
   on("cheatCccClearBtn", "click", () => {
@@ -4741,9 +4809,11 @@ function bindViewHandlers(route, root) {
 }
 
 function exportDebugBundle() {
+  flushUsageSession();
   const log = loadUiEventLog();
   const eventLog = Array.isArray(state.events) ? state.events : [];
   const usageSession = getUsageSessionSnapshot();
+  const storageHealth = getStorageHealthSnapshot();
   const snapshot = {
     route: state.ui.activeView || activeRoute,
     week: weekIndex() + 1,
@@ -4783,6 +4853,7 @@ function exportDebugBundle() {
   downloadFile("simulation_event_log.json", JSON.stringify(eventLog, null, 2), "application/json");
   downloadFile("usage_session_summary.md", summary, "text/markdown");
   downloadFile("state_snapshot.json", JSON.stringify(snapshot, null, 2), "application/json");
+  downloadFile("storage_health.json", JSON.stringify(storageHealth, null, 2), "application/json");
   if (usageSession?.id) {
     downloadFile(`usage_session_${usageSession.id}.json`, JSON.stringify(usageSession, null, 2), "application/json");
   }
@@ -4885,7 +4956,7 @@ function savePanelLayout() {
       marginTop: panel.style.marginTop || ""
     };
   });
-  localStorage.setItem(PANEL_LAYOUT_KEY, JSON.stringify(layout));
+  safeSetLocalStorageJson(PANEL_LAYOUT_KEY, layout, { context: "panel layout" });
 }
 
 function loadPanelLayout() {
@@ -6586,7 +6657,7 @@ function runPromotion() {
       ? formatDate(projectReleaseAt)
       : formatDate(state.time.epochMs);
   const market = trackContext.isReleased && trackContext.track
-    ? state.marketTracks.find((entry) => entry.id === trackContext.track.marketId)
+    ? getMarketTrackById(trackContext.track.marketId)
     : null;
   if (trackContext.isReleased && trackContext.track && !market) {
     logEvent("Track is not active on the market.", "warn");
@@ -6692,9 +6763,9 @@ function runPromotion() {
   const findMarketEntry = (entry) => {
     if (!entry) return null;
     if (entry.marketId) {
-      return state.marketTracks.find((marketEntry) => marketEntry.id === entry.marketId) || null;
+      return getMarketTrackById(entry.marketId) || null;
     }
-    return state.marketTracks.find((marketEntry) => marketEntry.trackId === entry.id) || null;
+    return getMarketTrackByTrackId(entry.id) || null;
   };
   if (trackContext.track) {
     const promo = trackContext.track.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
@@ -7366,10 +7437,29 @@ function formatQuickSkipDescriptor(config) {
   return "";
 }
 
-function buildQuickSkipButtonLabel(button, baseLabel) {
+function buildQuickSkipButtonParts(button, baseLabel) {
   const config = getQuickSkipConfig(button);
   const descriptor = formatQuickSkipDescriptor(config);
-  return descriptor ? `${baseLabel} (${descriptor})` : baseLabel;
+  return {
+    label: baseLabel,
+    detail: descriptor ? `(${descriptor})` : ""
+  };
+}
+
+function setTimeControlLabel(button, label, detail) {
+  if (!button) return;
+  const title = button.ownerDocument.createElement("span");
+  title.className = "time-btn-title";
+  title.textContent = label;
+  button.textContent = "";
+  button.appendChild(title);
+  if (detail) {
+    const sub = button.ownerDocument.createElement("span");
+    sub.className = "time-btn-sub";
+    sub.textContent = detail;
+    button.appendChild(sub);
+  }
+  button.classList.add("time-control-btn");
 }
 
 function daysInUtcMonth(year, monthIndex) {
@@ -7459,7 +7549,7 @@ function getSplitLayoutState() {
 
 function saveSplitLayoutState() {
   if (!splitLayoutState) return;
-  localStorage.setItem(SPLIT_LAYOUT_STATE_KEY, JSON.stringify(splitLayoutState));
+  safeSetLocalStorageJson(SPLIT_LAYOUT_STATE_KEY, splitLayoutState, { context: "split layout state" });
 }
 
 function clampSplitLayout(layout) {
@@ -7563,21 +7653,27 @@ function setupSplitLayouts(root) {
 
 function updateTimeControlLabels() {
   const pauseBtn = $("pauseBtn");
-  if (pauseBtn) pauseBtn.textContent = "Pause (stopped)";
+  setTimeControlLabel(pauseBtn, "Pause", "(stopped)");
   const playBtn = $("playBtn");
   if (playBtn) {
-    playBtn.textContent = `Play (1h = ${formatRealTimeSeconds(state.time?.secPerHourPlay)})`;
+    setTimeControlLabel(playBtn, "Play", `(1h = ${formatRealTimeSeconds(state.time?.secPerHourPlay)})`);
   }
   const fastBtn = $("fastBtn");
   if (fastBtn) {
-    fastBtn.textContent = `Fast (1h = ${formatRealTimeSeconds(state.time?.secPerHourFast)})`;
+    setTimeControlLabel(fastBtn, "Fast", `(1h = ${formatRealTimeSeconds(state.time?.secPerHourFast)})`);
   }
   const autoDayBtn = $("autoSkipDayBtn");
-  if (autoDayBtn) autoDayBtn.textContent = buildQuickSkipButtonLabel(autoDayBtn, "Auto Day");
+  if (autoDayBtn) {
+    const { label, detail } = buildQuickSkipButtonParts(autoDayBtn, "Auto Day");
+    setTimeControlLabel(autoDayBtn, label, detail);
+  }
   const autoWeekBtn = $("autoSkipWeekBtn");
-  if (autoWeekBtn) autoWeekBtn.textContent = buildQuickSkipButtonLabel(autoWeekBtn, "Auto Week");
+  if (autoWeekBtn) {
+    const { label, detail } = buildQuickSkipButtonParts(autoWeekBtn, "Auto Week");
+    setTimeControlLabel(autoWeekBtn, label, detail);
+  }
   const skipBtn = $("skipTimeBtn");
-  if (skipBtn) skipBtn.textContent = "Skip (custom)";
+  setTimeControlLabel(skipBtn, "Skip", "(custom)");
 }
 
 function updateTimeControlButtons() {
@@ -7628,6 +7724,7 @@ function runTimeJump(totalHours, label) {
     return;
   }
   timeJumpInFlight = true;
+  session.timeJumpActive = true;
   const chunkSize = totalHours >= 24 * 365 ? 48 : totalHours >= 24 * 90 ? 24 : 12;
   let completed = 0;
   let cancelled = false;
@@ -7643,6 +7740,7 @@ function runTimeJump(totalHours, label) {
 
   const finish = () => {
     timeJumpInFlight = false;
+    session.timeJumpActive = false;
     closeSkipProgress();
     renderAll();
   };

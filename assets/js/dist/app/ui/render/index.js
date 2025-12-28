@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -10,7 +10,19 @@ const ACCESSIBLE_TEXT = { dark: "#000000", light: "#ffffff" };
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
     .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
 const WORLD_RENDER_THROTTLE_MS = 1200;
+const CHART_RENDER_THROTTLE_MS = 1500;
+const WORLD_RENDER_FAST_HOUR_STEP = 6;
+const CHART_RENDER_FAST_HOUR_STEP = 6;
+const MARKET_RENDER_LOG_MS = 24;
+const MARKET_RENDER_LOG_COOLDOWN_MS = 15000;
 let lastWorldRenderAt = 0;
+let lastWorldRenderHour = null;
+let lastChartsRenderAt = 0;
+let lastChartsRenderHour = null;
+let lastMarketPerfLogAt = 0;
+const perfNow = () => (typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now());
 function renderRolloutBudgetSummary(strategy) {
     const summary = buildRolloutBudgetSummary(strategy);
     if (!summary)
@@ -701,7 +713,7 @@ function renderSlots() {
     const trackAct = getAct(state.ui.trackSlots.actId);
     const eraAct = getAct(state.ui.eraSlots.actId);
     const promoProject = state.ui.promoSlots.projectId ? parsePromoProjectKey(state.ui.promoSlots.projectId) : null;
-    const promoTrack = state.marketTracks.find((entry) => entry.trackId === state.ui.promoSlots.trackId)
+    const promoTrack = getMarketTrackByTrackId(state.ui.promoSlots.trackId)
         || getTrack(state.ui.promoSlots.trackId);
     const socialTrack = getTrack(state.ui.socialSlots.trackId);
     const unassignedLabel = UNASSIGNED_SLOT_LABEL;
@@ -778,7 +790,7 @@ function renderSlots() {
             let trackLabel = track ? track.title : unassignedLabel;
             const isPromoTrackSlot = target === "promo-track" || (typeof target === "string" && target.startsWith("auto-promo-track-"));
             if (!track && isPromoTrackSlot && value) {
-                const marketEntry = state.marketTracks.find((entry) => entry.trackId === value);
+                const marketEntry = getMarketTrackByTrackId(value);
                 if (marketEntry?.title)
                     trackLabel = marketEntry.title;
             }
@@ -4399,7 +4411,13 @@ function renderCheaterCccControls() {
             : "Enable Cheater Mode in Settings to use CCC injection.";
     }
 }
-function renderMarket() {
+function renderMarket({ skipThrottle = false } = {}) {
+    if (!skipThrottle) {
+        if (shouldThrottleWorldRender())
+            return;
+        recordWorldRender();
+    }
+    const perfStart = perfNow();
     ensureMarketCreators({}, { replenish: false });
     renderCheaterCccControls();
     const listEl = $("marketList");
@@ -4585,6 +4603,14 @@ function renderMarket() {
     `;
     });
     listEl.innerHTML = columns.join("");
+    const durationMs = perfNow() - perfStart;
+    if (durationMs > MARKET_RENDER_LOG_MS) {
+        const now = perfNow();
+        if (now - lastMarketPerfLogAt >= MARKET_RENDER_LOG_COOLDOWN_MS) {
+            lastMarketPerfLogAt = now;
+            logEvent(`[perf] Market render ${durationMs.toFixed(2)}ms (creators ${pool.length})`, "warn");
+        }
+    }
 }
 function buildRivalActSummary(labelName) {
     const entries = Array.isArray(state.marketTracks) ? state.marketTracks : [];
@@ -5993,7 +6019,7 @@ function renderEraPerformance() {
         const act = getAct(track.actId);
         const economy = track.economy || {};
         const isReleased = track.status === "Released";
-        const marketEntry = state.marketTracks.find((entry) => entry.trackId === track.id)
+        const marketEntry = getMarketTrackByTrackId(track.id)
             || state.meta?.marketTrackArchive?.find((entry) => entry.trackId === track.id);
         const history = marketEntry?.chartHistory?.global || null;
         const peakLabel = history?.peak ? `#${history.peak}` : "-";
@@ -7234,6 +7260,9 @@ function renderStudiosList() {
     }).join("");
 }
 function renderCharts() {
+    if (shouldThrottleChartsRender())
+        return;
+    recordChartsRender();
     const contentType = state.ui.chartContentType || "tracks";
     const isActs = contentType === "acts";
     const isDemographics = contentType === "demographics";
@@ -8706,12 +8735,41 @@ function shouldThrottleWorldRender() {
     if (state.ui?.forceWorldRender)
         return false;
     const now = Date.now();
+    const totalHours = Number.isFinite(state.time?.totalHours) ? state.time.totalHours : null;
+    const isFast = state.time?.speed === "fast" || session.timeJumpActive;
+    if (isFast && Number.isFinite(totalHours) && Number.isFinite(lastWorldRenderHour)) {
+        if (totalHours - lastWorldRenderHour < WORLD_RENDER_FAST_HOUR_STEP)
+            return true;
+    }
     return now - lastWorldRenderAt < WORLD_RENDER_THROTTLE_MS;
 }
 function recordWorldRender() {
     lastWorldRenderAt = Date.now();
+    if (Number.isFinite(state.time?.totalHours))
+        lastWorldRenderHour = state.time.totalHours;
     if (state.ui?.forceWorldRender)
         state.ui.forceWorldRender = false;
+}
+function shouldThrottleChartsRender() {
+    if (state.time?.speed === "pause")
+        return false;
+    if (state.ui?.forceChartsRender)
+        return false;
+    const now = Date.now();
+    const totalHours = Number.isFinite(state.time?.totalHours) ? state.time.totalHours : null;
+    const isFast = state.time?.speed === "fast" || session.timeJumpActive;
+    if (isFast && Number.isFinite(totalHours) && Number.isFinite(lastChartsRenderHour)) {
+        if (totalHours - lastChartsRenderHour < CHART_RENDER_FAST_HOUR_STEP)
+            return true;
+    }
+    return now - lastChartsRenderAt < CHART_RENDER_THROTTLE_MS;
+}
+function recordChartsRender() {
+    lastChartsRenderAt = Date.now();
+    if (Number.isFinite(state.time?.totalHours))
+        lastChartsRenderHour = state.time.totalHours;
+    if (state.ui?.forceChartsRender)
+        state.ui.forceChartsRender = false;
 }
 function renderActiveView(view) {
     const raw = view || state.ui.activeView || "dashboard";
@@ -8761,7 +8819,7 @@ function renderActiveView(view) {
         if (shouldThrottleWorldRender())
             return;
         recordWorldRender();
-        renderMarket();
+        renderMarket({ skipThrottle: true });
         renderModifierTools();
         renderRivalRosterPanel();
         renderPopulation();

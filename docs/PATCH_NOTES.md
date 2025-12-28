@@ -1,8 +1,15 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-1028Z)
+- Time control buttons now stack parenthetical speed/skip details under the main label for quicker scanning. [PN-20251228-AC77]
+- Local storage writes now preflight log/settings payloads, warn on quota, and capture storage health diagnostics. [PN-20251228-AC79]
+- Usage sessions now flush on visibility changes and debug bundle exports; external mirror failures keep local copies and log diagnostics. [PN-20251228-AC80]
+- Chart worker requests now time out and clear pending promises on termination to avoid leaks. [PN-20251228-AC81]
+- Fast sim now throttles chart/market renders, uses cached market-track lookups, and logs perf timings to cut stutter; chart snapshots no longer double-assign `projectType`. [PN-20251228-AC78]
+
 ## 2025-12-28 (RLS-PATCH-20251228-1014Z)
-- Chart scoring jitter is now deterministic per week/scope/track to prevent flicker and non-repro ordering. [PN-20251228-AC74]
-- Added chart determinism diagnostics (worker parity logs, console harness, and monopoly share checks). [PN-20251228-AC75]
+- Chart scoring jitter is now deterministic per week/scope/track to prevent flicker and non-repro ordering. [PN-20251228-AC75]
+- Added chart determinism diagnostics (worker parity logs, console harness, and monopoly share checks). [PN-20251228-AC76]
 
 ## 2025-12-28 (RLS-PATCH-20251228-0946Z)
 - External storage prompts now respect secure contexts and remember a skip choice so the save folder dialog stops blocking play. [PN-20251228-AC72]
@@ -855,3 +862,10 @@
 - PN-20251228-AC72 (2025-12-28 09:46Z): External storage prompts now respect secure contexts and remember a skip choice so the save folder dialog stops blocking play.
 - PN-20251228-AC73 (2025-12-28 09:46Z): Monopoly losses now record a loss, disable achievements, and let the run continue instead of forcing a slot exit.
 - PN-20251228-AC74 (2025-12-28 10:10Z): Track quality potential now uses deterministic per-track jitter so refreshes stop re-rolling scores.
+- PN-20251228-AC75 (2025-12-28 10:14Z): Chart scoring jitter is now deterministic per week/scope/track to prevent flicker and non-repro ordering.
+- PN-20251228-AC76 (2025-12-28 10:14Z): Added chart determinism diagnostics (worker parity logs, console harness, and monopoly share checks).
+- PN-20251228-AC77 (2025-12-28 10:28Z): Time control buttons now stack parenthetical speed/skip details under the main label for quicker scanning.
+- PN-20251228-AC78 (2025-12-28 10:33Z): Fast sim now throttles chart/market renders, uses cached market-track lookups, and logs perf timings to cut stutter; chart snapshots no longer double-assign projectType.
+- PN-20251228-AC79 (2025-12-28 11:30Z): Local storage writes now preflight log/settings payloads, warn on quota, and capture storage health diagnostics.
+- PN-20251228-AC80 (2025-12-28 11:31Z): Usage sessions now flush on visibility changes and debug bundle exports; external mirror failures keep local copies and log diagnostics.
+- PN-20251228-AC81 (2025-12-28 11:32Z): Chart worker requests now time out and clear pending promises on termination to avoid leaks.
