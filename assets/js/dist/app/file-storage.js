@@ -21,6 +21,14 @@ export function isExternalStorageSupported() {
         return false;
     if (typeof window.showDirectoryPicker !== "function")
         return false;
+    if (typeof window.location === "object") {
+        const protocol = window.location.protocol || "";
+        const hostname = window.location.hostname || "";
+        const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+        const isAllowedHttp = protocol === "http:" && isLocalhost;
+        if (protocol !== "https:" && !isAllowedHttp)
+            return false;
+    }
     if (typeof window.isSecureContext === "boolean" && !window.isSecureContext)
         return false;
     return true;

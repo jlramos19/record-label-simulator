@@ -1212,10 +1212,15 @@ async function refreshExternalStorageStatus(root) {
     if (clearBtn)
         clearBtn.disabled = false;
 }
-async function handleExternalStoragePick(root) {
+async function handleExternalStoragePick(root, { fromPrompt = false } = {}) {
     const result = await requestExternalStorageHandle();
-    if (!result.ok && result.reason !== "cancelled") {
-        logEvent(`External storage folder could not be set (${result.reason}).`, "warn");
+    if (!result.ok) {
+        if (result.reason === "cancelled" && fromPrompt) {
+            setExternalStoragePromptDismissed("cancelled");
+        }
+        else if (result.reason !== "cancelled") {
+            logEvent(`External storage folder could not be set (${result.reason}).`, "warn");
+        }
     }
     const usageSession = getUsageSessionSnapshot();
     if (result.ok) {
@@ -1302,7 +1307,7 @@ async function maybePromptExternalStorageOnStart() {
         return null;
     if (!$("externalStoragePrompt"))
         return null;
-    if (!session.localStorageDisabled && isExternalStoragePromptDismissed())
+    if (isExternalStoragePromptDismissed())
         return null;
     const status = await refreshExternalStoragePromptStatus();
     if (status?.status === "ready") {
@@ -2856,7 +2861,7 @@ function bindGlobalHandlers() {
     });
     on("menuSaveBtn", "click", () => handleManualSave(true));
     on("externalStoragePromptPickBtn", "click", async () => {
-        await handleExternalStoragePick(document);
+        await handleExternalStoragePick(document, { fromPrompt: true });
         const status = await refreshExternalStoragePromptStatus();
         if (status?.status === "ready") {
             closeOverlay("externalStoragePrompt");
