@@ -67,11 +67,17 @@ const CREATOR_PORTRAIT_MANIFEST = {
     "loyalty-saddening/age-20-23/crowlya-man": [
       "Default_This_is_an_album_cover_The_theme_of_the_image_is_Loyal_2.jpg"
     ],
+    "loyalty-thrilling/age-24-27/annglora-woman": [
+      "Leonardo_Phoenix_A_photocard_of_an_ethereal_female_singer_wear_3.jpg"
+    ],
     "morality-angering/age-36-43/bytenza-woman": [
       "Leonardo_Kino_XL_A_regal_and_elegant_portrait_of_Prime_Ministe_3.jpg"
     ],
     "morality-boring/age-44-51/annglora-man": [
       "Default_This_is_a_headandshoulders_photo_from_a_lowupward_angl_3.jpg"
+    ],
+    "morality-calming/age-20-23/annglora-man": [
+      "Default_I_am_Hunter_Mossfield_an_18yearold_American_white_male_7.jpg"
     ],
     "morality-calming/age-20-23/crowlya-man": [
       "Default_A_headandshoulders_portrait_of_a_20yearold_male_He_is_.png"
