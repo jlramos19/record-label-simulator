@@ -3,12 +3,14 @@
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch",
     "start": "powershell -Command \"python -m http.server 5173\"",
-    "dev:logs": "node scripts/dev-with-logs.mjs"
+    "dev:logs": "node scripts/dev-with-logs.mjs",
+    "tracklist:lint": "node scripts/tracklist-lint.mjs"
   },
   "dependencies": {
     "puppeteer": "^24.34.0"
   },
   "devDependencies": {
+    "prettier": "^3.3.3",
     "typescript": "^5.9.3"
   }
 }
