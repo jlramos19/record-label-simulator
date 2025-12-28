@@ -1,3 +1,5 @@
+import { formatCompactDateRange } from "./game.js";
+
 type CalendarEvent = {
   id?: string;
   ts: number;
@@ -75,8 +77,7 @@ function formatEventTimeLabel(epochMs) {
 }
 
 function formatRangeLabel(startWeek, endWeek, startEpochMs, endEpochMs) {
-  const weekLabel = startWeek === endWeek ? `Week ${startWeek}` : `Weeks ${startWeek}-${endWeek}`;
-  return `${weekLabel} | ${formatShortDate(startEpochMs)} - ${formatShortDate(endEpochMs)}`;
+  return formatCompactDateRange(startEpochMs, endEpochMs);
 }
 
 function escapeAttr(value) {
@@ -229,7 +230,8 @@ export function CalendarDayCell(day) {
 
 export function CalendarWeekRow(week) {
   const days = Array.isArray(week.days) ? week.days : [];
-  const label = week.label || `Week ${week.weekNumber}`;
+  const endStamp = Number.isFinite(week.end) ? week.end - 1 : week.end;
+  const label = week.label || formatCompactDateRange(week.start, endStamp);
   const dayCells = days.map((day) => CalendarDayCell(day)).join("");
   const rowClass = [
     "calendar-week-row",

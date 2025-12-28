@@ -49,6 +49,7 @@ import {
   renderQuickRecipes,
   renderRankingWindow,
   renderReleaseDesk,
+  renderRivalRosterPanel,
   renderRoleActions,
   renderSlots,
   renderSocialFeed,
@@ -122,6 +123,8 @@ const {
   deleteTourDraft,
   getSelectedTourDraft,
   selectTourDraft,
+  listTourDrafts,
+  getRolloutPlanById,
   getRolloutStrategyById,
   setSelectedRolloutStrategyId,
   addRolloutStrategyDrop,
@@ -140,6 +143,7 @@ const {
   getReleaseAsapHours,
   buildMarketCreators,
   injectCheaterMarketCreators,
+  getRivalByName,
   buildPromoProjectKey,
   buildPromoProjectKeyFromTrack,
   normalizeCreator,
@@ -249,6 +253,8 @@ let calendarWheelAt = 0;
 let calendarDragState = null;
 let timeJumpInFlight = false;
 let horizontalWheelBound = false;
+let externalStoragePromptPromise = null;
+let externalStoragePromptResolve = null;
 
 const TRACK_ROLE_KEYS = {
   Songwriter: "songwriterIds",
@@ -278,6 +284,11 @@ function emitStateChanged() {
 function ensureUiState() {
   if (!state.ui) state.ui = {};
   return state.ui;
+}
+
+function requestWorldRender() {
+  const ui = ensureUiState();
+  ui.forceWorldRender = true;
 }
 
 function isUiRenderHoldTarget(target) {
@@ -793,6 +804,7 @@ const VIEW_DEFAULTS = {
   world: {
     "ccc-market": VIEW_PANEL_STATES.open,
     "community-tools": VIEW_PANEL_STATES.open,
+    "community-rivals": VIEW_PANEL_STATES.open,
     "community-cheats": VIEW_PANEL_STATES.open
   },
   logs: {
@@ -1341,6 +1353,64 @@ async function handleExternalStorageClear(root) {
   await refreshExternalStorageStatus(root);
 }
 
+function resolveExternalStoragePrompt() {
+  if (!externalStoragePromptResolve) return;
+  externalStoragePromptResolve();
+  externalStoragePromptResolve = null;
+  externalStoragePromptPromise = null;
+}
+
+function updateExternalStoragePromptStatus(status) {
+  const statusEl = $("externalStoragePromptStatus");
+  const detailEl = $("externalStoragePromptDetail");
+  const pickBtn = $("externalStoragePromptPickBtn");
+  if (!statusEl || !detailEl || !pickBtn) return;
+
+  if (!status || status.supported === false || status.status === "unsupported") {
+    statusEl.textContent = "External storage is not supported in this browser.";
+    detailEl.textContent = "Use Edge or Chrome on localhost or HTTPS.";
+    pickBtn.disabled = true;
+    return;
+  }
+
+  if (status.status === "ready") {
+    statusEl.textContent = `Folder: ${status.name || "External folder"}`;
+    detailEl.textContent = "Ready to sync saves, logs, and charts.";
+    pickBtn.disabled = false;
+    return;
+  }
+
+  if (status.status === "not-set") {
+    statusEl.textContent = "No folder selected yet.";
+    detailEl.textContent = "Choose a folder to store save slots and logs.";
+    pickBtn.disabled = false;
+    return;
+  }
+
+  statusEl.textContent = `Folder: ${status.name || "External folder"}`;
+  detailEl.textContent = "Permission needed; choose a folder to re-authorize.";
+  pickBtn.disabled = false;
+}
+
+async function refreshExternalStoragePromptStatus() {
+  const status = await getExternalStorageStatus();
+  updateExternalStoragePromptStatus(status);
+  return status;
+}
+
+async function maybePromptExternalStorageOnStart() {
+  if (!isExternalStorageSupported()) return null;
+  if (!$("externalStoragePrompt")) return null;
+  const status = await refreshExternalStoragePromptStatus();
+  if (status?.status === "ready") return null;
+  if (externalStoragePromptPromise) return externalStoragePromptPromise;
+  openOverlay("externalStoragePrompt");
+  externalStoragePromptPromise = new Promise((resolve) => {
+    externalStoragePromptResolve = resolve;
+  });
+  return externalStoragePromptPromise;
+}
+
 function chartScopeKey(chartKey) {
   const base = chartKey === "global"
     ? "global"
@@ -1372,7 +1442,7 @@ async function applyChartHistoryWeek(week, chartKey) {
   if (!week || week < 1) return;
   const currentWeek = weekIndex() + 1;
   if (week > currentWeek) {
-    logEvent(`Charts are only available through Week ${currentWeek}.`, "warn");
+    logEvent(`Charts are only available through ${formatWeekRangeLabel(currentWeek)}.`, "warn");
     return;
   }
   const requestId = chartHistoryRequestId + 1;
@@ -2645,6 +2715,25 @@ function bindGlobalHandlers() {
       section.classList.toggle("hidden", section.dataset.tutorialSection !== tabId);
     });
   };
+  const focusRivalRoster = (labelName) => {
+    const label = String(labelName || "").trim();
+    if (!label) return;
+    const rival = getRivalByName(label);
+    if (!rival) return;
+    if (!state.ui) state.ui = {};
+    state.ui.rivalRosterId = rival.id;
+    const route = state.ui.activeView || activeRoute;
+    if (route !== "world") {
+      state.ui.rivalRosterFocus = true;
+      window.location.hash = "#/world";
+      return;
+    }
+    renderRivalRosterPanel();
+    setViewPanelState("world", "community-rivals", VIEW_PANEL_STATES.open);
+    const panel = document.querySelector('[data-panel="community-rivals"]');
+    if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    saveToActiveSlot();
+  };
 
   document.addEventListener("pointerdown", (event) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -2675,6 +2764,11 @@ function bindGlobalHandlers() {
     const category = trigger.dataset.rankingMore;
     if (!category) return;
     openRankingWindow(category, { anchor: trigger });
+  });
+  document.addEventListener("click", (event) => {
+    const label = event.target.closest("[data-rival-label]");
+    if (!label) return;
+    focusRivalRoster(label.dataset.rivalLabel);
   });
 
   on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
@@ -2731,6 +2825,19 @@ function bindGlobalHandlers() {
     syncTimeControlAria();
   });
   on("menuSaveBtn", "click", () => handleManualSave(true));
+  on("externalStoragePromptPickBtn", "click", async () => {
+    await handleExternalStoragePick(document);
+    const status = await refreshExternalStoragePromptStatus();
+    if (status?.status === "ready") {
+      closeOverlay("externalStoragePrompt");
+      resolveExternalStoragePrompt();
+    }
+  });
+  on("externalStoragePromptSkipBtn", "click", () => {
+    closeOverlay("externalStoragePrompt");
+    logEvent("External storage setup skipped. Saves will remain local.", "warn");
+    resolveExternalStoragePrompt();
+  });
   on("uiThemeSelect", "change", (e) => {
     applyUiTheme(e.target.value, { persist: true });
   });
@@ -3094,6 +3201,12 @@ function bindGlobalHandlers() {
 
   document.addEventListener("keydown", (e) => {
     const active = document.activeElement;
+    const label = active?.closest ? active.closest("[data-rival-label]") : null;
+    if (label && (e.code === "Enter" || e.code === "Space")) {
+      e.preventDefault();
+      focusRivalRoster(label.dataset.rivalLabel);
+      return;
+    }
     if (active && (active.tagName === "INPUT" || active.isContentEditable)) return;
     if (e.code === "Space") {
       e.preventDefault();
@@ -3166,6 +3279,26 @@ function bindViewHandlers(route, root) {
       syncFooter();
       saveToActiveSlot();
     });
+  }
+
+  if (route === "world") {
+    const rosterSelect = root.querySelector("#rivalRosterSelect");
+    if (rosterSelect && !rosterSelect.dataset.bound) {
+      rosterSelect.dataset.bound = "1";
+      rosterSelect.addEventListener("change", (event) => {
+        const next = event.target.value || null;
+        state.ui.rivalRosterId = next;
+        renderRivalRosterPanel();
+        saveToActiveSlot();
+      });
+    }
+    if (state.ui?.rivalRosterFocus) {
+      setViewPanelState("world", "community-rivals", VIEW_PANEL_STATES.open);
+      renderRivalRosterPanel();
+      const panel = root.querySelector('[data-panel="community-rivals"]');
+      if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      state.ui.rivalRosterFocus = false;
+    }
   }
 
   const setActiveChart = (chartKey) => {
@@ -3472,23 +3605,52 @@ function bindViewHandlers(route, root) {
         saveToActiveSlot();
       });
     }
+    const viewTabs = root.querySelector("#awardsViewTabs");
+    if (viewTabs) {
+      viewTabs.addEventListener("click", (e) => {
+        const tab = e.target.closest("[data-awards-view]");
+        if (!tab) return;
+        const nextView = tab.dataset.awardsView;
+        if (!nextView || nextView === state.ui.awardsView) return;
+        state.ui.awardsView = nextView;
+        renderActiveView("awards");
+        saveToActiveSlot();
+      });
+    }
     const selectCategory = (categoryId) => {
       if (!categoryId) return;
       state.ui.awardsCategoryId = categoryId;
       renderActiveView("awards");
       saveToActiveSlot();
     };
+    const selectChart = (chartType) => {
+      if (!chartType) return;
+      state.ui.awardsChartType = chartType;
+      renderActiveView("awards");
+      saveToActiveSlot();
+    };
     root.addEventListener("click", (e) => {
       const row = e.target.closest("[data-award-category]");
-      if (!row) return;
-      selectCategory(row.dataset.awardCategory);
+      if (row) {
+        selectCategory(row.dataset.awardCategory);
+        return;
+      }
+      const chartRow = e.target.closest("[data-award-chart]");
+      if (!chartRow) return;
+      selectChart(chartRow.dataset.awardChart);
     });
     root.addEventListener("keydown", (e) => {
       if (e.key !== "Enter" && e.key !== " ") return;
       const row = e.target.closest("[data-award-category]");
-      if (!row) return;
+      if (row) {
+        e.preventDefault();
+        selectCategory(row.dataset.awardCategory);
+        return;
+      }
+      const chartRow = e.target.closest("[data-award-chart]");
+      if (!chartRow) return;
       e.preventDefault();
-      selectCategory(row.dataset.awardCategory);
+      selectChart(chartRow.dataset.awardChart);
     });
   }
 
@@ -4104,14 +4266,17 @@ function bindViewHandlers(route, root) {
   });
   on("cccThemeFilter", "change", (e) => {
     state.ui.cccThemeFilter = e.target.value || "All";
+    requestWorldRender();
     renderAll();
   });
   on("cccMoodFilter", "change", (e) => {
     state.ui.cccMoodFilter = e.target.value || "All";
+    requestWorldRender();
     renderAll();
   });
   on("cccSort", "change", (e) => {
     state.ui.cccSort = e.target.value || "default";
+    requestWorldRender();
     renderAll();
   });
 
@@ -4140,10 +4305,12 @@ function bindViewHandlers(route, root) {
       });
       if (!result?.ok) {
         shakeElement(btn);
+        requestWorldRender();
         renderAll();
         return;
       }
       refreshSelectOptions();
+      requestWorldRender();
       renderAll();
     });
   }
@@ -4159,6 +4326,7 @@ function bindViewHandlers(route, root) {
         };
       }
       state.ui.cccFilters[key] = e.target.checked;
+      requestWorldRender();
       renderAll();
     });
   });
@@ -4293,6 +4461,8 @@ function bindViewHandlers(route, root) {
   on("rolloutStrategySelect", "change", selectRolloutStrategyFromUI);
   on("rolloutStrategyTemplateCreate", "click", createRolloutStrategyFromTemplateFromUI);
   on("rolloutStrategyTemplateSelect", "change", selectRolloutTemplateFromUI);
+  on("rolloutStrategyFocusType", "change", updateRolloutStrategyFocusFromUI);
+  on("rolloutStrategyFocusTarget", "change", updateRolloutStrategyFocusFromUI);
   on("rolloutStrategyAddDrop", "click", addRolloutDropFromUI);
   on("rolloutStrategyAddEvent", "click", addRolloutEventFromUI);
   on("rolloutStrategyAutoRun", "change", toggleRolloutStrategyAutoRunFromUI);
@@ -4437,7 +4607,7 @@ function exportDebugBundle() {
     "# Usage Session Summary",
     `Generated: ${new Date().toISOString()}`,
     `Route: ${snapshot.route}`,
-    `Week: ${snapshot.week}`,
+    `Date Range: ${formatWeekRangeLabel(snapshot.week)}`,
     `Cash: ${formatMoney(snapshot.cash)}`,
     `Active Slot: ${snapshot.activeSlot || "-"}`,
     `Difficulty: ${state.meta?.difficulty || DEFAULT_GAME_DIFFICULTY}`,
@@ -4495,7 +4665,7 @@ function exportLossArchive(entry) {
     `Difficulty: ${entry.difficulty || "-"}`,
     `Reason: ${entry.reason || "-"}`,
     `Slot: ${entry.slot || "-"}`,
-    `Week: ${entry.week || "-"}`,
+    `Date Range: ${entry.week ? formatWeekRangeLabel(entry.week) : "-"}`,
     `Year: ${entry.year || "-"}`,
     `Cash: ${formatMoney(entry.cash || 0)}`,
     `EXP: ${formatCount(entry.exp || 0)}`,
@@ -5687,9 +5857,8 @@ function getSelectedRolloutTemplateIdFromUI() {
 }
 
 function resolveRolloutTemplateLabel(templateId) {
-  if (!templateId) return "Template";
-  const templates = Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) ? ROLLOUT_STRATEGY_TEMPLATES : [];
-  const match = templates.find((template) => template.id === templateId);
+  if (!templateId) return "Plan";
+  const match = getRolloutPlanById(templateId);
   return match?.label || templateId;
 }
 
@@ -5717,14 +5886,82 @@ function getRolloutWeekFromUI() {
   return value > 0 ? value : null;
 }
 
+function getRolloutFocusTypeFromUI() {
+  const select = $("rolloutStrategyFocusType");
+  return select?.value || "Era";
+}
+
+function getRolloutFocusTargetFromUI() {
+  const input = $("rolloutStrategyFocusTarget");
+  return input?.value ? input.value.trim() : "";
+}
+
+function resolveRolloutFocusTarget(focusType, rawValue) {
+  const value = rawValue ? rawValue.trim() : "";
+  if (!value) return { focusId: null, focusLabel: null };
+  if (focusType === "Release") {
+    const track = getTrack(value);
+    if (track) return { focusId: track.id, focusLabel: track.title };
+    return { focusId: value, focusLabel: value };
+  }
+  if (focusType === "Project") {
+    const match = state.tracks.find((track) => {
+      const projectName = track.projectName || `${track.title} - Single`;
+      return projectName === value;
+    });
+    const label = match?.projectName || (match ? `${match.title} - Single` : value);
+    return { focusId: null, focusLabel: label };
+  }
+  if (focusType === "Tour") {
+    const drafts = listTourDrafts();
+    const match = drafts.find((draft) => draft.id === value || draft.name === value);
+    if (match) return { focusId: match.id, focusLabel: match.name || match.id };
+    return { focusId: value, focusLabel: value };
+  }
+  if (focusType === "Campaign") {
+    return { focusId: null, focusLabel: value };
+  }
+  return { focusId: value, focusLabel: value };
+}
+
+function applyRolloutStrategyFocusFromUI(strategy, era) {
+  if (!strategy || !era) return;
+  const focusType = getRolloutFocusTypeFromUI();
+  if (focusType === "Era") {
+    strategy.focusType = "Era";
+    strategy.focusId = era.id;
+    strategy.focusLabel = era.name;
+    strategy.label = `${era.name} Plan`;
+    return;
+  }
+  strategy.focusType = focusType;
+  const resolved = resolveRolloutFocusTarget(focusType, getRolloutFocusTargetFromUI());
+  strategy.focusId = resolved.focusId;
+  strategy.focusLabel = resolved.focusLabel;
+  if (resolved.focusLabel) strategy.label = `${resolved.focusLabel} Plan`;
+}
+
+function updateRolloutStrategyFocusFromUI() {
+  const strategyId = getSelectedRolloutStrategyIdFromUI();
+  if (!strategyId) return;
+  const strategy = getRolloutStrategyById(strategyId);
+  if (!strategy) return;
+  const era = strategy.eraId ? getEraById(strategy.eraId) : getRolloutPlanningEra();
+  if (!era) return;
+  applyRolloutStrategyFocusFromUI(strategy, era);
+  renderEraStatus();
+  saveToActiveSlot();
+}
+
 function createRolloutStrategyFromUI() {
   const era = getRolloutPlanningEra();
   if (!era) {
-    logEvent("Focus an active era to create a rollout strategy.", "warn");
+    logEvent("Focus an active era to create a rollout plan.", "warn");
     return;
   }
   const strategy = createRolloutStrategyForEra(era);
   if (!strategy) return;
+  applyRolloutStrategyFocusFromUI(strategy, era);
   setSelectedRolloutStrategyId(strategy.id);
   logUiEvent("action_submit", { action: "rollout_strategy_create", eraId: era.id, strategyId: strategy.id });
   renderEraStatus();
@@ -5734,22 +5971,22 @@ function createRolloutStrategyFromUI() {
 function createRolloutStrategyFromTemplateFromUI() {
   const era = getRolloutPlanningEra();
   if (!era) {
-    logEvent("Focus an active era to apply a rollout template.", "warn");
+    logEvent("Focus an active era to apply a rollout plan.", "warn");
     return;
   }
   const templateId = getSelectedRolloutTemplateIdFromUI();
   if (!templateId) {
-    logEvent("Select a rollout template first.", "warn");
+    logEvent("Select a rollout plan first.", "warn");
     return;
   }
   const strategy = createRolloutStrategyFromTemplate(era, templateId);
   if (!strategy) {
-    logEvent("Rollout template could not be applied.", "warn");
+    logEvent("Rollout plan could not be applied.", "warn");
     return;
   }
   setSelectedRolloutStrategyId(strategy.id);
   const templateLabel = resolveRolloutTemplateLabel(templateId);
-  logEvent(`Rollout template applied: ${templateLabel}. Add Track IDs before expanding.`);
+  logEvent(`Rollout plan applied: ${templateLabel}. Add Track IDs before expanding.`);
   logUiEvent("action_submit", {
     action: "rollout_strategy_template",
     eraId: era.id,
@@ -5773,11 +6010,11 @@ function addRolloutDropFromUI() {
   const weekNumber = getRolloutWeekFromUI();
   const contentId = $("rolloutStrategyDropId")?.value.trim();
   if (!strategyId) {
-    logEvent("Select a rollout strategy first.", "warn");
+    logEvent("Select a rollout plan first.", "warn");
     return;
   }
   if (!weekNumber) {
-    logEvent("Select a valid rollout week.", "warn");
+    logEvent("Select a valid rollout window.", "warn");
     return;
   }
   if (!contentId) {
@@ -5798,11 +6035,11 @@ function addRolloutEventFromUI() {
   const actionType = $("rolloutStrategyEventType")?.value || "";
   const contentId = $("rolloutStrategyEventContent")?.value.trim();
   if (!strategyId) {
-    logEvent("Select a rollout strategy first.", "warn");
+    logEvent("Select a rollout plan first.", "warn");
     return;
   }
   if (!weekNumber) {
-    logEvent("Select a valid rollout week.", "warn");
+    logEvent("Select a valid rollout window.", "warn");
     return;
   }
   if (!actionType) {
@@ -5833,7 +6070,7 @@ function toggleRolloutStrategyAutoRunFromUI(e) {
 function expandRolloutStrategyFromUI() {
   const strategyId = getSelectedRolloutStrategyIdFromUI();
   if (!strategyId) {
-    logEvent("Select a rollout strategy first.", "warn");
+    logEvent("Select a rollout plan first.", "warn");
     return;
   }
   const result = expandRolloutStrategy(strategyId, { mode: "manual" });
@@ -6428,6 +6665,7 @@ function handleReleaseAction(e) {
 }
 
 function signCreatorById(id) {
+  requestWorldRender();
   const creator = state.marketCreators.find((entry) => entry.id === id) || null;
   const result = attemptSignCreator({
     creatorId: id,
@@ -6482,8 +6720,9 @@ export async function initUI() {
       await computeCharts();
       renderAll();
       closeMainMenu();
-      startGameLoop();
       recordSessionReady("slot-load");
+      await maybePromptExternalStorageOnStart();
+      startGameLoop();
       return;
     }
   }
@@ -6493,6 +6732,7 @@ export async function initUI() {
   syncStartPreferenceSelects();
   syncUiThemeSelect();
   recordSessionReady("main-menu");
+  await maybePromptExternalStorageOnStart();
 }
 
 function setupPanelControls() {
@@ -6755,6 +6995,7 @@ function setupHorizontalWheelScroll() {
 function setupOverlayDismissals() {
   // Close overlays when clicking outside the overlay-card
   document.querySelectorAll('.overlay').forEach((overlay) => {
+    if (overlay.dataset.overlayLock === "true") return;
     overlay.addEventListener('pointerdown', (e) => {
       if (e.target === overlay) {
         const id = overlay.id;

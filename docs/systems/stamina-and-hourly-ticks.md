@@ -11,6 +11,7 @@ This document defines how stamina depletion, recharge, and overuse are processed
 - Act-level activities (tour dates, promo runs) apply pooled stamina spends instantly when resolved and still update daily usage + overuse checks.
 - Promo pushes spend `ACTIVITY_STAMINA_PROMO` per promo type (default 20).
 - Tour dates spend `ACTIVITY_STAMINA_TOUR_DATE` per booked show (default 40).
+- Promo and tour activity also award a small, uncapped skill gain to participating signed creators (based on stamina spent).
 - If pooled stamina is insufficient, an overdraw warning is logged while the spend still applies.
 
 ## B) Daily usage + overuse strike contract
@@ -37,3 +38,9 @@ This document defines how stamina depletion, recharge, and overuse are processed
 2) Reproduce in a controlled scenario (single producer, queue multiple masters).
 3) Verify per-hour totals and daily counters reset at 12AM.
 4) Only then adjust recommendation/auto-assign logic to avoid overuse.
+
+## E) Inactivity catharsis debuff (daily)
+- Signed creators track an inactivity catharsis debuff; skill does not decay.
+- After 6 in-game months of inactivity, the debuff increases daily up to a capped percent and reduces catharsis only.
+- Any activity starts a 14-day linear recovery; if inactivity resumes, the debuff continues from the current value after the grace window.
+- Unsigned CCC creators never receive this debuff.

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -11,6 +11,8 @@ const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
     .filter((typeId) => PROMO_TYPE_DETAILS[typeId]?.requiresTrack);
 const CREATE_PENDING_EMOJIS = { sheet: "🎼", demo: "🎧" };
 const RELEASE_PENDING_EMOJI = "💿";
+const WORLD_RENDER_THROTTLE_MS = 1200;
+let lastWorldRenderAt = 0;
 function renderRolloutBudgetSummary(strategy) {
     const summary = buildRolloutBudgetSummary(strategy);
     if (!summary)
@@ -35,6 +37,90 @@ function renderRolloutBudgetSummary(strategy) {
       <div class="muted">Uses current promo budgets; adjust them to adapt.</div>
     </div>
   `;
+}
+function formatPlanFocusLine(plan) {
+    const type = plan?.focusType || "Era";
+    const label = plan?.focusLabel || plan?.focusId || "";
+    return label ? `${type}: ${label}` : type;
+}
+function renderPlanUsageLine(plan) {
+    const usage = plan?.usage;
+    if (!usage)
+        return `<div class="muted">Usage: No tracked releases yet.</div>`;
+    const parts = [];
+    if (Number.isFinite(usage.releaseCount) && usage.releaseCount > 0) {
+        parts.push(`${formatCount(usage.releaseCount)} releases`);
+    }
+    if (Number.isFinite(usage.lastUsedAt)) {
+        parts.push(`Last used ${formatShortDate(usage.lastUsedAt)}`);
+    }
+    if (Array.isArray(usage.labels) && usage.labels.length) {
+        const listed = usage.labels.slice(0, 3);
+        const overflow = usage.labels.length - listed.length;
+        parts.push(`Labels: ${listed.join(", ")}${overflow > 0 ? ` +${overflow} more` : ""}`);
+    }
+    if (!parts.length)
+        return `<div class="muted">Usage: No tracked releases yet.</div>`;
+    return `<div class="muted">Usage: ${parts.join(" | ")}</div>`;
+}
+function renderPlanContextLines(context) {
+    if (!context)
+        return `<div class="muted">Context: No tracked outcomes yet.</div>`;
+    const signalParts = [];
+    if (Array.isArray(context.alignmentTags) && context.alignmentTags.length) {
+        signalParts.push(`Alignment: ${context.alignmentTags.join(", ")}`);
+    }
+    if (Array.isArray(context.trendTags) && context.trendTags.length) {
+        signalParts.push(`Trend tags: ${context.trendTags.join(", ")}`);
+    }
+    const signalLine = signalParts.length ? `<div class="muted">${signalParts.join(" | ")}</div>` : "";
+    const outcomes = context.outcomes || {};
+    const outcomeParts = [];
+    if (Number.isFinite(context.outcomeScore) && context.outcomeScore > 0) {
+        outcomeParts.push(`Score ${Math.round(context.outcomeScore)}`);
+    }
+    if (Number.isFinite(outcomes.releaseCount) && outcomes.releaseCount > 0) {
+        outcomeParts.push(`${formatCount(outcomes.releaseCount)} releases`);
+    }
+    if (Number.isFinite(outcomes.avgPeak) && outcomes.avgPeak > 0) {
+        outcomeParts.push(`Avg peak #${Math.round(outcomes.avgPeak)}`);
+    }
+    if (Number.isFinite(outcomes.avgWeeksOnChart) && outcomes.avgWeeksOnChart > 0) {
+        outcomeParts.push(`Avg weeks ${Math.round(outcomes.avgWeeksOnChart)}`);
+    }
+    if (Number.isFinite(outcomes.avgQuality) && outcomes.avgQuality > 0) {
+        outcomeParts.push(`Avg quality ${Math.round(outcomes.avgQuality)}`);
+    }
+    const outcomeLine = outcomeParts.length ? `<div class="muted">Outcomes: ${outcomeParts.join(" | ")}</div>` : "";
+    const trendRanks = Array.isArray(context.marketConditions?.trendRanks)
+        ? context.marketConditions.trendRanks.slice(0, 6)
+        : [];
+    const marketLine = trendRanks.length
+        ? `<div class="muted">Market: ${trendRanks.map((entry) => {
+            const range = entry.dateRange || (Number.isFinite(entry.week) ? formatWeekRangeLabel(entry.week) : "");
+            return `${entry.genre} #${entry.rank}${range ? ` (${range})` : ""}`;
+        }).join(" | ")}</div>`
+        : "";
+    const lines = [signalLine, outcomeLine, marketLine].filter(Boolean);
+    return lines.length ? lines.join("") : `<div class="muted">Context: No tracked outcomes yet.</div>`;
+}
+function renderPlanLibraryList(plans) {
+    const list = Array.isArray(plans) ? plans : [];
+    if (!list.length)
+        return `<div class="muted">No rollout plans captured yet.</div>`;
+    return list.map((plan) => {
+        const label = plan.label || plan.id || "Rollout Plan";
+        const focusLine = formatPlanFocusLine(plan);
+        const source = plan.source || "Unknown";
+        return `
+      <div class="list-item">
+        <div class="item-title">${label}</div>
+        <div class="muted">Focus: ${focusLine} | Source: ${source}</div>
+        ${renderPlanUsageLine(plan)}
+        ${renderPlanContextLines(plan.context)}
+      </div>
+    `;
+    }).join("");
 }
 let trackHistoryRequestId = 0;
 let eraHistoryRequestId = 0;
@@ -401,7 +487,13 @@ function renderLabelTag(label, country) {
     const color = countryColor(country);
     const { primary, secondary } = splitRecordLabelName(label);
     const secondaryLine = secondary ? `<span class="tag-line tag-line--sub">${secondary}</span>` : "";
-    return `<span class="tag tag--label" style="color:${color};"><span class="tag-dot"></span><span class="tag-label tag-label--stacked"><span class="tag-line">${primary}</span>${secondaryLine}</span></span>`;
+    const rival = getRivalByName(label);
+    const isRival = Boolean(rival);
+    const attrs = isRival
+        ? ` data-rival-label="${escapeAttribute(label)}" role="button" tabindex="0" aria-label="View ${escapeAttribute(primary)} roster"`
+        : "";
+    const cls = `tag tag--label${isRival ? " tag--clickable" : ""}`;
+    return `<span class="${cls}" style="color:${color};"${attrs}><span class="tag-dot"></span><span class="tag-label tag-label--stacked"><span class="tag-line">${primary}</span>${secondaryLine}</span></span>`;
 }
 /** @deprecated Replaced by React Pill/Tag components. */
 function renderMoodTag(mood, alignment, options = {}) {
@@ -929,7 +1021,7 @@ function renderAutoAssignModal() {
 }
 function renderTime() {
     $("timeDisplay").textContent = formatDate(state.time.epochMs);
-    $("weekDisplay").textContent = `Week ${weekIndex() + 1}`;
+    $("weekDisplay").textContent = formatWeekRangeLabel(weekIndex() + 1);
     const chartHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
     $("chartCountdown").textContent = `Charts update in ${formatHourCountdown(chartHours, { padHours: 3 })}h`;
     const mode = getGameMode(state.meta?.gameMode);
@@ -1548,7 +1640,7 @@ function renderDashboard() {
     renderDashboardFocusPanels();
     const weekLabel = $("dashboardWeekLabel");
     if (weekLabel)
-        weekLabel.textContent = `Week ${weekIndex() + 1}`;
+        weekLabel.textContent = formatWeekRangeLabel(weekIndex() + 1);
     const dateLabel = $("dashboardDateLabel");
     if (dateLabel)
         dateLabel.textContent = formatDate(state.time.epochMs);
@@ -1808,17 +1900,27 @@ function renderDashboard() {
             eraList.innerHTML = `<div class="muted">No active eras.</div>`;
         }
         else {
-            eraList.innerHTML = activeEras.map((era) => `
-        <div class="list-item">
-          <div class="list-row">
-            <div>
-              <div class="item-title">${era.name}</div>
-              <div class="muted">${ERA_STAGES[era.stageIndex] || "Active"} | Week ${era.stageWeek}</div>
+            eraList.innerHTML = activeEras.map((era) => {
+                const stageName = ERA_STAGES[era.stageIndex] || "Active";
+                const stageWeeks = era.rolloutWeeks || ROLLOUT_PRESETS[1].weeks;
+                const stageTotal = stageWeeks[era.stageIndex] || 0;
+                const weeksElapsed = Number.isFinite(era.weeksElapsed) ? era.weeksElapsed : 0;
+                const startWeek = Number.isFinite(era.startedWeek) ? era.startedWeek : weekIndex() + 1;
+                const currentWeek = startWeek + Math.max(0, weeksElapsed);
+                const weekLabel = formatWeekRangeLabel(currentWeek);
+                return `
+          <div class="list-item">
+            <div class="list-row">
+              <div>
+                <div class="item-title">${era.name}</div>
+                <div class="muted">${stageName} | ${weekLabel}</div>
+                <div class="tiny muted">Stage progress ${era.stageWeek}/${stageTotal}</div>
+              </div>
+              ${focusEra && focusEra.id === era.id ? `<span class="pill">Focus</span>` : ""}
             </div>
-            ${focusEra && focusEra.id === era.id ? `<span class="pill">Focus</span>` : ""}
           </div>
-        </div>
-      `).join("");
+        `;
+            }).join("");
         }
     }
     renderQuests();
@@ -2581,7 +2683,7 @@ function renderAwardsCircuit() {
         const showDate = Number.isFinite(show.showAt) ? formatDate(show.showAt) : "TBD";
         const window = show.nominationWindow || {};
         const windowLabel = Number.isFinite(window.startWeek) && Number.isFinite(window.endWeek)
-            ? `Weeks ${window.startWeek}-${window.endWeek}`
+            ? formatCompactDateRange(weekStartEpochMs(window.startWeek), weekStartEpochMs(window.endWeek + 1) - 1)
             : "Nomination window TBD";
         const lockLabel = Number.isFinite(show.nominationLockAt) ? formatDate(show.nominationLockAt) : "TBD";
         const revealLabel = Number.isFinite(show.nominationRevealAt) ? formatDate(show.nominationRevealAt) : "TBD";
@@ -2631,6 +2733,61 @@ function renderAwardsCircuit() {
     `;
     });
     listEl.innerHTML = items.join("");
+}
+const YEAR_END_CHART_TYPES = [
+    { id: "tracks", label: "Tracks" },
+    { id: "projects", label: "Projects" },
+    { id: "promotions", label: "Promos" },
+    { id: "tours", label: "Tours" }
+];
+function normalizeAwardsView(value) {
+    return value === "charts" ? "charts" : "awards";
+}
+function normalizeAwardsChartType(value) {
+    return YEAR_END_CHART_TYPES.some((entry) => entry.id === value) ? value : "tracks";
+}
+function syncAwardsYearSelect(years) {
+    const yearSelect = $("awardsYearSelect");
+    if (yearSelect) {
+        if (!years.length) {
+            yearSelect.innerHTML = `<option value="">No years available</option>`;
+            yearSelect.disabled = true;
+        }
+        else {
+            yearSelect.disabled = false;
+            yearSelect.innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join("");
+        }
+    }
+    if (!years.length) {
+        state.ui.awardsYear = null;
+        return null;
+    }
+    const selectedYear = years.includes(state.ui.awardsYear) ? state.ui.awardsYear : years[0];
+    state.ui.awardsYear = selectedYear;
+    if (yearSelect)
+        yearSelect.value = String(selectedYear);
+    return selectedYear;
+}
+function hasAnnualAwardLedgerData(entry) {
+    if (!entry || typeof entry !== "object")
+        return false;
+    if (!entry.totalWeeks || entry.totalWeeks <= 0)
+        return false;
+    const stores = entry.stores || {};
+    return ["tracks", "projects", "promotions", "tours"].some((key) => {
+        const store = stores[key];
+        return store && typeof store.candidates === "object" && Object.keys(store.candidates).length > 0;
+    });
+}
+function buildYearEndChartDefinitionMap() {
+    const definitions = typeof listAnnualAwardDefinitions === "function" ? listAnnualAwardDefinitions() : [];
+    const map = new Map();
+    definitions.forEach((definition) => {
+        if (!definition?.store || definition.metric !== "chartPoints")
+            return;
+        map.set(definition.store, definition);
+    });
+    return map;
 }
 function listAnnualAwardYearsFromLedger() {
     const years = Object.keys(state.meta?.annualAwardLedger?.years || {})
@@ -2733,6 +2890,29 @@ function resolveAnnualAwardNomineeRevealState(year, awardsEntry) {
     const revealed = awardCount > 0 || (Number.isFinite(revealAt) && now >= revealAt);
     return { revealAt, revealed };
 }
+function renderAwardsViewTabs() {
+    const tabs = $("awardsViewTabs");
+    const panels = tabs
+        ? Array.from(tabs.parentElement?.querySelectorAll("[data-awards-view-panel]") || [])
+        : Array.from(document.querySelectorAll("[data-awards-view-panel]"));
+    const active = normalizeAwardsView(state.ui.awardsView);
+    if (state.ui.awardsView !== active)
+        state.ui.awardsView = active;
+    if (tabs) {
+        tabs.querySelectorAll(".tab").forEach((tab) => {
+            const isActive = tab.dataset.awardsView === active;
+            tab.classList.toggle("active", isActive);
+        });
+    }
+    panels.forEach((panel) => {
+        const isActive = panel.dataset.awardsViewPanel === active;
+        panel.classList.toggle("is-active", isActive);
+    });
+    const detailTitle = $("awardsDetailTitle");
+    if (detailTitle) {
+        detailTitle.textContent = active === "charts" ? "Year-End Charts" : "Category Detail";
+    }
+}
 function normalizeAwardMatchValue(value) {
     return String(value || "").trim().toLowerCase();
 }
@@ -2758,21 +2938,11 @@ function renderAnnualAwardsPanel() {
     const listEl = $("awardsCategoryList");
     if (!listEl)
         return;
-    const yearSelect = $("awardsYearSelect");
     const emptyEl = $("awardsYearEmpty");
     const warningEl = $("awardsYearWarning");
     const years = listAnnualAwardYearsFromLedger();
-    if (yearSelect) {
-        if (!years.length) {
-            yearSelect.innerHTML = `<option value="">No years available</option>`;
-            yearSelect.disabled = true;
-        }
-        else {
-            yearSelect.disabled = false;
-            yearSelect.innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join("");
-        }
-    }
-    if (!years.length) {
+    const selectedYear = syncAwardsYearSelect(years);
+    if (!years.length || !selectedYear) {
         if (emptyEl) {
             emptyEl.textContent = "No year-end awards recorded yet.";
             emptyEl.classList.remove("hidden");
@@ -2784,10 +2954,6 @@ function renderAnnualAwardsPanel() {
         state.ui.awardsCategoryId = null;
         return;
     }
-    const selectedYear = years.includes(state.ui.awardsYear) ? state.ui.awardsYear : years[0];
-    state.ui.awardsYear = selectedYear;
-    if (yearSelect)
-        yearSelect.value = String(selectedYear);
     if (emptyEl)
         emptyEl.classList.add("hidden");
     const yearEntry = state.meta?.annualAwardLedger?.years?.[String(selectedYear)] || null;
@@ -2846,6 +3012,90 @@ function renderAnnualAwardsPanel() {
         <div class="list-row">
           <div>
             <div class="item-title">${label}</div>
+            <div class="muted">${metaLine}</div>
+          </div>
+          <div class="actions">
+            <span class="badge">${isSelected ? "Selected" : "View"}</span>
+          </div>
+        </div>
+      </div>
+    `;
+    }).join("");
+}
+function renderYearEndChartsPanel() {
+    const listEl = $("awardsChartList");
+    if (!listEl)
+        return;
+    const emptyEl = $("awardsChartEmpty");
+    const warningEl = $("awardsChartWarning");
+    const years = listAnnualAwardYearsFromLedger();
+    const selectedYear = syncAwardsYearSelect(years);
+    if (!years.length || !selectedYear) {
+        if (emptyEl) {
+            emptyEl.textContent = "No year-end charts recorded yet.";
+            emptyEl.classList.remove("hidden");
+        }
+        if (warningEl)
+            warningEl.classList.add("hidden");
+        listEl.innerHTML = "";
+        state.ui.awardsYear = null;
+        return;
+    }
+    if (emptyEl)
+        emptyEl.classList.add("hidden");
+    const yearEntry = state.meta?.annualAwardLedger?.years?.[String(selectedYear)] || null;
+    const awardsEntry = resolveAnnualAwardsEntryForYear(selectedYear);
+    const nomineeState = resolveAnnualAwardNomineeRevealState(selectedYear, awardsEntry);
+    const hasLedger = Boolean(yearEntry && typeof yearEntry === "object"
+        && yearEntry.stores && typeof yearEntry.stores === "object");
+    const hasData = hasAnnualAwardLedgerData(yearEntry);
+    if (warningEl) {
+        const warnings = [];
+        if (!hasLedger)
+            warnings.push("Ledger data is missing for this year. Chart leaders may be unavailable.");
+        if (!nomineeState.revealed) {
+            const revealLabel = Number.isFinite(nomineeState.revealAt) ? formatDate(nomineeState.revealAt) : "TBD";
+            warnings.push(`Year-end charts release ${revealLabel}.`);
+        }
+        else if (!hasData) {
+            warnings.push("No chart data recorded for this year yet.");
+        }
+        if (warnings.length) {
+            warningEl.textContent = warnings.join(" ");
+            warningEl.classList.remove("hidden");
+        }
+        else {
+            warningEl.classList.add("hidden");
+        }
+    }
+    const chartDefinitionMap = buildYearEndChartDefinitionMap();
+    const selectedChartType = normalizeAwardsChartType(state.ui.awardsChartType);
+    state.ui.awardsChartType = selectedChartType;
+    const revealLabel = Number.isFinite(nomineeState.revealAt) ? formatDate(nomineeState.revealAt) : "TBD";
+    listEl.innerHTML = YEAR_END_CHART_TYPES.map((chartType) => {
+        const definition = chartDefinitionMap.get(chartType.id);
+        const nominees = nomineeState.revealed && definition && yearEntry
+            ? buildAnnualAwardNomineesFromLedger(definition, yearEntry)
+            : [];
+        const leader = nominees[0];
+        let metaLine = "";
+        if (!nomineeState.revealed) {
+            metaLine = `Releases ${revealLabel}`;
+        }
+        else if (leader) {
+            const leaderName = renderActName(leader.candidate) || leader.candidate?.actName || "Unknown Act";
+            const points = formatCount(Math.round(leader.score || 0));
+            metaLine = `Leader: ${leaderName} | Points ${points}`;
+        }
+        else {
+            metaLine = "No chart leaders recorded yet.";
+        }
+        const isSelected = chartType.id === selectedChartType;
+        return `
+      <div class="list-item awards-category ${isSelected ? "is-selected" : ""}" data-award-chart="${chartType.id}" role="button" tabindex="0" aria-pressed="${isSelected ? "true" : "false"}">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${chartType.label}</div>
             <div class="muted">${metaLine}</div>
           </div>
           <div class="actions">
@@ -2941,9 +3191,104 @@ function renderAnnualAwardsDetail() {
     });
     detailEl.innerHTML = items.join("");
 }
+function renderYearEndChartsDetail() {
+    const detailEl = $("awardsDetailBody");
+    if (!detailEl)
+        return;
+    const years = listAnnualAwardYearsFromLedger();
+    if (!years.length) {
+        detailEl.innerHTML = `<div class="muted">No year-end charts recorded yet.</div>`;
+        return;
+    }
+    const year = state.ui.awardsYear;
+    if (!Number.isFinite(year)) {
+        detailEl.innerHTML = `<div class="muted">Select a year to view charts.</div>`;
+        return;
+    }
+    const yearEntry = state.meta?.annualAwardLedger?.years?.[String(year)] || null;
+    const awardsEntry = resolveAnnualAwardsEntryForYear(year);
+    const nomineeState = resolveAnnualAwardNomineeRevealState(year, awardsEntry);
+    const hasData = hasAnnualAwardLedgerData(yearEntry);
+    const chartDefinitionMap = buildYearEndChartDefinitionMap();
+    const chartType = normalizeAwardsChartType(state.ui.awardsChartType);
+    state.ui.awardsChartType = chartType;
+    const chartLabel = YEAR_END_CHART_TYPES.find((entry) => entry.id === chartType)?.label || "Chart";
+    const headerLines = [];
+    headerLines.push(`<div class="item-title">Year-End ${chartLabel}</div>`);
+    headerLines.push(`<div class="muted">Year ${year}</div>`);
+    if (yearEntry) {
+        const weeksTracked = Number.isFinite(yearEntry.totalWeeks) ? yearEntry.totalWeeks : 0;
+        const lastWeek = Number.isFinite(yearEntry.lastUpdateWeek) ? yearEntry.lastUpdateWeek : null;
+        const weekLine = weeksTracked ? `Weeks tracked ${formatCount(weeksTracked)}` : "Weeks tracked --";
+        const lastLine = lastWeek ? `Last update ${formatWeekRangeLabel(lastWeek)}` : "Last update --";
+        headerLines.push(`<div class="muted">${weekLine} | ${lastLine}</div>`);
+    }
+    else {
+        headerLines.push(`<div class="muted">Ledger data unavailable.</div>`);
+    }
+    const items = [
+        `
+      <div class="list-item">
+        ${headerLines.join("")}
+      </div>
+    `
+    ];
+    if (!nomineeState.revealed) {
+        const revealLabel = Number.isFinite(nomineeState.revealAt) ? formatDate(nomineeState.revealAt) : "TBD";
+        items.push(`<div class="muted">Year-end charts release ${revealLabel}.</div>`);
+        detailEl.innerHTML = items.join("");
+        return;
+    }
+    if (yearEntry && !hasData) {
+        items.push(`<div class="muted">No chart data recorded for ${year} yet.</div>`);
+        detailEl.innerHTML = items.join("");
+        return;
+    }
+    if (!yearEntry) {
+        items.push(`<div class="muted">No year-end chart ledger available for ${year}.</div>`);
+        detailEl.innerHTML = items.join("");
+        return;
+    }
+    const definition = chartDefinitionMap.get(chartType);
+    const nominees = definition ? buildAnnualAwardNomineesFromLedger(definition, yearEntry) : [];
+    if (!nominees.length) {
+        items.push(`<div class="muted">No chart leaders recorded yet.</div>`);
+        detailEl.innerHTML = items.join("");
+        return;
+    }
+    nominees.forEach((nominee, index) => {
+        const actName = renderActName(nominee.candidate) || nominee.candidate?.actName || "Unknown Act";
+        const labelName = nominee.candidate?.label || "Unknown Label";
+        const labelLine = labelName ? `Label: ${labelName}` : "Label: --";
+        const leadWeek = Number.isFinite(nominee.leadWeek)
+            ? `First lead ${formatWeekRangeLabel(nominee.leadWeek)}`
+            : "First lead --";
+        const points = formatCount(Math.round(nominee.score || 0));
+        items.push(`
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">#${index + 1} ${actName}</div>
+            <div class="muted">${labelLine} | ${leadWeek}</div>
+          </div>
+          <div class="pill">${points} pts</div>
+        </div>
+      </div>
+    `);
+    });
+    detailEl.innerHTML = items.join("");
+}
 function renderAnnualAwardsView() {
-    renderAnnualAwardsPanel();
-    renderAnnualAwardsDetail();
+    renderAwardsViewTabs();
+    const view = normalizeAwardsView(state.ui.awardsView);
+    if (view === "charts") {
+        renderYearEndChartsPanel();
+        renderYearEndChartsDetail();
+    }
+    else {
+        renderAnnualAwardsPanel();
+        renderAnnualAwardsDetail();
+    }
 }
 function renderWallet() {
     const items = [
@@ -2963,7 +3308,7 @@ function renderWallet() {
         <div class="list-row">
           <div>
             <div class="item-title">Last Weekly Report</div>
-            <div class="muted">Week ${state.economy.lastWeek || 1}</div>
+            <div class="muted">${formatWeekRangeLabel(state.economy.lastWeek || 1)}</div>
           </div>
           <div class="pill">${formatMoney(state.economy.lastRevenue)} / ${formatMoney(state.economy.lastUpkeep)}</div>
         </div>
@@ -2998,7 +3343,7 @@ function renderLossArchives() {
     target.innerHTML = sorted.map((entry) => {
         const createdAt = entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "Unknown";
         const slot = entry.slot ? `Slot ${entry.slot}` : "Slot -";
-        const week = entry.week ? `Week ${entry.week}` : "Week -";
+        const week = entry.week ? formatWeekRangeLabel(entry.week) : "Date range -";
         const year = entry.year || "-";
         const uiCount = Array.isArray(entry.uiEvents) ? entry.uiEvents.length : 0;
         const simCount = Array.isArray(entry.simEvents) ? entry.simEvents.length : 0;
@@ -3255,13 +3600,16 @@ function renderCalendarEraList(eras) {
     if (!eras.length) {
         return `<div class="muted">No active eras on the calendar.</div>`;
     }
-    return eras.map((era) => `
-    <div class="list-item">
-      <div class="item-title">${era.name}</div>
-      <div class="muted">Act: ${renderActName(era) || "Unknown"} | Stage: ${era.stageName}</div>
-      <div class="muted">Started Week ${era.startedWeek} | Content: ${era.content}</div>
-    </div>
-  `).join("");
+    return eras.map((era) => {
+        const startedLabel = Number.isFinite(era.startedWeek) ? formatWeekRangeLabel(era.startedWeek) : "TBD";
+        return `
+      <div class="list-item">
+        <div class="item-title">${era.name}</div>
+        <div class="muted">Act: ${renderActName(era) || "Unknown"} | Stage: ${era.stageName}</div>
+        <div class="muted">Started ${startedLabel} | Content: ${era.content}</div>
+      </div>
+    `;
+    }).join("");
 }
 function normalizeCalendarTab() {
     if (!state.ui)
@@ -3413,6 +3761,22 @@ function resolvePromoWindow(epochMs) {
         return { frame: first, dayStart, isCurrent: false };
     return { frame: first, dayStart: dayStart + DAY_MS, isCurrent: false };
 }
+function buildWeekSelectOptions({ selectedWeek, startWeek, count, placeholder = "Date range" }) {
+    const baseWeek = Number.isFinite(startWeek) ? startWeek : weekIndex() + 1;
+    const total = Math.max(1, Math.round(Number(count) || 1));
+    const weeks = new Set();
+    if (Number.isFinite(selectedWeek))
+        weeks.add(selectedWeek);
+    for (let i = 0; i < total; i += 1) {
+        weeks.add(baseWeek + i);
+    }
+    const options = Array.from(weeks)
+        .sort((a, b) => a - b)
+        .map((week) => `<option value="${week}">${formatWeekRangeLabel(week)}</option>`)
+        .join("");
+    const placeholderOption = placeholder ? `<option value="">${placeholder}</option>` : "";
+    return `${placeholderOption}${options}`;
+}
 function renderPromoScheduleControls() {
     const weekInput = $("promoScheduleWeek");
     const daySelect = $("promoScheduleDay");
@@ -3424,13 +3788,24 @@ function renderPromoScheduleControls() {
     const frames = listPromoTimeframesSafe();
     const options = frames.map((frame) => `<option value="${frame.id}">${frame.label}</option>`).join("");
     timeframeSelect.innerHTML = `<option value="">Timeframe</option>${options}`;
-    const weekValue = Number.isFinite(state.ui.promoScheduleWeek)
-        ? String(Math.max(1, Math.round(state.ui.promoScheduleWeek)))
-        : "";
+    const selectedWeek = Number.isFinite(state.ui.promoScheduleWeek)
+        ? Math.max(1, Math.round(state.ui.promoScheduleWeek))
+        : null;
     const dayValue = Number.isFinite(state.ui.promoScheduleDay)
         ? String(clamp(Math.round(state.ui.promoScheduleDay), 0, 6))
         : "";
-    weekInput.value = weekValue;
+    if (weekInput.tagName === "SELECT") {
+        weekInput.innerHTML = buildWeekSelectOptions({
+            selectedWeek,
+            startWeek: weekIndex() + 1,
+            count: 12,
+            placeholder: "Date range"
+        });
+        weekInput.value = selectedWeek ? String(selectedWeek) : "";
+    }
+    else {
+        weekInput.value = selectedWeek ? String(selectedWeek) : "";
+    }
     if (!daySelect.querySelector('option[value=""]')) {
         daySelect.insertAdjacentHTML("afterbegin", "<option value=\"\">Day</option>");
     }
@@ -3645,7 +4020,7 @@ function renderCalendarList(targetId, weeks, projectionOverride) {
     target.innerHTML = projection.weeks.map((week) => {
         const entries = Array.isArray(week.events) ? week.events.slice() : [];
         entries.sort((a, b) => a.ts - b.ts);
-        const weekLabel = `Week ${week.weekNumber}`;
+        const weekLabel = formatCompactDateRange(week.start, week.end - HOUR_MS);
         return `
       <div class="list-item">
         <div class="list-row">
@@ -3795,6 +4170,13 @@ function renderCreators() {
             const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
             const catharsisScore = getCreatorCatharsisScore(creator);
             const catharsisGrade = scoreGrade(catharsisScore);
+            const inactivity = getCreatorCatharsisInactivityStatus(creator);
+            const inactivityPct = Math.round((inactivity?.pct || 0) * 100);
+            const inactivityDetail = inactivityPct > 0
+                ? `Inactivity debuff: -${inactivityPct}% catharsis${inactivity?.isRecovering && Number.isFinite(inactivity?.recoveryDaysRemaining)
+                    ? ` | recovering ${formatCount(inactivity.recoveryDaysRemaining)}d`
+                    : " | recovers over 14d after use"}`
+                : "";
             const roleText = roleLabel(creator.role);
             const themeCells = creator.prefThemes.map((theme) => renderThemeTag(theme)).join("");
             const moodCells = creator.prefMoods.map((mood) => renderMoodTag(mood)).join("");
@@ -3844,6 +4226,7 @@ function renderCreators() {
                       ${actsPopover}
                     </div>
                   </div>
+                  ${inactivityDetail ? `<div class="muted">${inactivityDetail}</div>` : ""}
                   <div class="muted">Preferred Themes:</div>
                   <div class="creator-pref-tags">${themeCells}</div>
                   <div class="muted">Preferred Moods:</div>
@@ -4106,6 +4489,126 @@ function renderMarket() {
     });
     listEl.innerHTML = columns.join("");
 }
+function buildRivalActSummary(labelName) {
+    const entries = Array.isArray(state.marketTracks) ? state.marketTracks : [];
+    const actMap = new Map();
+    entries.forEach((entry) => {
+        if (!entry || entry.label !== labelName)
+            return;
+        const actName = entry.actName || "Unknown Act";
+        const key = `${actName}::${entry.actNameKey || ""}`;
+        const current = actMap.get(key) || { name: actName, nameKey: entry.actNameKey || null, count: 0, latest: null };
+        current.count += 1;
+        if (Number.isFinite(entry.releasedAt)) {
+            current.latest = current.latest ? Math.max(current.latest, entry.releasedAt) : entry.releasedAt;
+        }
+        actMap.set(key, current);
+    });
+    return Array.from(actMap.values()).sort((a, b) => {
+        const aLatest = Number.isFinite(a.latest) ? a.latest : 0;
+        const bLatest = Number.isFinite(b.latest) ? b.latest : 0;
+        if (aLatest !== bLatest)
+            return bLatest - aLatest;
+        if (a.count !== b.count)
+            return b.count - a.count;
+        return a.name.localeCompare(b.name);
+    });
+}
+function renderRivalRosterPanel() {
+    const listEl = $("rivalRosterList");
+    const selectEl = $("rivalRosterSelect");
+    const metaEl = $("rivalRosterMeta");
+    if (!listEl || !selectEl)
+        return;
+    const rivals = Array.isArray(state.rivals) ? state.rivals.slice() : [];
+    if (!state.ui)
+        state.ui = {};
+    if (!rivals.length) {
+        selectEl.innerHTML = `<option value="">No rival labels yet</option>`;
+        selectEl.value = "";
+        listEl.innerHTML = `<div class="muted">No rival rosters available yet.</div>`;
+        if (metaEl)
+            metaEl.textContent = "No rivals observed.";
+        return;
+    }
+    const selectedId = state.ui.rivalRosterId;
+    const selected = rivals.find((rival) => rival.id === selectedId) || rivals[0];
+    state.ui.rivalRosterId = selected?.id || null;
+    selectEl.innerHTML = [
+        `<option value="">Select a rival label</option>`,
+        ...rivals.map((rival) => `<option value="${rival.id}">${rival.name}</option>`)
+    ].join("");
+    selectEl.value = selected ? selected.id : "";
+    if (!selected) {
+        listEl.innerHTML = `<div class="muted">Select a rival label to view their roster.</div>`;
+        if (metaEl)
+            metaEl.textContent = "Select a rival label.";
+        return;
+    }
+    const creators = Array.isArray(selected.creators) ? selected.creators : [];
+    const acts = buildRivalActSummary(selected.name);
+    if (metaEl) {
+        metaEl.textContent = `${formatCount(creators.length)} creators | ${formatCount(acts.length)} acts`;
+    }
+    const creatorSections = MARKET_ROLES.map((role) => {
+        const roleLabelText = roleLabel(role);
+        const roleCreators = creators.filter((creator) => creator.role === role);
+        const items = roleCreators.map((creator) => {
+            const catharsisScore = getCreatorCatharsisScore(creator);
+            const catharsisGrade = scoreGrade(catharsisScore);
+            const inactivity = getCreatorCatharsisInactivityStatus(creator);
+            const inactivityPct = Math.round((inactivity?.pct || 0) * 100);
+            const inactivityLine = inactivityPct > 0
+                ? `Inactivity debuff: -${inactivityPct}% catharsis`
+                : "";
+            return `
+        <div class="list-item">
+          <div class="list-row">
+            <div>
+              <div class="item-title">${renderCreatorName(creator)}</div>
+              <div class="muted">${roleLabelText} | Skill ${formatCount(creator.skill || 0)} | Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
+              ${inactivityLine ? `<div class="tiny muted">${inactivityLine}</div>` : ""}
+            </div>
+            <div class="pill">${creator.country || "-"}</div>
+          </div>
+        </div>
+      `;
+        });
+        const emptyMsg = `No ${roleLabelText}s signed.`;
+        return `
+      <div class="rival-roster-group">
+        <div class="tiny muted">${roleLabelText}s (${formatCount(roleCreators.length)})</div>
+        <div class="list">
+          ${items.length ? items.join("") : `<div class="muted">${emptyMsg}</div>`}
+        </div>
+      </div>
+    `;
+    }).join("");
+    const actItems = acts.map((act) => {
+        const actLabel = renderActName({ name: act.name, nameKey: act.nameKey });
+        const dateLabel = Number.isFinite(act.latest) ? formatShortDate(act.latest) : "Unknown";
+        return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${actLabel}</div>
+            <div class="muted">${formatCount(act.count)} release${act.count === 1 ? "" : "s"} | Last ${dateLabel}</div>
+          </div>
+          <div class="pill">${formatCount(act.count)}</div>
+        </div>
+      </div>
+    `;
+    });
+    const actMarkup = actItems.length
+        ? actItems.join("")
+        : `<div class="muted">No rival acts observed yet.</div>`;
+    listEl.innerHTML = `
+    <div class="subhead">Creators</div>
+    ${creatorSections}
+    <div class="subhead">Acts</div>
+    <div class="list">${actMarkup}</div>
+  `;
+}
 function renderWorkOrders() {
     const listEl = $("workOrderList");
     if (!listEl)
@@ -4226,7 +4729,7 @@ function renderTrackHistoryPanel(activeTab) {
             const releaseWeek = weekNumberFromEpochMs(track.releasedAt);
             const rows = weekNumbers.map((week) => {
                 const weekTitle = formatWeekRangeLabel(week);
-                const weekLabel = `Week ${week}`;
+                const weekLabel = weekTitle;
                 const scopeMap = snapshotsByWeek.get(week);
                 const cells = scopes.map((scope) => {
                     const snapshot = scopeMap?.get(scope.scope);
@@ -4260,7 +4763,7 @@ function renderTrackHistoryPanel(activeTab) {
             <table class="chart-table track-history-table">
               <thead>
                 <tr>
-                  <th>Week</th>
+                  <th>Date Range</th>
                   ${headerCells}
                 </tr>
               </thead>
@@ -4426,10 +4929,14 @@ function renderTracks() {
 function renderRolloutStrategyPlanner() {
     const select = $("rolloutStrategySelect");
     const summary = $("rolloutStrategySummary");
+    const planLibrarySummary = $("rolloutPlanLibrarySummary");
     const weekInput = $("rolloutStrategyWeek");
     const dropInput = $("rolloutStrategyDropId");
     const eventTypeSelect = $("rolloutStrategyEventType");
     const eventContentInput = $("rolloutStrategyEventContent");
+    const focusTypeSelect = $("rolloutStrategyFocusType");
+    const focusTargetInput = $("rolloutStrategyFocusTarget");
+    const focusTargetList = $("rolloutStrategyFocusTargetList");
     const autoRunToggle = $("rolloutStrategyAutoRun");
     const expandBtn = $("rolloutStrategyExpand");
     const addDropBtn = $("rolloutStrategyAddDrop");
@@ -4437,9 +4944,12 @@ function renderRolloutStrategyPlanner() {
     const createBtn = $("rolloutStrategyCreate");
     const templateSelect = $("rolloutStrategyTemplateSelect");
     const templateCreateBtn = $("rolloutStrategyTemplateCreate");
-    const templates = Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) ? ROLLOUT_STRATEGY_TEMPLATES : [];
+    const planLibrary = listRolloutPlanLibrary();
     if (!select || !summary)
         return;
+    if (planLibrarySummary) {
+        planLibrarySummary.innerHTML = renderPlanLibraryList(planLibrary);
+    }
     const era = getRolloutPlanningEra();
     if (!era) {
         select.innerHTML = `<option value="">No active era</option>`;
@@ -4452,6 +4962,10 @@ function renderRolloutStrategyPlanner() {
             eventTypeSelect.disabled = true;
         if (eventContentInput)
             eventContentInput.disabled = true;
+        if (focusTypeSelect)
+            focusTypeSelect.disabled = true;
+        if (focusTargetInput)
+            focusTargetInput.disabled = true;
         if (autoRunToggle)
             autoRunToggle.disabled = true;
         if (expandBtn)
@@ -4471,18 +4985,22 @@ function renderRolloutStrategyPlanner() {
         return;
     }
     if (templateSelect) {
-        if (!templates.length) {
-            templateSelect.innerHTML = `<option value="">No templates</option>`;
+        if (!planLibrary.length) {
+            templateSelect.innerHTML = `<option value="">No plans yet</option>`;
             templateSelect.disabled = true;
             if (templateCreateBtn)
                 templateCreateBtn.disabled = true;
         }
         else {
-            templateSelect.innerHTML = templates.map((template) => (`<option value="${template.id}">${template.label}</option>`)).join("");
+            templateSelect.innerHTML = planLibrary.map((plan) => {
+                const label = plan.label || plan.id || "Rollout Plan";
+                const focusTag = plan.focusType && plan.focusType !== "Era" ? ` (${plan.focusType})` : "";
+                return `<option value="${plan.id}">${label}${focusTag}</option>`;
+            }).join("");
             const stored = state.ui?.viewContext?.selectedRolloutTemplateId;
-            const desired = templates.some((template) => template.id === stored)
+            const desired = planLibrary.some((plan) => plan.id === stored)
                 ? stored
-                : templates[0].id;
+                : planLibrary[0].id;
             templateSelect.value = desired;
             if (state.ui?.viewContext)
                 state.ui.viewContext.selectedRolloutTemplateId = desired;
@@ -4490,6 +5008,39 @@ function renderRolloutStrategyPlanner() {
             if (templateCreateBtn)
                 templateCreateBtn.disabled = false;
         }
+    }
+    const focusTypeOptions = ["Era", "Release", "Project", "Tour", "Campaign"];
+    if (focusTypeSelect) {
+        focusTypeSelect.innerHTML = focusTypeOptions
+            .map((type) => `<option value="${type}">${type}</option>`)
+            .join("");
+    }
+    const buildFocusTargetOptions = (focusType) => {
+        if (focusType === "Release") {
+            const tracks = state.tracks.filter((track) => !track.eraId || track.eraId === era.id);
+            return tracks.map((track) => (`<option value="${track.id}" label="${track.title}"></option>`)).join("");
+        }
+        if (focusType === "Project") {
+            const projects = new Map();
+            state.tracks.forEach((track) => {
+                if (track.eraId && track.eraId !== era.id)
+                    return;
+                const name = track.projectName || `${track.title} - Single`;
+                const type = normalizeProjectType(track.projectType || "Single");
+                const key = `${name}::${type}`;
+                if (!projects.has(key))
+                    projects.set(key, { name, type });
+            });
+            return Array.from(projects.values()).map((project) => (`<option value="${project.name}" label="${project.name} (${project.type})"></option>`)).join("");
+        }
+        if (focusType === "Tour") {
+            const drafts = listTourDrafts();
+            return drafts.map((draft) => (`<option value="${draft.id}" label="${draft.name || draft.id}"></option>`)).join("");
+        }
+        return "";
+    };
+    if (focusTargetList && focusTypeSelect) {
+        focusTargetList.innerHTML = buildFocusTargetOptions(focusTypeSelect.value || "Era");
     }
     const strategies = getRolloutStrategiesForEra(era.id);
     if (!strategies.length) {
@@ -4503,6 +5054,10 @@ function renderRolloutStrategyPlanner() {
             eventTypeSelect.disabled = true;
         if (eventContentInput)
             eventContentInput.disabled = true;
+        if (focusTypeSelect)
+            focusTypeSelect.disabled = true;
+        if (focusTargetInput)
+            focusTargetInput.disabled = true;
         if (autoRunToggle)
             autoRunToggle.disabled = true;
         if (expandBtn)
@@ -4515,11 +5070,32 @@ function renderRolloutStrategyPlanner() {
             createBtn.disabled = false;
         return;
     }
-    select.innerHTML = strategies.map((strategy) => (`<option value="${strategy.id}">${strategy.id} | ${strategy.status}</option>`)).join("");
+    select.innerHTML = strategies.map((strategy) => {
+        const label = strategy.label || strategy.id;
+        return `<option value="${strategy.id}">${label} | ${strategy.status}</option>`;
+    }).join("");
     const desiredId = state.ui.viewContext?.rolloutStrategyId || era.rolloutStrategyId || strategies[0].id;
     const activeStrategy = strategies.find((strategy) => strategy.id === desiredId) || strategies[0];
     select.value = activeStrategy.id;
     setSelectedRolloutStrategyId(activeStrategy.id);
+    if (focusTypeSelect) {
+        focusTypeSelect.value = activeStrategy.focusType || "Era";
+        focusTypeSelect.disabled = false;
+    }
+    if (focusTargetList) {
+        focusTargetList.innerHTML = buildFocusTargetOptions(activeStrategy.focusType || "Era");
+    }
+    if (focusTargetInput) {
+        const focusValue = activeStrategy.focusLabel || activeStrategy.focusId || "";
+        if ((activeStrategy.focusType || "Era") === "Era") {
+            focusTargetInput.value = era.name || "";
+            focusTargetInput.disabled = true;
+        }
+        else {
+            focusTargetInput.value = focusValue;
+            focusTargetInput.disabled = false;
+        }
+    }
     if (eventTypeSelect) {
         eventTypeSelect.innerHTML = Object.keys(PROMO_TYPE_DETAILS)
             .map((key) => `<option value="${key}">${PROMO_TYPE_DETAILS[key].label}</option>`)
@@ -4529,8 +5105,19 @@ function renderRolloutStrategyPlanner() {
     }
     if (weekInput) {
         weekInput.disabled = false;
-        weekInput.max = String(activeStrategy.weeks.length);
-        const parsed = Math.max(1, Math.min(activeStrategy.weeks.length, Number(weekInput.value) || 1));
+        const weekCount = activeStrategy.weeks.length;
+        const currentValue = Number(weekInput.value) || 1;
+        if (weekInput.tagName === "SELECT") {
+            const baseWeek = Number.isFinite(era?.startedWeek) ? era.startedWeek : weekIndex() + 1;
+            weekInput.innerHTML = activeStrategy.weeks.map((week, index) => {
+                const label = formatWeekRangeLabel(baseWeek + index);
+                return `<option value="${index + 1}">${label}</option>`;
+            }).join("");
+        }
+        else {
+            weekInput.max = String(weekCount);
+        }
+        const parsed = Math.max(1, Math.min(weekCount, currentValue));
         weekInput.value = String(parsed);
     }
     if (dropInput)
@@ -4551,19 +5138,24 @@ function renderRolloutStrategyPlanner() {
         addEventBtn.disabled = false;
     if (createBtn)
         createBtn.disabled = false;
+    const focusLine = formatPlanFocusLine(activeStrategy);
     const header = `
     <div class="list-item">
-      <div class="item-title">Strategy ${activeStrategy.id}</div>
-      <div class="muted">Status: ${activeStrategy.status} | Source: ${activeStrategy.source} | Weeks: ${activeStrategy.weeks.length}</div>
+      <div class="item-title">${activeStrategy.label || `Plan ${activeStrategy.id}`}</div>
+      <div class="muted">ID ${activeStrategy.id} | Focus: ${focusLine}</div>
+      <div class="muted">Status: ${activeStrategy.status} | Source: ${activeStrategy.source} | Windows: ${activeStrategy.weeks.length}</div>
+      ${renderPlanContextLines(activeStrategy.context)}
     </div>
   `;
     const budgetSummary = renderRolloutBudgetSummary(activeStrategy);
+    const baseWeek = Number.isFinite(era?.startedWeek) ? era.startedWeek : weekIndex() + 1;
     const rows = activeStrategy.weeks.map((week, index) => {
         const dropCount = Array.isArray(week.drops) ? week.drops.length : 0;
         const eventCount = Array.isArray(week.events) ? week.events.length : 0;
+        const windowLabel = formatWeekRangeLabel(baseWeek + index);
         return `
       <div class="list-item">
-        <div class="item-title">Week ${index + 1}</div>
+        <div class="item-title">${windowLabel}</div>
         <div class="muted">Drops ${dropCount} | Events ${eventCount}</div>
       </div>
     `;
@@ -4591,6 +5183,7 @@ function renderEraStatus() {
         const stageTotal = stageWeeks[era.stageIndex] || 0;
         const stageProgress = `${era.stageWeek}/${stageTotal} weeks`;
         const content = era.contentTypes?.length ? era.contentTypes.join(", ") : "Unassigned";
+        const startedLabel = Number.isFinite(era.startedWeek) ? formatWeekRangeLabel(era.startedWeek) : "TBD";
         const isFocused = focusEra && focusEra.id === era.id;
         return `
       <div class="list-item">
@@ -4599,7 +5192,7 @@ function renderEraStatus() {
             <div class="item-title">${era.name}</div>
             <div class="muted">Act: ${renderActName(act || "Unknown")}</div>
             <div class="muted">Stage: ${stageName} | ${stageProgress}</div>
-            <div class="muted">Status: ${era.status} | Started Week ${era.startedWeek}</div>
+            <div class="muted">Status: ${era.status} | Started ${startedLabel}</div>
             <div class="muted">Content: ${content}</div>
           </div>
           <div class="actions">
@@ -4693,7 +5286,7 @@ function renderEraHistoryPanel(targetEra) {
             const releaseWeek = weekNumberFromEpochMs(track.releasedAt);
             const rows = weekNumbers.map((week) => {
                 const weekTitle = formatWeekRangeLabel(week);
-                const weekLabel = `Week ${week}`;
+                const weekLabel = weekTitle;
                 const scopeMap = snapshotsByWeek.get(week);
                 const cells = scopes.map((scope) => {
                     const snapshot = scopeMap?.get(scope.scope);
@@ -4727,7 +5320,7 @@ function renderEraHistoryPanel(targetEra) {
             <table class="chart-table track-history-table">
               <thead>
                 <tr>
-                  <th>Week</th>
+                  <th>Date Range</th>
                   ${headerCells}
                 </tr>
               </thead>
@@ -5271,12 +5864,36 @@ function renderTouringDesk() {
         anchorSelect.value = anchorValue;
         anchorSelect.disabled = !draft || !draft.actId || !marketTracks.length;
     }
+    const windowStartWeek = Number.isFinite(draft?.window?.startWeek) ? Math.round(draft.window.startWeek) : null;
+    const windowEndWeek = Number.isFinite(draft?.window?.endWeek) ? Math.round(draft.window.endWeek) : null;
     if (windowStartInput) {
-        windowStartInput.value = Number.isFinite(draft?.window?.startWeek) ? String(draft.window.startWeek) : "";
+        if (windowStartInput.tagName === "SELECT") {
+            windowStartInput.innerHTML = buildWeekSelectOptions({
+                selectedWeek: windowStartWeek,
+                startWeek: weekIndex() + 1,
+                count: 24,
+                placeholder: "Start window"
+            });
+            windowStartInput.value = windowStartWeek ? String(windowStartWeek) : "";
+        }
+        else {
+            windowStartInput.value = windowStartWeek ? String(windowStartWeek) : "";
+        }
         windowStartInput.disabled = !draft;
     }
     if (windowEndInput) {
-        windowEndInput.value = Number.isFinite(draft?.window?.endWeek) ? String(draft.window.endWeek) : "";
+        if (windowEndInput.tagName === "SELECT") {
+            windowEndInput.innerHTML = buildWeekSelectOptions({
+                selectedWeek: windowEndWeek,
+                startWeek: weekIndex() + 1,
+                count: 24,
+                placeholder: "End window"
+            });
+            windowEndInput.value = windowEndWeek ? String(windowEndWeek) : "";
+        }
+        else {
+            windowEndInput.value = windowEndWeek ? String(windowEndWeek) : "";
+        }
         windowEndInput.disabled = !draft;
     }
     if (autoCountInput) {
@@ -5320,7 +5937,7 @@ function renderTouringDesk() {
             <div class="list-row">
               <div>
                 <div class="item-title">${booking.venueLabel || "Venue"} | ${formatDate(booking.scheduledAt)}</div>
-                <div class="muted">Week ${booking.weekNumber || "-"} | ${DAYS?.[booking.dayIndex] || "Day"} | ${booking.regionId || "Region"} (${booking.tier || "Tier"})</div>
+                <div class="muted">${booking.weekNumber ? formatWeekRangeLabel(booking.weekNumber) : "Date range -"} | ${DAYS?.[booking.dayIndex] || "Day"} | ${booking.regionId || "Region"} (${booking.tier || "Tier"})</div>
                 <div class="muted">${isCompleted ? "Actual" : "Projected"} attendance ${formatCount(attendance)} | Revenue ${formatMoney(revenue)} | Costs ${formatMoney(costs)} | Profit ${formatMoney(profit)}</div>
                 ${warningLine}
               </div>
@@ -5336,8 +5953,20 @@ function renderTouringDesk() {
     }
     const bookingWeekInput = $("tourBookingWeek");
     const bookingDaySelect = $("tourBookingDay");
+    const bookingWeekValue = Number.isFinite(state.ui.tourBookingWeek) ? state.ui.tourBookingWeek : weekIndex() + 1;
     if (bookingWeekInput) {
-        bookingWeekInput.value = String(state.ui.tourBookingWeek || weekIndex() + 1);
+        if (bookingWeekInput.tagName === "SELECT") {
+            bookingWeekInput.innerHTML = buildWeekSelectOptions({
+                selectedWeek: bookingWeekValue,
+                startWeek: weekIndex() + 1,
+                count: 24,
+                placeholder: "Date range"
+            });
+            bookingWeekInput.value = String(bookingWeekValue);
+        }
+        else {
+            bookingWeekInput.value = String(bookingWeekValue);
+        }
         bookingWeekInput.disabled = !draft;
     }
     if (bookingDaySelect) {
@@ -5900,7 +6529,7 @@ function renderCharts() {
             const actName = renderActName(entry) || "Unknown Act";
             const weeksActive = Number.isFinite(entry.weeksActive) ? entry.weeksActive : 0;
             const lastWeek = Number.isFinite(entry.lastWeek) ? entry.lastWeek : null;
-            const lastWeekLabel = lastWeek ? `Last week ${lastWeek}` : "Last week --";
+            const lastWeekLabel = lastWeek ? `Last window ${formatWeekRangeLabel(lastWeek)}` : "Last window --";
             const trackPoints = formatCount(Math.round(entry.trackPoints || 0));
             const promoPoints = formatCount(Math.round(entry.promoPoints || 0));
             const tourPoints = formatCount(Math.round(entry.tourPoints || 0));
@@ -6703,7 +7332,7 @@ function renderMainMenu() {
             ? `<span class="pill mode-pill" data-mode="${mode.id}" title="${mode.label}">${modeLabel}</span>`
             : "";
         const metaLine = data
-            ? `${modeTag ? `${modeTag} ` : ""}Week ${week} | ${formatMoney(cash)} | ${savedAt}`
+            ? `${modeTag ? `${modeTag} ` : ""}${formatWeekRangeLabel(week)} | ${formatMoney(cash)} | ${savedAt}`
             : "Create a new label in this game slot.";
         list.push(`
       <div class="slot-card" data-slot-index="${i}" data-slot-has-data="${hasData ? "1" : "0"}" data-slot-default="${hasData ? "continue" : "new"}">
@@ -7278,6 +7907,19 @@ function renderCreateStageControls() {
     renderActiveStudiosSelect("master", "activeStudiosSelectMaster", "activeStudiosMetaMaster");
     renderProjectTypeMeta();
 }
+function shouldThrottleWorldRender() {
+    if (state.time?.speed === "pause")
+        return false;
+    if (state.ui?.forceWorldRender)
+        return false;
+    const now = Date.now();
+    return now - lastWorldRenderAt < WORLD_RENDER_THROTTLE_MS;
+}
+function recordWorldRender() {
+    lastWorldRenderAt = Date.now();
+    if (state.ui?.forceWorldRender)
+        state.ui.forceWorldRender = false;
+}
 function renderActiveView(view) {
     const raw = view || state.ui.activeView || "dashboard";
     const active = raw === "promotion" ? "logs" : raw === "era" ? "eras" : raw;
@@ -7323,8 +7965,12 @@ function renderActiveView(view) {
         renderSlots();
     }
     else if (active === "world") {
+        if (shouldThrottleWorldRender())
+            return;
+        recordWorldRender();
         renderMarket();
         renderModifierTools();
+        renderRivalRosterPanel();
         renderPopulation();
         renderGenreIndex();
         renderEconomySummary();
@@ -7381,5 +8027,5 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderModifierInventory, renderReleaseDesk, renderTouringDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderCalendarDayDetail, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderTutorialEconomy, renderModifierTools, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderAwardsCircuit, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };
+export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderModifierInventory, renderReleaseDesk, renderTouringDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderCalendarDayDetail, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderTutorialEconomy, renderModifierTools, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderAwardsCircuit, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderRivalRosterPanel, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };
 //# sourceMappingURL=index.js.map

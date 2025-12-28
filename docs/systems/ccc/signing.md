@@ -19,6 +19,11 @@
 ## Catharsis (CCC)
 - Catharsis is derived from skill and current stamina; higher skill keeps the catharsis floor higher even when stamina is low.
 - Stamina still governs speed/throughput checks; catharsis weights content quality and modifiers.
+- Signed creators can accrue an inactivity catharsis debuff (after 6 in-game months idle); it reduces catharsis only (skill stays 1-100) and recovers linearly over 14 days after the creator is used.
+- Unsigned CCC creators never receive the inactivity catharsis debuff.
+
+## Skill progression (signed roster)
+- Skill rises from completed production stages plus a small, uncapped gain from promo runs and tour dates (based on stamina spent).
 
 ## Unsigned creator skill levels (CCC)
 - Unsigned creators spawn with skill levels capped at 5 and weighted toward lower levels.

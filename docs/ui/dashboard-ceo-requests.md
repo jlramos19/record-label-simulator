@@ -4,6 +4,7 @@ Defines the Dashboard focus tab that surfaces CEO Requests (achievements) and th
 
 ## Placement
 - Lives inside the Road to the Top panel alongside the Charts, Tasks, Requests, and Eras tabs.
+- Road to the Top tabs stay pinned at the top of the panel so focus switching is always visible while scrolling.
 
 ## Purpose
 - Keep the player aware of achievement progress without leaving the Dashboard.

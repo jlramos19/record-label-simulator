@@ -31,7 +31,7 @@ Defines the full Charts gameplay view, including scope drilldown and content fil
 - Recent breaks show the previous holder and delta so eyeriSocial copy can call out the change.
 
 ## History
-- Week picker opens chart history by current scope + content filter.
+- Date-range picker opens chart history by current scope + content filter.
 - Acts leaderboard is yearly and does not use chart history snapshots.
 
 ## Observability

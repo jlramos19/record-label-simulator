@@ -1,6 +1,8 @@
 # TODO
 
-- [ ] RLS-ROLLOUT-LIBRARY-001: Rename rollout husks to rollout plans, add multipurpose rollout scopes, shared plan library outcomes/market context, and compact date-range labels. (Agent Codex, started 2025-12-27 21:51:36 -04:00)
+- [x] RLS-ROLLOUT-LIBRARY-001: Rename rollout husks to rollout plans, add multipurpose rollout scopes, shared plan library outcomes/market context, and compact date-range labels. (Agent Codex, started 2025-12-27 21:51:36 -04:00, completed 2025-12-27 23:17:27 -04:00)
+- [x] RLS-AWARDS-YEAREND-CHARTS-UI-001: Add a Year-End Charts tab in Awards with chart-type list + detail rankings from the ledger. (Agent Codex, started 2025-12-27 22:34:33 -04:00, completed 2025-12-27 22:34:33 -04:00)
+- [x] RLS-DASH-ROADTOP-TABS-001: Keep Road to the Top tabs visible while scrolling Charts/Requests panels. (Agent Codex, started 2025-12-27 22:34:33 -04:00, completed 2025-12-27 22:34:33 -04:00)
 - [x] RLS-UI-LAYOUT-002: Split Harmony Hub + Calendar into resizable acts/creators and calendar/structures panels; restore Advanced studio slot visibility; limit release project drafting to mastered tracks with Acts. (Agent Codex, started 2025-12-27 20:57:44 -04:00, completed 2025-12-27 21:06:16 -04:00)
 - [x] RLS-CHARTS-DEMOGRAPHICS-001: Add Charts demographics view + per-nation age pyramid seeding for audience/creator ages. (Agent Codex, started 2025-12-26 23:18:10 -04:00, completed 2025-12-27 17:02:54 -04:00)
 - [x] RLS-AUDIENCE-CHUNKS-002: Simulate audience chunks with age/evolution properties, surface them on the Dashboard, and add cheater CCC injection for creator ID testing. (Agent Codex, started 2025-12-26 22:25:23 -04:00, completed 2025-12-27 17:02:54 -04:00)

@@ -5,7 +5,7 @@ import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./p
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
 import { CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLE_TRANSLATIONS, PROJECT_TITLES, generateActNamePair, generateUniqueActNamePairs, getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation } from "./game/names.js";
-import { AI_CREATE_BUDGET_PCT, AI_CREATE_MIN_CASH, AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, ACTIVITY_STAMINA_PROMO, ACTIVITY_STAMINA_TOUR_DATE, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DOMINANCE_DECAY_MAX, TREND_DOMINANCE_MAX_WEEKS, TREND_DOMINANCE_MIN_WEEKS, TREND_EMERGING_ACTIVITY_DEBUFF, TREND_EMERGING_WEEKS, TREND_PEAKING_DISINTEREST_START, TREND_PEAKING_MAX_WEEKS, TREND_PEAKING_TOP_RANK, TREND_RANKING_HISTORY_WEEKS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
+import { AI_CREATE_BUDGET_PCT, AI_CREATE_MIN_CASH, AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, ACTIVITY_STAMINA_PROMO, ACTIVITY_STAMINA_TOUR_DATE, ACTIVITY_SKILL_GAIN_PER_STAMINA, CREATOR_CATHARSIS_INACTIVITY_GRACE_DAYS, CREATOR_CATHARSIS_INACTIVITY_DAILY_PCT, CREATOR_CATHARSIS_INACTIVITY_MAX_PCT, CREATOR_CATHARSIS_INACTIVITY_RECOVERY_DAYS, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DOMINANCE_DECAY_MAX, TREND_DOMINANCE_MAX_WEEKS, TREND_DOMINANCE_MIN_WEEKS, TREND_EMERGING_ACTIVITY_DEBUFF, TREND_EMERGING_WEEKS, TREND_PEAKING_DISINTEREST_START, TREND_PEAKING_MAX_WEEKS, TREND_PEAKING_TOP_RANK, TREND_RANKING_HISTORY_WEEKS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
 import { evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks, getProjectTrackLimits, normalizeProjectName, normalizeProjectType } from "./game/project-tracks.js";
 import { buildDefaultTrackSlotVisibility, buildEmptyTrackSlotList, parseTrackRoleTarget, roleLabel, trackRoleLimit } from "./game/track-roles.js";
 import { alignmentClass, countryColor, countryDemonym, formatGenreKeyLabel, formatGenreLabel, makeGenre, moodFromGenre, resolveLabelAcronym, slugify, themeFromGenre } from "./game/label-utils.js";
@@ -20,10 +20,15 @@ const session = {
     lastLiveSyncAt: 0,
     lastPerfThrottleAt: 0,
     localStorageDisabled: false,
-    localStorageWarned: false
+    localStorageWarned: false,
+    suppressWeeklyRender: false
 };
 const AUTO_PROMO_SLOT_LIMIT = 4;
 const PERF_THROTTLE_LOG_COOLDOWN_MS = 30000;
+const LOCAL_SAVE_QUOTA_BYTES = 4.5 * 1024 * 1024;
+const SAVE_DEBOUNCE_MS = 1500;
+let saveDebounceTimer = null;
+let saveDebounceQueued = false;
 function buildAutoPromoSlotList() {
     return Array.from({ length: AUTO_PROMO_SLOT_LIMIT }, () => null);
 }
@@ -261,6 +266,8 @@ function makeDefaultState() {
             chartPulseContentType: "tracks",
             trendScopeType: "global",
             trendScopeTarget: "Annglora",
+            rivalRosterId: null,
+            rivalRosterFocus: false,
             labelRankingLimit: COMMUNITY_LABEL_RANKING_DEFAULT,
             trendRankingLimit: COMMUNITY_TREND_RANKING_DEFAULT,
             genreTheme: "All",
@@ -442,7 +449,7 @@ function makeDefaultState() {
                 budgetPct: AUTO_PROMO_BUDGET_PCT,
                 budgetPctSlots: buildAutoPromoBudgetSlots(AUTO_PROMO_BUDGET_PCT)
             },
-            keepEraRolloutHusks: true
+            keepEraRolloutPlans: true
         }
     };
 }
@@ -688,7 +695,10 @@ function computeCreatorCatharsisScore(creator) {
     if (!creator)
         return 0;
     const skill = clampSkill(creator.skill ?? SKILL_MIN);
-    return clamp(Math.round(skill * catharsisFactor(creator)), SKILL_MIN, SKILL_MAX);
+    const base = skill * catharsisFactor(creator);
+    const inactivity = getCreatorCatharsisInactivityStatus(creator);
+    const adjusted = base * (1 - (inactivity?.pct || 0));
+    return clamp(Math.round(adjusted), SKILL_MIN, SKILL_MAX);
 }
 function skillWithStamina(creator) {
     return computeCreatorCatharsisScore(creator);
@@ -3946,22 +3956,31 @@ function postEraComplete(era) {
     const actHandle = act ? handleFromName(act.name, "Act") : "@Act";
     const labelHandle = handleFromName(state.label.name, "Label");
     const outcomeLine = era.outcome ? `Outcome: ${era.outcome}.` : "";
+    const completedLabel = Number.isFinite(era.completedWeek) ? formatWeekRangeLabel(era.completedWeek) : "";
+    const statusLine = completedLabel ? `Status: Complete | ${completedLabel}.` : "Status: Complete.";
     postSocial({
         handle: "@eyeriStories",
         title: "Era complete",
         lines: [
             `${labelHandle}'s ${actHandle} closed the "${era.name}" era.`,
-            `Status: Complete | Week ${era.completedWeek}.`,
+            statusLine,
             outcomeLine
         ].filter(Boolean),
         type: "era",
         order: 2
     });
 }
+function keepEraRolloutPlansEnabled() {
+    if (typeof state.meta?.keepEraRolloutPlans === "boolean")
+        return state.meta.keepEraRolloutPlans;
+    if (typeof state.meta?.keepEraRolloutHusks === "boolean")
+        return state.meta.keepEraRolloutHusks;
+    return true;
+}
 function generateEraRolloutHusk(era) {
-    if (!era || state.meta?.keepEraRolloutHusks === false)
+    if (!era || !keepEraRolloutPlansEnabled())
         return null;
-    if (era.rolloutHuskGenerated)
+    if (era.rolloutPlanGenerated || era.rolloutHuskGenerated)
         return null;
     const startAt = Number.isFinite(era.startedAt)
         ? era.startedAt
@@ -3978,11 +3997,16 @@ function generateEraRolloutHusk(era) {
         id: uid("RS"),
         actId: era.actId,
         eraId: era.id,
+        label: `${era.name} Plan`,
+        focusType: "Era",
+        focusId: era.id,
+        focusLabel: era.name,
         weeks: buildRolloutWeeks(weekCount),
         status: "Archived",
         createdAt: state.time.epochMs,
         source: "GeneratedAtEraEnd",
-        autoRun: false
+        autoRun: false,
+        context: null
     };
     const occurrences = [];
     const labelName = state.label?.name;
@@ -4041,7 +4065,10 @@ function generateEraRolloutHusk(era) {
         eventItem.scheduledAt = occurrence.ts;
         strategy.weeks[weekIndex].events.push(eventItem);
     });
+    const context = buildPlanContextFromEntries(releases, getEraReleasedTracks(era));
+    strategy.context = context;
     ensureRolloutStrategies().push(strategy);
+    era.rolloutPlanGenerated = true;
     era.rolloutHuskGenerated = true;
     return strategy;
 }
@@ -4298,6 +4325,17 @@ function normalizeCreator(creator) {
         creator.skillProgress = 0;
     if (typeof creator.skillDecayApplied !== "number")
         creator.skillDecayApplied = 0;
+    if (typeof creator.catharsisInactivityPct !== "number")
+        creator.catharsisInactivityPct = 0;
+    if (typeof creator.catharsisInactivityDay !== "number")
+        creator.catharsisInactivityDay = null;
+    if (typeof creator.catharsisInactivityRecoveryStartDay !== "number")
+        creator.catharsisInactivityRecoveryStartDay = null;
+    if (typeof creator.catharsisInactivityRecoveryStartPct !== "number") {
+        creator.catharsisInactivityRecoveryStartPct = creator.catharsisInactivityPct || 0;
+    }
+    if (typeof creator.isUnsigned !== "boolean")
+        creator.isUnsigned = false;
     if (!creator.departurePending)
         creator.departurePending = null;
     if (typeof creator.portraitUrl !== "string") {
@@ -4330,6 +4368,30 @@ function normalizeCreator(creator) {
     assignCreatorPortrait(creator);
     return creator;
 }
+function markCreatorUnsigned(creator) {
+    if (!creator)
+        return;
+    creator.isUnsigned = true;
+    creator.catharsisInactivityPct = 0;
+    creator.catharsisInactivityDay = null;
+    creator.catharsisInactivityRecoveryStartDay = null;
+    creator.catharsisInactivityRecoveryStartPct = 0;
+}
+function markCreatorSigned(creator) {
+    if (!creator)
+        return;
+    creator.isUnsigned = false;
+    if (typeof creator.catharsisInactivityPct !== "number")
+        creator.catharsisInactivityPct = 0;
+    if (typeof creator.catharsisInactivityDay !== "number")
+        creator.catharsisInactivityDay = null;
+    if (typeof creator.catharsisInactivityRecoveryStartDay !== "number") {
+        creator.catharsisInactivityRecoveryStartDay = null;
+    }
+    if (typeof creator.catharsisInactivityRecoveryStartPct !== "number") {
+        creator.catharsisInactivityRecoveryStartPct = creator.catharsisInactivityPct || 0;
+    }
+}
 function addCreatorSkillProgress(creator, amount) {
     if (!creator || !Number.isFinite(amount) || amount <= 0)
         return;
@@ -4352,32 +4414,115 @@ function applyCreatorSkillGain(creator, stageIndex, qualityPotential) {
     const factor = 0.6 + (quality / QUALITY_MAX) * 0.4;
     addCreatorSkillProgress(creator, base * factor);
 }
-function resetCreatorSkillDecay(creator) {
-    if (!creator)
-        return;
-    creator.skillDecayApplied = 0;
+function clampCatharsisInactivityPct(value) {
+    if (!Number.isFinite(value))
+        return 0;
+    return clamp(value, 0, CREATOR_CATHARSIS_INACTIVITY_MAX_PCT);
 }
-function applyCreatorSkillDecay(creator, now) {
-    if (!creator)
+function getCreatorCatharsisInactivityStatus(creator, dayIndex = Math.floor(state.time.epochMs / DAY_MS)) {
+    if (!creator || creator.isUnsigned) {
+        return {
+            pct: 0,
+            maxPct: CREATOR_CATHARSIS_INACTIVITY_MAX_PCT,
+            isRecovering: false,
+            recoveryDaysRemaining: null
+        };
+    }
+    const pct = clampCatharsisInactivityPct(creator.catharsisInactivityPct || 0);
+    const startDay = Number.isFinite(creator.catharsisInactivityRecoveryStartDay)
+        ? creator.catharsisInactivityRecoveryStartDay
+        : null;
+    let recoveryDaysRemaining = null;
+    if (startDay !== null && pct > 0) {
+        const daysSince = dayIndex - startDay;
+        recoveryDaysRemaining = Math.max(0, CREATOR_CATHARSIS_INACTIVITY_RECOVERY_DAYS - daysSince);
+    }
+    return {
+        pct,
+        maxPct: CREATOR_CATHARSIS_INACTIVITY_MAX_PCT,
+        isRecovering: recoveryDaysRemaining !== null,
+        recoveryDaysRemaining
+    };
+}
+function startCreatorCatharsisRecovery(creator, dayIndex = Math.floor(state.time.epochMs / DAY_MS)) {
+    if (!creator || creator.isUnsigned)
         return;
-    const lastActivity = typeof creator.lastActivityAt === "number" ? creator.lastActivityAt : now;
-    const weeksInactive = Math.floor((now - lastActivity) / WEEK_MS);
-    if (weeksInactive <= CREATOR_SKILL_DECAY_GRACE_WEEKS) {
-        creator.skillDecayApplied = 0;
+    if (typeof creator.catharsisInactivityPct !== "number")
+        creator.catharsisInactivityPct = 0;
+    const pct = clampCatharsisInactivityPct(creator.catharsisInactivityPct || 0);
+    creator.catharsisInactivityPct = pct;
+    if (!pct) {
+        creator.catharsisInactivityRecoveryStartDay = null;
+        creator.catharsisInactivityRecoveryStartPct = 0;
         return;
     }
-    const steps = Math.floor((weeksInactive - CREATOR_SKILL_DECAY_GRACE_WEEKS) / CREATOR_SKILL_DECAY_STEP_WEEKS);
-    const applied = creator.skillDecayApplied || 0;
-    const delta = steps - applied;
-    if (delta <= 0)
-        return;
-    creator.skillDecayApplied = steps;
-    creator.skill = clampSkill((creator.skill ?? 0) - delta);
+    creator.catharsisInactivityRecoveryStartDay = dayIndex;
+    creator.catharsisInactivityRecoveryStartPct = pct;
 }
-function updateCreatorSkillDecay(now = state.time?.epochMs) {
-    const stamp = Number.isFinite(now) ? now : Date.now();
-    state.creators.forEach((creator) => {
-        applyCreatorSkillDecay(creator, stamp);
+function updateCreatorCatharsisInactivity(creator, dayIndex, { log = true } = {}) {
+    if (!creator || creator.isUnsigned)
+        return;
+    const resolvedDay = Number.isFinite(dayIndex)
+        ? dayIndex
+        : Math.floor((Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now()) / DAY_MS);
+    if (creator.catharsisInactivityDay === resolvedDay)
+        return;
+    const now = Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now();
+    const lastActivityAt = Number.isFinite(creator.lastActivityAt) ? creator.lastActivityAt : now;
+    const lastActivityDay = Math.floor(lastActivityAt / DAY_MS);
+    const inactiveDays = Math.max(0, resolvedDay - lastActivityDay);
+    const prevPct = clampCatharsisInactivityPct(creator.catharsisInactivityPct || 0);
+    let nextPct = prevPct;
+    if (inactiveDays <= CREATOR_CATHARSIS_INACTIVITY_GRACE_DAYS) {
+        const startDay = Number.isFinite(creator.catharsisInactivityRecoveryStartDay)
+            ? creator.catharsisInactivityRecoveryStartDay
+            : null;
+        if (startDay !== null && prevPct > 0) {
+            const daysSince = resolvedDay - startDay;
+            if (daysSince >= CREATOR_CATHARSIS_INACTIVITY_RECOVERY_DAYS) {
+                nextPct = 0;
+                creator.catharsisInactivityRecoveryStartDay = null;
+                creator.catharsisInactivityRecoveryStartPct = 0;
+            }
+            else if (daysSince >= 0) {
+                const basePct = clampCatharsisInactivityPct(Number.isFinite(creator.catharsisInactivityRecoveryStartPct)
+                    ? creator.catharsisInactivityRecoveryStartPct
+                    : prevPct);
+                const ratio = 1 - (daysSince / CREATOR_CATHARSIS_INACTIVITY_RECOVERY_DAYS);
+                nextPct = clampCatharsisInactivityPct(basePct * ratio);
+            }
+        }
+    }
+    else {
+        creator.catharsisInactivityRecoveryStartDay = null;
+        creator.catharsisInactivityRecoveryStartPct = 0;
+        nextPct = clampCatharsisInactivityPct(prevPct + CREATOR_CATHARSIS_INACTIVITY_DAILY_PCT);
+    }
+    creator.catharsisInactivityPct = nextPct;
+    creator.catharsisInactivityDay = resolvedDay;
+    if (!log || prevPct === nextPct)
+        return;
+    if (prevPct === 0 && nextPct > 0) {
+        logEvent(`Inactivity debuff: ${creator.name} [${creator.id}] now has a ${Math.round(nextPct * 100)}% catharsis penalty.`, "warn");
+        return;
+    }
+    if (prevPct > 0 && nextPct === 0) {
+        logEvent(`Inactivity debuff cleared: ${creator.name} [${creator.id}] restored catharsis.`);
+        return;
+    }
+    if (prevPct < CREATOR_CATHARSIS_INACTIVITY_MAX_PCT && nextPct === CREATOR_CATHARSIS_INACTIVITY_MAX_PCT) {
+        logEvent(`Inactivity debuff capped: ${creator.name} [${creator.id}] reached ${Math.round(nextPct * 100)}% catharsis penalty.`, "warn");
+    }
+}
+function updateCreatorCatharsisInactivityForDay(dayIndex) {
+    const resolvedDay = Number.isFinite(dayIndex)
+        ? dayIndex
+        : Math.floor((Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now()) / DAY_MS);
+    state.creators.forEach((creator) => updateCreatorCatharsisInactivity(creator, resolvedDay, { log: true }));
+    state.rivals.forEach((rival) => {
+        if (!Array.isArray(rival.creators))
+            return;
+        rival.creators.forEach((creator) => updateCreatorCatharsisInactivity(creator, resolvedDay, { log: false }));
     });
 }
 function ensureCreatorMarketHeat() {
@@ -4667,7 +4812,9 @@ function attemptSignCreator({ creatorId, recordLabelId, nowEpochMs } = {}) {
     state.label.cash -= cost;
     creator.signCost = undefined;
     clearCreatorSignLockout(creatorId);
-    state.creators.push(normalizeCreator(creator));
+    const signed = normalizeCreator(creator);
+    markCreatorSigned(signed);
+    state.creators.push(signed);
     bumpCreatorMarketHeat(creator.role);
     logEvent(`Signed ${creator.name} (${roleLabel(creator.role)}) for ${formatMoney(cost)}.`);
     postCreatorSigned(creator, cost);
@@ -4704,7 +4851,7 @@ function markCreatorActivityById(creatorId, atMs = state.time.epochMs) {
     if (!creator)
         return;
     creator.lastActivityAt = atMs;
-    resetCreatorSkillDecay(creator);
+    startCreatorCatharsisRecovery(creator);
 }
 function markCreatorRelease(creatorIds, atMs = state.time.epochMs) {
     if (!Array.isArray(creatorIds))
@@ -4715,7 +4862,7 @@ function markCreatorRelease(creatorIds, atMs = state.time.epochMs) {
             return;
         creator.lastReleaseAt = atMs;
         creator.lastActivityAt = atMs;
-        resetCreatorSkillDecay(creator);
+        startCreatorCatharsisRecovery(creator);
     });
 }
 function markCreatorPromo(creatorIds, atMs = state.time.epochMs) {
@@ -4727,7 +4874,7 @@ function markCreatorPromo(creatorIds, atMs = state.time.epochMs) {
             return;
         creator.lastPromoAt = atMs;
         creator.lastActivityAt = atMs;
-        resetCreatorSkillDecay(creator);
+        startCreatorCatharsisRecovery(creator);
     });
 }
 function describeOveruseContext(context = {}) {
@@ -4842,7 +4989,7 @@ function allocatePooledStaminaSpend(creators, totalCost) {
     }
     return { allocations, totalCost: cost, totalAvailable, overdraw: Math.max(0, cost - totalAvailable) };
 }
-function applyActStaminaSpend(creatorIds, totalCost, { roster = null, context = {}, activityLabel = "Act activity", logOverdraw = true } = {}) {
+function applyActStaminaSpend(creatorIds, totalCost, { roster = null, context = {}, activityLabel = "Act activity", logOverdraw = true, skillGainPerStamina = 0 } = {}) {
     const creators = listUniqueCreatorsById(creatorIds, roster);
     const pooled = allocatePooledStaminaSpend(creators, totalCost);
     if (!pooled.allocations.length || pooled.totalCost <= 0) {
@@ -4859,6 +5006,9 @@ function applyActStaminaSpend(creatorIds, totalCost, { roster = null, context = 
             overuseCount += 1;
         if (result?.departureFlagged)
             departuresFlagged += 1;
+        if (skillGainPerStamina > 0 && !entry.creator.isUnsigned) {
+            addCreatorSkillProgress(entry.creator, entry.spent * skillGainPerStamina);
+        }
     });
     if (logOverdraw && pooled.overdraw > 0) {
         const label = activityLabel ? ` (${activityLabel})` : "";
@@ -5009,6 +5159,7 @@ function buildMarketCreators(options = {}) {
         for (let i = 0; i < MARKET_MIN_PER_ROLE; i += 1) {
             const creator = normalizeCreator(makeCreator(role, existing(), null, options));
             applyMarketCreatorSkill(creator);
+            markCreatorUnsigned(creator);
             creator.signCost = computeSignCost(creator);
             list.push(creator);
         }
@@ -5024,6 +5175,7 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
     state.marketCreators = state.marketCreators.map((creator) => {
         const next = normalizeCreator(creator);
         applyMarketCreatorSkill(next);
+        markCreatorUnsigned(next);
         next.signCost = computeSignCost(next);
         return next;
     });
@@ -5036,6 +5188,7 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
         for (let i = 0; i < missing; i += 1) {
             const creator = normalizeCreator(makeCreator(role, existing(), null, options));
             applyMarketCreatorSkill(creator);
+            markCreatorUnsigned(creator);
             creator.signCost = computeSignCost(creator);
             state.marketCreators.push(creator);
         }
@@ -5842,18 +5995,23 @@ function createRolloutStrategyForEra(era, { source = "PlayerPlanned", status = "
         id: uid("RS"),
         actId: era.actId,
         eraId: era.id,
+        label: `${era.name} Plan`,
+        focusType: "Era",
+        focusId: era.id,
+        focusLabel: era.name,
         weeks: buildRolloutWeeks(rolloutWeekCountFromEra(era)),
         status,
         createdAt: state.time.epochMs,
         source,
-        autoRun: false
+        autoRun: false,
+        context: null
     };
     ensureRolloutStrategies().push(strategy);
     era.rolloutStrategyId = strategy.id;
     return strategy;
 }
 function listRolloutStrategyTemplates() {
-    return Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) ? ROLLOUT_STRATEGY_TEMPLATES : [];
+    return listRolloutPlanLibrary();
 }
 function getRolloutStrategyTemplateById(templateId) {
     if (!templateId)
@@ -5882,6 +6040,13 @@ function applyRolloutTemplateToStrategy(strategy, template) {
         }
         week.events.push(makeRolloutEvent(step.promoType || HUSK_PROMO_DEFAULT_TYPE, null));
     });
+    if (template.focusType && template.focusType !== strategy.focusType) {
+        strategy.focusType = template.focusType;
+        if (template.focusType !== "Era") {
+            strategy.focusId = null;
+            strategy.focusLabel = null;
+        }
+    }
     if (template.id) {
         strategy.source = `Template:${template.id}`;
     }
@@ -5960,6 +6125,7 @@ function startEraForAct({ actId, name, rolloutId, contentType, contentId, source
         contentTypes: [],
         contentItems: [],
         rolloutStrategyId: null,
+        rolloutPlanGenerated: false,
         rolloutHuskGenerated: false,
         projectName: null,
         projectType: null,
@@ -6298,6 +6464,19 @@ function resolveRolloutWeekIndex(strategy, weekNumber) {
         return null;
     return index;
 }
+function rolloutWeekNumberFromStrategy(strategy, weekIndex) {
+    if (!strategy)
+        return null;
+    const era = strategy.eraId ? getEraById(strategy.eraId) : null;
+    const baseWeek = Number.isFinite(era?.startedWeek) ? era.startedWeek : weekIndex() + 1;
+    return baseWeek + Math.max(0, weekIndex || 0);
+}
+function rolloutWeekRangeLabel(strategy, weekIndex) {
+    const weekNumber = rolloutWeekNumberFromStrategy(strategy, weekIndex);
+    if (!Number.isFinite(weekNumber))
+        return "Unknown window";
+    return formatWeekRangeLabel(weekNumber);
+}
 function rolloutEventLabel(actionType) {
     if (actionType === "awardShow")
         return "Award Show";
@@ -6328,7 +6507,7 @@ function addRolloutStrategyDrop(strategyId, weekNumber, contentId) {
         return false;
     }
     week.drops.push(makeRolloutDrop(track.id));
-    logEvent(`Rollout week ${weekIndex + 1}: added drop "${track.title}".`);
+    logEvent(`Rollout window ${rolloutWeekRangeLabel(strategy, weekIndex)}: added drop "${track.title}".`);
     return true;
 }
 function addRolloutStrategyEvent(strategyId, weekNumber, actionType, contentId) {
@@ -6360,7 +6539,7 @@ function addRolloutStrategyEvent(strategyId, weekNumber, actionType, contentId) 
         }
     }
     strategy.weeks[weekIndex].events.push(makeRolloutEvent(actionType, contentId));
-    logEvent(`Rollout week ${weekIndex + 1}: added ${rolloutEventLabel(actionType)} event.`);
+    logEvent(`Rollout window ${rolloutWeekRangeLabel(strategy, weekIndex)}: added ${rolloutEventLabel(actionType)} event.`);
     return true;
 }
 function getRivalByName(name) {
@@ -6441,6 +6620,7 @@ function returnCreatorToMarket(creator, reason) {
         lastUsageDay: Math.floor(state.time.epochMs / DAY_MS),
         lastOveruseDay: null
     });
+    markCreatorUnsigned(returned);
     returned.signCost = computeSignCost(returned);
     state.marketCreators.push(returned);
     logEvent(`${creator.name} returned to the CCC (${reason}).`);
@@ -6653,6 +6833,7 @@ function markRivalReleaseActivity(labelName, releasedAt, creatorIds = []) {
             return;
         creator.lastReleaseAt = releasedAt;
         creator.lastActivityAt = releasedAt;
+        startCreatorCatharsisRecovery(creator);
     });
 }
 function markRivalPromoActivity(labelName, promoAt, creatorIds = []) {
@@ -6669,6 +6850,7 @@ function markRivalPromoActivity(labelName, promoAt, creatorIds = []) {
             return;
         creator.lastPromoAt = promoAt;
         creator.lastActivityAt = promoAt;
+        startCreatorCatharsisRecovery(creator);
     });
 }
 function processRivalCreatorInactivity() {
@@ -7192,6 +7374,19 @@ function recommendPhysicalRun(track, { act = null, label = state.label } = {}) {
         isBudgetCapped: Number.isFinite(budgetCap) && demandUnits >= budgetCap
     };
 }
+function currentTrendRanking() {
+    const ranking = Array.isArray(state.trendRanking) ? state.trendRanking.filter(Boolean) : [];
+    if (ranking.length)
+        return ranking;
+    return Array.isArray(state.trends) ? state.trends.filter(Boolean) : [];
+}
+function trendRankForGenre(genre, ranking = null) {
+    if (!genre)
+        return null;
+    const list = Array.isArray(ranking) ? ranking : currentTrendRanking();
+    const index = list.indexOf(genre);
+    return index >= 0 ? index + 1 : null;
+}
 function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     if (!track || !track.actId || !getAct(track.actId)) {
         if (track && track.status === "Scheduled")
@@ -7221,6 +7416,11 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     track.releasedAt = state.time.epochMs;
     recordEraProjectReleaseActivity(era || (track.eraId ? getEraById(track.eraId) : null), track.releasedAt);
     track.trendAtRelease = state.trends.includes(track.genre);
+    const trendRanking = currentTrendRanking();
+    const trendRankAtRelease = trendRankForGenre(track.genre, trendRanking);
+    const trendTotalAtRelease = trendRanking.length || null;
+    track.trendRankAtRelease = trendRankAtRelease;
+    track.trendTotalAtRelease = trendTotalAtRelease;
     track.distribution = dist;
     const preReleaseWeeks = Math.max(0, track.promo?.preReleaseWeeks || 0);
     const promoTypesUsed = track.promo?.typesUsed && typeof track.promo.typesUsed === "object"
@@ -7239,6 +7439,11 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     const creatorCountries = resolveCreatorCountriesFromTrack(track);
     const actCountry = resolveActCountryFromMembers(track.actId);
     const originCountry = actCountry || dominantValue(creatorCountries, null) || state.label.country || "Annglora";
+    const rolloutStrategyId = typeof track.rolloutStrategyId === "string" ? track.rolloutStrategyId : null;
+    const rolloutStrategy = rolloutStrategyId ? getRolloutStrategyById(rolloutStrategyId) : null;
+    const rolloutFocusType = rolloutStrategy?.focusType || null;
+    const rolloutFocusId = rolloutStrategy?.focusId || null;
+    const rolloutFocusLabel = rolloutStrategy?.focusLabel || null;
     const marketEntry = {
         id: uid("MK"),
         trackId: track.id,
@@ -7263,11 +7468,18 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
         genre: track.genre,
         distribution: track.distribution,
         trendAtRelease: track.trendAtRelease,
+        trendRankAtRelease,
+        trendTotalAtRelease,
         releasedAt: track.releasedAt,
         weeksOnChart: 0,
         promoWeeks: preReleaseWeeks,
         promoTypesUsed,
-        promoTypesLastAt
+        promoTypesLastAt,
+        rolloutPlanId: rolloutStrategyId,
+        rolloutPlanSource: rolloutStrategy?.source || null,
+        rolloutFocusType,
+        rolloutFocusId,
+        rolloutFocusLabel
     };
     applyCriticsReview({ track, marketEntry, log: true });
     track.marketId = marketEntry.id;
@@ -7362,6 +7574,11 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
     if (feeResult.fee) {
         recordTrackDistributionFee(track, feeResult.fee);
     }
+    if (rolloutMeta?.rolloutStrategyId) {
+        track.rolloutStrategyId = rolloutMeta.rolloutStrategyId;
+        track.rolloutItemId = rolloutMeta.rolloutItemId || null;
+        track.rolloutWeekIndex = Number.isFinite(rolloutMeta.rolloutWeekIndex) ? rolloutMeta.rolloutWeekIndex : null;
+    }
     const releaseNote = note || dist;
     const entry = {
         id: uid("RQ"),
@@ -7395,6 +7612,11 @@ function processReleaseQueue() {
                 return;
             if (track.status === "Released")
                 return;
+            if (entry.rolloutStrategyId && !track.rolloutStrategyId) {
+                track.rolloutStrategyId = entry.rolloutStrategyId;
+                track.rolloutItemId = entry.rolloutItemId || null;
+                track.rolloutWeekIndex = Number.isFinite(entry.rolloutWeekIndex) ? entry.rolloutWeekIndex : null;
+            }
             if (track.status === "Ready" || track.status === "Scheduled") {
                 releaseTrack(track, entry.note, entry.distribution);
                 return;
@@ -7760,7 +7982,8 @@ function applyScheduledPromoEntry(entry, now) {
                 trackId: track?.id || null,
                 orderId: entry.id
             },
-            activityLabel: promoLabel
+            activityLabel: promoLabel,
+            skillGainPerStamina: ACTIVITY_SKILL_GAIN_PER_STAMINA
         });
         markCreatorPromo(promoIdList);
     }
@@ -8821,7 +9044,7 @@ function formatShortDate(ms) {
 }
 function formatCompactDate(ms) {
     const d = new Date(ms);
-    const month = MONTHS[d.getUTCMonth()] || "MMM";
+    const month = (MONTHS[d.getUTCMonth()] || "MMM").slice(0, 3);
     const day = String(d.getUTCDate()).padStart(2, "0");
     const year = String(d.getUTCFullYear()).slice(-2).padStart(2, "0");
     return `${year}-${month}-${day}`;
@@ -10055,7 +10278,8 @@ function resolveTourBookings(now = state.time.epochMs) {
                     trackId: booking.anchorTrackId || null,
                     orderId: booking.tourId || booking.id
                 },
-                activityLabel: booking.tourName ? `Tour: ${booking.tourName}` : "Tour Date"
+                activityLabel: booking.tourName ? `Tour: ${booking.tourName}` : "Tour Date",
+                skillGainPerStamina: ACTIVITY_SKILL_GAIN_PER_STAMINA
             });
             act.memberIds.forEach((id) => markCreatorActivityById(id, now));
         }
@@ -13159,10 +13383,29 @@ const HUSK_STARTERS = Array.isArray(ROLLOUT_STRATEGY_TEMPLATES) && ROLLOUT_STRAT
     : DEFAULT_HUSK_STARTERS;
 function normalizeHuskContext(husk) {
     const context = husk?.context || {};
+    const rawOutcomes = context?.outcomes || {};
+    const rawMarket = context?.marketConditions || {};
+    const trendRanks = Array.isArray(rawMarket.trendRanks)
+        ? rawMarket.trendRanks.filter((entry) => entry && entry.genre && Number.isFinite(entry.rank))
+        : [];
     return {
         alignmentTags: Array.isArray(context.alignmentTags) ? context.alignmentTags.filter(Boolean) : [],
         trendTags: Array.isArray(context.trendTags) ? context.trendTags.filter(Boolean) : [],
-        outcomeScore: Number.isFinite(context.outcomeScore) ? clamp(context.outcomeScore, 0, 100) : 0
+        outcomeScore: Number.isFinite(context.outcomeScore) ? clamp(context.outcomeScore, 0, 100) : 0,
+        outcomes: {
+            releaseCount: Number.isFinite(rawOutcomes.releaseCount) ? Math.max(0, Math.round(rawOutcomes.releaseCount)) : null,
+            avgQuality: Number.isFinite(rawOutcomes.avgQuality) ? Math.round(rawOutcomes.avgQuality) : null,
+            avgPeak: Number.isFinite(rawOutcomes.avgPeak) ? Math.round(rawOutcomes.avgPeak) : null,
+            avgWeeksOnChart: Number.isFinite(rawOutcomes.avgWeeksOnChart) ? Math.round(rawOutcomes.avgWeeksOnChart) : null
+        },
+        marketConditions: {
+            trendRanks: trendRanks.map((entry) => ({
+                genre: entry.genre,
+                rank: Math.max(1, Math.round(entry.rank)),
+                week: Number.isFinite(entry.week) ? Math.max(1, Math.round(entry.week)) : null,
+                dateRange: entry.dateRange || null
+            }))
+        }
     };
 }
 function normalizeHuskCadence(cadence) {
@@ -13201,6 +13444,102 @@ function averageMetric(list, getter, fallback = 0) {
     const total = list.reduce((sum, entry) => sum + getter(entry), 0);
     return total / list.length;
 }
+function resolveTrendRankForWeek(genre, week, historyByWeek, fallbackRanking) {
+    if (!genre || !Number.isFinite(week))
+        return null;
+    const snapshot = historyByWeek?.get(week) || null;
+    if (snapshot?.ranks && Number.isFinite(snapshot.ranks[genre])) {
+        return snapshot.ranks[genre];
+    }
+    if (Array.isArray(snapshot?.ranking)) {
+        const idx = snapshot.ranking.indexOf(genre);
+        if (idx >= 0)
+            return idx + 1;
+    }
+    if (Array.isArray(fallbackRanking)) {
+        const idx = fallbackRanking.indexOf(genre);
+        if (idx >= 0)
+            return idx + 1;
+    }
+    return null;
+}
+function buildPlanMarketConditions(marketEntries) {
+    const entries = Array.isArray(marketEntries) ? marketEntries : [];
+    if (!entries.length)
+        return { trendRanks: [] };
+    const history = getTrendRankHistory();
+    const historyByWeek = new Map(history.map((entry) => [entry.week, entry]));
+    const fallbackRanking = currentTrendRanking();
+    const seen = new Set();
+    const trendRanks = [];
+    entries.forEach((entry) => {
+        const genre = entry?.genre;
+        const releaseWeek = Number.isFinite(entry?.releasedAt) ? weekNumberFromEpochMs(entry.releasedAt) : null;
+        if (!genre || !releaseWeek)
+            return;
+        const rank = Number.isFinite(entry.trendRankAtRelease)
+            ? entry.trendRankAtRelease
+            : resolveTrendRankForWeek(genre, releaseWeek, historyByWeek, fallbackRanking);
+        if (!Number.isFinite(rank))
+            return;
+        const key = `${genre}:${releaseWeek}`;
+        if (seen.has(key))
+            return;
+        seen.add(key);
+        trendRanks.push({
+            genre,
+            rank: Math.max(1, Math.round(rank)),
+            week: releaseWeek,
+            dateRange: formatWeekRangeLabel(releaseWeek)
+        });
+    });
+    trendRanks.sort((a, b) => (a.week - b.week) || (a.rank - b.rank));
+    return { trendRanks: trendRanks.slice(0, 6) };
+}
+function buildPlanOutcomeStats(marketEntries, trackEntries) {
+    const marketList = Array.isArray(marketEntries) ? marketEntries : [];
+    const trackList = Array.isArray(trackEntries) ? trackEntries : [];
+    const releaseCount = marketList.length || trackList.length || 0;
+    const qualitySources = marketList.length ? marketList : trackList;
+    const qualityAvg = averageMetric(qualitySources, (entry) => clampQuality(entry.quality || 0), 55);
+    const weeksAvg = averageMetric(marketList, (entry) => entry.weeksOnChart || 0, 0);
+    const peakAvg = averageMetric(marketList, (entry) => entry.chartHistory?.global?.peak || 0, 0);
+    const peakScore = peakAvg ? clamp(100 - peakAvg, 0, 100) : 50;
+    const longevityScore = clamp(weeksAvg * 8, 0, 100);
+    const outcomeScore = Math.round(qualityAvg * 0.5 + peakScore * 0.3 + longevityScore * 0.2);
+    return {
+        outcomeScore,
+        outcomes: {
+            releaseCount,
+            avgQuality: qualityAvg,
+            avgPeak: peakAvg || null,
+            avgWeeksOnChart: weeksAvg
+        }
+    };
+}
+function buildPlanContextFromEntries(marketEntries, trackEntries) {
+    const marketList = Array.isArray(marketEntries) ? marketEntries : [];
+    const trackList = Array.isArray(trackEntries) ? trackEntries : [];
+    const genres = [
+        ...trackList.map((track) => track.genre),
+        ...marketList.map((entry) => entry.genre)
+    ].filter(Boolean);
+    const alignments = [
+        ...trackList.map((track) => track.alignment),
+        ...marketList.map((entry) => entry.alignment)
+    ].filter(Boolean);
+    const alignmentTags = Array.from(new Set(alignments));
+    const trendTags = topTags(genres, 4);
+    const { outcomeScore, outcomes } = buildPlanOutcomeStats(marketList, trackList);
+    const marketConditions = buildPlanMarketConditions(marketList);
+    return {
+        alignmentTags,
+        trendTags,
+        outcomeScore,
+        outcomes,
+        marketConditions
+    };
+}
 function buildEraHusk(era) {
     if (!era || era.status !== "Complete")
         return null;
@@ -13236,36 +13575,21 @@ function buildEraHusk(era) {
         promoType: HUSK_PROMO_DEFAULT_TYPE
     }));
     const cadence = normalizeHuskCadence([...releaseSteps, ...promoSteps]);
-    const genres = [
-        ...tracks.map((track) => track.genre),
-        ...marketEntries.map((entry) => entry.genre)
-    ];
-    const alignments = [
-        ...tracks.map((track) => track.alignment),
-        ...marketEntries.map((entry) => entry.alignment)
-    ].filter(Boolean);
     const releaseTypes = Array.from(new Set(tracks.map((track) => track.projectType).filter(Boolean)));
-    const qualitySources = tracks.concat(marketEntries);
-    const qualityAvg = averageMetric(qualitySources, (entry) => clampQuality(entry.quality || 0), 55);
-    const weeksAvg = averageMetric(marketEntries, (entry) => entry.weeksOnChart || 0, 0);
-    const peakAvg = averageMetric(marketEntries, (entry) => entry.chartHistory?.global?.peak || 0, 0);
-    const peakScore = peakAvg ? clamp(100 - peakAvg, 0, 100) : 50;
-    const longevityScore = clamp(weeksAvg * 8, 0, 100);
-    const outcomeScore = Math.round(qualityAvg * 0.5 + peakScore * 0.3 + longevityScore * 0.2);
+    const context = buildPlanContextFromEntries(marketEntries, tracks);
     return {
         id: `era-${era.id}`,
-        label: `${era.name} Husk`,
+        label: `${era.name} Plan`,
         source: "era",
+        focusType: "Era",
+        focusId: era.id,
+        focusLabel: era.name,
         cadence,
         eligibleCategories: {
             releases: releaseTypes.length ? releaseTypes : ["Single"],
             promos: [HUSK_PROMO_DEFAULT_TYPE]
         },
-        context: {
-            alignmentTags: Array.from(new Set(alignments)),
-            trendTags: topTags(genres, 4),
-            outcomeScore
-        }
+        context
     };
 }
 function buildHuskLibrary() {
@@ -13285,6 +13609,166 @@ function buildHuskLibrary() {
             byId.set(husk.id, husk);
     });
     return Array.from(byId.values());
+}
+function buildPlanCadenceFromStrategy(strategy) {
+    if (!strategy || !Array.isArray(strategy.weeks))
+        return [];
+    const cadence = [];
+    strategy.weeks.forEach((week, weekIndex) => {
+        const drops = Array.isArray(week?.drops) ? week.drops : [];
+        const events = Array.isArray(week?.events) ? week.events : [];
+        drops.forEach(() => cadence.push({ kind: "release", weekOffset: weekIndex }));
+        events.forEach((eventItem) => {
+            const scheduled = Number.isFinite(eventItem?.scheduledAt) ? getUtcDayHourMinute(eventItem.scheduledAt) : null;
+            cadence.push({
+                kind: "promo",
+                weekOffset: weekIndex,
+                day: Number.isFinite(scheduled?.day) ? scheduled.day : HUSK_PROMO_DAY,
+                hour: Number.isFinite(scheduled?.hour) ? scheduled.hour : HUSK_PROMO_HOUR,
+                promoType: eventItem?.actionType || HUSK_PROMO_DEFAULT_TYPE
+            });
+        });
+    });
+    return normalizeHuskCadence(cadence);
+}
+function buildPlanEligibleCategoriesFromStrategy(strategy, marketEntries, tracks) {
+    const releaseTypes = [
+        ...(Array.isArray(tracks) ? tracks.map((track) => track.projectType) : []),
+        ...(Array.isArray(marketEntries) ? marketEntries.map((entry) => entry.projectType) : [])
+    ].filter(Boolean);
+    const promos = [];
+    if (strategy?.weeks) {
+        strategy.weeks.forEach((week) => {
+            (week?.events || []).forEach((eventItem) => {
+                if (eventItem?.actionType)
+                    promos.push(eventItem.actionType);
+            });
+        });
+    }
+    return {
+        releases: Array.from(new Set(releaseTypes)).filter(Boolean).length ? Array.from(new Set(releaseTypes)).filter(Boolean) : ["Single"],
+        promos: Array.from(new Set(promos)).filter(Boolean).length ? Array.from(new Set(promos)).filter(Boolean) : [HUSK_PROMO_DEFAULT_TYPE]
+    };
+}
+function buildPlanEntryFromStrategy(strategy) {
+    if (!strategy)
+        return null;
+    const trackIds = [];
+    if (Array.isArray(strategy.weeks)) {
+        strategy.weeks.forEach((week) => {
+            (week?.drops || []).forEach((drop) => {
+                if (drop?.contentId)
+                    trackIds.push(drop.contentId);
+            });
+        });
+    }
+    const uniqueTrackIds = Array.from(new Set(trackIds));
+    const tracks = uniqueTrackIds.map((id) => getTrack(id)).filter(Boolean);
+    const archived = Array.isArray(state.meta?.marketTrackArchive) ? state.meta.marketTrackArchive : [];
+    const releasePool = state.marketTracks.concat(archived);
+    const marketEntries = uniqueTrackIds
+        .map((id) => releasePool.find((entry) => entry.trackId === id))
+        .filter(Boolean);
+    const cadence = buildPlanCadenceFromStrategy(strategy);
+    const eligibleCategories = buildPlanEligibleCategoriesFromStrategy(strategy, marketEntries, tracks);
+    const focusId = strategy.focusId || strategy.eraId || null;
+    const focusLabel = strategy.focusLabel || (strategy.eraId ? getEraById(strategy.eraId)?.name : null) || strategy.label || null;
+    const context = strategy.context
+        ? normalizeHuskContext({ context: strategy.context })
+        : buildPlanContextFromEntries(marketEntries, tracks);
+    return {
+        id: strategy.id,
+        label: strategy.label || focusLabel || "Rollout Plan",
+        source: strategy.source || "PlayerPlanned",
+        focusType: strategy.focusType || "Era",
+        focusId,
+        focusLabel,
+        cadence,
+        eligibleCategories,
+        context,
+        createdAt: strategy.createdAt || null
+    };
+}
+function collectPlanUsageStats() {
+    const usage = new Map();
+    const archived = Array.isArray(state.meta?.marketTrackArchive) ? state.meta.marketTrackArchive : [];
+    const entries = state.marketTracks.concat(archived);
+    entries.forEach((entry) => {
+        const planId = entry?.rolloutPlanId || entry?.huskId || entry?.rolloutStrategyId || null;
+        if (!planId)
+            return;
+        const label = entry.label || "";
+        const next = usage.get(planId) || { labels: new Set(), lastUsedAt: null, releaseCount: 0, marketEntries: [] };
+        if (label)
+            next.labels.add(label);
+        next.releaseCount += 1;
+        next.marketEntries.push(entry);
+        if (Number.isFinite(entry.releasedAt)) {
+            next.lastUsedAt = Math.max(next.lastUsedAt || 0, entry.releasedAt);
+        }
+        usage.set(planId, next);
+    });
+    return usage;
+}
+function buildRolloutPlanLibrary() {
+    const library = [];
+    const byId = new Map();
+    const addPlan = (plan) => {
+        if (!plan?.id)
+            return;
+        if (!byId.has(plan.id)) {
+            byId.set(plan.id, plan);
+            library.push(plan);
+        }
+    };
+    const starters = HUSK_STARTERS.map((husk) => ({
+        ...husk,
+        cadence: normalizeHuskCadence(husk.cadence),
+        context: normalizeHuskContext(husk)
+    }));
+    starters.forEach(addPlan);
+    const archivedStrategies = ensureRolloutStrategies()
+        .filter((strategy) => strategy?.status === "Archived" || strategy?.source === "GeneratedAtEraEnd")
+        .map((strategy) => buildPlanEntryFromStrategy(strategy))
+        .filter(Boolean);
+    archivedStrategies.forEach(addPlan);
+    const eraFallbacks = Array.isArray(state.era?.history)
+        ? state.era.history.filter((era) => {
+            if (!era?.id)
+                return false;
+            const hasPlan = archivedStrategies.some((plan) => plan?.focusType === "Era" && plan?.focusId === era.id);
+            return !hasPlan;
+        }).map((era) => buildEraHusk(era)).filter(Boolean)
+        : [];
+    eraFallbacks.forEach(addPlan);
+    const usage = collectPlanUsageStats();
+    library.forEach((plan) => {
+        const entry = usage.get(plan.id);
+        if (!entry)
+            return;
+        plan.usage = {
+            labels: Array.from(entry.labels.values()),
+            lastUsedAt: entry.lastUsedAt || null,
+            releaseCount: entry.releaseCount
+        };
+        if (entry.releaseCount > 0) {
+            const marketEntries = Array.isArray(entry.marketEntries) ? entry.marketEntries : [];
+            const trackEntries = marketEntries.map((marketEntry) => {
+                const trackId = marketEntry?.trackId;
+                return trackId ? getTrack(trackId) : null;
+            }).filter(Boolean);
+            plan.context = buildPlanContextFromEntries(marketEntries, trackEntries);
+        }
+    });
+    return library;
+}
+function listRolloutPlanLibrary() {
+    return buildRolloutPlanLibrary();
+}
+function getRolloutPlanById(planId) {
+    if (!planId)
+        return null;
+    return listRolloutPlanLibrary().find((plan) => plan.id === planId) || null;
 }
 function estimateHuskPromoBudget(husk, walletCash) {
     const steps = normalizeHuskCadence(husk?.cadence);
@@ -13481,6 +13965,9 @@ function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek }) 
     const seed = makeStableSeed([planWeek, rival.id, husk.id, stepIndex, "release"]);
     const rng = makeSeededRng(seed);
     const { theme, mood } = pickRivalThemeMood(rival, husk, rng);
+    const focusType = husk?.focusType || "Era";
+    const focusLabel = husk?.focusLabel || null;
+    const focusId = husk?.focusId || null;
     const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.5;
     const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
     const outcomeBoost = Math.round((normalizeHuskContext(husk).outcomeScore - 50) / 10);
@@ -13515,6 +14002,9 @@ function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek }) 
         quality,
         genre,
         distribution: releasePlan.distribution,
+        focusType,
+        focusLabel,
+        focusId,
         creatorIds: crew.map((creator) => creator.id)
     };
 }
@@ -14056,7 +14546,8 @@ function processRivalPromoEntry(entry) {
                 orderId: entry.id
             },
             activityLabel: promoDetails.label || "Promo",
-            logOverdraw: false
+            logOverdraw: false,
+            skillGainPerStamina: ACTIVITY_SKILL_GAIN_PER_STAMINA
         });
     }
     markRivalPromoActivity(rival.name, state.time.epochMs, promoCrewIds);
@@ -14087,6 +14578,9 @@ function processRivalReleaseQueue() {
                 creatorCountries.push(entry.country);
             const actCountry = entry.country || dominantValue(creatorCountries, null);
             const trendAtRelease = Array.isArray(state.trends) && entry.genre ? state.trends.includes(entry.genre) : false;
+            const trendRanking = currentTrendRanking();
+            const trendRankAtRelease = trendRankForGenre(entry.genre, trendRanking);
+            const trendTotalAtRelease = trendRanking.length || null;
             const projectType = normalizeProjectType(entry.projectType || "Single");
             const marketEntry = {
                 id: uid("MK"),
@@ -14110,9 +14604,16 @@ function processRivalReleaseQueue() {
                 genre: entry.genre,
                 distribution: entry.distribution || "Digital",
                 trendAtRelease,
+                trendRankAtRelease,
+                trendTotalAtRelease,
                 releasedAt: entry.releaseAt,
                 weeksOnChart: 0,
-                promoWeeks: 0
+                promoWeeks: 0,
+                rolloutPlanId: entry.huskId || null,
+                rolloutPlanSource: entry.huskSource || null,
+                rolloutFocusType: entry.focusType || null,
+                rolloutFocusId: entry.focusId || null,
+                rolloutFocusLabel: entry.focusLabel || null
             };
             applyCriticsReview({ marketEntry });
             state.marketTracks.push(marketEntry);
@@ -14570,7 +15071,8 @@ function runAutoPromoForPlayer() {
                     trackId: track?.id || null,
                     orderId: `auto-promo-${target.index + 1}`
                 },
-                activityLabel: promoLabel
+                activityLabel: promoLabel,
+                skillGainPerStamina: ACTIVITY_SKILL_GAIN_PER_STAMINA
             });
             markCreatorPromo(promoIdList);
         }
@@ -14724,7 +15226,8 @@ function runAutoPromoForRivals() {
                     orderId: market?.id || null
                 },
                 activityLabel: promoDetails.label || "Promo",
-                logOverdraw: false
+                logOverdraw: false,
+                skillGainPerStamina: ACTIVITY_SKILL_GAIN_PER_STAMINA
             });
         }
         markRivalPromoActivity(rival.name, state.time.epochMs, promoCrewIds);
@@ -14743,7 +15246,7 @@ function weeklyUpdate() {
     ensureMarketCreators();
     decayCreatorMarketHeat();
     processCreatorInactivity();
-    updateCreatorSkillDecay();
+    updateCreatorCatharsisInactivityForDay();
     processRivalCreatorInactivity();
     refreshRivalAmbition();
     ensureRivalCashFloor();
@@ -14777,7 +15280,9 @@ function weeklyUpdate() {
     evaluateRivalAchievements();
     refreshRivalAmbition();
     checkWinLoss(labelScores);
-    uiHooks.renderAll?.();
+    if (!session.suppressWeeklyRender) {
+        uiHooks.renderAll?.();
+    }
     logDuration("weeklyUpdate", startTime, WEEKLY_UPDATE_WARN_MS, `(week ${week})`);
 }
 function awardYearWeekRange(year) {
@@ -17616,6 +18121,7 @@ async function runQuarterHourTick() {
     applyQuarterHourResourceTick(activeOrders, prevDayIndex);
     if (currentDayIndex !== prevDayIndex) {
         resetDailyUsageForCreators(currentDayIndex);
+        updateCreatorCatharsisInactivityForDay(currentDayIndex);
         refreshDailyMarket();
     }
     processWorkOrders();
@@ -17635,18 +18141,27 @@ async function advanceQuarters(quarters, { renderQuarterly = true, renderAfter =
     if (!Number.isFinite(quarters) || quarters <= 0)
         return;
     const totalQuarters = Math.ceil(quarters);
+    const suppressWeeklyRender = !renderQuarterly && !renderAfter;
     advanceQuartersQueue = advanceQuartersQueue.then(async () => {
         if (state.meta.gameOver)
             return;
-        for (let i = 0; i < totalQuarters; i += 1) {
-            try {
-                await runQuarterHourTick();
-                if (renderQuarterly)
-                    uiHooks.renderAll?.({ save: false });
+        if (suppressWeeklyRender)
+            session.suppressWeeklyRender = true;
+        try {
+            for (let i = 0; i < totalQuarters; i += 1) {
+                try {
+                    await runQuarterHourTick();
+                    if (renderQuarterly)
+                        uiHooks.renderAll?.({ save: false });
+                }
+                catch (error) {
+                    console.error("runQuarterHourTick error:", error);
+                }
             }
-            catch (error) {
-                console.error("runQuarterHourTick error:", error);
-            }
+        }
+        finally {
+            if (suppressWeeklyRender)
+                session.suppressWeeklyRender = false;
         }
         if (renderAfter) {
             uiHooks.renderAll?.({ save: false });
@@ -17751,7 +18266,7 @@ function maybeAutoSave() {
     const last = state.meta.autoSave.lastSavedAt || 0;
     if (Date.now() - last < intervalMs)
         return;
-    saveToActiveSlot();
+    saveToActiveSlot({ immediate: true });
     state.meta.autoSave.lastSavedAt = Date.now();
 }
 function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null } = {}) {
@@ -17876,6 +18391,47 @@ function warnLocalStorageIssue(message) {
     session.localStorageWarned = true;
     logEvent(message, "warn");
 }
+function estimateUtf16Bytes(value) {
+    if (!value)
+        return 0;
+    return value.length * 2;
+}
+function estimatePayloadBytes(payload) {
+    if (!payload)
+        return 0;
+    if (typeof Blob !== "undefined") {
+        return new Blob([payload]).size;
+    }
+    return estimateUtf16Bytes(payload);
+}
+function estimateLocalStorageBytes() {
+    if (typeof localStorage === "undefined")
+        return 0;
+    try {
+        let total = 0;
+        for (let i = 0; i < localStorage.length; i += 1) {
+            const key = localStorage.key(i);
+            if (!key)
+                continue;
+            const value = localStorage.getItem(key) || "";
+            total += key.length + value.length;
+        }
+        return total * 2;
+    }
+    catch {
+        return 0;
+    }
+}
+function formatByteSize(bytes) {
+    if (!Number.isFinite(bytes) || bytes <= 0)
+        return "0MB";
+    const mb = bytes / (1024 * 1024);
+    if (mb >= 100)
+        return `${Math.round(mb)}MB`;
+    if (mb >= 10)
+        return `${mb.toFixed(1)}MB`;
+    return `${mb.toFixed(2)}MB`;
+}
 function saveToSlot(index) {
     if (!index)
         return;
@@ -17883,20 +18439,29 @@ function saveToSlot(index) {
     if (state.meta.autoSave)
         state.meta.autoSave.lastSavedAt = state.meta.savedAt;
     const payload = JSON.stringify(state);
+    const payloadBytes = estimatePayloadBytes(payload);
     let storedLocal = false;
     if (typeof localStorage !== "undefined" && !session.localStorageDisabled) {
-        try {
-            localStorage.setItem(slotKey(index), payload);
-            storedLocal = true;
+        const storageBytes = estimateLocalStorageBytes();
+        const projectedBytes = storageBytes ? storageBytes + payloadBytes : payloadBytes;
+        if (projectedBytes > LOCAL_SAVE_QUOTA_BYTES) {
+            session.localStorageDisabled = true;
+            warnLocalStorageIssue(`Local save skipped (${formatByteSize(payloadBytes)}). Configure External Storage in Internal Log to keep saves synced.`);
         }
-        catch (error) {
-            console.warn(`[storage] Failed to save slot ${index} to localStorage.`, error);
-            if (isQuotaExceededError(error)) {
-                session.localStorageDisabled = true;
-                warnLocalStorageIssue("Local save storage is full. Configure External Storage in Internal Log to keep saves synced.");
+        else {
+            try {
+                localStorage.setItem(slotKey(index), payload);
+                storedLocal = true;
             }
-            else {
-                warnLocalStorageIssue("Local save failed. Check browser storage settings.");
+            catch (error) {
+                console.warn(`[storage] Failed to save slot ${index} to localStorage.`, error);
+                if (isQuotaExceededError(error)) {
+                    session.localStorageDisabled = true;
+                    warnLocalStorageIssue("Local save storage is full. Configure External Storage in Internal Log to keep saves synced.");
+                }
+                else {
+                    warnLocalStorageIssue("Local save failed. Check browser storage settings.");
+                }
             }
         }
     }
@@ -17905,10 +18470,42 @@ function saveToSlot(index) {
     }
     queueSaveSlotWrite(index, payload);
 }
-function saveToActiveSlot() {
+function queueActiveSlotSave() {
+    if (!session.activeSlot)
+        return;
+    if (saveDebounceTimer) {
+        saveDebounceQueued = true;
+        return;
+    }
+    saveDebounceQueued = false;
+    saveDebounceTimer = setTimeout(() => {
+        saveDebounceTimer = null;
+        if (session.activeSlot)
+            saveToSlot(session.activeSlot);
+        if (saveDebounceQueued) {
+            saveDebounceQueued = false;
+            queueActiveSlotSave();
+        }
+    }, SAVE_DEBOUNCE_MS);
+}
+function flushActiveSlotSave() {
+    if (saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = null;
+        saveDebounceQueued = false;
+    }
     if (!session.activeSlot)
         return;
     saveToSlot(session.activeSlot);
+}
+function saveToActiveSlot(options = {}) {
+    if (!session.activeSlot)
+        return;
+    if (options?.immediate) {
+        flushActiveSlotSave();
+        return;
+    }
+    queueActiveSlotSave();
 }
 function resetState(nextState) {
     Object.assign(state, makeDefaultState(), nextState || {});
@@ -18004,8 +18601,12 @@ function normalizeState() {
             chartPulseContentType: "tracks",
             trendScopeType: "global",
             trendScopeTarget: defaultTrendNation(),
+            rivalRosterId: null,
+            rivalRosterFocus: false,
             awardsYear: null,
             awardsCategoryId: null,
+            awardsView: "awards",
+            awardsChartType: "tracks",
             labelRankingLimit: COMMUNITY_LABEL_RANKING_DEFAULT,
             trendRankingLimit: COMMUNITY_TREND_RANKING_DEFAULT,
             genreTheme: "All",
@@ -18056,6 +18657,10 @@ function normalizeState() {
         state.ui.trendScopeType = "global";
     if (!state.ui.trendScopeTarget)
         state.ui.trendScopeTarget = defaultTrendNation();
+    if (typeof state.ui.rivalRosterId === "undefined")
+        state.ui.rivalRosterId = null;
+    if (typeof state.ui.rivalRosterFocus !== "boolean")
+        state.ui.rivalRosterFocus = false;
     const legacyRanking = applyLegacyCommunityRankingLimit(state.ui.communityRankingLimit);
     if (legacyRanking) {
         if (typeof state.ui.labelRankingLimit === "undefined")
@@ -18195,6 +18800,15 @@ function normalizeState() {
     }
     if (typeof state.ui.awardsCategoryId !== "string")
         state.ui.awardsCategoryId = null;
+    if (state.ui.awardsView !== "awards" && state.ui.awardsView !== "charts") {
+        state.ui.awardsView = "awards";
+    }
+    if (state.ui.awardsChartType !== "tracks"
+        && state.ui.awardsChartType !== "projects"
+        && state.ui.awardsChartType !== "promotions"
+        && state.ui.awardsChartType !== "tours") {
+        state.ui.awardsChartType = "tracks";
+    }
     if (!state.meta)
         state.meta = makeDefaultState().meta;
     if (typeof state.meta.chartHistoryLastWeek === "undefined")
@@ -18433,7 +19047,11 @@ function normalizeState() {
     });
     if (!state.creators)
         state.creators = [];
-    state.creators = state.creators.map((creator) => normalizeCreator(creator));
+    state.creators = state.creators.map((creator) => {
+        const normalized = normalizeCreator(creator);
+        markCreatorSigned(normalized);
+        return normalized;
+    });
     if (!state.rivals)
         state.rivals = [];
     state.rivals.forEach((rival) => {
@@ -18441,6 +19059,11 @@ function normalizeState() {
             rival.seedBonus = 0;
         if (!Array.isArray(rival.creators))
             rival.creators = [];
+        rival.creators = rival.creators.filter(Boolean).map((creator) => {
+            const normalized = normalizeCreator(creator);
+            markCreatorSigned(normalized);
+            return normalized;
+        });
         if (typeof rival.cash !== "number")
             rival.cash = STARTING_CASH;
         if (!rival.wallet)
@@ -18728,8 +19351,14 @@ function normalizeState() {
     if (!totalAutoBudget && state.meta.autoRollout.budgetPct > 0 && hasAutoPromoTargets) {
         state.meta.autoRollout.budgetPctSlots[0] = state.meta.autoRollout.budgetPct;
     }
-    if (typeof state.meta.keepEraRolloutHusks !== "boolean")
-        state.meta.keepEraRolloutHusks = true;
+    if (typeof state.meta.keepEraRolloutPlans !== "boolean") {
+        state.meta.keepEraRolloutPlans = typeof state.meta.keepEraRolloutHusks === "boolean"
+            ? state.meta.keepEraRolloutHusks
+            : true;
+    }
+    if (typeof state.meta.keepEraRolloutHusks !== "boolean") {
+        state.meta.keepEraRolloutHusks = state.meta.keepEraRolloutPlans;
+    }
     if (typeof state.meta.touringBalanceEnabled !== "boolean")
         state.meta.touringBalanceEnabled = false;
     if (typeof state.meta.cheaterMode !== "boolean")
@@ -18973,6 +19602,9 @@ function normalizeState() {
             era.outcomeStats = null;
         if (typeof era.rolloutStrategyId !== "string")
             era.rolloutStrategyId = null;
+        if (typeof era.rolloutPlanGenerated !== "boolean") {
+            era.rolloutPlanGenerated = typeof era.rolloutHuskGenerated === "boolean" ? era.rolloutHuskGenerated : false;
+        }
         if (typeof era.rolloutHuskGenerated !== "boolean")
             era.rolloutHuskGenerated = false;
         if (typeof era.projectName !== "string")
@@ -19006,6 +19638,9 @@ function normalizeState() {
             era.outcomeStats = null;
         if (typeof era.rolloutStrategyId !== "string")
             era.rolloutStrategyId = null;
+        if (typeof era.rolloutPlanGenerated !== "boolean") {
+            era.rolloutPlanGenerated = typeof era.rolloutHuskGenerated === "boolean" ? era.rolloutHuskGenerated : false;
+        }
         if (typeof era.projectName !== "string")
             era.projectName = era.projectName || null;
         if (typeof era.projectType !== "string")
@@ -19034,8 +19669,24 @@ function normalizeState() {
             next.actId = next.actId || null;
         if (typeof next.eraId !== "string")
             next.eraId = next.eraId || null;
+        const era = next.eraId ? getEraById(next.eraId) : null;
+        if (typeof next.label !== "string") {
+            const fallbackLabel = era?.name ? `${era.name} Plan` : "Rollout Plan";
+            next.label = next.label || fallbackLabel;
+        }
+        if (typeof next.focusType !== "string")
+            next.focusType = era ? "Era" : "Campaign";
+        if (typeof next.focusId !== "string")
+            next.focusId = era?.id || null;
+        if (typeof next.focusLabel !== "string")
+            next.focusLabel = era?.name || next.label || null;
+        if (next.context && typeof next.context === "object") {
+            next.context = normalizeHuskContext({ context: next.context });
+        }
+        else {
+            next.context = null;
+        }
         if (!Array.isArray(next.weeks) || !next.weeks.length) {
-            const era = next.eraId ? getEraById(next.eraId) : null;
             next.weeks = buildRolloutWeeks(rolloutWeekCountFromEra(era));
         }
         if (!next.status)
@@ -19159,6 +19810,16 @@ function normalizeState() {
         next.queueType = queueType;
         if (typeof next.actNameKey !== "string")
             next.actNameKey = next.actNameKey || null;
+        if (typeof next.huskId !== "string")
+            next.huskId = next.huskId || null;
+        if (typeof next.huskSource !== "string")
+            next.huskSource = next.huskSource || null;
+        if (typeof next.focusType !== "string")
+            next.focusType = next.focusType || null;
+        if (typeof next.focusId !== "string")
+            next.focusId = next.focusId || null;
+        if (typeof next.focusLabel !== "string")
+            next.focusLabel = next.focusLabel || null;
         if (queueType === "promo" && !next.promoType)
             next.promoType = AUTO_PROMO_RIVAL_TYPE;
         if (typeof next.releaseAt !== "number")
@@ -19212,6 +19873,7 @@ function normalizeState() {
     if (state.marketCreators?.length) {
         state.marketCreators = state.marketCreators.map((creator) => {
             const next = normalizeCreator(creator);
+            markCreatorUnsigned(next);
             next.signCost = computeSignCost(next);
             return next;
         });
@@ -19244,6 +19906,16 @@ function normalizeState() {
                 track.criticDelta = null;
             if (typeof track.trendAtRelease !== "boolean")
                 track.trendAtRelease = false;
+            if (!Number.isFinite(track.trendRankAtRelease))
+                track.trendRankAtRelease = null;
+            if (!Number.isFinite(track.trendTotalAtRelease))
+                track.trendTotalAtRelease = null;
+            if (typeof track.rolloutStrategyId !== "string")
+                track.rolloutStrategyId = track.rolloutStrategyId || null;
+            if (typeof track.rolloutItemId !== "string")
+                track.rolloutItemId = track.rolloutItemId || null;
+            if (!Number.isFinite(track.rolloutWeekIndex))
+                track.rolloutWeekIndex = null;
             if (!track.projectType)
                 track.projectType = "Single";
             track.releaseType = normalizeReleaseType(track.releaseType, track.projectType);
@@ -19322,6 +19994,20 @@ function normalizeState() {
                 entry.isPlayer = false;
             if (typeof entry.trendAtRelease !== "boolean")
                 entry.trendAtRelease = false;
+            if (!Number.isFinite(entry.trendRankAtRelease))
+                entry.trendRankAtRelease = null;
+            if (!Number.isFinite(entry.trendTotalAtRelease))
+                entry.trendTotalAtRelease = null;
+            if (typeof entry.rolloutPlanId !== "string")
+                entry.rolloutPlanId = entry.rolloutPlanId || null;
+            if (typeof entry.rolloutPlanSource !== "string")
+                entry.rolloutPlanSource = entry.rolloutPlanSource || null;
+            if (typeof entry.rolloutFocusType !== "string")
+                entry.rolloutFocusType = entry.rolloutFocusType || null;
+            if (typeof entry.rolloutFocusId !== "string")
+                entry.rolloutFocusId = entry.rolloutFocusId || null;
+            if (typeof entry.rolloutFocusLabel !== "string")
+                entry.rolloutFocusLabel = entry.rolloutFocusLabel || null;
             if (!Number.isFinite(entry.qualityBase))
                 entry.qualityBase = entry.quality;
             if (!Number.isFinite(entry.qualityFinal))
@@ -19390,6 +20076,20 @@ function normalizeState() {
                 entry.actNameKey = entry.actNameKey || null;
             if (typeof entry.trendAtRelease !== "boolean")
                 entry.trendAtRelease = false;
+            if (!Number.isFinite(entry.trendRankAtRelease))
+                entry.trendRankAtRelease = null;
+            if (!Number.isFinite(entry.trendTotalAtRelease))
+                entry.trendTotalAtRelease = null;
+            if (typeof entry.rolloutPlanId !== "string")
+                entry.rolloutPlanId = entry.rolloutPlanId || null;
+            if (typeof entry.rolloutPlanSource !== "string")
+                entry.rolloutPlanSource = entry.rolloutPlanSource || null;
+            if (typeof entry.rolloutFocusType !== "string")
+                entry.rolloutFocusType = entry.rolloutFocusType || null;
+            if (typeof entry.rolloutFocusId !== "string")
+                entry.rolloutFocusId = entry.rolloutFocusId || null;
+            if (typeof entry.rolloutFocusLabel !== "string")
+                entry.rolloutFocusLabel = entry.rolloutFocusLabel || null;
             if (typeof entry.isPlayer !== "boolean")
                 entry.isPlayer = false;
             if (!Number.isFinite(entry.quality))
@@ -20393,7 +21093,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

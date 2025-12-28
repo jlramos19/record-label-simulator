@@ -1,5 +1,34 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0319Z)
+- Signed creators now take a daily catharsis inactivity debuff after 6 months idle; the debuff only affects catharsis and recovers linearly over 14 days after use. [PN-20251228-AC44]
+- Promo runs and tour dates now award small uncapped skill progress to signed creators (player + rival). [PN-20251228-AC45]
+- Community rival label pills now open a Rival Rosters panel with their creators and acts. [PN-20251228-AC46]
+
+## 2025-12-28 (RLS-PATCH-20251228-0315Z)
+- Local saves now debounce and preflight size to avoid localStorage quota exceptions during heavy sim runs. [PN-20251228-AC39]
+- World/Community view now throttles heavy market renders while time is running; UI actions force immediate refresh. [PN-20251228-AC40]
+- Internal Log now includes Export Debug Bundle downloads for sharing usage sessions and system logs. [PN-20251228-AC41]
+- Creator portrait builds can generate optimized assets via `npm run optimize:portraits`; builds prefer the optimized folder when present. [PN-20251228-AC42]
+- Fast time skips now suppress weekly UI renders to keep long jumps responsive. [PN-20251228-AC43]
+
+## 2025-12-28 (RLS-PATCH-20251228-0313Z)
+- Rollout Plans now support multi-focus targets (Era, Release, Project, Tour, Campaign) with a shared Plan Library that tracks usage, outcomes, and market trend-rank context across labels. [PN-20251228-AC37]
+- Week-numbered UI labels and selectors now render compact date ranges (YY-MMM-DD to YY-MMM-DD) across dashboards, charts, calendars, tours, promos, and rollout planning windows. [PN-20251228-AC38]
+
+## 2025-12-28 (RLS-PATCH-20251228-0246Z)
+- Awards now include a Year-End Charts tab with chart-type leaders and detail rankings from the annual ledger. [PN-20251228-AC35]
+- Road to the Top tabs now stay pinned above Charts/Requests content so the view switcher stays visible. [PN-20251228-AC36]
+
+## 2025-12-28 (RLS-PATCH-20251228-0228Z)
+- Harmony Hub creator cards now keep their layout when the creators panel is resized. [PN-20251228-AC34]
+
+## 2025-12-28 (RLS-PATCH-20251228-0225Z)
+- Wide-screen layouts now respect single-column views (including Calendar), preventing an empty right column from stealing space. [PN-20251228-AC33]
+
+## 2025-12-28 (RLS-PATCH-20251228-0210Z)
+- On startup, the game now prompts to pick a save folder so save slots can sync to external storage. [PN-20251228-AC32]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0155Z)
 - Save writes now guard against local storage quota errors, warning to configure External Storage instead of crashing. [PN-20251228-AC31]
 
@@ -720,6 +749,21 @@
 - PN-20251228-AC29 (2025-12-28 00:57Z): Create Advanced now expands studio slots to full role limits (15 Songwriters, 10 Recorders, 5 Producers).
 - PN-20251228-AC30 (2025-12-28 00:57Z): Release project drafting now ignores unmastered tracks and waits for Act assignments before summarizing projects.
 - PN-20251228-AC31 (2025-12-28 01:55Z): Save writes now guard against local storage quota errors, warning to configure External Storage instead of crashing.
+- PN-20251228-AC32 (2025-12-28 02:10Z): On startup, the game now prompts to pick a save folder so save slots can sync to external storage.
 - PN-20251227-AC31 (2025-12-27 21:52Z): Label settings moved out of Signed and into a header button beside the label summary.
 - PN-20251227-AC32 (2025-12-27 21:52Z): Calendar defaults to a 2/3 split between Calendar and Structures, and the Upcoming footer can collapse to a compact bar.
 - PN-20251228-AC31 (2025-12-28 01:52Z): Dark mode palette now anchors on #0a0703 with retuned panels, lines, text, and surface tones.
+- PN-20251228-AC35 (2025-12-28 02:46Z): Awards now include a Year-End Charts tab with chart-type leaders and detail rankings from the annual ledger.
+- PN-20251228-AC36 (2025-12-28 02:46Z): Road to the Top tabs now stay pinned above Charts/Requests content so the view switcher stays visible.
+- PN-20251228-AC33 (2025-12-28 02:25Z): Wide-screen layouts now respect single-column views (including Calendar), preventing an empty right column from stealing space.
+- PN-20251228-AC34 (2025-12-28 02:28Z): Harmony Hub creator cards now keep their layout when the creators panel is resized.
+- PN-20251228-AC37 (2025-12-28 03:13Z): Rollout Plans now support multi-focus targets with a shared Plan Library that tracks usage, outcomes, and market trend-rank context across labels.
+- PN-20251228-AC38 (2025-12-28 03:13Z): Week-numbered UI labels and selectors now render compact date ranges across dashboards, charts, calendars, tours, promos, and rollout planning windows.
+- PN-20251228-AC39 (2025-12-28 03:15Z): Local saves now debounce and preflight size to avoid localStorage quota exceptions during heavy sim runs.
+- PN-20251228-AC40 (2025-12-28 03:15Z): World/Community view now throttles heavy market renders while time is running; UI actions force immediate refresh.
+- PN-20251228-AC41 (2025-12-28 03:15Z): Internal Log now includes Export Debug Bundle downloads for sharing usage sessions and system logs.
+- PN-20251228-AC42 (2025-12-28 03:15Z): Creator portrait builds can generate optimized assets via npm run optimize:portraits; builds prefer the optimized folder when present.
+- PN-20251228-AC43 (2025-12-28 03:15Z): Fast time skips now suppress weekly UI renders to keep long jumps responsive.
+- PN-20251228-AC44 (2025-12-28 03:19Z): Signed creators now take a daily catharsis inactivity debuff after 6 months idle; the debuff only affects catharsis and recovers linearly over 14 days after use.
+- PN-20251228-AC45 (2025-12-28 03:19Z): Promo runs and tour dates now award small uncapped skill progress to signed creators (player + rival).
+- PN-20251228-AC46 (2025-12-28 03:19Z): Community rival label pills now open a Rival Rosters panel with their creators and acts.

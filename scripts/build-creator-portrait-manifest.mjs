@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
 
-const ROOT = path.resolve("assets/png/portraits/creator-ids");
+const SOURCE_ROOT = path.resolve("assets/png/portraits/creator-ids");
+const OPTIMIZED_ROOT = path.resolve("assets/png/portraits/creator-ids-optimized");
 const OUTPUT = path.resolve("assets/js/data/creator-portraits.js");
 const EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 
@@ -42,12 +43,19 @@ function sortEntries(entries) {
   return ordered;
 }
 
-const entries = sortEntries(collectEntries(ROOT));
-const payload = { root: "assets/png/portraits/creator-ids", entries };
+const optimizedEntries = collectEntries(OPTIMIZED_ROOT);
+const hasOptimized = Object.keys(optimizedEntries).length > 0;
+const sourceEntries = hasOptimized ? optimizedEntries : collectEntries(SOURCE_ROOT);
+const entries = sortEntries(sourceEntries);
+const rootLabel = hasOptimized
+  ? "assets/png/portraits/creator-ids-optimized"
+  : "assets/png/portraits/creator-ids";
+const payload = { root: rootLabel, entries };
 const content = `const CREATOR_PORTRAIT_MANIFEST = ${JSON.stringify(payload, null, 2)};\n`;
 
 fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
 fs.writeFileSync(OUTPUT, content, "utf8");
 
 const count = Object.values(entries).reduce((sum, list) => sum + list.length, 0);
-console.log(`Creator portrait manifest: ${count} files across ${Object.keys(entries).length} folders.`);
+const flavor = hasOptimized ? " (optimized)" : "";
+console.log(`Creator portrait manifest: ${count} files across ${Object.keys(entries).length} folders${flavor}.`);

@@ -287,6 +287,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
     id: "single-drip",
     label: "Single Drip",
     source: "template",
+    focusType: "Release",
     cadence: [
       { kind: "release", weekOffset: 0 },
       { kind: "promo", weekOffset: 0, day: 6, hour: 12, promoType: "eyeriSocialPost" }
@@ -298,6 +299,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
     id: "pulse-loop",
     label: "Pulse Loop",
     source: "template",
+    focusType: "Release",
     cadence: [
       { kind: "release", weekOffset: 0 },
       { kind: "promo", weekOffset: 0, day: 6, hour: 12, promoType: "eyeriSocialPost" },
@@ -311,6 +313,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
     id: "project-ladder",
     label: "Project Ladder",
     source: "template",
+    focusType: "Project",
     cadence: [
       { kind: "release", weekOffset: 0 },
       { kind: "promo", weekOffset: 0, day: 6, hour: 12, promoType: "interview" },
@@ -326,6 +329,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
     id: "video-blitz",
     label: "Video Blitz",
     source: "template",
+    focusType: "Campaign",
     cadence: [
       { kind: "release", weekOffset: 0 },
       { kind: "promo", weekOffset: 0, day: 6, hour: 12, promoType: "musicVideo" },
@@ -339,6 +343,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
     id: "tour-warmup",
     label: "Tour Warmup",
     source: "template",
+    focusType: "Tour",
     cadence: [
       { kind: "release", weekOffset: 0 },
       { kind: "promo", weekOffset: 1, day: 6, hour: 12, promoType: "interview" },

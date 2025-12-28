@@ -22,7 +22,9 @@ Each in-game calendar year, the simulation computes 12 CEO Request awards at Gai
 
 ## UI viewer
 - The Awards (Year-End) tab lists years from `state.meta.annualAwardLedger.years`.
-- Categories and nominee details render dynamically from the ledger for the selected year.
+- Awards and Year-End Charts sit side-by-side in the Awards view; both share the year selector.
+- Awards categories and nominee details render dynamically from the ledger for the selected year.
+- Year-End Charts lists Tracks/Projects/Promos/Tours leaders by chart points, gated by the nominee reveal date.
 - Winner highlights come from `state.meta.annualAwards`, with fallbacks when data is missing.
 
 ## Scoring rules

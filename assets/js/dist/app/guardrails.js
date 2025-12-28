@@ -24,7 +24,7 @@ function safeSave(reason) {
     lastSaveAt = now;
     try {
         if (session?.activeSlot) {
-            saveToActiveSlot();
+            saveToActiveSlot({ immediate: true });
             console.info(`[guardrails] auto-saved (${reason}).`);
         }
     }

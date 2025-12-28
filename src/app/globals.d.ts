@@ -56,9 +56,23 @@ declare const ROLLOUT_STRATEGY_TEMPLATES: {
   id: string;
   label: string;
   source?: string;
+  focusType?: string;
   cadence: { kind: string; weekOffset: number; day?: number; hour?: number; promoType?: string }[];
   eligibleCategories?: { releases?: string[]; promos?: string[] };
-  context?: { alignmentTags?: string[]; trendTags?: string[]; outcomeScore?: number };
+  context?: {
+    alignmentTags?: string[];
+    trendTags?: string[];
+    outcomeScore?: number;
+    outcomes?: {
+      releaseCount?: number;
+      avgQuality?: number;
+      avgPeak?: number;
+      avgWeeksOnChart?: number;
+    };
+    marketConditions?: {
+      trendRanks?: { genre: string; rank: number; week: number; dateRange?: string }[];
+    };
+  };
 }[];
 declare const CHART_SIZES: { global: number; nation: number; region: number };
 declare const CHART_WEIGHTS: { sales: number; streaming: number; airplay: number; social: number };
