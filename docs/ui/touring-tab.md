@@ -9,6 +9,7 @@ This doc defines the Touring view (MVP v0) for the current touring feature.
 - Touring impact on wallet/fans is gated by the touring balance flag.
 - Tour summaries group dates into regional legs with counts.
 - Tour dates spend pooled act stamina per show, so high-stamina members cover low-stamina ones.
+- Budget + Staffing now surfaces tour readiness (stamina + skill + upcoming dates), plus crew stamina/overuse and max-streak estimates.
 
 ## Development route
 - Start with real-world touring workflow steps, even when mechanics are rough.
@@ -29,7 +30,7 @@ This doc defines the Touring view (MVP v0) for the current touring feature.
 - Tour Planner: Act, Era, tour name, anchor project/track, date window, auto-generate route.
 - Venue Finder: filters for region, capacity tier, availability; includes a venue list and quick-select.
 - Route Timeline: date + venue bookings list with conflict warnings and removal actions.
-- Budget + Staffing: per-show projection totals and a tour-wide summary (revenue, costs, profit, attendance).
+- Budget + Staffing: per-show projection totals and a tour-wide summary (revenue, costs, profit, attendance), plus crew readiness and endurance details.
 - Tour names auto-fill from the active Era or anchored Project when available.
 - Tour names append ARENA/STADIUM/WORLD when bookings are all arenas, all stadiums, or span every nation.
 
@@ -47,6 +48,7 @@ This doc defines the Touring view (MVP v0) for the current touring feature.
 - Warnings appear in the Touring tab and in the Calendar timeline.
 - Booking attempts always log an event with the tour ID and failure reason.
 - Tour completions post to eyeriSocial and log per-leg recap entries.
+- Overuse risk and projected fatigue warnings log when tour dates are booked.
 
 ## Related
 - `docs/systems/touring/venues.md`

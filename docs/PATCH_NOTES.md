@@ -3,6 +3,7 @@
 ## 2025-12-28 (RLS-PATCH-20251228-0742Z)
 - Harmony Hub now offers Quick Group Act filters for gender identity, age group, preferred theme/mood, act alignment, and skill level range. [PN-20251228-AC63]
 - Release hygiene pass refreshed the README update stamp and patch note registry. [PN-20251228-AC64]
+- Rival rollout planning now uses projected net gates, cadence + stamina roster targets, and CEO Request action biasing with logged plan reasons. [PN-20251228-AC65]
 
 ## 2025-12-28 (RLS-PATCH-20251228-0730Z)
 - CCC rejected creators now drop to the bottom of CCC lists within the active sort mode. [PN-20251228-AC61]
@@ -821,3 +822,4 @@
 - PN-20251228-AC62 (2025-12-28 07:30Z): Release Desk now lets you scrap mastered tracks, clearing them from the pipeline before release.
 - PN-20251228-AC63 (2025-12-28 07:42Z): Harmony Hub now offers Quick Group Act filters for gender identity, age group, preferred theme/mood, act alignment, and skill level range.
 - PN-20251228-AC64 (2025-12-28 07:42Z): Release hygiene pass refreshed the README update stamp and patch note registry.
+- PN-20251228-AC65 (2025-12-28 08:20Z): Rival rollout planning now uses projected net gates, cadence + stamina roster targets, and CEO Request action biasing with logged plan reasons.

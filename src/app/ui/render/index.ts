@@ -5626,13 +5626,26 @@ function collectProjectSummaries(tracks, queuedIds) {
       masteringCount: 0,
       scheduledCount: 0,
       releasedCount: 0,
-      actNames: new Set()
+      actNames: new Set(),
+      revenue: 0,
+      productionCost: 0,
+      distributionFees: 0,
+      promoCost: 0,
+      costs: 0,
+      profit: 0
     };
     summary.trackCount += 1;
     if (track.status === "Released") summary.releasedCount += 1;
     if (track.status === "Ready") summary.readyCount += 1;
     if (track.status !== "Ready" && isMasteringTrack(track)) summary.masteringCount += 1;
     if (queuedIds.has(track.id)) summary.scheduledCount += 1;
+    const economy = track.economy || {};
+    summary.revenue += Number(economy.revenue || 0);
+    summary.productionCost += Number(economy.productionCost || 0);
+    summary.distributionFees += Number(economy.distributionFees || 0);
+    summary.promoCost += Number(economy.promoCost || 0);
+    summary.costs = summary.productionCost + summary.distributionFees + summary.promoCost;
+    summary.profit = summary.revenue - summary.costs;
     const act = track.actId ? getAct(track.actId) : null;
     if (act?.name) summary.actNames.add(act.name);
     summaries.set(key, summary);
@@ -5698,6 +5711,14 @@ function renderReleaseDesk() {
           `Scheduled ${formatCount(summary.scheduledCount)}`,
           `Released ${formatCount(summary.releasedCount)}`
         ].filter(Boolean).join(" | ");
+        const revenueLabel = formatMoney(summary.revenue || 0);
+        const costsLabel = formatMoney(summary.costs || 0);
+        const profitLabel = formatMoney(summary.profit || 0);
+        const productionLabel = formatMoney(summary.productionCost || 0);
+        const distributionLabel = formatMoney(summary.distributionFees || 0);
+        const promoLabel = formatMoney(summary.promoCost || 0);
+        const economyLine = `Revenue ${revenueLabel} | Costs ${costsLabel} | Net ${profitLabel}`;
+        const inputsLine = `Inputs: Prod ${productionLabel} | Dist ${distributionLabel} | Promo ${promoLabel}`;
         return `
           <div class="list-item">
             <div class="list-row">
@@ -5705,6 +5726,8 @@ function renderReleaseDesk() {
                 <div class="item-title">${renderProjectName(summary.projectName)}</div>
                 <div class="muted">${summaryParts}</div>
                 <div class="muted">Acts: ${actLabel}</div>
+                <div class="muted">${economyLine}</div>
+                <div class="muted">${inputsLine}</div>
               </div>
               <div class="${statusClass}">${statusLabel}</div>
             </div>

@@ -593,6 +593,16 @@ function makeDefaultState() {
       labelShare: {},
       labelCompetition: {},
       labelShareWeek: null,
+      labelMetrics: {
+        updatedWeek: null,
+        updatedAt: null,
+        labels: {},
+        ranking: [],
+        consumption: {},
+        netSummary: {},
+        projections: {},
+        profitability: { eras: {}, projects: {} }
+      },
       difficulty: difficulty.id,
       gameMode: DEFAULT_GAME_MODE,
       startYear: getGameMode(DEFAULT_GAME_MODE).startYear,
