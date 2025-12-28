@@ -64,6 +64,40 @@ Hey, congrats on your new record label. In this game, a "label" is a tiny factor
      - Friday 12:00: trends refresh
      - Saturday 00:00: charts update
 
+## Road to the Top checklist (Tasks -> 12 CEO Requests)
+Tasks are the short-term quests in this game. They align to CEO Requests (the 12 achievements) and show which requests they support. Use them as a guided checklist for winning.
+
+Win reminder: you win by completing all 12 CEO Requests before any rival label does. CEO Requests unlock from annual awards.
+
+### Fast checklist (wins-focused)
+- [ ] Open Dashboard -> Road to the Top -> Requests. Note which requests are still locked.
+- [ ] Open Tasks. Pick 1-2 tasks that support your locked requests (look for "Supports CEO Requests").
+- [ ] Schedule at least one release and one promo before Friday 00:00.
+- [ ] Run time through Saturday 00:00 so charts update.
+- [ ] On the first Saturday of January, check Awards (Year-End) for new request wins.
+
+### Expanded checklist (daily, weekly, annual)
+Daily:
+- [ ] After 12AM, review Tasks (they refresh once per day).
+- [ ] Prioritize tasks aligned to locked requests, not ones you already won.
+- [ ] If a task is blocked, read the reason and fix the missing requirement.
+
+Weekly:
+- [ ] Release window hits Friday 00:00. Be scheduled before then.
+- [ ] Trends update Friday 12:00. Adjust Theme/Mood if needed.
+- [ ] Charts update Saturday 00:00. Check if your focus area is climbing.
+- [ ] Keep at least one active release and one active promo running.
+
+Annual:
+- [ ] First Saturday of January: review Awards (Year-End).
+- [ ] Note which CEO Requests you earned and what is still locked.
+- [ ] If rivals are close to 12, shift tasks toward your weakest categories.
+
+Always:
+- [ ] Avoid Cheater Mode if you want Tasks and achievements to count.
+- [ ] Avoid bankruptcy and the monopoly loss rule (any label owning every slot on a chart ends the run).
+- [ ] Keep your Wallet positive so actions do not get blocked.
+
 ## Auto Mode (smoother grind)
 Auto mode exists for the players who want an easier, smoother, grindier experience.
 

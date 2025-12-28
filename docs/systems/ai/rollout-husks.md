@@ -27,7 +27,8 @@ At weekly checkpoints, each rival label:
 2. Scores candidates using public world inputs:
    - Trend fit (current trends vs plan tags).
    - Alignment fit (label alignment vs plan tags).
-   - Budget fit (wallet cash vs implied promo intensity).
+   - Budget fit (wallet cash + projected net vs implied promo intensity).
+   - Action bias (CEO Request focus shifts release/promo/tour weighting).
 3. Picks the highest score with deterministic tie-breaks (seeded by week + label + plan ID).
 4. Falls back to a default starter plan if no candidate is eligible.
 
@@ -47,11 +48,16 @@ Rivals are eligible to compete when they can cover:
 - A minimum cash buffer above operating costs, and
 - At least one drop plus required promo intensity for the next window.
 - Operating cost estimates cap leased usage to preserve the planning reserve.
+- Cash reserve gates use a multi-week planning window and project net (last revenue - upkeep) across the plan window.
 
 ## Release Budget + Reserve
 - Rival release planning uses a wallet-percent budget with a minimum cash reserve (mirrors auto-create math).
 - Each scheduled release spends a fixed drop cost; scheduling stops when the budget cap or reserve is hit.
 - Release volume is capped by signed Creator IDs (per-role capacity) before budget is applied.
+
+## Roster Targets + Signing
+- Roster targets scale with rollout cadence and stamina capacity (more steps = higher target per role).
+- Negative projected net halts new signing until the net turns positive again.
 
 ## Chart Dominance Push
 - Competitive rivals with high ambition or focus triggers queue extra releases to chase chart monopolies.
@@ -66,6 +72,7 @@ Rivals are eligible to compete when they can cover:
   - Roster targets (sign more Creator IDs when behind on Roster Builder).
   - Release quality boosts to drive chart performance.
   - Cash stabilization floors to keep all rivals active through year 3000.
+  - Action weights (release/promo/tour bias) when selecting plans.
 
 ## Scheduling Rules
 - Uses `state.rivalReleaseQueue` (Calendar projection source).
@@ -74,6 +81,7 @@ Rivals are eligible to compete when they can cover:
 - Duplicate schedules for the same label + week + event kind are skipped.
 - All scheduled timestamps are whole-hour values (no minutes).
 - Rival promos can lift full projects when multiple releases share a project name (project-level boosts apply across those tracks).
+- Plan blockers record reasons (budget, capacity, stamina, facility limits) and emit "why" strings for observability.
 
 ## Notes
 - AI promo budgets use a fixed AI percent, independent of player settings.

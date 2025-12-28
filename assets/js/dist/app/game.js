@@ -10606,6 +10606,62 @@ function getTourVenueAvailability(venueId, epochMs) {
     const capacity = tourVenueSlotsPerDay(venue);
     return { capacity, used, available: Math.max(0, capacity - used), dayKey };
 }
+function estimateTourDateStaminaShare(crewCount) {
+    const count = Math.max(1, Math.floor(Number(crewCount || 0)));
+    const share = ACTIVITY_STAMINA_TOUR_DATE / count;
+    return Number.isFinite(share) && share > 0 ? share : ACTIVITY_STAMINA_TOUR_DATE;
+}
+function estimateCreatorMaxConsecutiveTourDates(creator, crewCount) {
+    if (!creator)
+        return 0;
+    const stamina = clampStamina(creator.stamina ?? 0);
+    const perDate = estimateTourDateStaminaShare(crewCount);
+    if (!Number.isFinite(perDate) || perDate <= 0)
+        return 0;
+    return Math.max(0, Math.floor(stamina / perDate));
+}
+function countTourConsecutiveRun(dayKeys, targetDayKey) {
+    if (!Number.isFinite(targetDayKey))
+        return 0;
+    const unique = Array.from(new Set([targetDayKey, ...(dayKeys || [])].filter(Number.isFinite)));
+    if (!unique.length)
+        return 0;
+    unique.sort((a, b) => a - b);
+    const index = unique.indexOf(targetDayKey);
+    if (index < 0)
+        return 0;
+    const maxGap = DAY_MS * Math.max(1, TOUR_REST_DAY_MIN);
+    let start = index;
+    let end = index;
+    while (start > 0 && unique[start] - unique[start - 1] <= maxGap)
+        start -= 1;
+    while (end < unique.length - 1 && unique[end + 1] - unique[end] <= maxGap)
+        end += 1;
+    return end - start + 1;
+}
+function assessTourCrewOveruseRisk(crew, perDateCost) {
+    const projectedCost = Math.max(1, Math.ceil(perDateCost || 0));
+    const entries = (crew || []).map((creator) => {
+        const spent = getCreatorStaminaSpentToday(creator);
+        const projected = spent + projectedCost;
+        const limit = STAMINA_OVERUSE_LIMIT;
+        const overuseRisk = limit > 0
+            ? projected > limit
+                ? 2
+                : projected >= limit * 0.75
+                    ? 1
+                    : 0
+            : 0;
+        return {
+            creator,
+            spent,
+            projected,
+            overuseRisk
+        };
+    });
+    const riskLevel = entries.reduce((max, entry) => Math.max(max, entry.overuseRisk), 0);
+    return { entries, riskLevel, projectedCost };
+}
 function promoEntryWeeksRemaining(entry, currentWeek) {
     const createdWeek = Number.isFinite(entry?.createdWeek) ? entry.createdWeek : currentWeek;
     const weeks = Number.isFinite(entry?.weeks) ? Math.max(1, Math.round(entry.weeks)) : 1;
