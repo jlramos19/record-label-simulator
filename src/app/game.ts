@@ -10609,25 +10609,23 @@ function buildTourWarnings({ actId, venue, scheduledAt, projection, draftId }) {
     }
     const dayKeys = draftBookings.map((booking) => tourDayKey(booking.scheduledAt)).filter(Number.isFinite);
     const streak = countTourConsecutiveRun(dayKeys, dayKey);
-    if (streak > 1) {
-      const estimates = crew.map((creator) => ({
-        creator,
-        maxDates: estimateCreatorMaxConsecutiveTourDates(creator, crew.length)
-      }));
-      const minEstimate = estimates.reduce((min, entry) => Math.min(min, entry.maxDates), estimates[0]?.maxDates ?? 0);
-      const atRisk = estimates.filter((entry) => streak > entry.maxDates);
-      if (minEstimate <= 0 || atRisk.length) {
-        const names = atRisk.map((entry) => entry.creator?.name || "Unknown").filter(Boolean);
-        const list = names.slice(0, 3).join(", ");
-        const suffix = names.length > 3 ? ` +${names.length - 3}` : "";
-        const estimateLabel = Number.isFinite(minEstimate) && minEstimate > 0 ? ` (est. cap ${minEstimate})` : "";
-        warnings.push({
-          code: "TOUR_FATIGUE_RISK",
-          message: names.length
-            ? `Projected fatigue: ${list}${suffix} may not sustain a ${streak}-date streak${estimateLabel}.`
-            : `Projected fatigue: ${streak}-date streak exceeds crew stamina${estimateLabel}.`
-        });
-      }
+    const estimates = crew.map((creator) => ({
+      creator,
+      maxDates: estimateCreatorMaxConsecutiveTourDates(creator, crew.length)
+    }));
+    const minEstimate = estimates.reduce((min, entry) => Math.min(min, entry.maxDates), estimates[0]?.maxDates ?? 0);
+    const atRisk = estimates.filter((entry) => streak > entry.maxDates);
+    if (minEstimate <= 0 || atRisk.length) {
+      const names = atRisk.map((entry) => entry.creator?.name || "Unknown").filter(Boolean);
+      const list = names.slice(0, 3).join(", ");
+      const suffix = names.length > 3 ? ` +${names.length - 3}` : "";
+      const estimateLabel = Number.isFinite(minEstimate) && minEstimate > 0 ? ` (est. cap ${minEstimate})` : "";
+      warnings.push({
+        code: "TOUR_FATIGUE_RISK",
+        message: names.length
+          ? `Projected fatigue: ${list}${suffix} may not sustain a ${streak}-date streak${estimateLabel}.`
+          : `Projected fatigue: ${streak}-date streak exceeds crew stamina${estimateLabel}.`
+      });
     }
   }
   return warnings;
@@ -19864,6 +19862,7 @@ function normalizeState() {
     state.meta.labelCompetition = {};
   }
   if (!Number.isFinite(state.meta.labelShareWeek)) state.meta.labelShareWeek = null;
+  ensureLabelMetricsStore();
   if (typeof state.meta.winShown !== "boolean") state.meta.winShown = false;
   if (typeof state.meta.endShown !== "boolean") state.meta.endShown = false;
   if (!state.meta.autoSave) state.meta.autoSave = { enabled: true, minutes: 2, lastSavedAt: null };
@@ -21536,6 +21535,13 @@ export {
   computeAutoCreateBudget,
   computeAutoPromoBudget,
   computeCreatorCatharsisScore,
+  computeEraProfitabilitySummaries,
+  computeLabelConsumptionShares,
+  computeLabelKpiSnapshot,
+  computeLabelProjectionSummary,
+  computePlayerLabelNetSummary,
+  computeProjectProfitabilitySummaries,
+  refreshLabelMetrics,
   getCreatorCatharsisInactivityStatus,
   ensureAutoPromoBudgetSlots,
   ensureAutoPromoSlots,

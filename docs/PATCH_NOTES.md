@@ -1,5 +1,15 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0834Z)
+- Rival rosters now surface KPI summaries, consumption share breakdowns, era completion drawers, and player-vs-rival deltas with data-staleness warnings. [PN-20251228-AC69]
+
+## 2025-12-28 (RLS-PATCH-20251228-0829Z)
+- Rivalry KPI snapshots now compute label consumption share, profitability, and near-term release/tour net projections for UI/logs. [PN-20251228-AC68]
+
+## 2025-12-28 (RLS-PATCH-20251228-0826Z)
+- Touring Budget + Staffing now shows tour readiness (stamina + skill + upcoming dates), crew endurance details, and fatigue/overuse risk callouts. [PN-20251228-AC66]
+- Release Desk project summaries now include revenue, cost inputs, and net profit per project. [PN-20251228-AC67]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0742Z)
 - Harmony Hub now offers Quick Group Act filters for gender identity, age group, preferred theme/mood, act alignment, and skill level range. [PN-20251228-AC63]
 - Release hygiene pass refreshed the README update stamp and patch note registry. [PN-20251228-AC64]
@@ -823,3 +833,7 @@
 - PN-20251228-AC63 (2025-12-28 07:42Z): Harmony Hub now offers Quick Group Act filters for gender identity, age group, preferred theme/mood, act alignment, and skill level range.
 - PN-20251228-AC64 (2025-12-28 07:42Z): Release hygiene pass refreshed the README update stamp and patch note registry.
 - PN-20251228-AC65 (2025-12-28 08:20Z): Rival rollout planning now uses projected net gates, cadence + stamina roster targets, and CEO Request action biasing with logged plan reasons.
+- PN-20251228-AC66 (2025-12-28 08:26Z): Touring Budget + Staffing now shows tour readiness (stamina + skill + upcoming dates), crew endurance details, and fatigue/overuse risk callouts.
+- PN-20251228-AC67 (2025-12-28 08:26Z): Release Desk project summaries now include revenue, cost inputs, and net profit per project.
+- PN-20251228-AC68 (2025-12-28 08:29Z): Rivalry KPI snapshots now compute label consumption share, profitability, and near-term release/tour net projections for UI/logs.
+- PN-20251228-AC69 (2025-12-28 08:34Z): Rival rosters now surface KPI summaries, consumption share breakdowns, era completion drawers, and player-vs-rival deltas with data-staleness warnings.

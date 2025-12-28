@@ -1227,6 +1227,106 @@ body::before {
 .rival-achievement-detail .progress-bar {
   height: 8px;
 }
+.rival-roster-summary {
+  display: grid;
+  gap: 10px;
+}
+.rival-roster-warning {
+  display: grid;
+  gap: 4px;
+}
+.rival-kpi-grid {
+  display: grid;
+  gap: 8px;
+}
+.rival-kpi-block {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: var(--line-width) solid var(--line);
+}
+.rival-kpi-metrics {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+.rival-kpi-consumption {
+  line-height: 1.4;
+}
+.rival-compare-strip {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+.rival-compare-item {
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: var(--line-width) solid var(--line);
+}
+.rival-compare-item.is-best {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: var(--surface-3-strong);
+}
+.rival-compare-item.is-worst {
+  border-color: rgba(var(--danger-rgb), 0.5);
+  background: rgba(var(--danger-rgb), 0.08);
+}
+.rival-compare-item .delta {
+  font-size: 16px;
+  font-weight: 700;
+}
+.rival-compare-item .delta.positive {
+  color: var(--accent);
+}
+.rival-compare-item .delta.negative {
+  color: var(--danger);
+}
+.rival-era-card {
+  border-radius: 12px;
+  padding: 6px;
+  background: var(--surface-2);
+  border: var(--line-width) solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+.rival-era-card[open] {
+  border-color: rgba(var(--accent-rgb), 0.5);
+  background: var(--surface-2-mid);
+}
+.rival-era-summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+}
+.rival-era-summary::-webkit-details-marker {
+  display: none;
+}
+.rival-era-details {
+  display: grid;
+  gap: 8px;
+}
+.rival-era-columns {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.rival-era-column {
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  border: var(--line-width) solid var(--line);
+}
+.rival-era-column .stat-mini-grid {
+  gap: 6px;
+}
 .trend-item--top {
   border-color: rgba(var(--accent-rgb), 0.5);
   background: var(--surface-3-strong);

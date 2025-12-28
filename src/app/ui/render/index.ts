@@ -4687,6 +4687,410 @@ function buildRivalActSummary(labelName) {
   });
 }
 
+function resolveChartEntryLabel(entry) {
+  if (!entry) return "";
+  if (entry.label) return entry.label;
+  if (entry.track?.label) return entry.track.label;
+  return "";
+}
+
+function formatSignedDelta(value, formatter) {
+  if (!Number.isFinite(value)) return "-";
+  if (value === 0) return "0";
+  const sign = value > 0 ? "+" : "-";
+  return `${sign}${formatter(Math.abs(value))}`;
+}
+
+function formatShareValue(value, digits = 0) {
+  if (!Number.isFinite(value)) return "-";
+  return `${Number(value).toFixed(digits)}%`;
+}
+
+function buildLabelRankMap() {
+  const ranking = getLabelRanking();
+  const map = new Map();
+  ranking.forEach(([label], index) => {
+    if (!label) return;
+    map.set(label, index + 1);
+  });
+  return map;
+}
+
+function resolveLabelSharePercent(labelName) {
+  if (!labelName) return null;
+  const share = state.meta?.labelShare?.[labelName];
+  return Number.isFinite(share) ? share * 100 : null;
+}
+
+function resolveLabelEconomySnapshot({ isPlayer = false, rival = null } = {}) {
+  const economy = isPlayer ? state.economy : rival?.economy;
+  const revenue = Number.isFinite(economy?.lastRevenue) ? economy.lastRevenue : null;
+  const costs = Number.isFinite(economy?.lastUpkeep) ? economy.lastUpkeep : null;
+  const net = Number.isFinite(revenue) && Number.isFinite(costs) ? revenue - costs : null;
+  const lastWeek = Number.isFinite(economy?.lastWeek) ? economy.lastWeek : null;
+  return { revenue, costs, net, lastWeek };
+}
+
+function computeSalesEquivalent(metrics) {
+  const safe = metrics || {};
+  const weights = typeof CONSUMPTION_VALUE_WEIGHTS === "object" ? CONSUMPTION_VALUE_WEIGHTS : {};
+  const salesWeight = Number.isFinite(weights.sales) ? weights.sales : 1;
+  const streamingWeight = Number.isFinite(weights.streaming) ? weights.streaming : 0.1;
+  const airplayWeight = Number.isFinite(weights.airplay) ? weights.airplay : 0;
+  const socialWeight = Number.isFinite(weights.social) ? weights.social : 0;
+  const sales = Number(safe.sales || 0);
+  const streaming = Number(safe.streaming || 0);
+  const airplay = Number(safe.airplay || 0);
+  const social = Number(safe.social || 0);
+  return sales * salesWeight + streaming * streamingWeight + airplay * airplayWeight + social * socialWeight;
+}
+
+function buildConsumptionShareSnapshot(labelName) {
+  const entries = Array.isArray(state.charts?.global) ? state.charts.global : [];
+  const totals = { sales: 0, streaming: 0, airplay: 0, social: 0 };
+  const labelTotals = { sales: 0, streaming: 0, airplay: 0, social: 0 };
+  entries.forEach((entry) => {
+    if (!entry) return;
+    const metrics = entry.metrics || {};
+    const sales = Number(metrics.sales || 0);
+    const streaming = Number(metrics.streaming || 0);
+    const airplay = Number(metrics.airplay || 0);
+    const social = Number(metrics.social || 0);
+    totals.sales += sales;
+    totals.streaming += streaming;
+    totals.airplay += airplay;
+    totals.social += social;
+    if (labelName && resolveChartEntryLabel(entry) === labelName) {
+      labelTotals.sales += sales;
+      labelTotals.streaming += streaming;
+      labelTotals.airplay += airplay;
+      labelTotals.social += social;
+    }
+  });
+  const hasMetrics = Object.values(totals).some((value) => value > 0);
+  const share = {
+    sales: totals.sales ? (labelTotals.sales / totals.sales) * 100 : null,
+    streaming: totals.streaming ? (labelTotals.streaming / totals.streaming) * 100 : null,
+    airplay: totals.airplay ? (labelTotals.airplay / totals.airplay) * 100 : null,
+    social: totals.social ? (labelTotals.social / totals.social) * 100 : null
+  };
+  const totalEquivalent = computeSalesEquivalent(totals);
+  const labelEquivalent = computeSalesEquivalent(labelTotals);
+  const overall = totalEquivalent ? (labelEquivalent / totalEquivalent) * 100 : null;
+  return { totals, labelTotals, share, overall, hasMetrics, entryCount: entries.length };
+}
+
+function listLabelReleases(labelName) {
+  if (!labelName) return [];
+  const active = Array.isArray(state.marketTracks) ? state.marketTracks : [];
+  const archived = Array.isArray(state.meta?.marketTrackArchive) ? state.meta.marketTrackArchive : [];
+  return active.concat(archived).filter((entry) => entry?.label === labelName);
+}
+
+function countAnnualAwardsForLabel(labelName, year) {
+  if (!labelName || !Number.isFinite(year)) return 0;
+  const list = Array.isArray(state.meta?.annualAwards) ? state.meta.annualAwards : [];
+  const entry = list.find((award) => award?.year === year);
+  if (!entry || !entry.awards) return 0;
+  return Object.values(entry.awards).filter((award) => award?.label === labelName).length;
+}
+
+function resolveLatestCompletedEra() {
+  const history = Array.isArray(state.era?.history) ? state.era.history.slice() : [];
+  if (!history.length) return null;
+  return history.sort((a, b) => {
+    const aStamp = Number.isFinite(a.completedAt) ? a.completedAt : 0;
+    const bStamp = Number.isFinite(b.completedAt) ? b.completedAt : 0;
+    if (bStamp !== aStamp) return bStamp - aStamp;
+    const aWeek = Number.isFinite(a.completedWeek) ? a.completedWeek : 0;
+    const bWeek = Number.isFinite(b.completedWeek) ? b.completedWeek : 0;
+    return bWeek - aWeek;
+  })[0];
+}
+
+function buildPlayerEraSummary(labelName) {
+  const era = resolveLatestCompletedEra();
+  if (!era) {
+    return { label: labelName || "You", name: "Era", hasData: false };
+  }
+  const stats = era.outcomeStats || {};
+  const revenue = Number.isFinite(stats.revenue) ? stats.revenue : null;
+  const costs = Number.isFinite(stats.costs) ? stats.costs : null;
+  const net = Number.isFinite(stats.profit)
+    ? stats.profit
+    : (Number.isFinite(revenue) && Number.isFinite(costs) ? revenue - costs : null);
+  let chartPoints = null;
+  let pointsSum = 0;
+  let pointsSeen = false;
+  state.tracks.forEach((track) => {
+    if (!track || track.eraId !== era.id) return;
+    const economy = track.economy || {};
+    if (!Number.isFinite(economy.chartPoints)) return;
+    pointsSum += economy.chartPoints;
+    pointsSeen = true;
+  });
+  if (pointsSeen) chartPoints = Math.round(pointsSum);
+  const completedAt = Number.isFinite(era.completedAt) ? era.completedAt : null;
+  const year = completedAt ? new Date(completedAt).getUTCFullYear() : currentYear();
+  const awards = countAnnualAwardsForLabel(labelName, year);
+  return {
+    label: labelName || "You",
+    name: era.name || "Era",
+    outcome: era.outcome || null,
+    startWeek: Number.isFinite(era.startedWeek) ? era.startedWeek : null,
+    endWeek: Number.isFinite(era.completedWeek) ? era.completedWeek : null,
+    revenue,
+    costs,
+    net,
+    chartPoints,
+    awards,
+    releaseCount: Number.isFinite(stats.trackCount) ? stats.trackCount : null,
+    year,
+    hasData: true,
+    isEstimate: false
+  };
+}
+
+function buildRivalEraSummary(rival) {
+  if (!rival?.name) return { label: "Rival", name: "Rival era", hasData: false };
+  const plan = rival.aiPlan || {};
+  const completedIndex = Number.isFinite(plan.lastCompletedWindow) ? plan.lastCompletedWindow : null;
+  if (!Number.isFinite(completedIndex)) {
+    return { label: rival.name, name: "Rival era", hasData: false };
+  }
+  const endWeek = completedIndex + 1;
+  let startWeek = null;
+  if (Number.isFinite(plan.windowStartWeekIndex)
+    && Number.isFinite(plan.windowEndWeekIndex)
+    && plan.windowEndWeekIndex === completedIndex
+    && plan.windowStartWeekIndex <= completedIndex) {
+    startWeek = plan.windowStartWeekIndex + 1;
+  }
+  if (!Number.isFinite(startWeek)) {
+    startWeek = Math.max(1, endWeek - ACT_PROMO_WARNING_WEEKS + 1);
+  }
+  const releases = listLabelReleases(rival.name);
+  const windowReleases = releases.filter((entry) => {
+    const week = weekNumberFromEpochMs(entry.releasedAt);
+    if (!Number.isFinite(week)) return false;
+    return week >= startWeek && week <= endWeek;
+  });
+  let chartPoints = null;
+  let pointsSum = 0;
+  let pointsSeen = false;
+  windowReleases.forEach((entry) => {
+    const history = entry?.chartHistory?.global;
+    const peak = Number.isFinite(history?.peak) ? history.peak : null;
+    const weeks = Number.isFinite(history?.weeks) ? history.weeks : null;
+    if (!Number.isFinite(peak) || !Number.isFinite(weeks)) return;
+    pointsSum += Math.max(1, CHART_SIZES.global + 1 - peak) * weeks;
+    pointsSeen = true;
+  });
+  if (pointsSeen) chartPoints = Math.round(pointsSum);
+  const economy = resolveLabelEconomySnapshot({ isPlayer: false, rival });
+  const windowWeeks = Math.max(1, endWeek - startWeek + 1);
+  const revenue = Number.isFinite(economy.revenue) ? economy.revenue * windowWeeks : null;
+  const costs = Number.isFinite(economy.costs) ? economy.costs * windowWeeks : null;
+  const net = Number.isFinite(revenue) && Number.isFinite(costs) ? revenue - costs : null;
+  const endEpoch = weekStartEpochMs(endWeek);
+  const year = Number.isFinite(endEpoch) ? new Date(endEpoch).getUTCFullYear() : currentYear();
+  const awards = countAnnualAwardsForLabel(rival.name, year);
+  const planLabel = plan.lastHuskId || plan.activeHuskId || plan.huskSource || null;
+  return {
+    label: rival.name,
+    name: planLabel ? `Plan ${planLabel}` : "Rival plan",
+    startWeek,
+    endWeek,
+    revenue,
+    costs,
+    net,
+    chartPoints,
+    awards,
+    releaseCount: windowReleases.length,
+    year,
+    hasData: true,
+    isEstimate: Number.isFinite(revenue) || Number.isFinite(costs)
+  };
+}
+
+function formatEraWeekRange(startWeek, endWeek) {
+  const startLabel = Number.isFinite(startWeek) ? formatWeekRangeLabel(startWeek) : "";
+  const endLabel = Number.isFinite(endWeek) ? formatWeekRangeLabel(endWeek) : "";
+  if (startLabel && endLabel) return `${startLabel} - ${endLabel}`;
+  return startLabel || endLabel || "Week -";
+}
+
+function renderRivalEraColumn({ label, summary, isPlayer }) {
+  const pill = isPlayer ? ` <span class="pill">You</span>` : "";
+  if (!summary?.hasData) {
+    return `
+      <div class="rival-era-column">
+        <div class="item-title">${label}${pill}</div>
+        <div class="muted">No completed era data yet.</div>
+      </div>
+    `;
+  }
+  const range = formatEraWeekRange(summary.startWeek, summary.endWeek);
+  const outcomeLine = summary.outcome ? `Outcome ${summary.outcome}` : "";
+  const releaseLine = Number.isFinite(summary.releaseCount) ? `Releases ${formatCount(summary.releaseCount)}` : "";
+  const metaLine = [range, outcomeLine, releaseLine].filter(Boolean).join(" | ");
+  const revenueLabel = Number.isFinite(summary.revenue) ? formatMoney(summary.revenue) : "-";
+  const costsLabel = Number.isFinite(summary.costs) ? formatMoney(summary.costs) : "-";
+  const netLabel = Number.isFinite(summary.net) ? formatMoney(summary.net) : "-";
+  const pointsLabel = Number.isFinite(summary.chartPoints) ? formatCount(summary.chartPoints) : "-";
+  const awardsLabel = Number.isFinite(summary.awards) ? formatCount(summary.awards) : "-";
+  const estimateLine = summary.isEstimate ? "Estimated from latest weekly economy and chart history." : "";
+  return `
+    <div class="rival-era-column">
+      <div class="item-title">${label}${pill}</div>
+      <div class="tiny muted">${summary.name || "Era"}${metaLine ? ` | ${metaLine}` : ""}</div>
+      <div class="stat-mini-grid">
+        <div class="stat-mini">
+          <div class="stat-label">Revenue</div>
+          <div class="stat-value">${revenueLabel}</div>
+        </div>
+        <div class="stat-mini">
+          <div class="stat-label">Costs</div>
+          <div class="stat-value">${costsLabel}</div>
+        </div>
+        <div class="stat-mini">
+          <div class="stat-label">Net</div>
+          <div class="stat-value">${netLabel}</div>
+        </div>
+        <div class="stat-mini">
+          <div class="stat-label">Chart Points</div>
+          <div class="stat-value">${pointsLabel}</div>
+        </div>
+        <div class="stat-mini">
+          <div class="stat-label">Awards</div>
+          <div class="stat-value">${awardsLabel}</div>
+        </div>
+      </div>
+      ${estimateLine ? `<div class="tiny muted">${estimateLine}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderRivalKpiBlock({ title, subtitle, kpi, consumption, isPlayer }) {
+  const pill = isPlayer ? ` <span class="pill">You</span>` : "";
+  const rankLabel = Number.isFinite(kpi.rank) ? `#${kpi.rank}` : "-";
+  const shareLabel = formatShareValue(kpi.sharePct);
+  const netLabel = Number.isFinite(kpi.net) ? formatMoney(kpi.net) : "-";
+  let consumptionLine = "Consumption share unavailable.";
+  if (consumption?.hasMetrics) {
+    const parts = [];
+    const sales = formatShareValue(consumption.share.sales);
+    const streaming = formatShareValue(consumption.share.streaming);
+    const airplay = formatShareValue(consumption.share.airplay);
+    const social = formatShareValue(consumption.share.social);
+    if (sales !== "-") parts.push(`Sales ${sales}`);
+    if (streaming !== "-") parts.push(`Streaming ${streaming}`);
+    if (airplay !== "-") parts.push(`Airplay ${airplay}`);
+    if (social !== "-") parts.push(`Social ${social}`);
+    consumptionLine = `Consumption share ${formatShareValue(consumption.overall)}${parts.length ? ` | ${parts.join(" | ")}` : ""}`;
+  }
+  return `
+    <div class="rival-kpi-block">
+      <div>
+        <div class="item-title">${title}${pill}</div>
+        ${subtitle ? `<div class="tiny muted">${subtitle}</div>` : ""}
+      </div>
+      <div class="rival-kpi-metrics">
+        <div class="stat-mini">
+          <div class="stat-label">Rank</div>
+          <div class="stat-value">${rankLabel}</div>
+        </div>
+        <div class="stat-mini">
+          <div class="stat-label">Share</div>
+          <div class="stat-value">${shareLabel}</div>
+        </div>
+        <div class="stat-mini">
+          <div class="stat-label">Net</div>
+          <div class="stat-value">${netLabel}</div>
+        </div>
+      </div>
+      <div class="tiny muted rival-kpi-consumption">${consumptionLine}</div>
+    </div>
+  `;
+}
+
+function buildRivalComparisonEntries(playerKpi, rivalKpi, playerConsumption, rivalConsumption) {
+  const entries = [];
+  if (Number.isFinite(playerKpi.rank) && Number.isFinite(rivalKpi.rank)) {
+    const delta = rivalKpi.rank - playerKpi.rank;
+    entries.push({
+      key: "rank",
+      label: "Rank delta",
+      delta,
+      score: Math.abs(delta),
+      display: formatSignedDelta(delta, (value) => `${value}`)
+    });
+  }
+  if (Number.isFinite(playerKpi.sharePct) && Number.isFinite(rivalKpi.sharePct)) {
+    const delta = playerKpi.sharePct - rivalKpi.sharePct;
+    entries.push({
+      key: "share",
+      label: "Chart share",
+      delta,
+      score: Math.abs(delta),
+      display: formatSignedDelta(delta, (value) => `${value.toFixed(0)}%`)
+    });
+  }
+  if (Number.isFinite(playerKpi.net) && Number.isFinite(rivalKpi.net)) {
+    const delta = playerKpi.net - rivalKpi.net;
+    entries.push({
+      key: "net",
+      label: "Weekly net",
+      delta,
+      score: Math.abs(delta) / 1000,
+      display: formatSignedDelta(delta, (value) => formatMoney(value))
+    });
+  }
+  if (Number.isFinite(playerConsumption?.overall) && Number.isFinite(rivalConsumption?.overall)) {
+    const delta = playerConsumption.overall - rivalConsumption.overall;
+    entries.push({
+      key: "consumption",
+      label: "Consumption share",
+      delta,
+      score: Math.abs(delta),
+      display: formatSignedDelta(delta, (value) => `${value.toFixed(0)}%`)
+    });
+  }
+  return entries;
+}
+
+function renderRivalComparisonStrip(entries) {
+  if (!entries.length) {
+    return `<div class="muted">No comparison data yet.</div>`;
+  }
+  const best = entries
+    .filter((entry) => entry.delta > 0)
+    .sort((a, b) => b.score - a.score)[0];
+  const worst = entries
+    .filter((entry) => entry.delta < 0)
+    .sort((a, b) => b.score - a.score)[0];
+  return `
+    <div class="rival-compare-strip">
+      ${entries.map((entry) => {
+        const deltaClass = entry.delta > 0 ? "positive" : entry.delta < 0 ? "negative" : "neutral";
+        const itemClass = entry.key === best?.key
+          ? "rival-compare-item is-best"
+          : entry.key === worst?.key
+            ? "rival-compare-item is-worst"
+            : "rival-compare-item";
+        const note = entry.delta > 0 ? "You lead" : entry.delta < 0 ? "Rival leads" : "Even";
+        return `
+          <div class="${itemClass}">
+            <div class="tiny muted">${entry.label}</div>
+            <div class="delta ${deltaClass}">${entry.display}</div>
+            <div class="tiny muted">${note}</div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 function renderRivalRosterPanel() {
   const listEl = $("rivalRosterList");
   const selectEl = $("rivalRosterSelect");
@@ -4720,6 +5124,122 @@ function renderRivalRosterPanel() {
   if (metaEl) {
     metaEl.textContent = `${formatCount(creators.length)} creators | ${formatCount(acts.length)} acts`;
   }
+
+  const playerLabel = state.label?.name || "Player";
+  const rankMap = buildLabelRankMap();
+  const playerEconomy = resolveLabelEconomySnapshot({ isPlayer: true });
+  const rivalEconomy = resolveLabelEconomySnapshot({ rival: selected });
+  const playerKpi = {
+    rank: rankMap.get(playerLabel) || null,
+    sharePct: resolveLabelSharePercent(playerLabel),
+    net: playerEconomy.net
+  };
+  const rivalKpi = {
+    rank: rankMap.get(selected.name) || null,
+    sharePct: resolveLabelSharePercent(selected.name),
+    net: rivalEconomy.net
+  };
+  const playerConsumption = buildConsumptionShareSnapshot(playerLabel);
+  const rivalConsumption = buildConsumptionShareSnapshot(selected.name);
+  const playerEraSummary = buildPlayerEraSummary(playerLabel);
+  const rivalEraSummary = buildRivalEraSummary(selected);
+
+  const currentWeek = weekIndex() + 1;
+  const shareWeek = Number.isFinite(state.meta?.labelShareWeek) ? state.meta.labelShareWeek : null;
+  const warnings = new Set();
+  if (!Array.isArray(state.charts?.global) || !state.charts.global.length) {
+    warnings.add("Global charts missing; rank and consumption share may be limited.");
+  }
+  if (!Number.isFinite(shareWeek) || shareWeek !== currentWeek) {
+    const shareWeekLabel = Number.isFinite(shareWeek) ? `Week ${shareWeek}` : "unknown week";
+    warnings.add(`Label share last refreshed ${shareWeekLabel}; current Week ${currentWeek}.`);
+  }
+  if (!Number.isFinite(playerEconomy.lastWeek) || playerEconomy.lastWeek !== currentWeek) {
+    const economyWeekLabel = Number.isFinite(playerEconomy.lastWeek) ? `Week ${playerEconomy.lastWeek}` : "unknown week";
+    warnings.add(`${playerLabel} economy data is stale (${economyWeekLabel}).`);
+  }
+  if (!Number.isFinite(rivalEconomy.lastWeek) || rivalEconomy.lastWeek !== currentWeek) {
+    const economyWeekLabel = Number.isFinite(rivalEconomy.lastWeek) ? `Week ${rivalEconomy.lastWeek}` : "unknown week";
+    warnings.add(`${selected.name} economy data is stale (${economyWeekLabel}).`);
+  }
+  if (!playerConsumption.hasMetrics || !rivalConsumption.hasMetrics) {
+    warnings.add("Consumption metrics missing from global charts.");
+  }
+  if (!Number.isFinite(playerKpi.rank) || !Number.isFinite(rivalKpi.rank)) {
+    warnings.add("Label ranking missing for one or more labels.");
+  }
+  if (!Number.isFinite(playerKpi.sharePct) || !Number.isFinite(rivalKpi.sharePct)) {
+    warnings.add("Chart share missing for one or more labels.");
+  }
+  if (!playerEraSummary.hasData) {
+    warnings.add(`${playerLabel} has no completed era summary yet.`);
+  }
+  if (!rivalEraSummary.hasData) {
+    warnings.add(`${selected.name} has no completed plan window yet.`);
+  }
+  if (rivalEraSummary.hasData && rivalEraSummary.releaseCount === 0) {
+    warnings.add(`${selected.name} has no releases logged in the completed window.`);
+  }
+  if (rivalEraSummary.isEstimate) {
+    warnings.add(`${selected.name} era economics estimated from latest weekly totals.`);
+  }
+
+  const warningMarkup = warnings.size
+    ? `
+      <div class="callout callout--warn rival-roster-warning">
+        <div class="item-title">Data warnings</div>
+        ${Array.from(warnings).map((warning) => `<div class="tiny muted">- ${warning}</div>`).join("")}
+      </div>
+    `
+    : "";
+  const shareWeekLabel = Number.isFinite(shareWeek) ? `Share Week ${shareWeek}` : "Share Week -";
+  const playerSubtitle = `${shareWeekLabel} | Econ Week ${Number.isFinite(playerEconomy.lastWeek) ? playerEconomy.lastWeek : "-"}`;
+  const rivalSubtitle = `${shareWeekLabel} | Econ Week ${Number.isFinite(rivalEconomy.lastWeek) ? rivalEconomy.lastWeek : "-"}`;
+  const comparisonEntries = buildRivalComparisonEntries(playerKpi, rivalKpi, playerConsumption, rivalConsumption);
+  const comparisonMarkup = renderRivalComparisonStrip(comparisonEntries);
+  const eraSummaryLine = `${playerLabel}: ${playerEraSummary.hasData ? playerEraSummary.name : "none"} | ${selected.name}: ${rivalEraSummary.hasData ? rivalEraSummary.name : "none"}`;
+  const eraBadge = playerEraSummary.hasData || rivalEraSummary.hasData ? "Details" : "No data";
+  const rivalrySummaryMarkup = `
+    <div class="subhead">Rivalry Snapshot</div>
+    <div class="rival-roster-summary">
+      ${warningMarkup}
+      <div class="rival-kpi-grid">
+        ${renderRivalKpiBlock({
+          title: playerLabel,
+          subtitle: playerSubtitle,
+          kpi: playerKpi,
+          consumption: playerConsumption,
+          isPlayer: true
+        })}
+        ${renderRivalKpiBlock({
+          title: selected.name,
+          subtitle: rivalSubtitle,
+          kpi: rivalKpi,
+          consumption: rivalConsumption,
+          isPlayer: false
+        })}
+      </div>
+      <div class="tiny muted">Player vs rival deltas</div>
+      ${comparisonMarkup}
+      <details class="rival-era-card">
+        <summary class="rival-era-summary">
+          <div class="list-row">
+            <div>
+              <div class="item-title">Era just completed</div>
+              <div class="muted">${eraSummaryLine}</div>
+            </div>
+            <div class="badge">${eraBadge}</div>
+          </div>
+        </summary>
+        <div class="rival-era-details">
+          <div class="rival-era-columns">
+            ${renderRivalEraColumn({ label: playerLabel, summary: playerEraSummary, isPlayer: true })}
+            ${renderRivalEraColumn({ label: selected.name, summary: rivalEraSummary, isPlayer: false })}
+          </div>
+        </div>
+      </details>
+    </div>
+  `;
 
   const creatorSections = MARKET_ROLES.map((role) => {
     const roleLabelText = roleLabel(role);
@@ -4776,6 +5296,7 @@ function renderRivalRosterPanel() {
     : `<div class="muted">No rival acts observed yet.</div>`;
 
   listEl.innerHTML = `
+    ${rivalrySummaryMarkup}
     <div class="subhead">Creators</div>
     ${creatorSections}
     <div class="subhead">Acts</div>
