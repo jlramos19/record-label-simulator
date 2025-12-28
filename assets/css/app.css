@@ -2233,7 +2233,7 @@ select.theme-select {
   right: 0;
   min-width: 180px;
   max-width: 240px;
-  background: var(--surface-1);
+  background: var(--panel-2);
   border: var(--line-width) solid var(--line);
   border-radius: 10px;
   padding: 8px;

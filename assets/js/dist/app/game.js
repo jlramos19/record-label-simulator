@@ -290,6 +290,11 @@ function makeDefaultState() {
                 return acc;
             }, {}),
             promoSlots: { actId: null, projectId: null, trackId: null },
+            awardBidShowId: null,
+            awardBidSlotId: null,
+            awardBidActId: null,
+            awardBidTrackId: null,
+            awardBidAmount: null,
             autoPromoSlots: {
                 actIds: buildAutoPromoSlotList(),
                 projectIds: buildAutoPromoSlotList(),
@@ -802,6 +807,7 @@ const AWARD_SHOW_EXTENDED_WINDOW_WEEKS = 60;
 const AWARD_SHOW_MIN_NOMINEES = 3;
 const AWARD_SHOW_PER_ACT_CAP = 2;
 const AWARD_SHOW_PERFORMANCE_SLOTS = ["Opener", "Spotlight", "Finale"];
+const AWARD_SHOW_PERFORMANCE_BID_MONTHS = 3;
 const AWARD_SHOW_AUDIENCE_PROMO_TYPES_REQUIRED = 2;
 const AWARD_TRACK_MIN_FQ = 70;
 const AWARD_HYBRID_CRITIC_WEIGHT = 0.6;
@@ -9064,6 +9070,54 @@ function normalizeTourGoal(goal) {
         return goal;
     return TOUR_GOAL_DEFAULT;
 }
+const TOUR_NAME_SUFFIX_PATTERN = /\s+(ARENA|STADIUM|WORLD)\s+TOUR$/i;
+const TOUR_NAME_TRAILING_TOUR_PATTERN = /\s+TOUR$/i;
+function resolveTourNameBase(name) {
+    const trimmed = typeof name === "string" ? name.trim() : "";
+    if (!trimmed)
+        return { base: "", hasTourWord: false };
+    const suffixMatch = trimmed.match(TOUR_NAME_SUFFIX_PATTERN);
+    if (suffixMatch) {
+        const base = trimmed.slice(0, -suffixMatch[0].length).trim();
+        return { base, hasTourWord: true };
+    }
+    const tourMatch = trimmed.match(TOUR_NAME_TRAILING_TOUR_PATTERN);
+    if (tourMatch) {
+        const base = trimmed.slice(0, -tourMatch[0].length).trim();
+        return { base, hasTourWord: true };
+    }
+    return { base: trimmed, hasTourWord: false };
+}
+function buildTourNameFromBase(baseName, hasTourWord, suffix) {
+    const trimmedBase = typeof baseName === "string" ? baseName.trim() : "";
+    if (suffix) {
+        return trimmedBase ? `${trimmedBase} ${suffix} TOUR` : `${suffix} TOUR`;
+    }
+    if (hasTourWord && trimmedBase)
+        return `${trimmedBase} Tour`;
+    if (hasTourWord)
+        return "Tour";
+    return trimmedBase;
+}
+function resolveTourNameSuffixFromBookings(bookings) {
+    const list = Array.isArray(bookings) ? bookings.filter(Boolean) : [];
+    if (!list.length)
+        return null;
+    const nations = new Set(list.map((booking) => booking?.nation).filter(Boolean));
+    const tierValues = list.map((booking) => String(booking?.tier || "").toLowerCase());
+    const allArena = tierValues.length > 0 && tierValues.every((tier) => tier === "arena");
+    const allStadium = tierValues.length > 0 && tierValues.every((tier) => tier === "stadium");
+    const hasWorld = Array.isArray(NATIONS)
+        && NATIONS.length > 0
+        && NATIONS.every((nation) => nations.has(nation));
+    if (hasWorld)
+        return "WORLD";
+    if (allStadium)
+        return "STADIUM";
+    if (allArena)
+        return "ARENA";
+    return null;
+}
 function buildTourDraftName({ act, eraId, anchorTrackIds, anchorProjectId } = {}) {
     const era = eraId ? getEraById(eraId) : null;
     if (era?.projectName)
@@ -9083,9 +9137,13 @@ function createTourDraft({ name, actId, eraId, goal, anchorTrackIds, anchorProje
     const act = actId ? getAct(actId) : null;
     const defaultName = buildTourDraftName({ act, eraId, anchorTrackIds, anchorProjectId })
         || `Tour Draft ${touring.lastDraftId}`;
+    const resolvedName = typeof name === "string" && name.trim() ? name.trim() : defaultName;
+    const nameMeta = resolveTourNameBase(resolvedName);
     const draft = {
         id: uid("TD"),
-        name: typeof name === "string" && name.trim() ? name.trim() : defaultName,
+        name: resolvedName,
+        nameBase: nameMeta.base,
+        nameHasTourWord: nameMeta.hasTourWord,
         actId: actId || null,
         eraId: eraId || null,
         goal: normalizeTourGoal(goal),
@@ -9109,8 +9167,17 @@ function updateTourDraft(draftId, updates = {}) {
     const draft = getTourDraftById(draftId);
     if (!draft)
         return null;
-    if (typeof updates.name === "string")
-        draft.name = updates.name.trim() || draft.name;
+    let nameChanged = false;
+    if (typeof updates.name === "string") {
+        const trimmed = updates.name.trim();
+        if (trimmed) {
+            const nameMeta = resolveTourNameBase(trimmed);
+            draft.name = trimmed;
+            draft.nameBase = nameMeta.base;
+            draft.nameHasTourWord = nameMeta.hasTourWord;
+            nameChanged = true;
+        }
+    }
     if (typeof updates.actId === "string" || updates.actId === null)
         draft.actId = updates.actId;
     if (typeof updates.eraId === "string" || updates.eraId === null)
@@ -9134,6 +9201,8 @@ function updateTourDraft(draftId, updates = {}) {
     if (typeof updates.notes === "string")
         draft.notes = updates.notes;
     draft.updatedAt = state.time?.epochMs || Date.now();
+    if (nameChanged)
+        syncTourNameWithBookings(draft.id);
     return draft;
 }
 function deleteTourDraft(draftId) {
@@ -9156,6 +9225,34 @@ function listTourBookings({ tourId = null, actId = null } = {}) {
             return false;
         return true;
     });
+}
+function syncTourNameWithBookings(draftId, bookings = null) {
+    const draft = getTourDraftById(draftId);
+    if (!draft)
+        return null;
+    const list = Array.isArray(bookings) ? bookings : listTourBookings({ tourId: draftId });
+    if (typeof draft.nameBase !== "string" || typeof draft.nameHasTourWord !== "boolean") {
+        const nameMeta = resolveTourNameBase(draft.name || "");
+        draft.nameBase = nameMeta.base;
+        draft.nameHasTourWord = nameMeta.hasTourWord;
+    }
+    const suffix = resolveTourNameSuffixFromBookings(list);
+    const nextName = buildTourNameFromBase(draft.nameBase, draft.nameHasTourWord, suffix);
+    const resolvedName = nextName || draft.name || "";
+    const now = state.time?.epochMs || Date.now();
+    if (nextName && nextName !== draft.name) {
+        draft.name = nextName;
+        draft.updatedAt = now;
+    }
+    if (resolvedName && list.some((booking) => booking?.tourName !== resolvedName)) {
+        list.forEach((booking) => {
+            if (!booking)
+                return;
+            booking.tourName = resolvedName;
+            booking.updatedAt = now;
+        });
+    }
+    return draft.name;
 }
 function listMarketTracksForAct(actId, eraId = null) {
     return (state.marketTracks || []).filter((track) => {
@@ -9642,9 +9739,11 @@ function refreshTourLegs(draftId) {
     const draft = getTourDraftById(draftId);
     if (!draft)
         return [];
-    const legs = buildTourLegs(listTourBookings({ tourId: draftId }));
+    const bookings = listTourBookings({ tourId: draftId });
+    const legs = buildTourLegs(bookings);
     draft.legs = legs;
     draft.updatedAt = state.time?.epochMs || Date.now();
+    syncTourNameWithBookings(draftId, bookings);
     return legs;
 }
 function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
@@ -14754,6 +14853,7 @@ const AWARD_SHOW_DEFS = [
         label: "Praised Content Awards",
         ratingFocus: "critics",
         schedule: { kind: "nth-weekday", month: 1, weekday: 6, week: 2, hour: 20, minute: 0 },
+        performanceQuality: { min: 80, max: 100 },
         categories: [
             { id: "critics-track", label: "Critics' Track of the Year", contentType: "tracks", ratingMode: "critics", nomineeCount: 12 },
             { id: "critics-project", label: "Critics' Project of the Year", contentType: "projects", ratingMode: "critics", nomineeCount: 8 },
@@ -14767,6 +14867,7 @@ const AWARD_SHOW_DEFS = [
         label: "Studio Craft Awards",
         ratingFocus: "critics",
         schedule: { kind: "fixed-date", month: 3, day: 12, hour: 20, minute: 0 },
+        performanceQuality: { min: 78, max: 100 },
         categories: [
             { id: "craft-track", label: "Production Track of the Year", contentType: "tracks", ratingMode: "critics", nomineeCount: 8 },
             { id: "craft-project", label: "Concept Project of the Year", contentType: "projects", ratingMode: "critics", nomineeCount: 6 },
@@ -14780,6 +14881,7 @@ const AWARD_SHOW_DEFS = [
         label: "Pop Content Awards",
         ratingFocus: "audience",
         schedule: { kind: "nth-weekday", month: 4, weekday: 6, week: 3, hour: 20, minute: 0 },
+        performanceQuality: { min: 65, max: 100 },
         categories: [
             {
                 id: "audience-track",
@@ -14828,6 +14930,7 @@ const AWARD_SHOW_DEFS = [
         label: "Fanwave Live Awards",
         ratingFocus: "audience",
         schedule: { kind: "nth-weekday", month: 6, weekday: 6, week: 2, hour: 20, minute: 0 },
+        performanceQuality: { min: 70, max: 100 },
         categories: [
             {
                 id: "fanwave-live",
@@ -14878,6 +14981,7 @@ const AWARD_SHOW_DEFS = [
         label: "Impact Circuit Awards",
         ratingFocus: "hybrid",
         schedule: { kind: "nth-weekday", month: 8, weekday: 6, week: 2, hour: 20, minute: 0 },
+        performanceQuality: { min: 75, max: 100 },
         categories: [
             { id: "impact-track", label: "Track Impact of the Year", contentType: "tracks", ratingMode: "hybrid", nomineeCount: 8 },
             { id: "impact-project", label: "Project Impact of the Year", contentType: "projects", ratingMode: "hybrid", nomineeCount: 6 },
@@ -14906,6 +15010,7 @@ const AWARD_SHOW_DEFS = [
         label: "Horizon Impact Awards",
         ratingFocus: "hybrid",
         schedule: { kind: "nth-weekday", month: 10, weekday: 6, week: 3, hour: 20, minute: 0 },
+        performanceQuality: { min: 78, max: 100 },
         categories: [
             { id: "horizon-track", label: "Crossover Track Impact", contentType: "tracks", ratingMode: "hybrid", nomineeCount: 8 },
             { id: "horizon-project", label: "Era-Building Project", contentType: "projects", ratingMode: "hybrid", nomineeCount: 6 },
@@ -15719,6 +15824,50 @@ function awardShowTimeline(showAt) {
     const revealAt = weekStart + 5 * DAY_MS + 12 * HOUR_MS;
     return { lockAt, revealAt, weekStart };
 }
+function buildAwardPerformanceBidWindow(showAt, months = AWARD_SHOW_PERFORMANCE_BID_MONTHS) {
+    if (!Number.isFinite(showAt))
+        return { openAt: null, closeAt: null };
+    const showDate = new Date(showAt);
+    const monthOffset = showDate.getUTCMonth() - Math.round(Number(months) || AWARD_SHOW_PERFORMANCE_BID_MONTHS);
+    const year = showDate.getUTCFullYear() + Math.floor(monthOffset / 12);
+    const monthIndex = ((monthOffset % 12) + 12) % 12;
+    const days = daysInUtcMonth(year, monthIndex);
+    const day = clamp(showDate.getUTCDate(), 1, days || 1);
+    const openAt = Date.UTC(year, monthIndex, day, 0, 0, 0);
+    const timeline = awardShowTimeline(showAt);
+    return { openAt, closeAt: timeline.lockAt };
+}
+function normalizeAwardShowPerformanceQuality(range) {
+    const minRaw = Number(range?.min);
+    const maxRaw = Number(range?.max);
+    const min = Number.isFinite(minRaw) ? clampQuality(minRaw) : QUALITY_MIN;
+    const max = Number.isFinite(maxRaw) ? clampQuality(maxRaw) : QUALITY_MAX;
+    return min <= max ? { min, max } : { min: max, max: min };
+}
+function resolveAwardShowPerformanceQuality(show) {
+    if (!show)
+        return { min: QUALITY_MIN, max: QUALITY_MAX };
+    return normalizeAwardShowPerformanceQuality(show.performanceQuality);
+}
+function resolveAwardShowPerformanceBidWindow(show) {
+    if (!show)
+        return { openAt: null, closeAt: null };
+    const fallback = buildAwardPerformanceBidWindow(show.showAt);
+    const openAt = Number.isFinite(show.performanceBidOpenAt) ? show.performanceBidOpenAt : fallback.openAt;
+    const closeAt = Number.isFinite(show.performanceBidCloseAt)
+        ? show.performanceBidCloseAt
+        : Number.isFinite(show.nominationLockAt)
+            ? show.nominationLockAt
+            : fallback.closeAt;
+    return { openAt, closeAt };
+}
+function isAwardPerformanceBidWindowOpen(show, now = state.time.epochMs) {
+    const { openAt, closeAt } = resolveAwardShowPerformanceBidWindow(show);
+    if (!Number.isFinite(openAt) || !Number.isFinite(closeAt))
+        return false;
+    const stamp = Number.isFinite(now) ? now : Date.now();
+    return stamp >= openAt && stamp < closeAt;
+}
 function buildAwardNominationWindow(showAt, weeks = AWARD_SHOW_WINDOW_WEEKS) {
     if (!Number.isFinite(showAt))
         return { startWeek: null, endWeek: null, startEpoch: null, endEpoch: null };
@@ -15772,8 +15921,42 @@ function normalizeAwardShowPerformance(performance) {
         next.labelName = next.labelName || null;
     if (typeof next.trackId !== "string")
         next.trackId = next.trackId || null;
+    if (typeof next.bidId !== "string")
+        next.bidId = next.bidId || null;
+    if (!Number.isFinite(next.bidAmount))
+        next.bidAmount = null;
     if (typeof next.executedAt !== "number")
         next.executedAt = null;
+    return next;
+}
+function normalizeAwardShowPerformanceBid(bid) {
+    const next = bid || {};
+    if (!next.id)
+        next.id = uid("APB");
+    if (typeof next.slotId !== "string")
+        next.slotId = next.slotId || null;
+    if (typeof next.label !== "string")
+        next.label = next.label || "";
+    if (typeof next.actId !== "string")
+        next.actId = next.actId || null;
+    if (typeof next.actName !== "string")
+        next.actName = next.actName || null;
+    if (typeof next.actNameKey !== "string")
+        next.actNameKey = next.actNameKey || null;
+    if (typeof next.trackId !== "string")
+        next.trackId = next.trackId || null;
+    if (!Number.isFinite(next.amount))
+        next.amount = Math.max(0, Math.round(Number(next.amount) || 0));
+    if (!Number.isFinite(next.quality))
+        next.quality = null;
+    if (typeof next.status !== "string")
+        next.status = "Active";
+    if (typeof next.createdAt !== "number")
+        next.createdAt = null;
+    if (typeof next.updatedAt !== "number")
+        next.updatedAt = null;
+    if (typeof next.refundedAt !== "number")
+        next.refundedAt = null;
     return next;
 }
 function normalizeAwardShowEntry(show) {
@@ -15814,6 +15997,25 @@ function normalizeAwardShowEntry(show) {
     if (!Array.isArray(next.performances))
         next.performances = [];
     next.performances = next.performances.map((slot) => normalizeAwardShowPerformance(slot)).filter(Boolean);
+    const def = AWARD_SHOW_DEFS.find((entry) => entry.id === next.familyId) || null;
+    const qualitySeed = def?.performanceQuality || next.performanceQuality;
+    if (!next.performanceQuality || typeof next.performanceQuality !== "object") {
+        next.performanceQuality = normalizeAwardShowPerformanceQuality(qualitySeed);
+    }
+    else {
+        next.performanceQuality = normalizeAwardShowPerformanceQuality(next.performanceQuality);
+    }
+    const bidWindow = buildAwardPerformanceBidWindow(next.showAt);
+    if (!Number.isFinite(next.performanceBidOpenAt))
+        next.performanceBidOpenAt = bidWindow.openAt;
+    if (!Number.isFinite(next.performanceBidCloseAt)) {
+        next.performanceBidCloseAt = Number.isFinite(next.nominationLockAt) ? next.nominationLockAt : bidWindow.closeAt;
+    }
+    if (!Number.isFinite(next.performanceBidNotifiedAt))
+        next.performanceBidNotifiedAt = null;
+    if (!Array.isArray(next.performanceBids))
+        next.performanceBids = [];
+    next.performanceBids = next.performanceBids.map((bid) => normalizeAwardShowPerformanceBid(bid)).filter(Boolean);
     if (typeof next.seasonKey !== "string") {
         const fallbackYear = Number.isFinite(next.year) ? awardShowYearKey(next.year) : "";
         next.seasonKey = next.seasonKey || next.monthKey || (fallbackYear || null);
@@ -16543,6 +16745,130 @@ function ensureAwardPerformanceEvents(show) {
         });
     });
 }
+function resolveAwardPerformanceTrackQuality(track) {
+    const quality = resolveTrackQualityScore(track);
+    return Number.isFinite(quality) ? quality : null;
+}
+function isTrackEligibleForAwardPerformance(track, range) {
+    if (!track || !range)
+        return false;
+    const quality = resolveAwardPerformanceTrackQuality(track);
+    if (!Number.isFinite(quality))
+        return false;
+    return quality >= range.min && quality <= range.max;
+}
+function resolveAwardPerformanceTrackFromCandidate(candidate, range) {
+    if (!candidate || !range)
+        return null;
+    const directTrackId = candidate.trackId || candidate.primaryTrackId || null;
+    let track = directTrackId ? getTrack(directTrackId) : null;
+    if (!track && candidate.marketId) {
+        const market = resolveMarketEntryById(candidate.marketId);
+        track = market?.trackId ? getTrack(market.trackId) : null;
+    }
+    if (track && track.status === "Released" && isTrackEligibleForAwardPerformance(track, range)) {
+        return track;
+    }
+    if (candidate.actId) {
+        const eligible = state.tracks
+            .filter((entry) => entry.actId === candidate.actId && entry.status === "Released")
+            .filter((entry) => isTrackEligibleForAwardPerformance(entry, range));
+        if (!eligible.length)
+            return null;
+        eligible.sort((a, b) => {
+            const qa = resolveAwardPerformanceTrackQuality(a) || 0;
+            const qb = resolveAwardPerformanceTrackQuality(b) || 0;
+            return qb - qa;
+        });
+        return eligible[0] || null;
+    }
+    return null;
+}
+function buildAwardPerformanceBidCandidate(show, actId, trackId) {
+    if (!show)
+        return { ok: false, reason: "Award show not found." };
+    const act = actId ? getAct(actId) : null;
+    if (!act)
+        return { ok: false, reason: "Act not found for performance bid." };
+    const activeEra = getLatestActiveEraForAct(act.id);
+    if (!activeEra || activeEra.status !== "Active") {
+        return { ok: false, reason: "Performance bids require an act with an active era." };
+    }
+    const track = trackId ? getTrack(trackId) : null;
+    if (!track)
+        return { ok: false, reason: "Track not found for performance bid." };
+    if (track.actId && track.actId !== act.id) {
+        return { ok: false, reason: "Selected track does not belong to the selected act." };
+    }
+    const era = track.eraId ? getEraById(track.eraId) : null;
+    if (!era || era.status !== "Active") {
+        return { ok: false, reason: "Performance bids require a track from an active era." };
+    }
+    const scheduled = state.releaseQueue.find((entry) => entry.trackId === track.id);
+    const isReleased = track.status === "Released" && track.marketId;
+    if (!isReleased && !scheduled) {
+        return { ok: false, reason: "Performance bids require a scheduled or released track." };
+    }
+    const quality = resolveAwardPerformanceTrackQuality(track);
+    if (!Number.isFinite(quality)) {
+        return { ok: false, reason: "Performance bid requires a track with a quality score." };
+    }
+    const range = resolveAwardShowPerformanceQuality(show);
+    if (quality < range.min || quality > range.max) {
+        return { ok: false, reason: `Performance requires quality ${range.min}-${range.max}.` };
+    }
+    return { ok: true, act, track, quality, range };
+}
+function pickAwardPerformanceBidWinner(bids, show) {
+    if (!Array.isArray(bids) || !bids.length || !show)
+        return null;
+    const eligible = bids.map((bid) => {
+        const candidate = buildAwardPerformanceBidCandidate(show, bid.actId, bid.trackId);
+        if (!candidate.ok)
+            return null;
+        return { bid, act: candidate.act, track: candidate.track, quality: candidate.quality };
+    }).filter(Boolean);
+    if (!eligible.length)
+        return null;
+    eligible.sort((a, b) => {
+        const amountDiff = Number(b.bid.amount || 0) - Number(a.bid.amount || 0);
+        if (amountDiff !== 0)
+            return amountDiff;
+        const qualityDiff = Number(b.quality || 0) - Number(a.quality || 0);
+        if (qualityDiff !== 0)
+            return qualityDiff;
+        const aCreated = Number.isFinite(a.bid.createdAt) ? a.bid.createdAt : Number.POSITIVE_INFINITY;
+        const bCreated = Number.isFinite(b.bid.createdAt) ? b.bid.createdAt : Number.POSITIVE_INFINITY;
+        if (aCreated !== bCreated)
+            return aCreated - bCreated;
+        return String(a.bid.id).localeCompare(String(b.bid.id));
+    });
+    return eligible[0] || null;
+}
+function finalizeAwardPerformanceBids(show, winningBidIds, now = state.time.epochMs) {
+    if (!show || !Array.isArray(show.performanceBids))
+        return;
+    const resolvedAt = Number.isFinite(now) ? now : Date.now();
+    let refundTotal = 0;
+    show.performanceBids.forEach((bid) => {
+        if (!bid || bid.status !== "Active")
+            return;
+        if (winningBidIds && winningBidIds.has(bid.id))
+            return;
+        bid.status = "Lost";
+        bid.updatedAt = resolvedAt;
+        if (bid.label === state.label?.name && Number.isFinite(bid.amount) && bid.amount > 0) {
+            refundTotal += bid.amount;
+            bid.refundedAt = resolvedAt;
+        }
+    });
+    if (refundTotal > 0 && state.label) {
+        state.label.cash += refundTotal;
+        if (state.label.wallet)
+            state.label.wallet.cash = state.label.cash;
+        logEvent(`Award performance bids refunded: ${formatMoney(refundTotal)}.`);
+    }
+}
 function assignAwardShowPerformances(show) {
     if (!show || !Array.isArray(show.categories))
         return;
@@ -16555,8 +16881,42 @@ function assignAwardShowPerformances(show) {
             actName: null,
             actNameKey: null,
             trackId: null,
+            bidId: null,
+            bidAmount: null,
             executedAt: null
         }));
+    }
+    const qualityRange = resolveAwardShowPerformanceQuality(show);
+    const now = state.time?.epochMs || Date.now();
+    const bookedActKeys = new Set();
+    const winningBidIds = new Set();
+    const activeBids = Array.isArray(show.performanceBids)
+        ? show.performanceBids.filter((bid) => bid && bid.status === "Active")
+        : [];
+    show.performances.forEach((slot) => {
+        if (!slot?.id)
+            return;
+        const slotBids = activeBids.filter((bid) => bid.slotId === slot.id);
+        const winner = pickAwardPerformanceBidWinner(slotBids, show);
+        if (!winner)
+            return;
+        const actKey = winner.bid.actId || winner.bid.actNameKey || winner.bid.actName;
+        if (actKey)
+            bookedActKeys.add(actKey);
+        slot.actId = winner.bid.actId || null;
+        slot.actName = winner.bid.actName || winner.act?.name || null;
+        slot.actNameKey = winner.bid.actNameKey || winner.act?.nameKey || null;
+        slot.labelName = winner.bid.label || null;
+        slot.trackId = winner.bid.trackId || null;
+        slot.status = "Booked";
+        slot.bidId = winner.bid.id;
+        slot.bidAmount = winner.bid.amount || null;
+        winner.bid.status = "Won";
+        winner.bid.updatedAt = now;
+        winningBidIds.add(winner.bid.id);
+    });
+    if (activeBids.length) {
+        finalizeAwardPerformanceBids(show, winningBidIds, now);
     }
     const picksByAct = new Map();
     show.categories.forEach((category) => {
@@ -16570,19 +16930,113 @@ function assignAwardShowPerformances(show) {
         });
     });
     const ordered = Array.from(picksByAct.values()).sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
-    show.performances.forEach((slot, index) => {
-        const candidate = ordered[index];
-        if (!candidate)
+    show.performances.forEach((slot) => {
+        if (slot.status === "Booked")
             return;
-        slot.actKey = candidate.actKey || slot.actKey || null;
-        slot.actId = candidate.actId || slot.actId || null;
-        slot.actName = candidate.actName || slot.actName || null;
-        slot.actNameKey = candidate.actNameKey || slot.actNameKey || null;
-        slot.labelName = candidate.label || slot.labelName || null;
-        slot.trackId = candidate.trackId || candidate.primaryTrackId || slot.trackId || null;
-        slot.status = "Booked";
+        while (ordered.length) {
+            const candidate = ordered.shift();
+            if (!candidate)
+                continue;
+            const actKey = candidate.actKey || candidate.actId || candidate.actNameKey || candidate.actName;
+            if (actKey && bookedActKeys.has(actKey))
+                continue;
+            const track = resolveAwardPerformanceTrackFromCandidate(candidate, qualityRange);
+            if (!track)
+                continue;
+            if (actKey)
+                bookedActKeys.add(actKey);
+            slot.actId = candidate.actId || slot.actId || null;
+            slot.actName = candidate.actName || slot.actName || null;
+            slot.actNameKey = candidate.actNameKey || slot.actNameKey || null;
+            slot.labelName = candidate.label || slot.labelName || null;
+            slot.trackId = track.id || null;
+            slot.status = "Booked";
+            slot.bidId = null;
+            slot.bidAmount = null;
+            break;
+        }
     });
     ensureAwardPerformanceEvents(show);
+}
+function placeAwardPerformanceBid({ showId, slotId, actId, trackId, bidAmount, labelName = state.label?.name, now = state.time?.epochMs } = {}) {
+    const show = getAwardShowById(showId);
+    if (!show)
+        return { ok: false, reason: "Award show not found." };
+    if (!Array.isArray(show.performances))
+        show.performances = [];
+    const slot = show.performances.find((entry) => entry?.id === slotId) || null;
+    if (!slot)
+        return { ok: false, reason: "Performance slot not found." };
+    const stamp = Number.isFinite(now) ? now : Date.now();
+    const window = resolveAwardShowPerformanceBidWindow(show);
+    if (!Number.isFinite(window.openAt) || !Number.isFinite(window.closeAt)) {
+        return { ok: false, reason: "Performance bids are not scheduled yet." };
+    }
+    if (stamp < window.openAt) {
+        return { ok: false, reason: `Performance bids open ${formatDate(window.openAt)}.` };
+    }
+    if (stamp >= window.closeAt || show.status !== "Scheduled") {
+        return { ok: false, reason: "Performance bids are closed for this show." };
+    }
+    const amount = Math.round(Number(bidAmount) || 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+        return { ok: false, reason: "Bid amount must be greater than 0." };
+    }
+    const label = labelName || "";
+    if (!label)
+        return { ok: false, reason: "Label not found for performance bid." };
+    if (label !== state.label?.name) {
+        return { ok: false, reason: "Only the player label can place bids right now." };
+    }
+    const candidate = buildAwardPerformanceBidCandidate(show, actId, trackId);
+    if (!candidate.ok)
+        return { ok: false, reason: candidate.reason || "Bid requirements not met." };
+    if (!Array.isArray(show.performanceBids))
+        show.performanceBids = [];
+    const existing = show.performanceBids.find((bid) => bid?.status === "Active"
+        && bid.label === label
+        && bid.slotId === slot.id) || null;
+    const currentAmount = existing ? Number(existing.amount || 0) : 0;
+    const diff = amount - currentAmount;
+    if (diff > 0 && state.label.cash < diff) {
+        return { ok: false, reason: "Not enough cash to raise the bid." };
+    }
+    if (!existing && state.label.cash < amount) {
+        return { ok: false, reason: "Not enough cash for award performance bid." };
+    }
+    if (diff !== 0) {
+        state.label.cash -= diff;
+        if (state.label.wallet)
+            state.label.wallet.cash = state.label.cash;
+    }
+    if (existing) {
+        existing.amount = amount;
+        existing.actId = candidate.act.id;
+        existing.actName = candidate.act.name;
+        existing.actNameKey = candidate.act.nameKey || null;
+        existing.trackId = candidate.track.id;
+        existing.quality = candidate.quality;
+        existing.updatedAt = stamp;
+    }
+    else {
+        show.performanceBids.push({
+            id: uid("APB"),
+            slotId: slot.id,
+            label,
+            actId: candidate.act.id,
+            actName: candidate.act.name,
+            actNameKey: candidate.act.nameKey || null,
+            trackId: candidate.track.id,
+            amount,
+            quality: candidate.quality,
+            status: "Active",
+            createdAt: stamp,
+            updatedAt: stamp,
+            refundedAt: null
+        });
+    }
+    logEvent(`Award performance bid placed: ${label} bid ${formatMoney(amount)} for ${candidate.act.name} (${slot.label}).`);
+    return { ok: true, showId: show.id, slotId: slot.id };
 }
 function applyAwardShowPerformances(show) {
     if (!show || !Array.isArray(show.performances))
@@ -16782,6 +17236,8 @@ function scheduleAwardShowsForYear(year) {
         }
         const timeline = awardShowTimeline(showAt);
         const nominationWindow = buildAwardNominationWindow(showAt);
+        const bidWindow = buildAwardPerformanceBidWindow(showAt);
+        const performanceQuality = normalizeAwardShowPerformanceQuality(definition.performanceQuality);
         const showDate = new Date(showAt);
         const show = {
             id: showId,
@@ -16809,8 +17265,15 @@ function scheduleAwardShowsForYear(year) {
                 actName: null,
                 actNameKey: null,
                 trackId: null,
+                bidId: null,
+                bidAmount: null,
                 executedAt: null
             })),
+            performanceQuality,
+            performanceBidOpenAt: bidWindow.openAt,
+            performanceBidCloseAt: bidWindow.closeAt,
+            performanceBidNotifiedAt: null,
+            performanceBids: [],
             seasonKey: yearKey,
             year: showDate.getUTCFullYear(),
             monthIndex: showDate.getUTCMonth(),
@@ -16837,6 +17300,13 @@ function ensureAwardShowsScheduled(now = state.time.epochMs) {
     scheduleAwardShowsForYear(year);
     scheduleAwardShowsForYear(year + 1);
 }
+function getAwardShowById(showId) {
+    if (!showId)
+        return null;
+    const store = ensureAwardShowStore();
+    const shows = Array.isArray(store.shows) ? store.shows : [];
+    return shows.find((show) => show?.id === showId) || null;
+}
 function listAwardShows({ includePast = false, limit = null } = {}) {
     const store = ensureAwardShowStore();
     const now = state.time.epochMs;
@@ -16860,6 +17330,10 @@ async function runAwardShowTimeline(now = state.time.epochMs) {
         if (!show || !Number.isFinite(show.showAt))
             continue;
         ensureAwardShowScheduledEvent(show);
+        if (!Number.isFinite(show.performanceBidNotifiedAt) && show.status === "Scheduled" && isAwardPerformanceBidWindowOpen(show, now)) {
+            show.performanceBidNotifiedAt = now;
+            logEvent(`Award performance bids open for ${show.label}.`);
+        }
         if (show.status === "Scheduled" && Number.isFinite(show.nominationLockAt) && now >= show.nominationLockAt) {
             const result = await lockAwardShowNominations(show);
             if (!result.ok) {
@@ -17419,6 +17893,11 @@ function normalizeState() {
             promoTypes: [DEFAULT_PROMO_TYPE],
             promoPrimeTime: false,
             promoSlots: { actId: null, projectId: null, trackId: null },
+            awardBidShowId: null,
+            awardBidSlotId: null,
+            awardBidActId: null,
+            awardBidTrackId: null,
+            awardBidAmount: null,
             autoPromoSlots: {
                 actIds: buildAutoPromoSlotList(),
                 projectIds: buildAutoPromoSlotList(),
@@ -17550,6 +18029,16 @@ function normalizeState() {
     if (typeof state.ui.promoSlots.projectId !== "string") {
         state.ui.promoSlots.projectId = state.ui.promoSlots.projectId || null;
     }
+    if (typeof state.ui.awardBidShowId !== "string")
+        state.ui.awardBidShowId = state.ui.awardBidShowId || null;
+    if (typeof state.ui.awardBidSlotId !== "string")
+        state.ui.awardBidSlotId = state.ui.awardBidSlotId || null;
+    if (typeof state.ui.awardBidActId !== "string")
+        state.ui.awardBidActId = state.ui.awardBidActId || null;
+    if (typeof state.ui.awardBidTrackId !== "string")
+        state.ui.awardBidTrackId = state.ui.awardBidTrackId || null;
+    if (!Number.isFinite(state.ui.awardBidAmount))
+        state.ui.awardBidAmount = null;
     const autoPromoSlots = ensureAutoPromoSlots();
     const hasAutoPromoTargets = autoPromoSlots.actIds.some(Boolean)
         || autoPromoSlots.projectIds.some(Boolean)
@@ -18164,6 +18653,11 @@ function normalizeState() {
             next.id = uid("TD");
         if (typeof next.name !== "string")
             next.name = "";
+        const nameMeta = resolveTourNameBase(next.name || "");
+        if (typeof next.nameBase !== "string")
+            next.nameBase = nameMeta.base;
+        if (typeof next.nameHasTourWord !== "boolean")
+            next.nameHasTourWord = nameMeta.hasTourWord;
         next.goal = normalizeTourGoal(next.goal);
         if (typeof next.actId !== "string")
             next.actId = next.actId || null;
@@ -19693,11 +20187,24 @@ function buildTrackHistoryScopes() {
 function collectTrendRanking() {
     const aggregate = aggregateTrendLedger(getTrendLedgerWindow());
     let ranking = Array.isArray(state.trendRanking) && state.trendRanking.length ? state.trendRanking : [];
+    if (!ranking.length && Array.isArray(state.trends) && state.trends.length) {
+        ranking = state.trends.slice();
+    }
     if (!ranking.length) {
         ranking = buildTrendRankingFromTotals(aggregate.totals || {});
     }
     const chartPresence = new Set(aggregate.chartGenres || []);
-    const visible = ranking.filter((trend) => (aggregate.totals?.[trend] || 0) > 0 && chartPresence.has(trend));
+    let visible = ranking.filter((trend) => (aggregate.totals?.[trend] || 0) > 0 && chartPresence.has(trend));
+    if (!visible.length) {
+        visible = ranking.filter(Boolean);
+    }
+    else if (visible.length < TREND_DETAIL_COUNT) {
+        ranking.forEach((trend) => {
+            if (!trend || visible.includes(trend))
+                return;
+            visible.push(trend);
+        });
+    }
     const history = getTrendRankHistory();
     const statusByGenre = buildTrendStatusMap(visible, history);
     return { visible, aggregate, statusByGenre };
@@ -19756,7 +20263,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

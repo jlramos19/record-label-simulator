@@ -1,5 +1,5 @@
 const RLS_RELEASE = {
-  patchId: "RLS-PATCH-20251227-2110Z",
-  timestamp: "2025-12-27T21:10:00Z",
+  patchId: "RLS-PATCH-20251228-0047Z",
+  timestamp: "2025-12-28T00:47:00Z",
   channel: "web"
 };

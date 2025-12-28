@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekStartEpochMs, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -1351,9 +1351,8 @@ function renderTopBar() {
         </div>
       `).join("")
         : `<div class="muted">No labels yet</div>`;
-    const trendRanking = Array.isArray(state.trendRanking) && state.trendRanking.length
-        ? state.trendRanking
-        : (state.trends || []);
+    const { visible: rankedTrends } = collectTrendRanking();
+    const trendRanking = rankedTrends.length ? rankedTrends : (state.trends || []);
     const trendsMarkup = trendRanking.length
         ? trendRanking.slice(0, TREND_DETAIL_COUNT).map((trend, index) => `
         <div class="top-mini-item">
@@ -2384,14 +2383,198 @@ function renderPromoAlerts() {
     });
     listEl.innerHTML = blocks.join("");
 }
+function renderAwardPerformanceBidControls(shows) {
+    const showSelect = $("awardBidShowSelect");
+    const slotSelect = $("awardBidSlotSelect");
+    const actSelect = $("awardBidActSelect");
+    const trackSelect = $("awardBidTrackSelect");
+    const amountInput = $("awardBidAmountInput");
+    const hintEl = $("awardBidHint");
+    const submitBtn = $("awardBidSubmitBtn");
+    if (!showSelect || !slotSelect || !actSelect || !trackSelect || !amountInput)
+        return;
+    if (!state.ui)
+        state.ui = {};
+    const now = state.time?.epochMs || Date.now();
+    const list = Array.isArray(shows) ? shows : listAwardShows({ includePast: false, limit: null });
+    const openShows = list.filter((show) => isAwardPerformanceBidWindowOpen(show, now));
+    const disableControls = (message) => {
+        showSelect.disabled = true;
+        slotSelect.disabled = true;
+        actSelect.disabled = true;
+        trackSelect.disabled = true;
+        amountInput.disabled = true;
+        if (submitBtn)
+            submitBtn.disabled = true;
+        showSelect.innerHTML = "<option value=\"\">No bidding windows open</option>";
+        slotSelect.innerHTML = "<option value=\"\">Slot</option>";
+        actSelect.innerHTML = "<option value=\"\">Act</option>";
+        trackSelect.innerHTML = "<option value=\"\">Track</option>";
+        if (hintEl)
+            hintEl.textContent = message || "Performance bids open three months before show night.";
+    };
+    if (!openShows.length) {
+        disableControls("Performance bids open three months before show night.");
+        return;
+    }
+    showSelect.disabled = false;
+    slotSelect.disabled = false;
+    actSelect.disabled = false;
+    trackSelect.disabled = false;
+    amountInput.disabled = false;
+    const showOptions = openShows.map((show) => {
+        const label = Number.isFinite(show.showAt) ? `${show.label} (${formatShortDate(show.showAt)})` : show.label;
+        return `<option value="${show.id}">${label}</option>`;
+    }).join("");
+    showSelect.innerHTML = showOptions;
+    const selectedShowId = openShows.some((show) => show.id === state.ui.awardBidShowId)
+        ? state.ui.awardBidShowId
+        : openShows[0].id;
+    state.ui.awardBidShowId = selectedShowId;
+    showSelect.value = selectedShowId;
+    const selectedShow = openShows.find((show) => show.id === selectedShowId) || openShows[0];
+    const bidWindow = resolveAwardShowPerformanceBidWindow(selectedShow);
+    const qualityRange = resolveAwardShowPerformanceQuality(selectedShow);
+    const slots = Array.isArray(selectedShow.performances) ? selectedShow.performances : [];
+    if (!slots.length) {
+        slotSelect.innerHTML = "<option value=\"\">Slot</option>";
+    }
+    else {
+        slotSelect.innerHTML = slots.map((slot) => {
+            const status = slot.status === "Booked" ? "Booked" : "Pending";
+            return `<option value="${slot.id}">${slot.label} (${status})</option>`;
+        }).join("");
+    }
+    const selectedSlotId = slots.some((slot) => slot.id === state.ui.awardBidSlotId)
+        ? state.ui.awardBidSlotId
+        : slots[0]?.id || "";
+    state.ui.awardBidSlotId = selectedSlotId || null;
+    slotSelect.value = selectedSlotId || "";
+    const activeActs = state.acts
+        .map((act) => {
+        const era = getLatestActiveEraForAct(act.id);
+        if (!era || era.status !== "Active")
+            return null;
+        return { act, era };
+    })
+        .filter(Boolean)
+        .sort((a, b) => String(a.act.name || "").localeCompare(String(b.act.name || "")));
+    if (!activeActs.length) {
+        actSelect.innerHTML = "<option value=\"\">No active-era acts</option>";
+        actSelect.disabled = true;
+        trackSelect.innerHTML = "<option value=\"\">Track</option>";
+        trackSelect.disabled = true;
+        if (submitBtn)
+            submitBtn.disabled = true;
+        if (hintEl) {
+            hintEl.textContent = "Performance bids require an act with an active era.";
+        }
+        return;
+    }
+    actSelect.disabled = false;
+    actSelect.innerHTML = activeActs.map(({ act }) => `<option value="${act.id}">${renderActName(act)}</option>`).join("");
+    const selectedActId = activeActs.some(({ act }) => act.id === state.ui.awardBidActId)
+        ? state.ui.awardBidActId
+        : activeActs[0].act.id;
+    state.ui.awardBidActId = selectedActId;
+    actSelect.value = selectedActId;
+    const selectedActEntry = activeActs.find(({ act }) => act.id === selectedActId) || activeActs[0];
+    const selectedEraId = selectedActEntry?.era?.id || null;
+    const resolveTrackQuality = (track) => {
+        if (Number.isFinite(track?.qualityFinal))
+            return track.qualityFinal;
+        if (Number.isFinite(track?.quality))
+            return track.quality;
+        if (Number.isFinite(track?.qualityPotential))
+            return track.qualityPotential;
+        return null;
+    };
+    const eligibleTracks = state.tracks
+        .filter((track) => track.actId === selectedActId && (!selectedEraId || track.eraId === selectedEraId))
+        .map((track) => {
+        const quality = resolveTrackQuality(track);
+        const scheduled = state.releaseQueue.find((entry) => entry.trackId === track.id);
+        const isReleased = track.status === "Released" && track.marketId;
+        const inReleaseWindow = Boolean(isReleased || scheduled);
+        const inRange = Number.isFinite(quality)
+            && quality >= qualityRange.min
+            && quality <= qualityRange.max;
+        return {
+            track,
+            quality,
+            inReleaseWindow,
+            inRange,
+            statusLabel: isReleased ? "Released" : scheduled ? "Scheduled" : track.status || "Draft"
+        };
+    })
+        .filter((entry) => entry.inReleaseWindow && entry.inRange && Number.isFinite(entry.quality));
+    eligibleTracks.sort((a, b) => (b.quality || 0) - (a.quality || 0));
+    if (!eligibleTracks.length) {
+        trackSelect.innerHTML = "<option value=\"\">No eligible tracks</option>";
+        trackSelect.disabled = true;
+        if (submitBtn)
+            submitBtn.disabled = true;
+        if (hintEl) {
+            hintEl.textContent = `No active-era tracks meet the ${qualityRange.min}-${qualityRange.max} quality range.`;
+        }
+        return;
+    }
+    trackSelect.disabled = false;
+    trackSelect.innerHTML = eligibleTracks.map(({ track, quality, statusLabel }) => {
+        const grade = qualityGrade(quality);
+        return `<option value="${track.id}">${renderTrackTitle(track.title)} (${statusLabel}, Q${quality} ${grade})</option>`;
+    }).join("");
+    const selectedTrackId = eligibleTracks.some(({ track }) => track.id === state.ui.awardBidTrackId)
+        ? state.ui.awardBidTrackId
+        : eligibleTracks[0].track.id;
+    state.ui.awardBidTrackId = selectedTrackId;
+    trackSelect.value = selectedTrackId;
+    const amountValue = Number.isFinite(state.ui.awardBidAmount)
+        ? Math.max(0, Math.round(state.ui.awardBidAmount))
+        : "";
+    amountInput.value = amountValue === "" ? "" : String(amountValue);
+    const closeLabel = Number.isFinite(bidWindow.closeAt) ? formatShortDate(bidWindow.closeAt) : "TBD";
+    if (hintEl) {
+        hintEl.textContent = `Bids close ${closeLabel}. Performance quality ${qualityRange.min}-${qualityRange.max}.`;
+    }
+    const canBid = Boolean(selectedShowId && selectedSlotId && selectedActId && selectedTrackId)
+        && Number.isFinite(amountValue) && amountValue > 0;
+    if (submitBtn)
+        submitBtn.disabled = !canBid;
+}
 function renderAwardsCircuit() {
     const listEl = $("awardsCircuitList");
+    const noticeEl = $("awardsCircuitNotice");
     if (!listEl)
         return;
     const shows = listAwardShows({ includePast: true });
+    renderAwardPerformanceBidControls(shows);
     if (!shows.length) {
         listEl.innerHTML = `<div class="muted">No award shows scheduled yet.</div>`;
+        if (noticeEl) {
+            noticeEl.textContent = "";
+            noticeEl.classList.add("hidden");
+        }
         return;
+    }
+    const now = state.time?.epochMs || Date.now();
+    const openShows = shows.filter((show) => isAwardPerformanceBidWindowOpen(show, now));
+    if (noticeEl) {
+        if (openShows.length) {
+            const openList = openShows.map((show) => {
+                const bidWindow = resolveAwardShowPerformanceBidWindow(show);
+                const closeLabel = Number.isFinite(bidWindow.closeAt)
+                    ? formatShortDate(bidWindow.closeAt)
+                    : "TBD";
+                return `${show.label} (closes ${closeLabel})`;
+            });
+            noticeEl.textContent = `Performance bids open: ${openList.join(" | ")}.`;
+            noticeEl.classList.remove("hidden");
+        }
+        else {
+            noticeEl.textContent = "";
+            noticeEl.classList.add("hidden");
+        }
     }
     const playerLabel = state.label?.name || "";
     const items = shows.map((show) => {
@@ -2417,6 +2600,16 @@ function renderAwardsCircuit() {
         const performanceLine = Array.isArray(show.performances) && show.performances.length
             ? show.performances.map((slot) => `${slot.label}: ${slot.actName || "TBD"}`).join(" | ")
             : "Performance slots TBD";
+        const bidWindow = resolveAwardShowPerformanceBidWindow(show);
+        const qualityRange = resolveAwardShowPerformanceQuality(show);
+        const bidLabel = Number.isFinite(bidWindow.openAt) && Number.isFinite(bidWindow.closeAt)
+            ? now < bidWindow.openAt
+                ? `Bids open ${formatShortDate(bidWindow.openAt)}`
+                : now < bidWindow.closeAt
+                    ? `Bids close ${formatShortDate(bidWindow.closeAt)}`
+                    : "Bids closed"
+            : "Bids TBD";
+        const bidDetail = `${bidLabel} | Performance quality ${qualityRange.min}-${qualityRange.max}`;
         const status = show.status || "Scheduled";
         const badgeClass = status === "Resolved" || status === "Revealed" ? "badge" : "badge warn";
         return `
@@ -2426,6 +2619,7 @@ function renderAwardsCircuit() {
             <div class="item-title">${show.label}</div>
             <div class="muted">${showDate} | ${windowLabel}</div>
             <div class="muted">Lock ${lockLabel} | Reveal ${revealLabel}${playerLine}</div>
+            <div class="muted">${bidDetail}</div>
             <div class="tiny muted">${performanceLine}</div>
           </div>
           <div class="${badgeClass}">${status}</div>
@@ -4784,7 +4978,7 @@ function renderReleaseDesk() {
             </div>
           </div>
         `
-                : `<div class="muted">No Acts available. Create one in Roster.</div>`;
+                : `<div class="muted">No Acts available. Create one in Signed.</div>`;
             const project = track.projectName || `${track.title} - Single`;
             const projectType = normalizeProjectType(track.projectType || "Single");
             const releaseType = resolveTrackReleaseType(track);
@@ -7168,5 +7362,5 @@ function renderAll({ save = true } = {}) {
     if (save)
         saveToActiveSlot();
 }
-export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderModifierInventory, renderReleaseDesk, renderTouringDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderCalendarDayDetail, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderTutorialEconomy, renderModifierTools, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };
+export { refreshSelectOptions, updateActMemberFields, renderAutoAssignModal, renderTime, renderStats, renderSlots, renderActs, renderCreators, renderEraStatus, renderTracks, renderModifierInventory, renderReleaseDesk, renderTouringDesk, renderQuickRecipes, renderCalendarView, renderCalendarList, renderCalendarDayDetail, renderGenreIndex, renderCommunityRankings, renderStudiosList, renderRoleActions, renderTutorialEconomy, renderModifierTools, renderCharts, renderWallet, renderLossArchives, renderResourceTickSummary, renderAwardsCircuit, renderSocialFeed, renderMainMenu, renderRankingModal, renderRankingWindow, renderAll, renderActiveStudiosSelect, renderCreateStageTrackSelect, renderCreateStageControls, renderActiveView, renderMarket, renderEventLog, renderSystemLog, renderTrends, renderCommunityLabels, renderTopBar, renderPopulation, renderEconomySummary, renderActiveCampaigns, renderInventory, renderWorkOrders, renderTrackHistoryPanel, renderRolloutStrategyPlanner, renderCreateTrends, renderAchievements, renderQuests, renderActiveArea, renderCalendarEraList, renderCreatorFallbackSymbols, renderCreatorAvatar, openMainMenu, closeMainMenu, updateGenrePreview, };
 //# sourceMappingURL=index.js.map

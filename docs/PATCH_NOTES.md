@@ -1,5 +1,16 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0047Z)
+- Promotions now notify when award performance bid windows open, with bid controls gated by active-era acts and show-specific quality ranges. [PN-20251228-AC25]
+
+## 2025-12-28 (RLS-PATCH-20251228-0026Z)
+- Ranking "More" windows now open anchored to the clicked button, stay draggable from the header, and avoid top-left spawns. [PN-20251228-AC21]
+- Trend surfaces now share a unified ranking feed with backfill to keep early lists populated and balanced. [PN-20251228-AC22]
+- Roster is now labeled Signed, and the roster view drops the Communities side panel. [PN-20251228-AC23]
+- Creator act "See more" popovers now use a solid panel background for better readability. [PN-20251228-AC24]
+- Tour drafts now append ARENA/STADIUM/WORLD to the name when bookings cover all arenas, all stadiums, or every nation. [PN-20251228-AC25]
+- Quick Act now skips duplicate member lineups; it warns when only existing lineups are available. [PN-20251228-AC26]
+
 ## 2025-12-27 (RLS-PATCH-20251227-2352Z)
 - Awards category selection now re-renders safely to prevent the Best-Selling Track click crash. [PN-20251227-AC19]
 - Main nav notification badges now sit below labels instead of inline. [PN-20251227-AC20]
@@ -679,3 +690,10 @@
 - PN-20251227-AC17 (2025-12-27 23:18Z): Awards now run annually per show schedule with yearlong eligibility windows and an expanded critics/audience/hybrid lineup.
 - PN-20251227-AC19 (2025-12-27 23:52Z): Fixed awards category selection crashing on missing active view render.
 - PN-20251227-AC20 (2025-12-27 23:52Z): Main nav notification badges now stack below labels.
+- PN-20251228-AC21 (2025-12-28 00:27Z): Ranking "More" windows now open anchored to the clicked button, stay draggable from the header, and avoid top-left spawns.
+- PN-20251228-AC22 (2025-12-28 00:27Z): Trend surfaces now share a unified ranking feed with backfill to keep early lists populated and balanced.
+- PN-20251228-AC23 (2025-12-28 00:27Z): Roster is now labeled Signed, and the roster view drops the Communities side panel.
+- PN-20251228-AC24 (2025-12-28 00:27Z): Creator act "See more" popovers now use a solid panel background for better readability.
+- PN-20251228-AC25 (2025-12-28 01:10Z): Tour drafts now append ARENA/STADIUM/WORLD to the name when bookings cover all arenas, all stadiums, or every nation.
+- PN-20251228-AC26 (2025-12-28 01:10Z): Quick Act now skips duplicate member lineups; it warns when only existing lineups are available.
+- PN-20251228-AC25 (2025-12-28 00:47Z): Promotions now notify when award performance bid windows open, with bid controls gated by active-era acts and show-specific quality ranges.

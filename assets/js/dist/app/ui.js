@@ -7,9 +7,9 @@ import { setUiHooks } from "./game/ui-hooks.js";
 import { getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
 import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistoryFromExternal, importSavesFromExternal, isExternalStorageSupported, requestExternalStorageHandle, syncExternalStorageNow } from "./file-storage.js";
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
-import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
+import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, injectCheaterMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, injectCheaterMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -310,6 +310,7 @@ function handleCalendarPointerEnd(e) {
     shiftCalendarAnchorWeek(direction);
 }
 const RANKING_WINDOW_MARGIN = 12;
+const RANKING_WINDOW_OFFSET = 8;
 let rankingWindowDrag = null;
 let rankingWindowDismissalBound = false;
 function clampRankingWindowPosition(left, top, width, height) {
@@ -324,24 +325,58 @@ function ensureRankingWindowPosition(windowEl) {
     if (!windowEl.dataset.positioned) {
         windowEl.style.top = "140px";
         windowEl.style.right = "16px";
+        windowEl.style.left = "auto";
         windowEl.dataset.positioned = "true";
         return;
     }
     const rect = windowEl.getBoundingClientRect();
-    const next = clampRankingWindowPosition(rect.left, rect.top, rect.width, rect.height);
+    const width = rect.width || windowEl.offsetWidth || 0;
+    const height = rect.height || windowEl.offsetHeight || 0;
+    if (!width || !height)
+        return;
+    const next = clampRankingWindowPosition(rect.left, rect.top, width, height);
     windowEl.style.left = `${next.left}px`;
     windowEl.style.top = `${next.top}px`;
     windowEl.style.right = "auto";
 }
-function openRankingWindow(category) {
+function positionRankingWindow(windowEl, anchorEl = null) {
+    if (!windowEl)
+        return;
+    if (anchorEl && typeof anchorEl.getBoundingClientRect === "function") {
+        const rect = windowEl.getBoundingClientRect();
+        const width = rect.width || windowEl.offsetWidth || 0;
+        const height = rect.height || windowEl.offsetHeight || 0;
+        if (!width || !height) {
+            ensureRankingWindowPosition(windowEl);
+            return;
+        }
+        const anchorRect = anchorEl.getBoundingClientRect();
+        let left = anchorRect.left;
+        let top = anchorRect.bottom + RANKING_WINDOW_OFFSET;
+        if (left + width + RANKING_WINDOW_MARGIN > window.innerWidth) {
+            left = anchorRect.right - width;
+        }
+        if (top + height + RANKING_WINDOW_MARGIN > window.innerHeight) {
+            top = anchorRect.top - height - RANKING_WINDOW_OFFSET;
+        }
+        const next = clampRankingWindowPosition(left, top, width, height);
+        windowEl.style.left = `${next.left}px`;
+        windowEl.style.top = `${next.top}px`;
+        windowEl.style.right = "auto";
+        windowEl.dataset.positioned = "true";
+        return;
+    }
+    ensureRankingWindowPosition(windowEl);
+}
+function openRankingWindow(category, { anchor = null } = {}) {
     const windowEl = $("rankingWindow");
     if (!windowEl)
         return;
-    ensureRankingWindowPosition(windowEl);
     windowEl.dataset.category = category;
     windowEl.classList.remove("hidden");
     windowEl.setAttribute("aria-hidden", "false");
     renderRankingWindow(category);
+    positionRankingWindow(windowEl, anchor);
 }
 function closeRankingWindow() {
     const windowEl = $("rankingWindow");
@@ -560,7 +595,6 @@ const VIEW_DEFAULTS = {
     },
     roster: {
         "harmony-hub": VIEW_PANEL_STATES.open,
-        "communities": VIEW_PANEL_STATES.open,
         "label-settings": VIEW_PANEL_STATES.open
     },
     world: {
@@ -858,11 +892,8 @@ function getSelectedStartPreferences() {
     return readStartPreferences();
 }
 function getCccTrendSlots() {
-    const trendList = Array.isArray(state.trends) && state.trends.length
-        ? state.trends
-        : Array.isArray(state.trendRanking)
-            ? state.trendRanking
-            : [];
+    const { visible } = collectTrendRanking();
+    const trendList = visible.length ? visible : (state.trends || []);
     const limit = Number.isFinite(TREND_DETAIL_COUNT) ? TREND_DETAIL_COUNT : 3;
     return trendList.filter(Boolean).slice(0, limit);
 }
@@ -2499,6 +2530,15 @@ function bindGlobalHandlers() {
             return;
         closeCreatorActsPopovers();
     });
+    document.addEventListener("click", (event) => {
+        const trigger = event.target.closest("[data-ranking-more]");
+        if (!trigger)
+            return;
+        const category = trigger.dataset.rankingMore;
+        if (!category)
+            return;
+        openRankingWindow(category, { anchor: trigger });
+    });
     on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
     on("playBtn", "click", () => { setTimeSpeed("play"); });
     on("fastBtn", "click", () => { setTimeSpeed("fast"); });
@@ -2519,8 +2559,8 @@ function bindGlobalHandlers() {
         updateTimeControlButtons();
         syncTimeControlAria();
     });
-    on("topLabelsMoreBtn", "click", () => openRankingWindow("labels"));
-    on("topTrendsMoreBtn", "click", () => openRankingWindow("trends"));
+    on("topLabelsMoreBtn", "click", (event) => openRankingWindow("labels", { anchor: event.currentTarget }));
+    on("topTrendsMoreBtn", "click", (event) => openRankingWindow("trends", { anchor: event.currentTarget }));
     on("rankingWindowClose", "click", () => closeRankingWindow());
     on("tutorialBtn", "click", () => {
         renderRoleActions();
@@ -3858,6 +3898,46 @@ function bindViewHandlers(route, root) {
         state.ui.promoScheduleTimeframe = value || null;
         saveToActiveSlot();
     });
+    on("awardBidShowSelect", "change", (e) => {
+        if (!state.ui)
+            state.ui = {};
+        state.ui.awardBidShowId = e.target.value || null;
+        state.ui.awardBidSlotId = null;
+        renderAwardsCircuit();
+        saveToActiveSlot();
+    });
+    on("awardBidSlotSelect", "change", (e) => {
+        if (!state.ui)
+            state.ui = {};
+        state.ui.awardBidSlotId = e.target.value || null;
+        renderAwardsCircuit();
+        saveToActiveSlot();
+    });
+    on("awardBidActSelect", "change", (e) => {
+        if (!state.ui)
+            state.ui = {};
+        state.ui.awardBidActId = e.target.value || null;
+        state.ui.awardBidTrackId = null;
+        renderAwardsCircuit();
+        saveToActiveSlot();
+    });
+    on("awardBidTrackSelect", "change", (e) => {
+        if (!state.ui)
+            state.ui = {};
+        state.ui.awardBidTrackId = e.target.value || null;
+        renderAwardsCircuit();
+        saveToActiveSlot();
+    });
+    on("awardBidAmountInput", "input", (e) => {
+        if (!state.ui)
+            state.ui = {};
+        const raw = String(e.target.value || "").trim();
+        const amount = raw ? Math.max(0, Math.round(Number(raw))) : null;
+        state.ui.awardBidAmount = Number.isFinite(amount) ? amount : null;
+        renderAwardsCircuit();
+        saveToActiveSlot();
+    });
+    on("awardBidSubmitBtn", "click", runAwardPerformanceBid);
     on("promoBtn", "click", runPromotion);
     on("promoFocusPickBtn", "click", pickPromoTargetsFromFocus);
     on("autoRolloutToggle", "change", (e) => {
@@ -5302,6 +5382,85 @@ function getCreatorsOverActLimit(memberIds, actCounts) {
         .map((id) => getCreator(id))
         .filter((creator) => creator && (actCounts[creator.id] || 0) >= CREATOR_ACT_LIMIT);
 }
+function normalizeActMemberIds(memberIds) {
+    const ids = Array.isArray(memberIds) ? memberIds.filter(Boolean) : [];
+    return Array.from(new Set(ids)).sort();
+}
+function buildActMemberKey(memberIds) {
+    return normalizeActMemberIds(memberIds).join("|");
+}
+function buildExistingActMemberKeys() {
+    const keys = new Set();
+    state.acts.forEach((act) => {
+        if (!Array.isArray(act.memberIds))
+            return;
+        const key = buildActMemberKey(act.memberIds);
+        if (key)
+            keys.add(key);
+    });
+    return keys;
+}
+function findFirstUniqueMemberSet(pool, size, existingKeys) {
+    const total = pool.length;
+    if (size === 1) {
+        for (let i = 0; i < total; i += 1) {
+            const key = buildActMemberKey([pool[i]]);
+            if (!existingKeys.has(key))
+                return [pool[i]];
+        }
+        return null;
+    }
+    if (size === 2) {
+        for (let i = 0; i < total - 1; i += 1) {
+            for (let j = i + 1; j < total; j += 1) {
+                const members = [pool[i], pool[j]];
+                const key = buildActMemberKey(members);
+                if (!existingKeys.has(key))
+                    return members;
+            }
+        }
+        return null;
+    }
+    if (size === 3) {
+        for (let i = 0; i < total - 2; i += 1) {
+            for (let j = i + 1; j < total - 1; j += 1) {
+                for (let k = j + 1; k < total; k += 1) {
+                    const members = [pool[i], pool[j], pool[k]];
+                    const key = buildActMemberKey(members);
+                    if (!existingKeys.has(key))
+                        return members;
+                }
+            }
+        }
+    }
+    return null;
+}
+function pickUniqueMemberSet(pool, size, existingKeys) {
+    if (pool.length < size)
+        return null;
+    const maxAttempts = Math.min(24, pool.length * 2 + 6);
+    for (let i = 0; i < maxAttempts; i += 1) {
+        const members = pickDistinct(pool, size);
+        if (members.length !== size)
+            continue;
+        const key = buildActMemberKey(members);
+        if (!existingKeys.has(key))
+            return members;
+    }
+    return findFirstUniqueMemberSet(pool, size, existingKeys);
+}
+function pickUniqueQuickActMembers(pool, sizeOrder, existingKeys) {
+    const tried = new Set();
+    for (const size of sizeOrder) {
+        if (tried.has(size))
+            continue;
+        tried.add(size);
+        const members = pickUniqueMemberSet(pool, size, existingKeys);
+        if (members)
+            return members;
+    }
+    return null;
+}
 function createActFromUI() {
     const nameInput = $("actName");
     const inputName = nameInput.value.trim();
@@ -5369,11 +5528,30 @@ function createQuickAct() {
         logEvent(`No creators available to form an act (all creators are in ${CREATOR_ACT_LIMIT} acts).`, "warn");
         return;
     }
-    const canGroup = eligibleCreators.length >= 2;
-    const chooseGroup = canGroup && Math.random() < 0.5;
+    const existingKeys = buildExistingActMemberKeys();
     const pool = eligibleCreators.map((creator) => creator.id);
-    const groupSize = chooseGroup && pool.length >= 3 && Math.random() < 0.5 ? 3 : 2;
-    const memberIds = pickDistinct(pool, chooseGroup ? groupSize : 1);
+    const canGroup = pool.length >= 2;
+    const chooseGroup = canGroup && Math.random() < 0.5;
+    const sizeOrder = [];
+    if (chooseGroup) {
+        const canThree = pool.length >= 3;
+        const preferThree = canThree && Math.random() < 0.5;
+        if (preferThree) {
+            sizeOrder.push(3, 2);
+        }
+        else {
+            sizeOrder.push(2, 3);
+        }
+        sizeOrder.push(1);
+    }
+    else {
+        sizeOrder.push(1, 2, 3);
+    }
+    const memberIds = pickUniqueQuickActMembers(pool, sizeOrder, existingKeys);
+    if (!memberIds) {
+        logEvent("Quick Act skipped: all eligible member lineups already exist. Create an act manually to reuse members.", "warn");
+        return;
+    }
     const actKind = memberIds.length > 1 ? "group" : "solo";
     const type = actKind === "group" ? "Group Act" : "Solo Act";
     const actNameEntry = makeActNameEntry({ actKind, memberIds });
@@ -6033,6 +6211,46 @@ function runPromotion() {
             ? `Project "${project.projectName}"`
             : `Act "${act.name}"`;
     logEvent(`${verb} for ${targetLabel} (${promoLabels}) (+${boostWeeks} weeks).${spendNote}${releaseNote}`);
+    renderAll();
+}
+function runAwardPerformanceBid() {
+    const showId = state.ui.awardBidShowId || $("awardBidShowSelect")?.value || null;
+    const slotId = state.ui.awardBidSlotId || $("awardBidSlotSelect")?.value || null;
+    const actId = state.ui.awardBidActId || $("awardBidActSelect")?.value || null;
+    const trackId = state.ui.awardBidTrackId || $("awardBidTrackSelect")?.value || null;
+    const rawAmount = Number.isFinite(state.ui.awardBidAmount)
+        ? state.ui.awardBidAmount
+        : $("awardBidAmountInput")
+            ? Number($("awardBidAmountInput").value || 0)
+            : 0;
+    const bidAmount = Math.round(Number(rawAmount) || 0);
+    if (!showId || !slotId || !actId || !trackId) {
+        logEvent("Select an award show, slot, act, and track for the performance bid.", "warn");
+        return;
+    }
+    if (!Number.isFinite(bidAmount) || bidAmount <= 0) {
+        logEvent("Enter a bid amount greater than 0.", "warn");
+        return;
+    }
+    const result = placeAwardPerformanceBid({
+        showId,
+        slotId,
+        actId,
+        trackId,
+        bidAmount
+    });
+    if (!result?.ok) {
+        logEvent(result?.reason || "Performance bid failed.", "warn");
+        return;
+    }
+    logUiEvent("action_submit", {
+        action: "award_performance_bid",
+        showId,
+        slotId,
+        actId,
+        trackId,
+        bidAmount
+    });
     renderAll();
 }
 function handleReleaseActRecommendation(e) {

@@ -1,6 +1,12 @@
 const CREATOR_PORTRAIT_MANIFEST = {
   "root": "assets/png/portraits/creator-ids",
   "entries": {
+    "ambition-angering/age-24-27/crowlya-man": [
+      "Default_This_is_an_album_cover_The_theme_of_the_image_is_Ambit_3.jpg"
+    ],
+    "ambition-daring/age-28-31/annglora-man": [
+      "Leonardo_Phoenix_A_determined_and_dynamic_19yearold_male_of_mi_0.jpg"
+    ],
     "ambition-energizing/age-24-27/bytenza-man": [
       "Default_A_headandshoulders_portrait_An_exotic_and_charming_21y_0.jpg"
     ],

@@ -29,6 +29,8 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 - Broadcast program eligibility (quality + charting) blocks high-stakes programs when unmet.
 - Promo booking windows can be reserved in advance (including eyeriSocial posts); scheduled promos appear in the Calendar.
 - Awards circuit panel shows upcoming award shows, nomination windows, and live performance slots; award show events also appear in the Calendar.
+- Awards circuit surfaces performance bid windows with a notification when the 3-month scheduling window opens.
+- Performance bid controls let labels bid for Opener/Spotlight/Finale slots using active-era acts + eligible tracks within each show's quality range.
 - Internal Log surfaces system updates for balance/debug review.
 - Loss Archives and Debug Bundle export stay internal-only and are not shown in Promotions.
 

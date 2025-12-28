@@ -14,3 +14,4 @@ Defines rules for forming Acts in the roster (Harmony Hub).
 - Chooses Solo or Group at random.
 - Group size is 2-3 when enough eligible creators are available.
 - Uses only creators below the act membership limit; if none are eligible, Quick Act warns and stops.
+- Quick Act avoids duplicate member lineups; if only existing lineups remain, it warns and stops.

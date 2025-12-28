@@ -140,7 +140,7 @@
             <div class="muted">Refresh the pool and sign at least one Songwriter, Recorder, and Producer.</div>
           </div>
           <div class="list-item">
-            <div class="item-title">Form an Act (Roster -> Harmony Hub)</div>
+            <div class="item-title">Form an Act (Signed -> Harmony Hub)</div>
             <div class="muted">Assign Creator IDs to Act slots to prep releases and eras.</div>
           </div>
           <div class="list-item">
@@ -528,9 +528,9 @@
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">calendar_month</span>
           <span class="nav-label">Eras</span>
         </a>
-        <a href="#/roster" data-route="roster" class="nav-item" aria-label="Roster" title="Roster">
+        <a href="#/roster" data-route="roster" class="nav-item" aria-label="Signed" title="Signed">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">groups</span>
-          <span class="nav-label">Roster</span>
+          <span class="nav-label">Signed</span>
         </a>
         <a href="#/world" data-route="world" class="nav-item" aria-label="Community" title="Community">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">public</span>
@@ -569,7 +569,7 @@
             <div class="dashboard-actions">
               <a href="#/create" class="ghost mini">New Track</a>
               <a href="#/releases" class="ghost mini">Calendar</a>
-              <a href="#/roster" class="ghost mini">Roster</a>
+              <a href="#/roster" class="ghost mini">Signed</a>
               <a href="#/eras" class="ghost mini">Eras</a>
             </div>
             <div class="subhead">Pipeline</div>
@@ -1222,29 +1222,13 @@
           <div class="actions">
             <button id="createActBtn" type="button">Create Act</button>
           </div>
-          <div class="subhead">Creator Roster</div>
+          <div class="subhead">Signed Creators</div>
             <div id="creatorList" class="list ccc-market-grid"></div>
           <div class="tiny">Drag Creator IDs into slots, or tap after selecting a slot.</div>
         </div>
       </div>
     </section>
     <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="communities">
-        <div class="card-head">
-          <h2>Communities</h2>
-        </div>
-        <div class="card-body">
-          <div class="icon-grid">
-            <button id="communitiesAreas" type="button" class="icon-btn"><span class="icon">AR</span>Areas</button>
-            <button id="communitiesCreators" type="button" class="icon-btn"><span class="icon">CR</span>Creators</button>
-            <button id="communitiesItems" type="button" class="icon-btn"><span class="icon">IT</span>Items &amp; Tools</button>
-            <button id="communitiesCollabs" type="button" class="icon-btn"><span class="icon">CO</span>Collabs</button>
-          </div>
-          <div class="subhead">Creator Community Chamber (CCC)</div>
-          <div class="tiny">Browse and sign Creator IDs in the CCC tab.</div>
-          <div class="tiny">Opens popups for opportunities beyond your owned areas.</div>
-        </div>
-      </div>
       <div class="panel card panel--scroll" data-panel="label-settings">
         <h2>Label Settings</h2>
         <div class="card-body">
@@ -1688,6 +1672,34 @@
         <h2>Awards Circuit</h2>
         <div class="card-body">
           <div class="tiny muted">Upcoming shows, nominations, and live performance slots.</div>
+          <div id="awardsCircuitNotice" class="callout hidden"></div>
+          <div class="subhead">Performance Bids</div>
+          <div class="field">
+            <label for="awardBidShowSelect">Award Show</label>
+            <select id="awardBidShowSelect"></select>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="awardBidSlotSelect">Slot</label>
+              <select id="awardBidSlotSelect"></select>
+            </div>
+            <div class="field">
+              <label for="awardBidAmountInput">Bid Amount</label>
+              <input id="awardBidAmountInput" type="number" min="0" step="100">
+            </div>
+          </div>
+          <div class="field">
+            <label for="awardBidActSelect">Act</label>
+            <select id="awardBidActSelect"></select>
+          </div>
+          <div class="field">
+            <label for="awardBidTrackSelect">Track</label>
+            <select id="awardBidTrackSelect"></select>
+          </div>
+          <div id="awardBidHint" class="tiny muted"></div>
+          <div class="actions">
+            <button id="awardBidSubmitBtn" type="button" class="ghost mini">Place Performance Bid</button>
+          </div>
           <div id="awardsCircuitList" class="list"></div>
         </div>
       </div>

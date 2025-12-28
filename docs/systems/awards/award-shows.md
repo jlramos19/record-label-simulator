@@ -97,8 +97,21 @@
 
 ## Live performance slots
 - Each award show reserves 3 live performance slots (Opener, Spotlight, Finale).
-- Slots are filled from nominees (Opener = Breakthrough/rookie; Finale = major-category nominee or winner).
+- Performance bidding opens 3 months before show night and closes at nomination lock.
+- Labels bid for slots using an active-era Act and a scheduled/released track.
+- Tracks must fall within the show's performance quality range to be eligible.
+- Slots are filled from bids first, then from nominees (Opener = Breakthrough/rookie; Finale = major-category nominee or winner).
 - Award show performances count as Live Performance promos and appear in promotional charts.
+
+### Performance quality ranges (per show)
+| Award show | Performance quality range |
+| --- | --- |
+| Praised Content Awards | 80-100 |
+| Studio Craft Awards | 78-100 |
+| Pop Content Awards | 65-100 |
+| Fanwave Live Awards | 70-100 |
+| Impact Circuit Awards | 75-100 |
+| Horizon Impact Awards | 78-100 |
 
 ## Task + CEO Request linkage
 - Award wins and nominations are recorded in the awards ledger and add progress to Tasks.
@@ -113,6 +126,7 @@
 ## UI + observability
 - Award show events and performance slots appear in Calendar and Promotions.
 - Nomination lock, reveal time, and eligibility window are shown per show.
+- Performance bid windows surface in Promotions with open-window notifications and bid/eligibility details.
 - Ineligibility reasons (missing window, low quality, no executed promo) are logged and surfaced in tooltips.
 
 ## Related
