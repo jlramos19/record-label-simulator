@@ -8,8 +8,8 @@ This doc defines the Touring view (MVP v0) for the current touring feature.
 - Touring charts still rank attendance draw, now sourced from booked tour activity.
 - Touring impact on wallet/fans is gated by the touring balance flag.
 - Tour summaries group dates into regional legs with counts.
-- Tour dates spend pooled act stamina per show, so high-stamina members cover low-stamina ones.
-- Budget + Staffing now surfaces tour readiness (stamina + skill + upcoming dates), plus crew stamina/overuse and max-streak estimates.
+- Tour dates spend pooled act stamina per show, with staffing boosts scaling stamina efficiency from crew skill, stamina, and catharsis.
+- Budget + Staffing now surfaces tour readiness (stamina + skill + upcoming dates), staffing stamina boosts, plus crew stamina/overuse and max-streak estimates.
 
 ## Development route
 - Start with real-world touring workflow steps, even when mechanics are rough.

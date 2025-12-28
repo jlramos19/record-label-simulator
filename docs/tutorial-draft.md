@@ -23,6 +23,7 @@ Hey, congrats on your new record label. In this game, a "label" is a tiny factor
 - Create: the production pipeline (Sheet -> Demo -> Master).
 - Calendar/Release Desk: where releases and promos get scheduled.
 - Promotions/eyeriSocial: the marketing and social feed.
+- Touring: plan live routes and book venues for an Act.
 - Wallet: your cashflow. The "do not go broke" meter.
 
 ## Accessibility-first tips (fast wins)
@@ -49,6 +50,7 @@ Hey, congrats on your new record label. In this game, a "label" is a tiny factor
    - Sheet -> Demo -> Master.
    - Pick Theme and Mood, then assign the right roles.
    - You need open studio slots for each stage.
+   - Extra slots auto-lease when you exceed owned studios; lease fees land in weekly upkeep.
 
 5) Schedule a release (Releases -> Calendar/Release Desk)
    - Release ASAP goes to the next Friday 00:00.
@@ -58,7 +60,10 @@ Hey, congrats on your new record label. In this game, a "label" is a tiny factor
    - Pick an Act, then optionally a Project or Track.
    - Set promo budgets (total spend is the sum of selected promo cards).
 
-7) Run time and check results
+7) Plan a tour (Touring tab)
+   - Choose an Act + Era, pick an anchor release, set a window, then book venues.
+
+8) Run time and check results
    - Weekly cadence (in-game UTC):
      - Friday 00:00: releases process
      - Friday 12:00: trends refresh
@@ -133,6 +138,7 @@ You build tracks in three stages:
   - Modifiers are consumable and apply here.
 - Demo: assign a Recorder; Mood must be set by now.
 - Master: assign a Producer and set Alignment.
+If you exceed owned studio slots, the game auto-leases extra capacity and adds lease fees to weekly upkeep.
 
 Common blockers:
 - No studio slots open for that stage.
@@ -155,7 +161,12 @@ Common blockers:
 - Some promos need facilities (broadcast or filming studios).
 - Scheduled promos appear in the Calendar.
 
-### 8) Run time (Time controls)
+### 8) Plan tours (Touring tab)
+- Select an Act + Era, pick an anchor Project or Track, set a date window.
+- Book venues from the Venue Finder; conflicts and ineligible bookings show warnings.
+- Tour dates land on the Calendar and feed touring charts.
+
+### 9) Run time (Time controls)
 - Pause, Play, or Fast control the sim speed.
 - Skip Time lets you jump days or months when you are waiting on results.
 - Weekly cadence (in-game UTC):
@@ -163,16 +174,16 @@ Common blockers:
   - Friday 12:00: trends refresh
   - Saturday 00:00: charts update
 
-### 9) Read results (Charts, Dashboard, World)
+### 10) Read results (Charts, Dashboard, World)
 - Charts show how your tracks and projects are performing.
 - Dashboard tracks CEO Requests (achievements) and momentum.
 - World view shows market data, economy summaries, population, and rivals.
 
-### 10) Keep the Wallet healthy
+### 11) Keep the Wallet healthy
 - Use Wallet to track weekly revenue and upkeep.
 - Negative cash means fewer options and blocked actions.
 
-### 11) Inventory rules (Modifiers vs Tools vs Skills)
+### 12) Inventory rules (Modifiers vs Tools vs Skills)
 - Modifiers are consumable production boosts applied on sheet creation.
 - Tools are permanent preference tweaks (Theme, Mood, Alignment, Genre).
   - A preference tool only applies if it changes a non-matching slot.
@@ -181,7 +192,7 @@ Common blockers:
 - Skills are creator-intrinsic and improve with completed work.
 - If an item needs both a preference tweak and a production boost, keep them as separate Tool + Modifier entries.
 
-### 12) Training wheels (optional, but nice)
+### 13) Training wheels (optional, but nice)
 - Quick Recipes in the Tutorial modal gives ready-made loops.
 - Auto Assign and Recommend All fill slots quickly.
 - Auto Create and Auto Promo reduce grind once you trust them.

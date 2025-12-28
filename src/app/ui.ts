@@ -221,7 +221,7 @@ setUiHooks({
   refreshPromoTypes: () => updatePromoTypeHint(document)
 });
 
-const ROUTES = ["dashboard", "charts", "awards", "create", "release", "releases", "eras", "roster", "world", "logs", "tour"];
+const ROUTES = ["dashboard", "charts", "awards", "create", "release", "releases", "eras", "roster", "world", "logs", "tour", "patch-notes"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
   promotion: "logs",

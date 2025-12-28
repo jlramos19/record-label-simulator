@@ -92,6 +92,7 @@ import {
   STAMINA_REGEN_PER_HOUR,
   ACTIVITY_STAMINA_PROMO,
   ACTIVITY_STAMINA_TOUR_DATE,
+  TOUR_STAFFING_STAMINA_BOOST_MAX,
   ACTIVITY_SKILL_GAIN_PER_STAMINA,
   CREATOR_CATHARSIS_INACTIVITY_GRACE_DAYS,
   CREATOR_CATHARSIS_INACTIVITY_DAILY_PCT,
@@ -10594,7 +10595,8 @@ function buildTourWarnings({ actId, venue, scheduledAt, projection, draftId }) {
   const act = actId ? getAct(actId) : null;
   const crew = act?.memberIds?.map((id) => getCreator(id)).filter(Boolean) || [];
   if (crew.length) {
-    const perDateCost = estimateTourDateStaminaShare(crew.length);
+    const staffing = resolveTourStaffingBoost(crew);
+    const perDateCost = estimateTourDateStaminaShare(crew.length, { boostPct: staffing.boostPct });
     const overuse = assessTourCrewOveruseRisk(crew, perDateCost);
     if (overuse.riskLevel > 0) {
       const atRisk = overuse.entries.filter((entry) => entry.overuseRisk > 0);
@@ -10611,7 +10613,7 @@ function buildTourWarnings({ actId, venue, scheduledAt, projection, draftId }) {
     const streak = countTourConsecutiveRun(dayKeys, dayKey);
     const estimates = crew.map((creator) => ({
       creator,
-      maxDates: estimateCreatorMaxConsecutiveTourDates(creator, crew.length)
+      maxDates: estimateCreatorMaxConsecutiveTourDates(creator, crew.length, { boostPct: staffing.boostPct })
     }));
     const minEstimate = estimates.reduce((min, entry) => Math.min(min, entry.maxDates), estimates[0]?.maxDates ?? 0);
     const atRisk = estimates.filter((entry) => streak > entry.maxDates);
@@ -11047,7 +11049,11 @@ function resolveTourBookings(now = state.time.epochMs) {
     pending.count += 1;
     const act = booking.actId ? getAct(booking.actId) : null;
     if (act?.memberIds?.length) {
-      applyActStaminaSpend(act.memberIds, ACTIVITY_STAMINA_TOUR_DATE, {
+      const crew = act.memberIds.map((id) => getCreator(id)).filter(Boolean);
+      const crewCount = crew.length || act.memberIds.length || 1;
+      const staffing = resolveTourStaffingBoost(crew);
+      const staminaProfile = resolveTourDateStaminaCost(crewCount, staffing.boostPct);
+      applyActStaminaSpend(act.memberIds, staminaProfile.totalCost, {
         context: {
           stageName: "Tour Date",
           trackId: booking.anchorTrackId || null,
@@ -11197,16 +11203,59 @@ function getTourVenueAvailability(venueId, epochMs) {
   return { capacity, used, available: Math.max(0, capacity - used), dayKey };
 }
 
-function estimateTourDateStaminaShare(crewCount) {
+function resolveTourStaffingBoost(crew) {
+  const list = Array.isArray(crew) ? crew.filter(Boolean) : [];
+  if (!list.length) {
+    return {
+      boostPct: 0,
+      quality: 0,
+      skillPct: 0,
+      staminaPct: 0,
+      catharsisPct: 0,
+      avgSkill: 0,
+      avgStamina: 0,
+      avgCatharsis: 0
+    };
+  }
+  const crewCount = list.length;
+  const avgSkill = list.reduce((sum, creator) => sum + clampSkill(creator?.skill ?? SKILL_MIN), 0) / crewCount;
+  const avgStamina = list.reduce((sum, creator) => sum + clampStamina(creator?.stamina ?? 0), 0) / crewCount;
+  const avgCatharsis = list.reduce((sum, creator) => sum + computeCreatorCatharsisScore(creator), 0) / crewCount;
+  const skillPct = SKILL_MAX ? clamp(avgSkill / SKILL_MAX, 0, 1) : 0;
+  const staminaPct = STAMINA_MAX ? clamp(avgStamina / STAMINA_MAX, 0, 1) : 0;
+  const catharsisPct = SKILL_MAX ? clamp(avgCatharsis / SKILL_MAX, 0, 1) : 0;
+  const quality = clamp((skillPct + staminaPct + catharsisPct) / 3, 0, 1);
+  const boostPct = clamp(quality * TOUR_STAFFING_STAMINA_BOOST_MAX, 0, TOUR_STAFFING_STAMINA_BOOST_MAX);
+  return {
+    boostPct,
+    quality,
+    skillPct,
+    staminaPct,
+    catharsisPct,
+    avgSkill,
+    avgStamina,
+    avgCatharsis
+  };
+}
+
+function resolveTourDateStaminaCost(crewCount, boostPct = 0) {
   const count = Math.max(1, Math.floor(Number(crewCount || 0)));
-  const share = ACTIVITY_STAMINA_TOUR_DATE / count;
+  const rawBoost = Number.isFinite(boostPct) ? boostPct : 0;
+  const adjustedBoost = clamp(rawBoost, 0, TOUR_STAFFING_STAMINA_BOOST_MAX);
+  const totalCost = Math.max(1, Math.round(ACTIVITY_STAMINA_TOUR_DATE * (1 - adjustedBoost)));
+  return { crewCount: count, totalCost, perMember: totalCost / count, boostPct: adjustedBoost };
+}
+
+function estimateTourDateStaminaShare(crewCount, { boostPct = 0 } = {}) {
+  const profile = resolveTourDateStaminaCost(crewCount, boostPct);
+  const share = profile.perMember;
   return Number.isFinite(share) && share > 0 ? share : ACTIVITY_STAMINA_TOUR_DATE;
 }
 
-function estimateCreatorMaxConsecutiveTourDates(creator, crewCount) {
+function estimateCreatorMaxConsecutiveTourDates(creator, crewCount, { boostPct = 0 } = {}) {
   if (!creator) return 0;
   const stamina = clampStamina(creator.stamina ?? 0);
-  const perDate = estimateTourDateStaminaShare(crewCount);
+  const perDate = estimateTourDateStaminaShare(crewCount, { boostPct });
   if (!Number.isFinite(perDate) || perDate <= 0) return 0;
   return Math.max(0, Math.floor(stamina / perDate));
 }
@@ -21553,6 +21602,8 @@ export {
   computeTourProjection,
   estimateCreatorMaxConsecutiveTourDates,
   estimateTourDateStaminaShare,
+  resolveTourDateStaminaCost,
+  resolveTourStaffingBoost,
   countryColor,
   countryDemonym,
   resolveLabelAcronym,

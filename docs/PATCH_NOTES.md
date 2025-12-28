@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0900Z)
+- Added a Patch Notes portal view with a designed landing page that links to docs/PATCH_NOTES.md for the full release history. [PN-20251228-AC70]
+- Tutorial Roles now marks rent/plan as live, and the tutorial adds leasing + touring guidance. [PN-20251228-AC71]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0834Z)
 - Rival rosters now surface KPI summaries, consumption share breakdowns, era completion drawers, and player-vs-rival deltas with data-staleness warnings. [PN-20251228-AC69]
 
@@ -837,3 +841,5 @@
 - PN-20251228-AC67 (2025-12-28 08:26Z): Release Desk project summaries now include revenue, cost inputs, and net profit per project.
 - PN-20251228-AC68 (2025-12-28 08:29Z): Rivalry KPI snapshots now compute label consumption share, profitability, and near-term release/tour net projections for UI/logs.
 - PN-20251228-AC69 (2025-12-28 08:34Z): Rival rosters now surface KPI summaries, consumption share breakdowns, era completion drawers, and player-vs-rival deltas with data-staleness warnings.
+- PN-20251228-AC70 (2025-12-28 09:00Z): Added a Patch Notes portal view that links to docs/PATCH_NOTES.md for the full release history.
+- PN-20251228-AC71 (2025-12-28 09:00Z): Tutorial Roles now marks rent/plan as live, and the tutorial adds leasing + touring guidance.

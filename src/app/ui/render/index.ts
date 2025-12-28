@@ -46,7 +46,8 @@ import {
   computeTourDraftSummary,
   computeTourProjection,
   estimateCreatorMaxConsecutiveTourDates,
-  estimateTourDateStaminaShare,
+  resolveTourDateStaminaCost,
+  resolveTourStaffingBoost,
   countryColor,
   countryDemonym,
   creatorInitials,
@@ -6779,7 +6780,9 @@ function renderTouringDesk() {
         if (crewStaminaList) crewStaminaList.innerHTML = message;
       } else {
         const crewCount = crew.length;
-        const perDateCost = estimateTourDateStaminaShare(crewCount);
+        const staffing = resolveTourStaffingBoost(crew);
+        const staminaProfile = resolveTourDateStaminaCost(crewCount, staffing.boostPct);
+        const perDateCost = staminaProfile.perMember;
         const projectedCost = Math.max(1, Math.ceil(perDateCost || 0));
         const now = state.time?.epochMs || Date.now();
         const upcomingBookings = listTourBookings({ tourId: draft.id })
@@ -6791,13 +6794,17 @@ function renderTouringDesk() {
         const avgStamina = crew.reduce((sum, creator) => sum + Number(creator.stamina || 0), 0) / crewCount;
         const avgStaminaPct = STAMINA_MAX ? clamp(avgStamina / STAMINA_MAX, 0, 1) : 0;
         const avgSkillPct = SKILL_MAX ? clamp(avgSkill / SKILL_MAX, 0, 1) : 0;
-        const maxDates = crew.map((creator) => estimateCreatorMaxConsecutiveTourDates(creator, crewCount));
+        const maxDates = crew.map((creator) => (
+          estimateCreatorMaxConsecutiveTourDates(creator, crewCount, { boostPct: staffing.boostPct })
+        ));
         const minMaxDates = maxDates.length ? Math.min(...maxDates) : 0;
         const avgMaxDates = maxDates.length
           ? maxDates.reduce((sum, value) => sum + value, 0) / maxDates.length
           : 0;
         const projectedSpend = Math.max(0, Math.round(perDateCost * upcomingDates));
         const projectedFatigue = avgStamina > 0 ? Math.round((projectedSpend / avgStamina) * 100) : 0;
+        const staffingBoostPct = Math.round(staffing.boostPct * 100);
+        const staffingLine = `Staffing boost +${staffingBoostPct}% | Date cost ${formatCount(Math.round(perDateCost))} stamina per creator`;
         const overuseEntries = crew.map((creator) => {
           const spent = getCreatorStaminaSpentToday(creator);
           const projected = spent + projectedCost;
@@ -6850,6 +6857,7 @@ function renderTouringDesk() {
                   <div class="muted">Stamina avg ${staminaLabel} | Skill avg ${skillLabel} | ${upcomingLabel}</div>
                   <div class="muted">${streakLabel}</div>
                   <div class="muted">${fatigueLabel} | ${overuseLabel}</div>
+                  <div class="muted">${staffingLine}</div>
                 </div>
                 <div class="${readiness.className}">${readiness.label}</div>
               </div>
@@ -6867,7 +6875,7 @@ function renderTouringDesk() {
             const stamina = Number(creator.stamina || 0);
             const spent = getCreatorStaminaSpentToday(creator);
             const strikes = creator.overuseStrikes || 0;
-            const maxStreak = estimateCreatorMaxConsecutiveTourDates(creator, crewCount);
+            const maxStreak = estimateCreatorMaxConsecutiveTourDates(creator, crewCount, { boostPct: staffing.boostPct });
             const entry = overuseEntries.find((item) => item.creator?.id === creator.id);
             const risk = entry?.risk || 0;
             const riskBadge = risk === 2

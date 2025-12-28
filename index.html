@@ -174,6 +174,10 @@
             <div class="muted">Pick a Project or scheduled/released Track ID, set budget, and fund promo pushes.</div>
           </div>
           <div class="list-item">
+            <div class="item-title">Plan tours (Touring)</div>
+            <div class="muted">Select an Act + Era, pick an anchor release, set a window, then book venues from the Venue Finder.</div>
+          </div>
+          <div class="list-item">
             <div class="item-title">Weekly cadence (168 in-game hours)</div>
             <div class="muted">Release processing Friday 00:00, trends Friday 12:00, charts Saturday 00:00. Use Pause/Play/Fast and Skip Time to move weeks.</div>
           </div>
@@ -193,6 +197,10 @@
           <div class="list-item">
             <div class="item-title">Studios and stamina are bottlenecks</div>
             <div class="muted">Active Studios cap parallel work; bigger teams are faster but drain stamina.</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Rent studio capacity when you outgrow slots</div>
+            <div class="muted">Exceed owned studios to auto-lease market slots; lease fees add to weekly upkeep.</div>
           </div>
           <div class="list-item">
             <div class="item-title">Eras focus your cadence</div>
@@ -604,6 +612,10 @@
         <a href="#/tour" data-route="tour" class="nav-item" aria-label="Tour" title="Tour">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">tour</span>
           <span class="nav-label">Tour</span>
+        </a>
+        <a href="#/patch-notes" data-route="patch-notes" class="nav-item" aria-label="Patch Notes" title="Patch Notes">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">menu_book</span>
+          <span class="nav-label">Patch Notes</span>
         </a>
       </nav>
     </div>
@@ -1988,6 +2000,79 @@
         </div>
       </div>
     </aside>
+  </div>
+</template>
+
+<template id="view-patch-notes">
+  <div class="view view--patch-notes view--single">
+    <section class="view-main">
+      <div class="patch-notes-shell">
+        <div class="patch-notes-hero">
+          <div class="patch-notes-hero-content">
+            <div class="patch-notes-kicker">Patch Notes Vault</div>
+            <h1 class="patch-notes-title">Release Ledger</h1>
+            <p class="patch-notes-lede">
+              Every balance update, UI upgrade, and system tune-up lives in the docs archive. Step into the ledger to read the full history.
+            </p>
+            <div class="patch-notes-actions">
+              <a class="patch-notes-cta" href="docs/PATCH_NOTES.md">Open Full Patch Notes</a>
+              <a class="ghost mini patch-notes-secondary" href="docs/">Browse docs/</a>
+            </div>
+            <div class="patch-notes-meta">
+              <div class="patch-notes-meta-item">
+                <div class="patch-notes-meta-label">Destination</div>
+                <div class="patch-notes-meta-value">docs/PATCH_NOTES.md</div>
+              </div>
+              <div class="patch-notes-meta-item">
+                <div class="patch-notes-meta-label">Includes</div>
+                <div class="patch-notes-meta-value">Patch IDs, change codes, and full release notes.</div>
+              </div>
+            </div>
+            <div class="callout patch-notes-alert">
+              If the archive does not open, confirm the local server is running or open docs/PATCH_NOTES.md directly.
+            </div>
+          </div>
+          <div class="patch-notes-hero-art" aria-hidden="true">
+            <div class="patch-notes-hero-ring"></div>
+            <div class="patch-notes-hero-ring patch-notes-hero-ring--small"></div>
+            <div class="patch-notes-hero-grid"></div>
+            <div class="patch-notes-hero-stamp">FULL LOG</div>
+          </div>
+        </div>
+        <div class="patch-notes-grid">
+          <div class="patch-notes-card" style="--reveal-delay: 0.08s;">
+            <div class="patch-notes-card-title">Inside the vault</div>
+            <div class="patch-notes-list">
+              <div class="patch-notes-list-item"><span class="patch-notes-dot"></span><span>Chronological release notes with every gameplay and UI shift.</span></div>
+              <div class="patch-notes-list-item"><span class="patch-notes-dot"></span><span>Patch note codes mapped to their change summaries.</span></div>
+              <div class="patch-notes-list-item"><span class="patch-notes-dot"></span><span>Release IDs stamped for quick scan and recall.</span></div>
+            </div>
+          </div>
+          <div class="patch-notes-card" style="--reveal-delay: 0.16s;">
+            <div class="patch-notes-card-title">Reading guide</div>
+            <div class="patch-notes-steps">
+              <div class="patch-notes-step">
+                <div class="patch-notes-step-num">01</div>
+                <div class="patch-notes-step-body">Start at the top to see the newest patch ID.</div>
+              </div>
+              <div class="patch-notes-step">
+                <div class="patch-notes-step-num">02</div>
+                <div class="patch-notes-step-body">Use the codes to trace feature changes across releases.</div>
+              </div>
+              <div class="patch-notes-step">
+                <div class="patch-notes-step-num">03</div>
+                <div class="patch-notes-step-body">Return here for quick jumps between play sessions.</div>
+              </div>
+            </div>
+          </div>
+          <div class="patch-notes-card patch-notes-card--alert" style="--reveal-delay: 0.24s;">
+            <div class="patch-notes-card-title">Signal check</div>
+            <div class="patch-notes-card-body">If docs are blocked, run the local server and refresh your browser.</div>
+            <div class="patch-notes-card-body">Keep a second tab open to cross-reference notes while you play.</div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 

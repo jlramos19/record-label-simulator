@@ -97,6 +97,7 @@ profit = revenue - costs
 - `ticket_price` bands and `merch_attach_rate` to tune cashflow.
 - `cooldown_weeks` and `max_dates_per_week` to control pacing.
 - Warning thresholds: under-booking at <50% projected sell-through, over-booking at >95%.
+- Staffing stamina boost cap (max stamina efficiency from crew quality).
 
 ## Dependencies
 - Tours require an active Era and at least one released Project or Track.

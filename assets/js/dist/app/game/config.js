@@ -24,6 +24,7 @@ export const STAMINA_OVERUSE_STRIKES = 1;
 export const STAMINA_REGEN_PER_HOUR = 50;
 export const ACTIVITY_STAMINA_PROMO = 20;
 export const ACTIVITY_STAMINA_TOUR_DATE = 40;
+export const TOUR_STAFFING_STAMINA_BOOST_MAX = 0.35;
 export const ACTIVITY_SKILL_GAIN_PER_STAMINA = 0.0015;
 export const CREATOR_CATHARSIS_INACTIVITY_GRACE_DAYS = 183;
 export const CREATOR_CATHARSIS_INACTIVITY_DAILY_PCT = 0.005;
@@ -239,9 +240,9 @@ export const ROLE_ACTIONS = [
                     { verb: "place", detail: "Creators in track and act slots.", status: "live" },
                     { verb: "release", detail: "Schedule ready tracks in Release Desk.", status: "live" },
                     { verb: "terminate", detail: "A contract with a Creator.", status: "placeholder" },
-                    { verb: "rent", detail: "Lease studios and structures for production.", status: "placeholder" },
+                    { verb: "rent", detail: "Lease studios and structures for production.", status: "live" },
                     { verb: "conduct", detail: "Launch and manage Eras with Acts.", status: "live" },
-                    { verb: "plan", detail: "Tours and live circuits.", status: "placeholder" }
+                    { verb: "plan", detail: "Tours and live circuits.", status: "live" }
                 ]
             }
         ]

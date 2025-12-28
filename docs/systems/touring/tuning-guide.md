@@ -96,7 +96,7 @@ World and gameplay effects to tune:
 ## Notes for v0
 - Booking projections always render; balance effects only apply when the flag is enabled.
 - Attendance-derived touring charts are computed from booked tour dates.
-- Tour dates spend pooled act stamina per show (`ACTIVITY_STAMINA_TOUR_DATE`), so high-stamina members cover low-stamina ones.
+- Tour dates spend pooled act stamina per show (`ACTIVITY_STAMINA_TOUR_DATE`), adjusted by a staffing stamina boost driven by crew skill, stamina, and catharsis (higher quality = lower stamina spend).
 - Tour completion posts to eyeriSocial and logs per-leg recap entries in the event log.
 - Auto-generated routes prefer staying in-region and avoid travel buffer conflicts when switching regions.
 - Tour length caps block extra bookings at the tier max; cooldown under 4 weeks surfaces warnings.
