@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0331Z)
+- Creator portrait optimization now supports a watch mode (`npm run watch:portraits`) to auto-process new or changed images. [PN-20251228-AC47]
+- Act/creator/track/rival lookups now use cached indexes to cut repeated scans across UI and gameplay views. [PN-20251228-AC48]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0319Z)
 - Signed creators now take a daily catharsis inactivity debuff after 6 months idle; the debuff only affects catharsis and recovers linearly over 14 days after use. [PN-20251228-AC44]
 - Promo runs and tour dates now award small uncapped skill progress to signed creators (player + rival). [PN-20251228-AC45]
@@ -767,3 +771,5 @@
 - PN-20251228-AC44 (2025-12-28 03:19Z): Signed creators now take a daily catharsis inactivity debuff after 6 months idle; the debuff only affects catharsis and recovers linearly over 14 days after use.
 - PN-20251228-AC45 (2025-12-28 03:19Z): Promo runs and tour dates now award small uncapped skill progress to signed creators (player + rival).
 - PN-20251228-AC46 (2025-12-28 03:19Z): Community rival label pills now open a Rival Rosters panel with their creators and acts.
+- PN-20251228-AC47 (2025-12-28 03:31Z): Creator portrait optimization now supports a watch mode (npm run watch:portraits) to auto-process new or changed images.
+- PN-20251228-AC48 (2025-12-28 03:33Z): Act/creator/track/rival lookups now use cached indexes to cut repeated scans across UI and gameplay views.

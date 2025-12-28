@@ -5239,8 +5239,51 @@ function makeAct({ name, nameKey = null, type, alignment, memberIds }) {
   };
 }
 
+// Keep lightweight indexes for fast lookups across UI and gameplay surfaces.
+const STATE_INDEXES = {
+  acts: { source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
+  creators: { source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
+  tracks: { source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
+  rivals: { source: null, length: 0, map: new Map(), key: (entry) => entry?.name || null }
+};
+
+function rebuildStateIndex(index, list) {
+  const safeList = Array.isArray(list) ? list : [];
+  const map = new Map();
+  safeList.forEach((entry) => {
+    const key = index.key(entry);
+    if (key) map.set(key, entry);
+  });
+  index.map = map;
+  index.source = list;
+  index.length = safeList.length;
+  return map;
+}
+
+function getStateIndex(indexKey, list) {
+  const index = STATE_INDEXES[indexKey];
+  if (!index) return null;
+  const safeList = Array.isArray(list) ? list : [];
+  if (index.source !== list || index.length !== safeList.length) {
+    return rebuildStateIndex(index, list);
+  }
+  return index.map;
+}
+
+function getStateEntry(indexKey, list, key) {
+  if (!key) return undefined;
+  const index = STATE_INDEXES[indexKey];
+  if (!index) return undefined;
+  const map = getStateIndex(indexKey, list);
+  if (map && map.has(key)) return map.get(key);
+  const safeList = Array.isArray(list) ? list : [];
+  const found = safeList.find((entry) => index.key(entry) === key);
+  if (found && map) map.set(key, found);
+  return found;
+}
+
 function getAct(id) {
-  return state.acts.find((act) => act.id === id);
+  return getStateEntry("acts", state.acts, id);
 }
 
 function seedActs() {
@@ -5851,11 +5894,11 @@ function qualityGrade(score) {
 }
 
 function getCreator(id) {
-  return state.creators.find((c) => c.id === id);
+  return getStateEntry("creators", state.creators, id);
 }
 
 function getTrack(id) {
-  return state.tracks.find((t) => t.id === id);
+  return getStateEntry("tracks", state.tracks, id);
 }
 
 function assignTrackAct(trackId, actId) {
@@ -6680,7 +6723,7 @@ function addRolloutStrategyEvent(strategyId, weekNumber, actionType, contentId) 
 }
 
 function getRivalByName(name) {
-  return state.rivals.find((rival) => rival.name === name);
+  return getStateEntry("rivals", state.rivals, name);
 }
 
 function creatorHasActiveAct(creatorId) {

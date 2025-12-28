@@ -2,6 +2,7 @@
   "scripts": {
     "build": "node scripts/build-creator-portrait-manifest.mjs && tsc -p tsconfig.json",
     "optimize:portraits": "node scripts/optimize-creator-portraits.mjs",
+    "watch:portraits": "node scripts/optimize-creator-portraits.mjs --watch",
     "report:lines": "node scripts/report-line-counts.mjs",
     "watch": "tsc -p tsconfig.json --watch",
     "start": "powershell -Command \"python -m http.server 5173\"",
@@ -12,6 +13,7 @@
     "puppeteer": "^24.34.0"
   },
   "devDependencies": {
+    "chokidar": "^5.0.0",
     "eslint": "^8.57.0",
     "sharp": "^0.33.5",
     "typescript": "^5.9.3"

@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-27 23:19:45 -04:00
+Last updated: 2025-12-27 23:34:09 -04:00
 
 ## Quick start
 
@@ -57,6 +57,7 @@ npm run dev
 - `npm run start` - serve via PowerShell + Python (`python -m http.server 5173`)
 - `npm run dev:logs` - run watch + server + Edge (Puppeteer) with NDJSON logs in `usage-logs/`, including `[usage]` session events and errors
 - `npm run optimize:portraits` - generate resized creator portraits into `assets/png/portraits/creator-ids-optimized` (build will prefer optimized assets when present)
+- `npm run watch:portraits` - watch creator portrait folders and auto-optimize on add/change/remove
 - `npm run lint` - lint JS/MJS/CJS files with ESLint (TypeScript checks stay in `tsc`)
 
 ## Runtime entrypoints

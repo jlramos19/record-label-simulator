@@ -9,6 +9,7 @@
 ## Run/Debug (Edge)
 - Terminal A: `npm run start`
 - Terminal B: `npm run watch`
+- Optional Terminal C: `npm run watch:portraits` to auto-optimize new creator portrait images.
 - Launch the `RLS: Edge` Run/Debug config to open `http://localhost:5173` (keep both terminals running for live TS updates).
 - The React islands dev server uses `http://localhost:5174` to avoid conflicts.
 
