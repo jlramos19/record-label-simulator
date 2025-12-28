@@ -1,5 +1,11 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0709Z)
+- Harmony Hub acts now wrap inside a capped grid so the Quick Act button stays put as the list grows. [PN-20251228-AC59]
+
+## 2025-12-28 (RLS-PATCH-20251228-0601Z)
+- Create view creator slots now fall back to legacy rendering when the React island is not mounted (e.g., after route changes). [PN-20251228-AC58]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0506Z)
 - Road to the Top tasks now refresh once per day at 12AM UTC; weekly and award-triggered refreshes were removed. [PN-20251228-AC52]
 - UI typography now uses Ubuntu for body copy with Ubuntu Mono reserved for headings and headers. [PN-20251228-AC53]
@@ -797,3 +803,5 @@
 - PN-20251228-AC55 (2025-12-28 05:06Z): Header actions now stack into a 2x3 grid and include an Alerts button that consolidates Create/Release notifications (nav badges removed).
 - PN-20251228-AC56 (2025-12-28 05:06Z): Signed Creator IDs now wrap to fit available width instead of forcing three columns.
 - PN-20251228-AC57 (2025-12-28 05:06Z): Calendar split handles now capture pointer drags reliably so the Calendar vs Structures & Slots split can resize.
+- PN-20251228-AC58 (2025-12-28 06:01Z): Create view creator slots now fall back to legacy rendering when the React island is not mounted (e.g., after route changes).
+- PN-20251228-AC59 (2025-12-28 07:09Z): Harmony Hub acts now wrap inside a capped grid so the Quick Act button stays put as the list grows.

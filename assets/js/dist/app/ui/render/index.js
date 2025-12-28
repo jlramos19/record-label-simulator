@@ -559,8 +559,22 @@ function renderTrackGenrePills(track, options = {}) {
     const alignment = options.alignment || track.alignment || state.label?.alignment || "";
     return renderGenrePills(theme, mood, { ...options, alignment });
 }
+let trackSlotsReactFallbackWarned = false;
+function shouldRenderLegacyTrackSlots() {
+    if (!UI_REACT_ISLANDS_ENABLED)
+        return true;
+    const root = document.getElementById("rls-react-trackslots-root");
+    if (!root)
+        return false;
+    const mounted = root.childElementCount > 0;
+    if (!mounted && !trackSlotsReactFallbackWarned) {
+        logEvent("React track slots not mounted; using legacy slots.", "warn");
+        trackSlotsReactFallbackWarned = true;
+    }
+    return !mounted;
+}
 function ensureTrackSlotGrid() {
-    if (UI_REACT_ISLANDS_ENABLED)
+    if (!shouldRenderLegacyTrackSlots())
         return;
     const grid = $("trackSlotGrid");
     if (!grid || grid.dataset.built === "true")
@@ -636,7 +650,7 @@ function ensureTrackSlotGrid() {
     });
 }
 function applyTrackSlotVisibility() {
-    if (UI_REACT_ISLANDS_ENABLED)
+    if (!shouldRenderLegacyTrackSlots())
         return;
     const grid = $("trackSlotGrid");
     if (!grid)
