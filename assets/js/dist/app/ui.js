@@ -9,7 +9,7 @@ import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistor
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, injectCheaterMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, assignTrackAct, releaseTrack, scheduleRelease, getReleaseAsapHours, buildMarketCreators, injectCheaterMarketCreators, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -587,14 +587,16 @@ const VIEW_DEFAULTS = {
         "release-projects": VIEW_PANEL_STATES.open
     },
     releases: {
-        "calendar-view": VIEW_PANEL_STATES.open
+        "calendar-view": VIEW_PANEL_STATES.open,
+        "calendar-structures": VIEW_PANEL_STATES.open
     },
     eras: {
         "era-desk": VIEW_PANEL_STATES.open,
         "era-performance": VIEW_PANEL_STATES.open
     },
     roster: {
-        "harmony-hub": VIEW_PANEL_STATES.open,
+        "harmony-acts": VIEW_PANEL_STATES.open,
+        "harmony-creators": VIEW_PANEL_STATES.open,
         "label-settings": VIEW_PANEL_STATES.open
     },
     world: {
@@ -3163,8 +3165,33 @@ function bindViewHandlers(route, root) {
             advancedBtn.setAttribute("aria-expanded", String(!!state.ui.createAdvancedOpen));
         }
     };
+    const syncCreateAdvancedSlotVisibility = (forceState = null) => {
+        const open = forceState === null ? !!state.ui.createAdvancedOpen : !!forceState;
+        if (!open && forceState === null)
+            return false;
+        if (!state.ui.trackSlotVisible)
+            state.ui.trackSlotVisible = {};
+        let changed = false;
+        ["Songwriter", "Performer", "Producer"].forEach((role) => {
+            const limit = TRACK_ROLE_LIMITS?.[role] || 1;
+            const fallback = Math.min(DEFAULT_TRACK_SLOT_VISIBLE, limit);
+            const key = TRACK_ROLE_KEYS[role];
+            const assigned = Array.isArray(state.ui.trackSlots?.[key])
+                ? state.ui.trackSlots[key].filter(Boolean).length
+                : 0;
+            const next = open ? limit : Math.min(limit, Math.max(fallback, assigned));
+            if (state.ui.trackSlotVisible[role] !== next) {
+                state.ui.trackSlotVisible[role] = next;
+                changed = true;
+            }
+        });
+        return changed;
+    };
     if (route === "create") {
         syncCreatePanelToggles();
+        if (syncCreateAdvancedSlotVisibility()) {
+            emitStateChanged();
+        }
         const modeTabs = root.querySelector("#createModeTabs");
         if (modeTabs) {
             modeTabs.addEventListener("click", (e) => {
@@ -3185,7 +3212,10 @@ function bindViewHandlers(route, root) {
         });
         on("createAdvancedToggle", "click", () => {
             state.ui.createAdvancedOpen = !state.ui.createAdvancedOpen;
+            syncCreateAdvancedSlotVisibility(state.ui.createAdvancedOpen);
             syncCreatePanelToggles();
+            renderSlots();
+            emitStateChanged();
             saveToActiveSlot();
         });
         const syncAutoCreateControls = () => {
@@ -3258,7 +3288,7 @@ function bindViewHandlers(route, root) {
             if (!role)
                 return;
             const limit = TRACK_ROLE_LIMITS?.[role] || 1;
-            const minVisible = Math.min(3, limit);
+            const minVisible = Math.min(DEFAULT_TRACK_SLOT_VISIBLE, limit);
             if (!state.ui.trackSlotVisible)
                 state.ui.trackSlotVisible = {};
             const current = Number(state.ui.trackSlotVisible[role]) || minVisible;

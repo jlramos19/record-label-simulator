@@ -1,5 +1,14 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-0057Z)
+- Harmony Hub now splits Acts and Creators into resizable panels. [PN-20251228-AC27]
+- Calendar now splits Calendar and Structures & Slots into a resizable split view. [PN-20251228-AC28]
+- Create Advanced now expands studio slots to full role limits (15 Songwriters, 10 Recorders, 5 Producers). [PN-20251228-AC29]
+- Release project drafting now ignores unmastered tracks and waits for Act assignments before summarizing projects. [PN-20251228-AC30]
+
+## 2025-12-28 (RLS-PATCH-20251228-0116Z)
+- Year-end awards now reveal nominees on the scheduled reveal date, cap nominee lists to 3-12 per category, and keep award show nomination counts hidden until reveal. [PN-20251228-AC27]
+
 ## 2025-12-28 (RLS-PATCH-20251228-0047Z)
 - Promotions now notify when award performance bid windows open, with bid controls gated by active-era acts and show-specific quality ranges. [PN-20251228-AC25]
 
@@ -697,3 +706,8 @@
 - PN-20251228-AC25 (2025-12-28 01:10Z): Tour drafts now append ARENA/STADIUM/WORLD to the name when bookings cover all arenas, all stadiums, or every nation.
 - PN-20251228-AC26 (2025-12-28 01:10Z): Quick Act now skips duplicate member lineups; it warns when only existing lineups are available.
 - PN-20251228-AC25 (2025-12-28 00:47Z): Promotions now notify when award performance bid windows open, with bid controls gated by active-era acts and show-specific quality ranges.
+- PN-20251228-AC27 (2025-12-28 01:16Z): Year-end awards now reveal nominees on the scheduled reveal date, cap nominee lists to 3-12 per category, and keep award show nomination counts hidden until reveal.
+- PN-20251228-AC27 (2025-12-28 00:57Z): Harmony Hub now splits Acts and Creators into resizable panels.
+- PN-20251228-AC28 (2025-12-28 00:57Z): Calendar now splits Calendar and Structures & Slots into a resizable split view.
+- PN-20251228-AC29 (2025-12-28 00:57Z): Create Advanced now expands studio slots to full role limits (15 Songwriters, 10 Recorders, 5 Producers).
+- PN-20251228-AC30 (2025-12-28 00:57Z): Release project drafting now ignores unmastered tracks and waits for Act assignments before summarizing projects.

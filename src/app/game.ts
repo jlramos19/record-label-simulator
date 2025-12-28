@@ -978,6 +978,8 @@ const AWARD_BOOSTS = {
   winner: { act: 0.05, content: 0.03, weeks: 4 },
   nominee: { act: 0.02, content: 0.01, weeks: 2 }
 };
+const ANNUAL_AWARD_MIN_NOMINEES = 3;
+const ANNUAL_AWARD_MAX_NOMINEES = 12;
 
 function currentYear() {
   return new Date(state.time.epochMs).getUTCFullYear();
@@ -14704,22 +14706,74 @@ function normalizeAwardMetricStore(store) {
 }
 
 const ANNUAL_AWARD_DEFS = [
-  { id: "REQ-01", metric: "chartPoints", store: "tracks" },
-  { id: "REQ-02", metric: "sales", store: "tracks" },
-  { id: "REQ-03", metric: "critics", store: "tracks" },
-  { id: "REQ-04", metric: "chartPoints", store: "projects" },
-  { id: "REQ-05", metric: "sales", store: "projects" },
-  { id: "REQ-06", metric: "critics", store: "projects" },
-  { id: "REQ-07", metric: "chartPoints", store: "promotions" },
-  { id: "REQ-08", metric: "sales", store: "promotions" },
-  { id: "REQ-09", metric: "critics", store: "promotions" },
-  { id: "REQ-10", metric: "chartPoints", store: "tours" },
-  { id: "REQ-11", metric: "sales", store: "tours" },
-  { id: "REQ-12", metric: "critics", store: "tours" }
+  { id: "REQ-01", metric: "chartPoints", store: "tracks", nomineeCount: 12 },
+  { id: "REQ-02", metric: "sales", store: "tracks", nomineeCount: 12 },
+  { id: "REQ-03", metric: "critics", store: "tracks", nomineeCount: 12 },
+  { id: "REQ-04", metric: "chartPoints", store: "projects", nomineeCount: 8 },
+  { id: "REQ-05", metric: "sales", store: "projects", nomineeCount: 8 },
+  { id: "REQ-06", metric: "critics", store: "projects", nomineeCount: 8 },
+  { id: "REQ-07", metric: "chartPoints", store: "promotions", nomineeCount: 8 },
+  { id: "REQ-08", metric: "sales", store: "promotions", nomineeCount: 8 },
+  { id: "REQ-09", metric: "critics", store: "promotions", nomineeCount: 8 },
+  { id: "REQ-10", metric: "chartPoints", store: "tours", nomineeCount: 5 },
+  { id: "REQ-11", metric: "sales", store: "tours", nomineeCount: 5 },
+  { id: "REQ-12", metric: "critics", store: "tours", nomineeCount: 5 }
 ];
 
 function listAnnualAwardDefinitions() {
   return ANNUAL_AWARD_DEFS.map((definition) => ({ ...definition }));
+}
+
+function resolveAnnualAwardNomineeLimit(definition) {
+  const raw = Number(definition?.nomineeCount);
+  if (Number.isFinite(raw)) {
+    return clamp(Math.round(raw), ANNUAL_AWARD_MIN_NOMINEES, ANNUAL_AWARD_MAX_NOMINEES);
+  }
+  if (definition?.store === "tracks") return 12;
+  if (definition?.store === "projects") return 8;
+  if (definition?.store === "promotions") return 8;
+  if (definition?.store === "tours") return 5;
+  return ANNUAL_AWARD_MAX_NOMINEES;
+}
+
+function annualAwardNomineeRevealAt(year) {
+  if (!Number.isFinite(year)) return null;
+  const revealYear = Math.floor(year) + 1;
+  const janFirst = new Date(Date.UTC(revealYear, 0, 1, 0, 0, 0));
+  const offset = (6 - janFirst.getUTCDay() + 7) % 7;
+  const revealDay = 1 + offset;
+  return Date.UTC(revealYear, 0, revealDay, 0, 0, 0);
+}
+
+function buildAnnualAwardNomineesFromLedger(definition, yearEntry, { limit = null } = {}) {
+  if (!definition || !yearEntry?.stores) return [];
+  const store = yearEntry.stores[definition.store];
+  if (!store || typeof store !== "object") return [];
+  const metricKey = definition.metric;
+  const metricMap = store[metricKey];
+  if (!metricMap || typeof metricMap !== "object") return [];
+  const candidates = store.candidates && typeof store.candidates === "object" ? store.candidates : {};
+  const nominees = Object.keys(metricMap).map((key) => {
+    const candidate = candidates[key] || { actKey: key, actName: "Unknown Act", label: "" };
+    const score = Number(metricMap[key] || 0);
+    const leadWeek = store?.firstLeadWeek?.[metricKey]?.[key];
+    return {
+      key,
+      candidate,
+      score,
+      leadWeek: Number.isFinite(leadWeek) ? leadWeek : null
+    };
+  });
+  nominees.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const aLead = Number.isFinite(a.leadWeek) ? a.leadWeek : Number.POSITIVE_INFINITY;
+    const bLead = Number.isFinite(b.leadWeek) ? b.leadWeek : Number.POSITIVE_INFINITY;
+    if (aLead !== bLead) return aLead - bLead;
+    return String(a.key).localeCompare(String(b.key));
+  });
+  const rawLimit = Number.isFinite(limit) ? limit : resolveAnnualAwardNomineeLimit(definition);
+  const safeLimit = clamp(Math.round(rawLimit), ANNUAL_AWARD_MIN_NOMINEES, ANNUAL_AWARD_MAX_NOMINEES);
+  return nominees.slice(0, safeLimit);
 }
 
 const AWARD_SHOW_DEFS = [
@@ -15546,6 +15600,28 @@ async function runYearTicksIfNeeded(year) {
   state.time.lastYear = current;
 }
 
+function announceAnnualAwardNominees(year) {
+  if (!Number.isFinite(year)) return;
+  const ledger = ensureAnnualAwardLedger();
+  const entry = ledger.years?.[String(year)];
+  if (!annualAwardLedgerHasData(entry)) {
+    logEvent(`Annual award nominees skipped for ${year}: ledger data missing.`, "warn");
+    return;
+  }
+  const definitions = listAnnualAwardDefinitions();
+  const shortfalls = [];
+  definitions.forEach((definition) => {
+    const nominees = buildAnnualAwardNomineesFromLedger(definition, entry);
+    if (nominees.length < ANNUAL_AWARD_MIN_NOMINEES) {
+      shortfalls.push(`${definition.id} (${nominees.length})`);
+    }
+  });
+  logEvent(`Annual award nominees revealed for ${year}.`);
+  if (shortfalls.length) {
+    logEvent(`Annual award nominee pools under ${ANNUAL_AWARD_MIN_NOMINEES}: ${shortfalls.join(", ")}.`, "warn");
+  }
+}
+
 async function maybeReleaseAnnualAwards(now = state.time.epochMs) {
   if (!isFirstSaturdayOfJanuary(now)) return null;
   const targetYear = new Date(now).getUTCFullYear() - 1;
@@ -15557,6 +15633,7 @@ async function maybeReleaseAnnualAwards(now = state.time.epochMs) {
     return null;
   }
   logEvent(`Year-end charts released for ${targetYear}.`);
+  announceAnnualAwardNominees(targetYear);
   const playerLabel = state.label?.name;
   if (playerLabel) {
     const wins = Object.values(awards).filter((entry) => entry?.label === playerLabel).length;
@@ -19759,6 +19836,8 @@ export {
   hoursUntilNextScheduledTime,
   isAwardPerformanceBidWindowOpen,
   isMasteringTrack,
+  annualAwardNomineeRevealAt,
+  buildAnnualAwardNomineesFromLedger,
   listAnnualAwardDefinitions,
   listAwardShows,
   listFromIds,

@@ -193,6 +193,7 @@ const {
   DEFAULT_GAME_MODE,
   listGameDifficulties,
   DEFAULT_GAME_DIFFICULTY,
+  DEFAULT_TRACK_SLOT_VISIBLE,
   acceptBailout,
   declineBailout
 } = game;
@@ -778,14 +779,16 @@ const VIEW_DEFAULTS = {
     "release-projects": VIEW_PANEL_STATES.open
   },
   releases: {
-    "calendar-view": VIEW_PANEL_STATES.open
+    "calendar-view": VIEW_PANEL_STATES.open,
+    "calendar-structures": VIEW_PANEL_STATES.open
   },
   eras: {
     "era-desk": VIEW_PANEL_STATES.open,
     "era-performance": VIEW_PANEL_STATES.open
   },
   roster: {
-    "harmony-hub": VIEW_PANEL_STATES.open,
+    "harmony-acts": VIEW_PANEL_STATES.open,
+    "harmony-creators": VIEW_PANEL_STATES.open,
     "label-settings": VIEW_PANEL_STATES.open
   },
   world: {
@@ -3257,9 +3260,32 @@ function bindViewHandlers(route, root) {
       advancedBtn.setAttribute("aria-expanded", String(!!state.ui.createAdvancedOpen));
     }
   };
+  const syncCreateAdvancedSlotVisibility = (forceState = null) => {
+    const open = forceState === null ? !!state.ui.createAdvancedOpen : !!forceState;
+    if (!open && forceState === null) return false;
+    if (!state.ui.trackSlotVisible) state.ui.trackSlotVisible = {};
+    let changed = false;
+    ["Songwriter", "Performer", "Producer"].forEach((role) => {
+      const limit = TRACK_ROLE_LIMITS?.[role] || 1;
+      const fallback = Math.min(DEFAULT_TRACK_SLOT_VISIBLE, limit);
+      const key = TRACK_ROLE_KEYS[role];
+      const assigned = Array.isArray(state.ui.trackSlots?.[key])
+        ? state.ui.trackSlots[key].filter(Boolean).length
+        : 0;
+      const next = open ? limit : Math.min(limit, Math.max(fallback, assigned));
+      if (state.ui.trackSlotVisible[role] !== next) {
+        state.ui.trackSlotVisible[role] = next;
+        changed = true;
+      }
+    });
+    return changed;
+  };
 
   if (route === "create") {
     syncCreatePanelToggles();
+    if (syncCreateAdvancedSlotVisibility()) {
+      emitStateChanged();
+    }
     const modeTabs = root.querySelector("#createModeTabs");
     if (modeTabs) {
       modeTabs.addEventListener("click", (e) => {
@@ -3279,7 +3305,10 @@ function bindViewHandlers(route, root) {
     });
     on("createAdvancedToggle", "click", () => {
       state.ui.createAdvancedOpen = !state.ui.createAdvancedOpen;
+      syncCreateAdvancedSlotVisibility(state.ui.createAdvancedOpen);
       syncCreatePanelToggles();
+      renderSlots();
+      emitStateChanged();
       saveToActiveSlot();
     });
     const syncAutoCreateControls = () => {
@@ -3341,7 +3370,7 @@ function bindViewHandlers(route, root) {
       const role = moreBtn?.dataset.slotMore || lessBtn?.dataset.slotLess;
       if (!role) return;
       const limit = TRACK_ROLE_LIMITS?.[role] || 1;
-      const minVisible = Math.min(3, limit);
+      const minVisible = Math.min(DEFAULT_TRACK_SLOT_VISIBLE, limit);
       if (!state.ui.trackSlotVisible) state.ui.trackSlotVisible = {};
       const current = Number(state.ui.trackSlotVisible[role]) || minVisible;
       const key = TRACK_ROLE_KEYS[role];

@@ -24,6 +24,8 @@ import {
   UNASSIGNED_SLOT_LABEL,
   WEEKLY_SCHEDULE,
   alignmentClass,
+  annualAwardNomineeRevealAt,
+  buildAnnualAwardNomineesFromLedger,
   buildCalendarProjection,
   buildLabelAchievementProgress,
   buildPromoProjectKeyFromTrack,
@@ -2666,16 +2668,19 @@ function renderAwardsCircuit() {
       : "Nomination window TBD";
     const lockLabel = Number.isFinite(show.nominationLockAt) ? formatDate(show.nominationLockAt) : "TBD";
     const revealLabel = Number.isFinite(show.nominationRevealAt) ? formatDate(show.nominationRevealAt) : "TBD";
+    const nomineesRevealed = show.status === "Revealed"
+      || show.status === "Resolved"
+      || (Number.isFinite(show.nominationRevealAt) && now >= show.nominationRevealAt);
     const nominees = Array.isArray(show.categories)
       ? show.categories.flatMap((category) => category?.nominees || [])
       : [];
-    const nominationCount = playerLabel
+    const nominationCount = playerLabel && nomineesRevealed
       ? nominees.filter((nominee) => nominee?.label === playerLabel).length
       : 0;
-    const winCount = playerLabel && Array.isArray(show.categories)
+    const winCount = playerLabel && nomineesRevealed && Array.isArray(show.categories)
       ? show.categories.filter((category) => category?.winner?.label === playerLabel).length
       : 0;
-    const playerLine = playerLabel
+    const playerLine = playerLabel && nomineesRevealed
       ? ` | ${nominationCount} nom${nominationCount === 1 ? "" : "s"}${winCount ? `, ${winCount} win${winCount === 1 ? "" : "s"}` : ""}`
       : "";
     const performanceLine = Array.isArray(show.performances) && show.performances.length
@@ -2800,33 +2805,13 @@ function resolveAnnualAwardNomineeDisplay(candidate) {
   return { primary: actName || "Unknown entity", meta: metaParts.join(" | ") };
 }
 
-function buildAnnualAwardNominees(definition, yearEntry) {
-  if (!definition || !yearEntry?.stores) return [];
-  const store = yearEntry.stores[definition.store];
-  if (!store || typeof store !== "object") return [];
-  const metricKey = definition.metric;
-  const metricMap = store[metricKey];
-  if (!metricMap || typeof metricMap !== "object") return [];
-  const candidates = store.candidates && typeof store.candidates === "object" ? store.candidates : {};
-  const nominees = Object.keys(metricMap).map((key) => {
-    const candidate = candidates[key] || { actKey: key, actName: "Unknown Act", label: "" };
-    const score = Number(metricMap[key] || 0);
-    const leadWeek = store?.firstLeadWeek?.[metricKey]?.[key];
-    return {
-      key,
-      candidate,
-      score,
-      leadWeek: Number.isFinite(leadWeek) ? leadWeek : null
-    };
-  });
-  nominees.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    const aLead = Number.isFinite(a.leadWeek) ? a.leadWeek : Number.POSITIVE_INFINITY;
-    const bLead = Number.isFinite(b.leadWeek) ? b.leadWeek : Number.POSITIVE_INFINITY;
-    if (aLead !== bLead) return aLead - bLead;
-    return String(a.key).localeCompare(String(b.key));
-  });
-  return nominees;
+function resolveAnnualAwardNomineeRevealState(year, awardsEntry) {
+  if (!Number.isFinite(year)) return { revealAt: null, revealed: false };
+  const revealAt = annualAwardNomineeRevealAt(year);
+  const now = state.time?.epochMs || Date.now();
+  const awardCount = Object.keys(awardsEntry?.awards || {}).length;
+  const revealed = awardCount > 0 || (Number.isFinite(revealAt) && now >= revealAt);
+  return { revealAt, revealed };
 }
 
 function normalizeAwardMatchValue(value) {
@@ -2883,9 +2868,16 @@ function renderAnnualAwardsPanel() {
   const awardsEntry = resolveAnnualAwardsEntryForYear(selectedYear);
   const hasLedger = Boolean(yearEntry && typeof yearEntry === "object"
     && yearEntry.stores && typeof yearEntry.stores === "object");
+  const nomineeState = resolveAnnualAwardNomineeRevealState(selectedYear, awardsEntry);
   if (warningEl) {
-    if (!hasLedger) {
-      warningEl.textContent = "Ledger data is missing for this year. Nominees may be unavailable.";
+    const warnings = [];
+    if (!hasLedger) warnings.push("Ledger data is missing for this year. Nominees may be unavailable.");
+    if (!nomineeState.revealed) {
+      const revealLabel = Number.isFinite(nomineeState.revealAt) ? formatDate(nomineeState.revealAt) : "TBD";
+      warnings.push(`Nominees reveal ${revealLabel}.`);
+    }
+    if (warnings.length) {
+      warningEl.textContent = warnings.join(" ");
       warningEl.classList.remove("hidden");
     } else {
       warningEl.classList.add("hidden");
@@ -2908,10 +2900,15 @@ function renderAnnualAwardsPanel() {
     const label = resolveAnnualAwardLabel(category.id, labelLookup);
     const isSelected = category.id === selectedCategoryId;
     const definition = category.definition;
-    const store = definition ? yearEntry?.stores?.[definition.store] : null;
-    const metricMap = definition ? store?.[definition.metric] : null;
-    const nomineeCount = metricMap && typeof metricMap === "object" ? Object.keys(metricMap).length : 0;
-    const nomineeLine = nomineeCount ? `Nominees: ${nomineeCount}` : "Nominees: 0";
+    const nominees = nomineeState.revealed && definition
+      ? buildAnnualAwardNomineesFromLedger(definition, yearEntry)
+      : [];
+    const nomineeCount = nominees.length;
+    const nomineeLine = nomineeState.revealed
+      ? nomineeCount
+        ? `Nominees: ${nomineeCount}`
+        : "Nominees: 0"
+      : "Nominees: TBD";
     const winnerEntry = awards?.[category.id] || null;
     const winnerLabel = winnerEntry?.actName || winnerEntry?.actKey || "TBD";
     const winnerLine = winnerEntry ? `Winner: ${winnerLabel}` : "Winner: TBD";
@@ -2947,6 +2944,7 @@ function renderAnnualAwardsDetail() {
   }
   const yearEntry = state.meta?.annualAwardLedger?.years?.[String(year)] || null;
   const awardsEntry = resolveAnnualAwardsEntryForYear(year);
+  const nomineeState = resolveAnnualAwardNomineeRevealState(year, awardsEntry);
   const definitions = typeof listAnnualAwardDefinitions === "function" ? listAnnualAwardDefinitions() : [];
   const categories = buildAnnualAwardCategoryList(yearEntry, awardsEntry, definitions);
   if (!categories.length) {
@@ -2959,12 +2957,10 @@ function renderAnnualAwardsDetail() {
   const winnerEntry = awardsEntry?.awards && typeof awardsEntry.awards === "object"
     ? awardsEntry.awards[category.id]
     : null;
-  const nominees = category.definition ? buildAnnualAwardNominees(category.definition, yearEntry) : [];
-  const winnerIndex = winnerEntry ? nominees.findIndex((nominee) => awardWinnerMatches(nominee, winnerEntry)) : -1;
   const headerLines = [];
   headerLines.push(`<div class="item-title">${categoryLabel}</div>`);
   headerLines.push(`<div class="muted">Year ${year}</div>`);
-  if (winnerIndex >= 0 && winnerEntry) {
+  if (winnerEntry) {
     const winnerName = winnerEntry.actName || winnerEntry.actKey || "Winner";
     headerLines.push(`<div class="muted">Winner: ${winnerName}</div>`);
   } else {
@@ -2977,11 +2973,19 @@ function renderAnnualAwardsDetail() {
       </div>
     `
   ];
+  if (!nomineeState.revealed) {
+    const revealLabel = Number.isFinite(nomineeState.revealAt) ? formatDate(nomineeState.revealAt) : "TBD";
+    items.push(`<div class="muted">Nominees reveal ${revealLabel}.</div>`);
+    detailEl.innerHTML = items.join("");
+    return;
+  }
   if (!category.definition) {
     items.push(`<div class="muted">Nominee data unavailable for this category.</div>`);
     detailEl.innerHTML = items.join("");
     return;
   }
+  const nominees = buildAnnualAwardNomineesFromLedger(category.definition, yearEntry);
+  const winnerIndex = winnerEntry ? nominees.findIndex((nominee) => awardWinnerMatches(nominee, winnerEntry)) : -1;
   if (!nominees.length) {
     items.push(`<div class="muted">No nominees recorded for this category.</div>`);
     detailEl.innerHTML = items.join("");
@@ -4956,14 +4960,19 @@ function renderReleaseDesk() {
   });
   const queuedIds = new Set(queueEntries.filter((item) => item.isReleaseReady).map((item) => item.entry.trackId));
   const blockedQueue = queueEntries.filter((item) => !item.isReleaseReady);
-  const projectSummaries = collectProjectSummaries(state.tracks, queuedIds);
+  const projectTracks = state.tracks.filter((track) => releaseReadyStatuses.has(track.status) && track.actId);
+  const projectSummaries = collectProjectSummaries(projectTracks, queuedIds);
+  const hasReadyUnassigned = state.tracks.some((track) => releaseReadyStatuses.has(track.status) && !track.actId);
   const projectSummaryByKey = new Map(
     projectSummaries.map((summary) => [projectKey(summary.projectName, summary.projectType), summary])
   );
   const projectList = $("releaseProjectList");
   if (projectList) {
     if (!projectSummaries.length) {
-      projectList.innerHTML = `<div class="muted">No projects yet. Create content in Create, then return here to schedule releases.</div>`;
+      const emptyMessage = hasReadyUnassigned
+        ? "No projects yet. Assign an Act to mastered tracks to draft projects."
+        : "No projects yet. Create content in Create, then return here to schedule releases.";
+      projectList.innerHTML = `<div class="muted">${emptyMessage}</div>`;
     } else {
       projectList.innerHTML = projectSummaries.map((summary) => {
         const limits = getProjectTrackLimits(summary.projectType);
@@ -4976,16 +4985,23 @@ function renderReleaseDesk() {
             : `+${maxRemaining} slots`;
         const statusClass = minRemaining > 0 || maxRemaining === 0 ? "badge warn" : "badge";
         const readyLabel = `Ready ${formatCount(summary.readyCount)}`;
-        const masteringLabel = `Mastering ${formatCount(summary.masteringCount)}`;
+        const masteringLabel = summary.masteringCount ? `Mastering ${formatCount(summary.masteringCount)}` : null;
         const actLabel = summary.actNames.size
           ? Array.from(summary.actNames).map((name) => renderActName(name)).join(", ")
           : "Unassigned";
+        const summaryParts = [
+          `${summary.projectType} | Tracks ${summary.trackCount}/${limits.max}`,
+          readyLabel,
+          masteringLabel,
+          `Scheduled ${formatCount(summary.scheduledCount)}`,
+          `Released ${formatCount(summary.releasedCount)}`
+        ].filter(Boolean).join(" | ");
         return `
           <div class="list-item">
             <div class="list-row">
               <div>
                 <div class="item-title">${renderProjectName(summary.projectName)}</div>
-                <div class="muted">${summary.projectType} | Tracks ${summary.trackCount}/${limits.max} | ${readyLabel} | ${masteringLabel} | Scheduled ${formatCount(summary.scheduledCount)} | Released ${formatCount(summary.releasedCount)}</div>
+                <div class="muted">${summaryParts}</div>
                 <div class="muted">Acts: ${actLabel}</div>
               </div>
               <div class="${statusClass}">${statusLabel}</div>

@@ -991,48 +991,49 @@
 </template>
 
 <template id="view-releases">
-  <div class="view view--releases">
+  <div class="view view--releases view--single">
     <section class="view-main">
-      <div class="panel card panel--scroll" data-panel="calendar-view">
-        <div class="card-head">
-          <h2>Calendar</h2>
-          <div class="panel-tools">
-            <div id="calendarRangeLabel" class="tiny muted">Week -</div>
-            <button id="calendarBtn" type="button" class="ghost mini">Full List</button>
+      <div class="split-layout" data-split-key="calendar" data-split-min-left="360" data-split-min-right="320" data-split-default="50">
+        <div class="panel card panel--scroll panel-fixed split-panel is-left" data-panel="calendar-view">
+          <div class="card-head">
+            <h2>Calendar</h2>
+            <div class="panel-tools">
+              <div id="calendarRangeLabel" class="tiny muted">Week -</div>
+              <button id="calendarBtn" type="button" class="ghost mini">Full List</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="tabs" id="calendarTabs">
+              <button class="tab active" data-calendar-tab="label" type="button">Label</button>
+              <button class="tab" data-calendar-tab="public" type="button">Public</button>
+            </div>
+            <div class="filter-row" id="calendarFilters">
+              <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
+              <label class="check-pill"><input type="checkbox" data-calendar-filter="labelReleased">Label Released</label>
+              <label class="check-pill"><input type="checkbox" data-calendar-filter="tourScheduled">Tour Dates</label>
+              <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalScheduled">Rival Scheduled</label>
+              <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
+            </div>
+            <div id="calendarGrid" class="calendar-grid-wrap"></div>
           </div>
         </div>
-        <div class="card-body">
-          <div class="tabs" id="calendarTabs">
-            <button class="tab active" data-calendar-tab="label" type="button">Label</button>
-            <button class="tab" data-calendar-tab="public" type="button">Public</button>
+        <div class="split-handle" role="separator" aria-label="Resize calendar panels" aria-orientation="vertical"></div>
+        <div class="panel card panel--scroll panel-fixed split-panel is-right" data-panel="calendar-structures">
+          <div class="card-head">
+            <h2>Structures &amp; Slots</h2>
           </div>
-          <div class="filter-row" id="calendarFilters">
-            <label class="check-pill"><input type="checkbox" data-calendar-filter="labelScheduled">Label Scheduled</label>
-            <label class="check-pill"><input type="checkbox" data-calendar-filter="labelReleased">Label Released</label>
-            <label class="check-pill"><input type="checkbox" data-calendar-filter="tourScheduled">Tour Dates</label>
-            <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalScheduled">Rival Scheduled</label>
-            <label class="check-pill"><input type="checkbox" data-calendar-filter="rivalReleased">Rival Released</label>
+          <div class="card-body">
+            <div class="tiny muted">Shows external studio capacity so slot pressure is visible at a glance.</div>
+            <div class="subhead">Recording Studios</div>
+            <div id="calendarRecordingStudios" class="list"></div>
+            <div class="subhead">Broadcast Studios</div>
+            <div id="calendarBroadcastStudios" class="list"></div>
+            <div class="subhead">Filming Studios</div>
+            <div id="calendarFilmingStudios" class="list"></div>
           </div>
-          <div id="calendarGrid" class="calendar-grid-wrap"></div>
         </div>
       </div>
     </section>
-    <aside class="view-side">
-      <div class="panel card panel--scroll" data-panel="calendar-structures">
-        <div class="card-head">
-          <h2>Structures &amp; Slots</h2>
-        </div>
-        <div class="card-body">
-          <div class="tiny muted">Shows external studio capacity so slot pressure is visible at a glance.</div>
-          <div class="subhead">Recording Studios</div>
-          <div id="calendarRecordingStudios" class="list"></div>
-          <div class="subhead">Broadcast Studios</div>
-          <div id="calendarBroadcastStudios" class="list"></div>
-          <div class="subhead">Filming Studios</div>
-          <div id="calendarFilmingStudios" class="list"></div>
-        </div>
-      </div>
-    </aside>
     <div id="calendarFooterPanel" class="panel card calendar-footer-panel">
       <div class="card-body">
         <div id="calendarList" class="calendar-footer"></div>
@@ -1163,68 +1164,80 @@
 <template id="view-roster">
   <div class="view view--roster">
     <section class="view-main">
-      <div class="panel card panel--scroll" data-panel="harmony-hub">
-        <h2>Harmony Hub</h2>
-        <div class="card-body">
-          <div class="callout">
-            Form and manage Acts by assigning Creator IDs. Track which Eras each Act is participating in.
+      <div class="split-layout" data-split-key="harmony-hub" data-split-min-left="360" data-split-min-right="320" data-split-default="50">
+        <div class="panel card panel--scroll panel-fixed split-panel is-left" data-panel="harmony-acts">
+          <div class="card-head">
+            <h2>Harmony Hub - Acts</h2>
           </div>
-          <div class="subhead">Acts</div>
-          <div id="actList" class="list act-grid"></div>
-          <div class="actions">
-            <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
-          </div>
-          <div class="subhead">Create Act</div>
-          <div class="slot-grid slot-grid--multi">
-            <div class="field">
-              <label for="actName">Act Name</label>
-              <div class="input-row">
-                <input id="actName" type="text" placeholder="e.g. Velvet Signal">
-                <button id="actNameRandom" type="button" class="ghost mini">Rnd</button>
+          <div class="card-body">
+            <div class="callout">
+              Form and manage Acts by assigning Creator IDs. Track which Eras each Act is participating in.
+            </div>
+            <div class="subhead">Acts</div>
+            <div id="actList" class="list act-grid"></div>
+            <div class="actions">
+              <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
+            </div>
+            <div class="subhead">Create Act</div>
+            <div class="slot-grid slot-grid--multi">
+              <div class="field">
+                <label for="actName">Act Name</label>
+                <div class="input-row">
+                  <input id="actName" type="text" placeholder="e.g. Velvet Signal">
+                  <button id="actNameRandom" type="button" class="ghost mini">Rnd</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="actTypeSelect">Act Type</label>
+                <select id="actTypeSelect"></select>
+              </div>
+              <div class="field">
+                <label for="actAlignmentSelect">Act Alignment</label>
+                <select id="actAlignmentSelect"></select>
               </div>
             </div>
-            <div class="field">
-              <label for="actTypeSelect">Act Type</label>
-              <select id="actTypeSelect"></select>
+            <div class="subhead">Act Slots</div>
+            <div class="slot-grid slot-grid--multi">
+              <div class="id-slot" data-slot-target="act-lead" data-slot-type="creator">
+                <div class="slot-label">Lead Creator ID</div>
+                <div class="slot-id">
+                  <div class="slot-avatar" aria-hidden="true"></div>
+                  <div id="actLeadSlot" class="slot-value">?</div>
+                </div>
+                <button type="button" class="ghost mini" data-slot-clear="act-lead">Clear</button>
+              </div>
+              <div class="id-slot" data-slot-target="act-member2" data-slot-type="creator">
+                <div class="slot-label">Member 2 ID</div>
+                <div class="slot-id">
+                  <div class="slot-avatar" aria-hidden="true"></div>
+                  <div id="actMember2Slot" class="slot-value">?</div>
+                </div>
+                <button type="button" class="ghost mini" data-slot-clear="act-member2">Clear</button>
+              </div>
+              <div class="id-slot" data-slot-target="act-member3" data-slot-type="creator">
+                <div class="slot-label">Member 3 ID</div>
+                <div class="slot-id">
+                  <div class="slot-avatar" aria-hidden="true"></div>
+                  <div id="actMember3Slot" class="slot-value">?</div>
+                </div>
+                <button type="button" class="ghost mini" data-slot-clear="act-member3">Clear</button>
+              </div>
             </div>
-            <div class="field">
-              <label for="actAlignmentSelect">Act Alignment</label>
-              <select id="actAlignmentSelect"></select>
+            <div class="actions">
+              <button id="createActBtn" type="button">Create Act</button>
             </div>
           </div>
-          <div class="subhead">Act Slots</div>
-          <div class="slot-grid slot-grid--multi">
-            <div class="id-slot" data-slot-target="act-lead" data-slot-type="creator">
-              <div class="slot-label">Lead Creator ID</div>
-              <div class="slot-id">
-                <div class="slot-avatar" aria-hidden="true"></div>
-                <div id="actLeadSlot" class="slot-value">?</div>
-              </div>
-              <button type="button" class="ghost mini" data-slot-clear="act-lead">Clear</button>
-            </div>
-            <div class="id-slot" data-slot-target="act-member2" data-slot-type="creator">
-              <div class="slot-label">Member 2 ID</div>
-              <div class="slot-id">
-                <div class="slot-avatar" aria-hidden="true"></div>
-                <div id="actMember2Slot" class="slot-value">?</div>
-              </div>
-              <button type="button" class="ghost mini" data-slot-clear="act-member2">Clear</button>
-            </div>
-            <div class="id-slot" data-slot-target="act-member3" data-slot-type="creator">
-              <div class="slot-label">Member 3 ID</div>
-              <div class="slot-id">
-                <div class="slot-avatar" aria-hidden="true"></div>
-                <div id="actMember3Slot" class="slot-value">?</div>
-              </div>
-              <button type="button" class="ghost mini" data-slot-clear="act-member3">Clear</button>
-            </div>
+        </div>
+        <div class="split-handle" role="separator" aria-label="Resize harmony hub panels" aria-orientation="vertical"></div>
+        <div class="panel card panel--scroll panel-fixed split-panel is-right" data-panel="harmony-creators">
+          <div class="card-head">
+            <h2>Harmony Hub - Creators</h2>
           </div>
-          <div class="actions">
-            <button id="createActBtn" type="button">Create Act</button>
-          </div>
-          <div class="subhead">Signed Creators</div>
+          <div class="card-body">
+            <div class="subhead">Signed Creators</div>
             <div id="creatorList" class="list ccc-market-grid"></div>
-          <div class="tiny">Drag Creator IDs into slots, or tap after selecting a slot.</div>
+            <div class="tiny">Drag Creator IDs into slots, or tap after selecting a slot.</div>
+          </div>
         </div>
       </div>
     </section>

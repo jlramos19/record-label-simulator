@@ -14,6 +14,12 @@ Each in-game calendar year, the simulation computes 12 CEO Request awards at Gai
 - Year-end charts release on the first Saturday of January for the prior calendar year.
 - Award winners are stored in `state.meta.annualAwards` and used to unlock CEO Requests.
 
+## Nominee reveal + limits
+- Eligibility window spans the full calendar year captured in the ledger.
+- Nominees are selected at reveal time from the category primary metric and capped to 3-12 per category (Tracks 12, Projects 8, Promotions 8, Tours 5).
+- Nominees reveal on the first Saturday of January (UTC) after the eligibility window closes.
+- If fewer than 3 eligible entries exist, the system logs a warning and shows the available nominees.
+
 ## UI viewer
 - The Awards (Year-End) tab lists years from `state.meta.annualAwardLedger.years`.
 - Categories and nominee details render dynamically from the ledger for the selected year.

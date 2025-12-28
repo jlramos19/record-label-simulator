@@ -126,6 +126,7 @@
 ## UI + observability
 - Award show events and performance slots appear in Calendar and Promotions.
 - Nomination lock, reveal time, and eligibility window are shown per show.
+- Nomination counts stay hidden until reveal; reveal logs announce nominee unlocks.
 - Performance bid windows surface in Promotions with open-window notifications and bid/eligibility details.
 - Ineligibility reasons (missing window, low quality, no executed promo) are logged and surfaced in tooltips.
 
