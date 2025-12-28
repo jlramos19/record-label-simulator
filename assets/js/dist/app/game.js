@@ -27,6 +27,7 @@ const AUTO_PROMO_SLOT_LIMIT = 4;
 const PERF_THROTTLE_LOG_COOLDOWN_MS = 30000;
 const LOCAL_SAVE_QUOTA_BYTES = 4.5 * 1024 * 1024;
 const SAVE_DEBOUNCE_MS = 1500;
+const LABEL_KPI_PROJECTION_WEEKS = 4;
 let saveDebounceTimer = null;
 let saveDebounceQueued = false;
 function buildAutoPromoSlotList() {
@@ -4127,6 +4128,157 @@ function summarizeEraEconomy(era) {
     summary.genre = dominantValue(tracks.map((track) => track.genre), null);
     return summary;
 }
+function buildEraProfitabilitySummary(era) {
+    if (!era)
+        return null;
+    const labelName = state.label?.name || "Record Label";
+    const act = era.actId ? getAct(era.actId) : null;
+    const tracks = state.tracks.filter((track) => track.eraId === era.id);
+    const summary = {
+        eraId: era.id,
+        eraName: era.name,
+        actId: era.actId || null,
+        actName: act ? act.name : null,
+        label: labelName,
+        trackCount: tracks.length,
+        releasedCount: tracks.filter((track) => track.status === "Released").length,
+        trackRevenue: 0,
+        tourRevenue: 0,
+        productionCost: 0,
+        distributionFees: 0,
+        promoCost: 0,
+        tourCosts: 0,
+        revenue: 0,
+        costs: 0,
+        net: 0
+    };
+    tracks.forEach((track) => {
+        const economy = ensureTrackEconomy(track);
+        if (!economy)
+            return;
+        summary.trackRevenue += economy.revenue || 0;
+        summary.productionCost += economy.productionCost || 0;
+        summary.distributionFees += economy.distributionFees || 0;
+        summary.promoCost += economy.promoCost || 0;
+    });
+    listTourBookings().forEach((booking) => {
+        if (!booking || booking.status !== "Completed")
+            return;
+        if (booking.eraId !== era.id)
+            return;
+        if (booking.label && booking.label !== labelName)
+            return;
+        summary.tourRevenue += Number(booking.revenue || 0);
+        summary.tourCosts += Number(booking.costs || 0);
+    });
+    summary.revenue = summary.trackRevenue + summary.tourRevenue;
+    summary.costs = summary.productionCost + summary.distributionFees + summary.promoCost + summary.tourCosts;
+    summary.net = summary.revenue - summary.costs;
+    return summary;
+}
+function computeEraProfitabilitySummaries() {
+    const summaries = {};
+    const eras = []
+        .concat(Array.isArray(state.era?.active) ? state.era.active : [])
+        .concat(Array.isArray(state.era?.history) ? state.era.history : [])
+        .filter(Boolean);
+    eras.forEach((era) => {
+        const summary = buildEraProfitabilitySummary(era);
+        if (!summary)
+            return;
+        summaries[era.id] = summary;
+    });
+    return summaries;
+}
+function buildProjectProfitabilityKey({ projectName, projectType, label, actId }) {
+    const nameKey = normalizeProjectName(projectName || "");
+    const typeKey = normalizeProjectType(projectType || "Single");
+    const labelKey = String(label || "Record Label");
+    const actKey = actId ? String(actId) : "act";
+    return `${nameKey}::${typeKey}::${labelKey}::${actKey}`;
+}
+function computeProjectProfitabilitySummaries() {
+    const summaries = {};
+    const projectKeyByTrackId = {};
+    const projectKeyByNameAct = {};
+    const projectKeysByName = {};
+    const labelName = state.label?.name || "Record Label";
+    (state.tracks || []).forEach((track) => {
+        if (!track)
+            return;
+        const projectName = track.projectName || `${track.title || "Untitled"} - Single`;
+        const projectType = normalizeProjectType(track.projectType || "Single");
+        const act = track.actId ? getAct(track.actId) : null;
+        const actId = track.actId || null;
+        const key = buildProjectProfitabilityKey({ projectName, projectType, label: labelName, actId });
+        const summary = summaries[key] || {
+            projectName,
+            projectType,
+            actId,
+            actName: act ? act.name : null,
+            label: labelName,
+            trackCount: 0,
+            releasedCount: 0,
+            trackRevenue: 0,
+            tourRevenue: 0,
+            productionCost: 0,
+            distributionFees: 0,
+            promoCost: 0,
+            tourCosts: 0,
+            revenue: 0,
+            costs: 0,
+            net: 0
+        };
+        summary.trackCount += 1;
+        if (track.status === "Released")
+            summary.releasedCount += 1;
+        const economy = ensureTrackEconomy(track);
+        if (economy) {
+            summary.trackRevenue += economy.revenue || 0;
+            summary.productionCost += economy.productionCost || 0;
+            summary.distributionFees += economy.distributionFees || 0;
+            summary.promoCost += economy.promoCost || 0;
+        }
+        summaries[key] = summary;
+        if (track.id)
+            projectKeyByTrackId[track.id] = key;
+        const normalizedName = normalizeProjectName(projectName || "");
+        if (normalizedName) {
+            const nameActKey = `${normalizedName}::${actId || ""}`;
+            projectKeyByNameAct[nameActKey] = key;
+            if (!projectKeysByName[normalizedName])
+                projectKeysByName[normalizedName] = [];
+            if (!projectKeysByName[normalizedName].includes(key))
+                projectKeysByName[normalizedName].push(key);
+        }
+    });
+    listTourBookings().forEach((booking) => {
+        if (!booking || booking.status !== "Completed")
+            return;
+        if (booking.label && booking.label !== labelName)
+            return;
+        let key = null;
+        if (booking.anchorTrackId && projectKeyByTrackId[booking.anchorTrackId]) {
+            key = projectKeyByTrackId[booking.anchorTrackId];
+        }
+        if (!key && booking.anchorProjectName) {
+            const normalized = normalizeProjectName(booking.anchorProjectName);
+            const nameActKey = `${normalized}::${booking.actId || ""}`;
+            key = projectKeyByNameAct[nameActKey] || (projectKeysByName[normalized]?.[0] || null);
+        }
+        if (!key || !summaries[key])
+            return;
+        const summary = summaries[key];
+        summary.tourRevenue += Number(booking.revenue || 0);
+        summary.tourCosts += Number(booking.costs || 0);
+    });
+    Object.values(summaries).forEach((summary) => {
+        summary.revenue = summary.trackRevenue + summary.tourRevenue;
+        summary.costs = summary.productionCost + summary.distributionFees + summary.promoCost + summary.tourCosts;
+        summary.net = summary.revenue - summary.costs;
+    });
+    return summaries;
+}
 function evaluateEraOutcome(era) {
     if (!era)
         return null;
@@ -6947,18 +7099,45 @@ function pickRivalReleaseCrew(rival, theme, mood) {
         pickRivalCreatorForRole(rival, "Producer", theme, mood)
     ].filter(Boolean);
 }
+function resolveRivalRosterCadence(rival, huskLibrary, currentWeek = weekIndex()) {
+    const activePlan = getActiveRivalPlan(rival, currentWeek);
+    const huskId = activePlan?.activeHuskId || rival?.aiPlan?.lastHuskId || null;
+    const fallback = HUSK_STARTERS[0] || huskLibrary[0] || null;
+    if (!huskId)
+        return fallback;
+    const match = huskLibrary.find((entry) => entry.id === huskId);
+    return match || fallback;
+}
 function recruitRivalCreators() {
     const trends = Array.isArray(state.trends) ? state.trends : [];
+    const huskLibrary = buildHuskLibrary();
+    const currentWeek = weekIndex();
     state.rivals.forEach((rival) => {
         ensureRivalRoster(rival);
         const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
         const focusBoost = rival.achievementFocus === "REQ-09" ? 2 : 0;
         const rosterBoost = Math.round(ambition * RIVAL_AMBITION_ROSTER_BONUS) + focusBoost;
-        const targetPerRole = RIVAL_MIN_PER_ROLE + rosterBoost;
+        const cadenceHusk = resolveRivalRosterCadence(rival, huskLibrary, currentWeek);
+        const cadence = summarizeHuskCadence(cadenceHusk);
+        const cadenceLoad = cadence.releaseSteps + cadence.promoSteps;
+        const cadenceBoost = cadence.windowWeeks
+            ? Math.max(0, Math.ceil(cadenceLoad / cadence.windowWeeks) - 1)
+            : 0;
+        const staminaStats = summarizeRivalStamina(rival);
+        const promoStaminaNeed = cadence.promoSteps * ACTIVITY_STAMINA_PROMO;
+        const staminaShortfall = Math.max(0, promoStaminaNeed - staminaStats.totalStamina);
+        const staminaBoost = staminaShortfall > 0 ? Math.ceil(staminaShortfall / STAMINA_MAX) : 0;
+        const targetPerRole = RIVAL_MIN_PER_ROLE + rosterBoost + cadenceBoost + staminaBoost;
         const counts = MARKET_ROLES.reduce((acc, role) => {
             acc[role] = rival.creators.filter((creator) => creator.role === role).length;
             return acc;
         }, {});
+        const projectedNet = projectRivalNet(rival, cadence.windowWeeks || 1);
+        const needsSignings = MARKET_ROLES.some((role) => (counts[role] || 0) < targetPerRole);
+        if (projectedNet < 0 && needsSignings) {
+            logEvent(`${rival.name} roster hold (why: projected net ${formatMoney(projectedNet)} < 0).`, "warn");
+            return;
+        }
         const signed = [];
         const addRecruit = (role, trendTheme, trendMood) => {
             if (rival.creators.length >= CREATOR_ROSTER_CAP)
@@ -8685,6 +8864,365 @@ function getLabelCompetitionMultiplier(label) {
     const multiplier = competition?.[label];
     return Number.isFinite(multiplier) ? multiplier : 1;
 }
+function emptyConsumptionTotals() {
+    return { sales: 0, streaming: 0, airplay: 0, social: 0, total: 0 };
+}
+function addLabelConsumptionTotals(labelTotals, totals, entries, weight) {
+    if (!Array.isArray(entries) || !entries.length || !Number.isFinite(weight) || weight <= 0)
+        return false;
+    let hasMetrics = false;
+    entries.forEach((entry) => {
+        if (!entry)
+            return;
+        const label = resolveChartEntryLabel(entry);
+        if (!label)
+            return;
+        const metrics = entry.metrics || {};
+        const sales = Math.max(0, Number(metrics.sales || 0)) * weight;
+        const streaming = Math.max(0, Number(metrics.streaming || 0)) * weight;
+        const airplay = Math.max(0, Number(metrics.airplay || 0)) * weight;
+        const social = Math.max(0, Number(metrics.social || 0)) * weight;
+        if (sales || streaming || airplay || social)
+            hasMetrics = true;
+        const record = labelTotals[label] || (labelTotals[label] = emptyConsumptionTotals());
+        record.sales += sales;
+        record.streaming += streaming;
+        record.airplay += airplay;
+        record.social += social;
+        record.total += sales + streaming + airplay + social;
+        totals.sales += sales;
+        totals.streaming += streaming;
+        totals.airplay += airplay;
+        totals.social += social;
+        totals.total += sales + streaming + airplay + social;
+    });
+    return hasMetrics;
+}
+function computeLabelConsumptionShares() {
+    const totalsByLabel = {};
+    const totals = emptyConsumptionTotals();
+    const labels = collectKnownLabelNames();
+    let hasMetrics = false;
+    hasMetrics =
+        addLabelConsumptionTotals(totalsByLabel, totals, state.charts?.global || [], LABEL_SCORE_WEIGHTS.tracks.global) || hasMetrics;
+    NATIONS.forEach((nation) => {
+        hasMetrics =
+            addLabelConsumptionTotals(totalsByLabel, totals, state.charts?.nations?.[nation] || [], LABEL_SCORE_WEIGHTS.tracks.nation)
+                || hasMetrics;
+    });
+    REGION_DEFS.forEach((region) => {
+        hasMetrics =
+            addLabelConsumptionTotals(totalsByLabel, totals, state.charts?.regions?.[region.id] || [], LABEL_SCORE_WEIGHTS.tracks.region)
+                || hasMetrics;
+    });
+    hasMetrics =
+        addLabelConsumptionTotals(totalsByLabel, totals, state.promoCharts?.global || [], LABEL_SCORE_WEIGHTS.promos.global)
+            || hasMetrics;
+    NATIONS.forEach((nation) => {
+        hasMetrics =
+            addLabelConsumptionTotals(totalsByLabel, totals, state.promoCharts?.nations?.[nation] || [], LABEL_SCORE_WEIGHTS.promos.nation) || hasMetrics;
+    });
+    REGION_DEFS.forEach((region) => {
+        hasMetrics =
+            addLabelConsumptionTotals(totalsByLabel, totals, state.promoCharts?.regions?.[region.id] || [], LABEL_SCORE_WEIGHTS.promos.region) || hasMetrics;
+    });
+    labels.forEach((label) => {
+        if (!totalsByLabel[label])
+            totalsByLabel[label] = emptyConsumptionTotals();
+    });
+    const weights = chartWeightsForGlobal();
+    const shares = {};
+    labels.forEach((label) => {
+        const record = totalsByLabel[label];
+        const salesShare = totals.sales ? record.sales / totals.sales : 0;
+        const streamingShare = totals.streaming ? record.streaming / totals.streaming : 0;
+        const airplayShare = totals.airplay ? record.airplay / totals.airplay : 0;
+        const socialShare = totals.social ? record.social / totals.social : 0;
+        const share = clamp(salesShare * weights.sales
+            + streamingShare * weights.streaming
+            + airplayShare * weights.airplay
+            + socialShare * weights.social, 0, 1);
+        record.share = share;
+        shares[label] = share;
+    });
+    if (hasMetrics) {
+        const missing = [];
+        if (!totals.sales)
+            missing.push("sales");
+        if (!totals.streaming)
+            missing.push("streaming");
+        if (!totals.airplay)
+            missing.push("airplay");
+        if (!totals.social)
+            missing.push("social");
+        if (missing.length) {
+            console.warn(`[rivalry] Consumption totals missing for ${missing.join(", ")} channel(s); shares may be skewed.`);
+        }
+    }
+    return { labels: totalsByLabel, totals, shares, weights };
+}
+function computePlayerLabelNetSummary() {
+    const labelName = state.label?.name || "Record Label";
+    const summary = {
+        label: labelName,
+        trackRevenue: 0,
+        tourRevenue: 0,
+        productionCost: 0,
+        distributionFees: 0,
+        promoCost: 0,
+        tourCosts: 0,
+        revenue: 0,
+        costs: 0,
+        net: 0
+    };
+    (state.tracks || []).forEach((track) => {
+        if (!track)
+            return;
+        const economy = ensureTrackEconomy(track);
+        if (!economy)
+            return;
+        summary.trackRevenue += economy.revenue || 0;
+        summary.productionCost += economy.productionCost || 0;
+        summary.distributionFees += economy.distributionFees || 0;
+        summary.promoCost += economy.promoCost || 0;
+    });
+    listTourBookings().forEach((booking) => {
+        if (!booking || booking.status !== "Completed")
+            return;
+        if (booking.label && booking.label !== labelName)
+            return;
+        summary.tourRevenue += Number(booking.revenue || 0);
+        summary.tourCosts += Number(booking.costs || 0);
+    });
+    summary.revenue = summary.trackRevenue + summary.tourRevenue;
+    summary.costs = summary.productionCost + summary.distributionFees + summary.promoCost + summary.tourCosts;
+    summary.net = summary.revenue - summary.costs;
+    return summary;
+}
+function projectedGlobalScoreForTrack(track, targetEpochMs) {
+    if (!track)
+        return 0;
+    const seedBase = makeStableSeed([targetEpochMs, "global", "global", "projection"]);
+    const key = trackKey(track) || track.trackId || track.id || track.title || "track";
+    const count = Math.max(1, NATIONS.length);
+    const sum = NATIONS.reduce((acc, nation) => {
+        const seed = makeStableSeed([seedBase, key, nation]);
+        return acc + scoreTrackProjected(track, nation, seed);
+    }, 0);
+    return Math.round(sum / count);
+}
+function computeLabelProjectionSummary({ horizonWeeks = LABEL_KPI_PROJECTION_WEEKS } = {}) {
+    const safeWeeks = Number.isFinite(horizonWeeks) ? Math.max(0, Math.round(horizonWeeks)) : LABEL_KPI_PROJECTION_WEEKS;
+    const now = state.time?.epochMs || Date.now();
+    const endEpoch = now + safeWeeks * WEEK_MS;
+    const release = { count: 0, revenue: 0, costs: 0, net: 0, items: [] };
+    const touring = { count: 0, revenue: 0, costs: 0, net: 0, items: [] };
+    const projectedCache = new Map();
+    const revenueRate = Number.isFinite(ECONOMY_TUNING?.revenuePerChartPoint)
+        ? ECONOMY_TUNING.revenuePerChartPoint
+        : 22;
+    const difficulty = getGameDifficulty(state.meta?.difficulty);
+    const weights = chartWeightsForGlobal();
+    (state.releaseQueue || []).forEach((entry) => {
+        if (!entry || !Number.isFinite(entry.releaseAt))
+            return;
+        if (entry.releaseAt <= now || entry.releaseAt > endEpoch)
+            return;
+        const track = getTrack(entry.trackId);
+        if (!track)
+            return;
+        const projectedAt = entry.releaseAt;
+        let projected = projectedCache.get(projectedAt);
+        if (!projected) {
+            projected = buildProjectedMarketTracks(projectedAt);
+            projectedCache.set(projectedAt, projected);
+        }
+        const projectedTrack = projected.find((item) => item.trackId === track.id) || null;
+        if (!projectedTrack)
+            return;
+        const score = projectedGlobalScoreForTrack(projectedTrack, projectedAt);
+        const metrics = buildChartMetrics(score, weights);
+        const revenue = Math.round(Math.max(0, score) * revenueRate * difficulty.revenueMult);
+        const economy = ensureTrackEconomy(track);
+        const costs = Math.round(Math.max(0, economy?.productionCost || 0)
+            + Math.max(0, economy?.distributionFees || 0)
+            + Math.max(0, economy?.promoCost || 0));
+        const net = Math.round(revenue - costs);
+        release.items.push({
+            trackId: track.id,
+            title: track.title,
+            projectName: track.projectName || `${track.title} - Single`,
+            projectType: normalizeProjectType(track.projectType || "Single"),
+            releaseAt: projectedAt,
+            distribution: entry.distribution || track.distribution || "Digital",
+            score,
+            metrics,
+            revenue,
+            costs,
+            net
+        });
+        release.count += 1;
+        release.revenue += revenue;
+        release.costs += costs;
+        release.net += net;
+    });
+    listTourBookings().forEach((booking) => {
+        if (!booking || booking.status !== "Booked")
+            return;
+        if (!Number.isFinite(booking.scheduledAt))
+            return;
+        if (booking.scheduledAt <= now || booking.scheduledAt > endEpoch)
+            return;
+        const projection = booking.projection || {};
+        const revenue = Math.round(Number(projection.revenue || 0));
+        const costs = Math.round(Number(projection.costs || 0));
+        const net = Math.round(Number(projection.profit || revenue - costs));
+        touring.items.push({
+            id: booking.id,
+            tourId: booking.tourId || null,
+            actId: booking.actId || null,
+            actName: booking.actName || "Unknown",
+            scheduledAt: booking.scheduledAt,
+            revenue,
+            costs,
+            net
+        });
+        touring.count += 1;
+        touring.revenue += revenue;
+        touring.costs += costs;
+        touring.net += net;
+    });
+    return {
+        horizonWeeks: safeWeeks,
+        startEpoch: now,
+        endEpoch,
+        release,
+        touring,
+        net: release.net + touring.net,
+        balanceEnabled: touringBalanceEnabled()
+    };
+}
+function computeLabelKpiSnapshot({ labelScores = null, horizonWeeks = LABEL_KPI_PROJECTION_WEEKS } = {}) {
+    const scores = labelScores && typeof labelScores === "object" ? { ...labelScores } : computeLabelScoresFromCharts();
+    const labels = collectKnownLabelNames();
+    labels.forEach((label) => {
+        if (!Number.isFinite(scores[label]))
+            scores[label] = 0;
+    });
+    const ranking = Object.entries(scores).sort((a, b) => {
+        const diff = b[1] - a[1];
+        if (diff !== 0)
+            return diff;
+        return String(a[0]).localeCompare(String(b[0]));
+    });
+    const rankByLabel = {};
+    ranking.forEach((entry, index) => {
+        rankByLabel[entry[0]] = index + 1;
+    });
+    const shareMap = state.meta?.labelShare || computeLabelShares(scores, { smoothing: 1 }).shares;
+    const consumption = computeLabelConsumptionShares();
+    const netSummary = computePlayerLabelNetSummary();
+    const netByLabel = {};
+    if (netSummary.label)
+        netByLabel[netSummary.label] = netSummary.net;
+    const labelsSnapshot = {};
+    labels.forEach((label) => {
+        const consumptionTotals = consumption.labels[label] || emptyConsumptionTotals();
+        labelsSnapshot[label] = {
+            rank: rankByLabel[label] || null,
+            points: Math.round(scores[label] || 0),
+            share: Number.isFinite(shareMap?.[label]) ? shareMap[label] : 0,
+            consumptionShare: consumption.shares[label] || 0,
+            consumption: {
+                sales: Math.round(consumptionTotals.sales || 0),
+                streaming: Math.round(consumptionTotals.streaming || 0),
+                airplay: Math.round(consumptionTotals.airplay || 0),
+                social: Math.round(consumptionTotals.social || 0),
+                total: Math.round(consumptionTotals.total || 0)
+            },
+            net: Number.isFinite(netByLabel[label]) ? Math.round(netByLabel[label]) : null
+        };
+    });
+    return {
+        updatedWeek: weekIndex() + 1,
+        updatedAt: state.time?.epochMs || Date.now(),
+        labels: labelsSnapshot,
+        ranking: ranking.map(([label, points]) => ({
+            label,
+            points: Math.round(points || 0),
+            rank: rankByLabel[label] || null
+        })),
+        consumption: {
+            totals: {
+                sales: Math.round(consumption.totals.sales || 0),
+                streaming: Math.round(consumption.totals.streaming || 0),
+                airplay: Math.round(consumption.totals.airplay || 0),
+                social: Math.round(consumption.totals.social || 0),
+                total: Math.round(consumption.totals.total || 0)
+            },
+            weights: consumption.weights,
+            shares: consumption.shares
+        },
+        netSummary,
+        projections: computeLabelProjectionSummary({ horizonWeeks }),
+        profitability: {
+            eras: computeEraProfitabilitySummaries(),
+            projects: computeProjectProfitabilitySummaries()
+        }
+    };
+}
+function ensureLabelMetricsStore() {
+    if (!state.meta)
+        state.meta = makeDefaultState().meta;
+    if (!state.meta.labelMetrics || typeof state.meta.labelMetrics !== "object") {
+        state.meta.labelMetrics = {
+            updatedWeek: null,
+            updatedAt: null,
+            labels: {},
+            ranking: [],
+            consumption: {},
+            netSummary: {},
+            projections: {},
+            profitability: { eras: {}, projects: {} }
+        };
+    }
+    const store = state.meta.labelMetrics;
+    if (typeof store.updatedWeek !== "number")
+        store.updatedWeek = null;
+    if (typeof store.updatedAt !== "number")
+        store.updatedAt = null;
+    if (!store.labels || typeof store.labels !== "object")
+        store.labels = {};
+    if (!Array.isArray(store.ranking))
+        store.ranking = [];
+    if (!store.consumption || typeof store.consumption !== "object")
+        store.consumption = {};
+    if (!store.netSummary || typeof store.netSummary !== "object")
+        store.netSummary = {};
+    if (!store.projections || typeof store.projections !== "object")
+        store.projections = {};
+    if (!store.profitability || typeof store.profitability !== "object") {
+        store.profitability = { eras: {}, projects: {} };
+    }
+    if (!store.profitability.eras || typeof store.profitability.eras !== "object")
+        store.profitability.eras = {};
+    if (!store.profitability.projects || typeof store.profitability.projects !== "object")
+        store.profitability.projects = {};
+    return store;
+}
+function refreshLabelMetrics({ labelScores = null, horizonWeeks = LABEL_KPI_PROJECTION_WEEKS } = {}) {
+    const snapshot = computeLabelKpiSnapshot({ labelScores, horizonWeeks });
+    const store = ensureLabelMetricsStore();
+    store.updatedWeek = snapshot.updatedWeek;
+    store.updatedAt = snapshot.updatedAt;
+    store.labels = snapshot.labels;
+    store.ranking = snapshot.ranking;
+    store.consumption = snapshot.consumption;
+    store.netSummary = snapshot.netSummary;
+    store.projections = snapshot.projections;
+    store.profitability = snapshot.profitability;
+    return store;
+}
 function resolvePromoTypesUsed(target) {
     if (!target || typeof target !== "object")
         return null;
@@ -10013,20 +10551,21 @@ function buildTourWarnings({ actId, venue, scheduledAt, projection, draftId }) {
     if (leadWeeks > TOUR_LEAD_MAX_WEEKS) {
         warnings.push({ code: "TOUR_LEAD_LONG", message: "Lead time above 6 weeks." });
     }
+    const draftBookings = listTourBookings({ tourId: draftId, actId });
     const weekNumber = weekIndexForEpochMs(scheduledAt) + 1;
-    const sameWeek = listTourBookings({ tourId: draftId, actId })
+    const sameWeek = draftBookings
         .filter((booking) => weekIndexForEpochMs(booking.scheduledAt) + 1 === weekNumber);
     if (sameWeek.length >= TOUR_WEEKLY_MAX_DATES) {
         warnings.push({ code: "TOUR_WEEKLY_CAP", message: "More than 2 dates scheduled in the same week." });
     }
     const dayKey = tourDayKey(scheduledAt);
-    const neighbors = listTourBookings({ tourId: draftId, actId })
+    const neighbors = draftBookings
         .filter((booking) => Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_REST_DAY_MIN);
     if (neighbors.length) {
         warnings.push({ code: "TOUR_REST_DAY", message: "Less than 1 rest day between tour dates." });
     }
     const venueRegion = venue?.regionId || null;
-    const travelConflicts = listTourBookings({ tourId: draftId, actId })
+    const travelConflicts = draftBookings
         .filter((booking) => booking?.regionId && venueRegion && booking.regionId !== venueRegion)
         .filter((booking) => Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_TRAVEL_BUFFER_MIN);
     if (travelConflicts.length) {
@@ -10035,6 +10574,45 @@ function buildTourWarnings({ actId, venue, scheduledAt, projection, draftId }) {
     const cooldown = resolveTourCooldownGap({ actId, draftId, scheduledAt });
     if (cooldown && cooldown.gapWeeks < TOUR_COOLDOWN_MIN_WEEKS) {
         warnings.push({ code: "TOUR_COOLDOWN", message: `Less than ${TOUR_COOLDOWN_MIN_WEEKS} weeks between tours.` });
+    }
+    const act = actId ? getAct(actId) : null;
+    const crew = act?.memberIds?.map((id) => getCreator(id)).filter(Boolean) || [];
+    if (crew.length) {
+        const perDateCost = estimateTourDateStaminaShare(crew.length);
+        const overuse = assessTourCrewOveruseRisk(crew, perDateCost);
+        if (overuse.riskLevel > 0) {
+            const atRisk = overuse.entries.filter((entry) => entry.overuseRisk > 0);
+            const names = atRisk.map((entry) => entry.creator?.name || "Unknown").filter(Boolean);
+            const list = names.slice(0, 3).join(", ");
+            const suffix = names.length > 3 ? ` +${names.length - 3}` : "";
+            const maxProjected = atRisk.reduce((max, entry) => Math.max(max, entry.projected || 0), 0);
+            warnings.push({
+                code: "TOUR_OVERUSE_RISK",
+                message: `Overuse risk: ${list}${suffix} near daily limit (proj ${formatCount(maxProjected)}/${STAMINA_OVERUSE_LIMIT}).`
+            });
+        }
+        const dayKeys = draftBookings.map((booking) => tourDayKey(booking.scheduledAt)).filter(Number.isFinite);
+        const streak = countTourConsecutiveRun(dayKeys, dayKey);
+        if (streak > 1) {
+            const estimates = crew.map((creator) => ({
+                creator,
+                maxDates: estimateCreatorMaxConsecutiveTourDates(creator, crew.length)
+            }));
+            const minEstimate = estimates.reduce((min, entry) => Math.min(min, entry.maxDates), estimates[0]?.maxDates ?? 0);
+            const atRisk = estimates.filter((entry) => streak > entry.maxDates);
+            if (minEstimate <= 0 || atRisk.length) {
+                const names = atRisk.map((entry) => entry.creator?.name || "Unknown").filter(Boolean);
+                const list = names.slice(0, 3).join(", ");
+                const suffix = names.length > 3 ? ` +${names.length - 3}` : "";
+                const estimateLabel = Number.isFinite(minEstimate) && minEstimate > 0 ? ` (est. cap ${minEstimate})` : "";
+                warnings.push({
+                    code: "TOUR_FATIGUE_RISK",
+                    message: names.length
+                        ? `Projected fatigue: ${list}${suffix} may not sustain a ${streak}-date streak${estimateLabel}.`
+                        : `Projected fatigue: ${streak}-date streak exceeds crew stamina${estimateLabel}.`
+                });
+            }
+        }
     }
     return warnings;
 }
@@ -10193,6 +10771,14 @@ function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
         anchor: anchor.primary
     });
     const warnings = buildTourWarnings({ actId: act.id, venue, scheduledAt, projection, draftId: draft.id });
+    const fatigueWarning = warnings.find((warn) => warn?.code === "TOUR_FATIGUE_RISK");
+    if (fatigueWarning) {
+        logEvent(`Tour fatigue risk (${draft.id}): ${act.name}. ${fatigueWarning.message}`, "warn");
+    }
+    const overuseWarning = warnings.find((warn) => warn?.code === "TOUR_OVERUSE_RISK");
+    if (overuseWarning) {
+        logEvent(`Tour overuse risk (${draft.id}): ${act.name}. ${overuseWarning.message}`, "warn");
+    }
     const booking = {
         id: uid("TB"),
         tourId: draft.id,
@@ -14045,13 +14631,159 @@ function estimateRivalOperatingCost(rival, reserveCash = 0) {
     const leased = clamp(Math.min(desiredLeased, maxLeased), 0, desiredLeased);
     return leased * costPerSlotWeek;
 }
+function summarizeHuskCadence(husk) {
+    const steps = normalizeHuskCadence(husk?.cadence);
+    const releaseSteps = steps.filter((step) => step.kind === "release").length;
+    const promoSteps = steps.filter((step) => step.kind === "promo").length;
+    const tourSteps = steps.filter((step) => step.kind === "promo" && step.promoType === "livePerformance").length;
+    const windowWeeks = huskWindowWeeks(husk);
+    return { steps, releaseSteps, promoSteps, tourSteps, windowWeeks };
+}
+function rivalWeeklyNet(rival) {
+    const revenue = Number.isFinite(rival?.economy?.lastRevenue) ? rival.economy.lastRevenue : 0;
+    const upkeep = Number.isFinite(rival?.economy?.lastUpkeep) ? rival.economy.lastUpkeep : 0;
+    return Math.round(revenue - upkeep);
+}
+function projectRivalNet(rival, weeks = 1) {
+    const safeWeeks = Number.isFinite(weeks) ? Math.max(1, Math.round(weeks)) : 1;
+    return rivalWeeklyNet(rival) * safeWeeks;
+}
+function buildRivalPlanWindowStats(rival, husk, options = {}) {
+    const cadence = summarizeHuskCadence(husk);
+    const walletCash = rival?.wallet?.cash ?? rival?.cash ?? 0;
+    const projectedNet = projectRivalNet(rival, cadence.windowWeeks || 1);
+    const projectedCash = walletCash + projectedNet;
+    const promoBudget = estimateHuskPromoBudget(husk, walletCash);
+    const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
+    const promoReserve = Number.isFinite(promoBudget) ? promoBudget : 0;
+    const cashReserve = RIVAL_COMPETE_CASH_BUFFER + releaseCost + promoReserve;
+    const operatingCost = estimateRivalOperatingCost(rival, cashReserve);
+    const availableCash = Math.max(0, projectedCash - operatingCost);
+    return {
+        cadence,
+        walletCash,
+        projectedNet,
+        projectedCash,
+        promoBudget,
+        releaseCost,
+        cashReserve,
+        operatingCost,
+        availableCash
+    };
+}
+function summarizeRivalStamina(rival) {
+    const creators = Array.isArray(rival?.creators) ? rival.creators : [];
+    const totalStamina = creators.reduce((sum, creator) => sum + clampStamina(creator?.stamina ?? 0), 0);
+    const avgRatio = creators.length ? totalStamina / (creators.length * STAMINA_MAX) : 0;
+    return { totalStamina, avgRatio, count: creators.length };
+}
+function resolveRivalActionWeights(rival) {
+    const focus = rival?.achievementFocus || "";
+    if (["REQ-01", "REQ-02", "REQ-03", "REQ-04", "REQ-05", "REQ-06"].includes(focus)) {
+        return { release: 1.25, promo: 0.95, tour: 0.9, label: "release focus" };
+    }
+    if (["REQ-07", "REQ-08", "REQ-09"].includes(focus)) {
+        return { release: 0.95, promo: 1.3, tour: 0.9, label: "promo focus" };
+    }
+    if (["REQ-10", "REQ-11", "REQ-12"].includes(focus)) {
+        return { release: 0.9, promo: 0.95, tour: 1.35, label: "tour focus" };
+    }
+    return { release: 1, promo: 1, tour: 1, label: "balanced" };
+}
+function scoreHuskActionBias(husk, actionWeights, cadence = null) {
+    const summary = cadence || summarizeHuskCadence(husk);
+    const totalSteps = summary.releaseSteps + summary.promoSteps;
+    if (!totalSteps)
+        return { score: 0.5, summary };
+    const tourSteps = summary.tourSteps || 0;
+    const promoSteps = Math.max(0, summary.promoSteps - tourSteps);
+    const weighted = summary.releaseSteps * (actionWeights.release - 1)
+        + promoSteps * (actionWeights.promo - 1)
+        + tourSteps * (actionWeights.tour - 1);
+    const score = clamp(0.5 + weighted / Math.max(1, totalSteps), 0, 1);
+    return { score, summary };
+}
+function formatPlanBlockers(blockers) {
+    if (!Array.isArray(blockers) || !blockers.length)
+        return "";
+    const seen = new Set();
+    const formatted = [];
+    blockers.forEach((blocker) => {
+        const kind = blocker?.kind || "block";
+        const reason = blocker?.reason || "blocked";
+        const key = `${kind}:${reason}`;
+        if (seen.has(key))
+            return;
+        seen.add(key);
+        formatted.push(`${kind}: ${reason}`);
+    });
+    return formatted.join(" | ");
+}
+function formatRivalPlanWhy({ trendScore, alignmentScore, budgetScore, actionScore, finance, actionWeights }) {
+    const parts = [];
+    if (Number.isFinite(trendScore))
+        parts.push(`trend ${Math.round(trendScore * 100)}%`);
+    if (Number.isFinite(alignmentScore))
+        parts.push(`alignment ${Math.round(alignmentScore * 100)}%`);
+    if (Number.isFinite(budgetScore))
+        parts.push(`budget ${Math.round(budgetScore * 100)}%`);
+    if (Number.isFinite(actionScore))
+        parts.push(`action ${Math.round(actionScore * 100)}%`);
+    if (finance && Number.isFinite(finance.projectedNet)) {
+        const windowWeeks = finance.cadence?.windowWeeks || 1;
+        parts.push(`net ${formatMoney(finance.projectedNet)} / ${windowWeeks}w`);
+    }
+    if (actionWeights?.label)
+        parts.push(actionWeights.label);
+    return parts.length ? `why: ${parts.join(", ")}` : "why: planning score";
+}
+function isRivalCompetitiveEligible(rival, husk, options = {}) {
+    if (!rival || !husk) {
+        return { ok: false, blockers: [{ kind: "budget", reason: "missing rival or plan." }], cadence: summarizeHuskCadence(husk) };
+    }
+    const finance = buildRivalPlanWindowStats(rival, husk, options);
+    const cadence = finance.cadence;
+    const blockers = [];
+    if (finance.promoBudget === Number.POSITIVE_INFINITY) {
+        blockers.push({ kind: "budget", reason: "promo budget unavailable." });
+    }
+    if (finance.availableCash < finance.cashReserve) {
+        blockers.push({
+            kind: "budget",
+            reason: `cash reserve ${formatMoney(finance.cashReserve)} exceeds projected cash ${formatMoney(finance.availableCash)}.`
+        });
+    }
+    const crewCap = rivalReleaseCrewCapacity(rival);
+    if (!crewCap) {
+        blockers.push({ kind: "capacity", reason: "no release crew capacity." });
+    }
+    const staminaStats = summarizeRivalStamina(rival);
+    const promoStaminaNeed = cadence.promoSteps * ACTIVITY_STAMINA_PROMO;
+    const staminaOk = promoStaminaNeed <= 0 || staminaStats.totalStamina >= promoStaminaNeed;
+    if (!staminaOk && cadence.promoSteps > 0) {
+        blockers.push({
+            kind: "stamina",
+            reason: `promo stamina ${formatCount(promoStaminaNeed)} exceeds roster stamina ${formatCount(staminaStats.totalStamina)}.`
+        });
+    }
+    const ok = blockers.length === 0 || blockers.every((blocker) => blocker.kind !== "budget" && blocker.kind !== "capacity");
+    return {
+        ok,
+        blockers,
+        cadence,
+        finance,
+        crewCap,
+        stamina: staminaStats,
+        promoStaminaNeed,
+        promoAllowed: ok && staminaOk
+    };
+}
 function scoreHuskForRival(husk, rival, trends) {
     const context = normalizeHuskContext(husk);
-    const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
-    const budgetCost = estimateHuskPromoBudget(husk, walletCash);
-    const reserveCash = Number.isFinite(budgetCost) ? budgetCost + RIVAL_COMPETE_DROP_COST : 0;
-    const operatingCost = estimateRivalOperatingCost(rival, reserveCash);
-    const availableCash = Math.max(0, walletCash - operatingCost);
+    const eligibility = isRivalCompetitiveEligible(rival, husk);
+    const finance = eligibility.finance || buildRivalPlanWindowStats(rival, husk);
+    const budgetCost = finance.promoBudget;
+    const availableCash = finance.availableCash;
     const trendList = Array.isArray(trends) ? trends : [];
     const history = trendList.length ? getTrendRankHistory() : [];
     let trendScore = 0.35;
@@ -14074,24 +14806,38 @@ function scoreHuskForRival(husk, rival, trends) {
     if (context.alignmentTags.length) {
         alignmentScore = context.alignmentTags.includes(rival.alignment) ? 1 : 0;
     }
+    const actionWeights = resolveRivalActionWeights(rival);
+    const actionBias = scoreHuskActionBias(husk, actionWeights, finance.cadence);
+    const actionScore = actionBias.score;
     const budgetScore = budgetCost === 0
         ? 1
         : budgetCost === Number.POSITIVE_INFINITY
             ? 0
             : clamp(availableCash / budgetCost, 0, 1);
     const outcomeScore = clamp(context.outcomeScore / 100, 0, 1);
-    const score = trendScore * 40 + alignmentScore * 30 + budgetScore * 20 + outcomeScore * 10;
-    const eligible = budgetCost === 0 || budgetCost <= availableCash;
-    return { score, eligible, budgetCost, availableCash, operatingCost };
+    const score = trendScore * 35 + alignmentScore * 25 + budgetScore * 20 + actionScore * 10 + outcomeScore * 10;
+    const eligible = eligibility.ok;
+    const why = formatRivalPlanWhy({ trendScore, alignmentScore, budgetScore, actionScore, finance, actionWeights });
+    return {
+        score,
+        eligible,
+        budgetCost,
+        availableCash,
+        operatingCost: finance.operatingCost,
+        why,
+        actionWeights,
+        cadence: finance.cadence,
+        blockers: eligibility.blockers
+    };
 }
 function selectHuskForRival(rival, husks) {
     const trendList = Array.isArray(state.trends) ? state.trends : [];
     const currentWeek = weekIndex();
     const scored = husks.map((husk) => {
-        const { score, eligible } = scoreHuskForRival(husk, rival, trendList);
+        const scoredHusk = scoreHuskForRival(husk, rival, trendList);
         const seed = makeStableSeed([currentWeek, rival.id, husk.id]);
         const rng = makeSeededRng(seed);
-        return { husk, score, eligible, jitter: rng() * 0.01 };
+        return { husk, jitter: rng() * 0.01, ...scoredHusk };
     });
     const eligible = scored.filter((entry) => entry.eligible);
     if (!eligible.length)
@@ -14101,7 +14847,7 @@ function selectHuskForRival(rival, husks) {
             return b.score - a.score;
         return b.jitter - a.jitter;
     });
-    return eligible[0].husk;
+    return eligible[0];
 }
 function huskWindowWeeks(husk) {
     const steps = normalizeHuskCadence(husk?.cadence);
@@ -14125,18 +14871,6 @@ function applyRivalHuskFocus(rival, husk) {
         rival.focusMoods = [];
     rival.focusThemes = uniqueList([...rival.focusThemes, ...themes]).slice(-4);
     rival.focusMoods = uniqueList([...rival.focusMoods, ...moods]).slice(-4);
-}
-function isRivalCompetitiveEligible(rival, husk) {
-    if (!rival || !husk)
-        return false;
-    const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
-    const promoBudget = estimateHuskPromoBudget(husk, walletCash);
-    if (promoBudget === Number.POSITIVE_INFINITY)
-        return false;
-    const required = RIVAL_COMPETE_CASH_BUFFER + RIVAL_COMPETE_DROP_COST + promoBudget;
-    const operatingCost = estimateRivalOperatingCost(rival, required);
-    const availableCash = Math.max(0, walletCash - operatingCost);
-    return availableCash >= required;
 }
 function getActiveRivalPlan(rival, currentWeekIndex, now = state.time.epochMs) {
     if (!rival?.aiPlan || typeof rival.aiPlan !== "object")
@@ -14315,17 +15049,22 @@ function countScheduledPromoEventsForFacility(facilityId, epochMs) {
 }
 function canScheduleRivalPromoStep(rival, promoType, promoAt, promoBudgetSlots, promoScheduled) {
     if (!rival)
-        return false;
-    if (!Number.isFinite(promoBudgetSlots) || promoBudgetSlots <= promoScheduled)
-        return false;
+        return { ok: false, kind: "capacity", reason: "missing rival." };
+    if (!Number.isFinite(promoBudgetSlots) || promoBudgetSlots <= promoScheduled) {
+        return { ok: false, kind: "budget", reason: "promo budget slots exhausted." };
+    }
     const facilityId = getPromoFacilityForType(promoType);
     if (!facilityId)
-        return true;
+        return { ok: true };
     const capacity = promoFacilityCapacityForEpochMs(facilityId, promoAt);
-    if (capacity <= 0)
-        return false;
+    if (capacity <= 0) {
+        return { ok: false, kind: "facility", reason: `${promoFacilityLabel(facilityId)} has no slots.` };
+    }
     const scheduled = countScheduledPromoEventsForFacility(facilityId, promoAt);
-    return scheduled < capacity;
+    if (scheduled >= capacity) {
+        return { ok: false, kind: "facility", reason: `${promoFacilityLabel(facilityId)} is fully booked.` };
+    }
+    return { ok: true };
 }
 function buildRivalReleaseBudget(rival) {
     const walletCash = rival?.wallet?.cash ?? rival?.cash ?? 0;
@@ -14374,7 +15113,8 @@ function rivalReleaseCrewCapacity(rival) {
 function scheduleHuskForRival(rival, husk, options = {}) {
     if (!husk)
         return null;
-    const steps = normalizeHuskCadence(husk.cadence);
+    const cadence = options.cadence || summarizeHuskCadence(husk);
+    const steps = cadence.steps || normalizeHuskCadence(husk.cadence);
     if (!steps.length)
         return null;
     const now = state.time.epochMs;
@@ -14384,7 +15124,16 @@ function scheduleHuskForRival(rival, husk, options = {}) {
     let promoScheduled = 0;
     const budget = options.budget || null;
     const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
-    const stats = { releases: 0, promos: 0, blockedReason: "" };
+    const stats = { releases: 0, promos: 0, blockedReason: "", blockers: [] };
+    const crewCap = Number.isFinite(options.crewCap) ? options.crewCap : rivalReleaseCrewCapacity(rival);
+    const staminaStats = options.staminaStats || summarizeRivalStamina(rival);
+    let staminaRemaining = Math.max(0, staminaStats.totalStamina);
+    const recordBlocker = (kind, reason) => {
+        const note = reason || "blocked.";
+        stats.blockers.push({ kind, reason: note });
+        if (!stats.blockedReason)
+            stats.blockedReason = note;
+    };
     const planWeek = Number.isFinite(options.planWeek) ? options.planWeek : weekIndex();
     const baseWeekIndex = Number.isFinite(options.startWeekIndex)
         ? options.startWeekIndex
@@ -14392,12 +15141,23 @@ function scheduleHuskForRival(rival, husk, options = {}) {
     const endWeekIndex = Number.isFinite(options.endWeekIndex) ? options.endWeekIndex : null;
     const allowPromo = options.allowPromo !== false;
     const safeBaseWeekIndex = Math.max(baseWeekIndex, getRivalPlanStartWeekIndex(now));
+    let releaseScheduled = 0;
+    let promoBudgetBlocked = false;
+    let promoDisabledLogged = false;
+    if (!crewCap) {
+        recordBlocker("capacity", "no release crew capacity.");
+        return stats;
+    }
     steps.forEach((step, index) => {
         const weekOffset = Number.isFinite(step.weekOffset) ? Math.max(0, step.weekOffset) : 0;
         const targetWeekIndex = safeBaseWeekIndex + weekOffset;
         if (Number.isFinite(endWeekIndex) && targetWeekIndex > endWeekIndex)
             return;
         if (step.kind === "release") {
+            if (releaseScheduled >= crewCap) {
+                recordBlocker("capacity", `release crew capacity ${crewCap} reached.`);
+                return;
+            }
             if (hasRivalQueueEntry(rival.name, "release", targetWeekIndex))
                 return;
             const releaseAt = rolloutReleaseTimestampForWeek(targetWeekIndex + 1);
@@ -14405,10 +15165,10 @@ function scheduleHuskForRival(rival, husk, options = {}) {
                 return;
             const spendResult = spendRivalReleaseBudget(rival, budget, releaseCost);
             if (!spendResult.ok) {
-                if (!stats.blockedReason)
-                    stats.blockedReason = spendResult.reason || "release budget blocked.";
+                const reason = spendResult.reason || "release budget blocked.";
+                recordBlocker("budget", reason);
                 if (budget && !budget.blockedReason)
-                    budget.blockedReason = stats.blockedReason;
+                    budget.blockedReason = reason;
                 return;
             }
             state.rivalReleaseQueue.push(planRivalReleaseEntry({
@@ -14419,10 +15179,20 @@ function scheduleHuskForRival(rival, husk, options = {}) {
                 planWeek
             }));
             stats.releases += 1;
+            releaseScheduled += 1;
             return;
         }
-        if (!allowPromo || !promoBudget)
+        if (!allowPromo || !promoBudget) {
+            if (!promoBudget && !promoBudgetBlocked) {
+                recordBlocker("budget", "promo budget is 0.");
+                promoBudgetBlocked = true;
+            }
+            if (!allowPromo && !promoDisabledLogged && cadence.promoSteps > 0) {
+                recordBlocker("stamina", "promo scheduling disabled by gate.");
+                promoDisabledLogged = true;
+            }
             return;
+        }
         if (hasRivalQueueEntry(rival.name, "promo", targetWeekIndex))
             return;
         const weekStart = weekStartEpochMs(targetWeekIndex + 1);
@@ -14430,7 +15200,13 @@ function scheduleHuskForRival(rival, husk, options = {}) {
         while (promoAt <= now) {
             promoAt += WEEK_HOURS * HOUR_MS;
         }
-        if (!canScheduleRivalPromoStep(rival, step.promoType || HUSK_PROMO_DEFAULT_TYPE, promoAt, promoBudgetSlots, promoScheduled)) {
+        if (staminaRemaining < ACTIVITY_STAMINA_PROMO) {
+            recordBlocker("stamina", "stamina capacity reached for promos.");
+            return;
+        }
+        const promoCheck = canScheduleRivalPromoStep(rival, step.promoType || HUSK_PROMO_DEFAULT_TYPE, promoAt, promoBudgetSlots, promoScheduled);
+        if (!promoCheck.ok) {
+            recordBlocker(promoCheck.kind || "facility", promoCheck.reason || "promo schedule blocked.");
             return;
         }
         state.rivalReleaseQueue.push(planRivalPromoEntry({
@@ -14442,6 +15218,7 @@ function scheduleHuskForRival(rival, husk, options = {}) {
             promoType: step.promoType || HUSK_PROMO_DEFAULT_TYPE
         }));
         promoScheduled += 1;
+        staminaRemaining = Math.max(0, staminaRemaining - ACTIVITY_STAMINA_PROMO);
         stats.promos += 1;
     });
     return stats;
@@ -14612,6 +15389,7 @@ function generateRivalReleases() {
             return;
         plannedThisWeek = true;
         let husk = null;
+        let huskSelection = null;
         let planWeekIndex = null;
         let planEndWeekIndex = null;
         const activePlan = getActiveRivalPlan(rival, currentWeek);
@@ -14621,17 +15399,21 @@ function generateRivalReleases() {
             planEndWeekIndex = activePlan.windowEndWeekIndex;
         }
         if (!husk) {
-            husk = selectHuskForRival(rival, huskLibrary) || fallbackHusk;
+            huskSelection = selectHuskForRival(rival, huskLibrary);
+            husk = huskSelection?.husk || fallbackHusk;
         }
         if (!husk) {
             rival.aiPlan.competitive = false;
             rival.aiPlan.lastPlannedWeek = currentWeek;
             rival.aiPlan.lastPlannedAt = state.time.epochMs;
+            logEvent(`${rival.name} rollout idle (why: no eligible plans met gates).`, "warn");
             return;
         }
         applyRivalHuskFocus(rival, husk);
-        const eligible = isRivalCompetitiveEligible(rival, husk);
-        if (!eligible) {
+        const eligibility = isRivalCompetitiveEligible(rival, husk, { releaseCost: RIVAL_COMPETE_DROP_COST });
+        if (!eligibility.ok) {
+            const blockers = formatPlanBlockers(eligibility.blockers);
+            const reason = blockers ? `why: ${blockers}` : "why: planning gates not met.";
             rival.aiPlan.competitive = false;
             rival.aiPlan.activeHuskId = null;
             rival.aiPlan.huskSource = null;
@@ -14640,18 +15422,21 @@ function generateRivalReleases() {
             rival.aiPlan.lastPlannedWeek = currentWeek;
             rival.aiPlan.lastHuskId = husk.id;
             rival.aiPlan.lastPlannedAt = state.time.epochMs;
+            logEvent(`${rival.name} rollout blocked (${reason})`, "warn");
             return;
         }
         eligibleCount += 1;
         if (!activePlan || !activePlan.activeHuskId || activePlan.activeHuskId !== husk.id) {
             const startWeekIndex = getRivalPlanStartWeekIndex(state.time.epochMs);
-            const windowWeeks = huskWindowWeeks(husk);
+            const windowWeeks = eligibility.cadence?.windowWeeks || huskWindowWeeks(husk);
             planWeekIndex = startWeekIndex;
             planEndWeekIndex = startWeekIndex + windowWeeks - 1;
             rival.aiPlan.activeHuskId = husk.id;
             rival.aiPlan.huskSource = husk.source;
             rival.aiPlan.windowStartWeekIndex = planWeekIndex;
             rival.aiPlan.windowEndWeekIndex = planEndWeekIndex;
+            const planWhy = huskSelection?.why || `why: selected ${husk.label || husk.id}.`;
+            logEvent(`${rival.name} rollout plan: ${husk.label || husk.id} (${planWhy})`);
         }
         rival.aiPlan.competitive = true;
         rival.aiPlan.lastPlannedWeek = currentWeek;
@@ -14666,12 +15451,17 @@ function generateRivalReleases() {
             planWeek,
             startWeekIndex,
             endWeekIndex: planEndWeekIndex,
-            allowPromo: eligible,
+            allowPromo: eligibility.promoAllowed,
             budget,
-            releaseCost: RIVAL_COMPETE_DROP_COST
+            releaseCost: RIVAL_COMPETE_DROP_COST,
+            cadence: eligibility.cadence,
+            crewCap: eligibility.crewCap,
+            staminaStats: eligibility.stamina
         });
         if (scheduleStats?.blockedReason && !scheduleStats.releases && rival.aiPlan.competitive) {
-            logEvent(`${rival.name} release plan paused: ${scheduleStats.blockedReason}`, "warn");
+            const blockers = formatPlanBlockers(scheduleStats.blockers);
+            const reason = blockers ? `why: ${blockers}` : `why: ${scheduleStats.blockedReason}`;
+            logEvent(`${rival.name} release plan paused (${reason})`, "warn");
         }
         if (shouldRivalPursueMonopoly(rival)) {
             const priorWeek = rival.aiPlan.dominanceWeekIndex;
@@ -14699,7 +15489,7 @@ function generateRivalReleases() {
         }
     });
     if (plannedThisWeek && eligibleCount === 0) {
-        logEvent("Rival rollout skipped: no labels passed the budget gate this week.", "warn");
+        logEvent("Rival rollout skipped (why: no labels passed the budget gate this week).", "warn");
     }
 }
 function collectRivalProjectMarkets(rival, anchorMarket) {
@@ -15503,6 +16293,7 @@ function weeklyUpdate() {
     updateRivalEconomy(globalScores);
     recordTrendLedgerSnapshot(globalScores);
     updateEconomy(globalScores);
+    refreshLabelMetrics({ labelScores });
     updateActPopularityLedger();
     updateAnnualAwardLedger();
     awardExp(Math.min(300, Math.round(state.economy.lastRevenue / 500)), null, true);
@@ -21389,7 +22180,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

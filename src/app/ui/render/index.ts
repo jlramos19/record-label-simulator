@@ -45,6 +45,8 @@ import {
   computePopulationSnapshot,
   computeTourDraftSummary,
   computeTourProjection,
+  estimateCreatorMaxConsecutiveTourDates,
+  estimateTourDateStaminaShare,
   countryColor,
   countryDemonym,
   creatorInitials,
@@ -6192,6 +6194,8 @@ function renderTouringDesk() {
 
   const summaryList = $("tourBudgetSummary");
   const warningList = $("tourWarningList");
+  const crewSummaryList = $("tourCrewSummary");
+  const crewStaminaList = $("tourCrewStaminaList");
   if (summaryList) {
     if (!draft) {
       summaryList.innerHTML = `<div class="muted">Select a tour draft to see projections.</div>`;
@@ -6211,6 +6215,136 @@ function renderTouringDesk() {
             <div class="muted">Revenue ${formatMoney(summary.revenue)} | Costs ${formatMoney(summary.costs)} | Profit ${formatMoney(summary.profit)}</div>
           </div>
         `;
+      }
+    }
+  }
+  if (crewSummaryList || crewStaminaList) {
+    if (!draft) {
+      const message = `<div class="muted">Select a tour draft to see crew readiness.</div>`;
+      if (crewSummaryList) crewSummaryList.innerHTML = message;
+      if (crewStaminaList) crewStaminaList.innerHTML = message;
+    } else if (!act) {
+      const message = `<div class="muted">Assign an Act to view crew readiness.</div>`;
+      if (crewSummaryList) crewSummaryList.innerHTML = message;
+      if (crewStaminaList) crewStaminaList.innerHTML = message;
+    } else {
+      const crew = (act.memberIds || []).map((id) => getCreator(id)).filter(Boolean);
+      if (!crew.length) {
+        const message = `<div class="muted">No crew assigned for this Act yet.</div>`;
+        if (crewSummaryList) crewSummaryList.innerHTML = message;
+        if (crewStaminaList) crewStaminaList.innerHTML = message;
+      } else {
+        const crewCount = crew.length;
+        const perDateCost = estimateTourDateStaminaShare(crewCount);
+        const projectedCost = Math.max(1, Math.ceil(perDateCost || 0));
+        const now = state.time?.epochMs || Date.now();
+        const upcomingBookings = listTourBookings({ tourId: draft.id })
+          .filter((booking) => booking?.status !== "Completed" && Number.isFinite(booking?.scheduledAt))
+          .filter((booking) => booking.scheduledAt >= now);
+        const upcomingDates = upcomingBookings.length;
+        const avgSkill = crew.reduce((sum, creator) => sum + Number(creator.skill || 0), 0) / crewCount;
+        const avgCatharsis = crew.reduce((sum, creator) => sum + getCreatorCatharsisScore(creator), 0) / crewCount;
+        const avgStamina = crew.reduce((sum, creator) => sum + Number(creator.stamina || 0), 0) / crewCount;
+        const avgStaminaPct = STAMINA_MAX ? clamp(avgStamina / STAMINA_MAX, 0, 1) : 0;
+        const avgSkillPct = SKILL_MAX ? clamp(avgSkill / SKILL_MAX, 0, 1) : 0;
+        const maxDates = crew.map((creator) => estimateCreatorMaxConsecutiveTourDates(creator, crewCount));
+        const minMaxDates = maxDates.length ? Math.min(...maxDates) : 0;
+        const avgMaxDates = maxDates.length
+          ? maxDates.reduce((sum, value) => sum + value, 0) / maxDates.length
+          : 0;
+        const projectedSpend = Math.max(0, Math.round(perDateCost * upcomingDates));
+        const projectedFatigue = avgStamina > 0 ? Math.round((projectedSpend / avgStamina) * 100) : 0;
+        const overuseEntries = crew.map((creator) => {
+          const spent = getCreatorStaminaSpentToday(creator);
+          const projected = spent + projectedCost;
+          const risk = STAMINA_OVERUSE_LIMIT > 0
+            ? projected > STAMINA_OVERUSE_LIMIT
+              ? 2
+              : projected >= STAMINA_OVERUSE_LIMIT * 0.75
+                ? 1
+                : 0
+            : 0;
+          return { creator, spent, projected, risk };
+        });
+        const overuseRiskCount = overuseEntries.filter((entry) => entry.risk > 0).length;
+        const readiness = (() => {
+          if (upcomingDates && minMaxDates > 0 && upcomingDates > minMaxDates) {
+            return { label: "Overbooked", className: "badge danger" };
+          }
+          if (avgStaminaPct < 0.35 || avgSkillPct < 0.45) {
+            return { label: "Strained", className: "badge warn" };
+          }
+          if (upcomingDates > 0 && (avgStaminaPct < 0.55 || avgSkillPct < 0.55)) {
+            return { label: "Warming", className: "badge warn" };
+          }
+          return { label: "Ready", className: "badge" };
+        })();
+
+        if (crewSummaryList) {
+          const upcomingLabel = upcomingDates
+            ? `${formatCount(upcomingDates)} upcoming date${upcomingDates === 1 ? "" : "s"}`
+            : "No upcoming dates";
+          const staminaLabel = STAMINA_MAX
+            ? `${formatCount(Math.round(avgStamina))} / ${STAMINA_MAX}`
+            : formatCount(Math.round(avgStamina));
+          const skillLabel = formatCount(Math.round(avgSkill));
+          const catharsisLabel = formatCount(Math.round(avgCatharsis));
+          const streakLabel = minMaxDates > 0
+            ? `Min streak ${formatCount(minMaxDates)} dates | Avg streak ${formatCount(Math.round(avgMaxDates))}`
+            : "Streak estimate unavailable";
+          const fatigueLabel = upcomingDates
+            ? `Projected fatigue ${formatCount(projectedSpend)} stamina (~${projectedFatigue}% avg)`
+            : "Projected fatigue -";
+          const overuseLabel = overuseRiskCount
+            ? `Overuse risk ${formatCount(overuseRiskCount)} crew near daily limit`
+            : "Overuse risk none";
+          crewSummaryList.innerHTML = `
+            <div class="list-item">
+              <div class="list-row">
+                <div>
+                  <div class="item-title">Tour readiness</div>
+                  <div class="muted">Stamina avg ${staminaLabel} | Skill avg ${skillLabel} | ${upcomingLabel}</div>
+                  <div class="muted">${streakLabel}</div>
+                  <div class="muted">${fatigueLabel} | ${overuseLabel}</div>
+                </div>
+                <div class="${readiness.className}">${readiness.label}</div>
+              </div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Skill + catharsis</div>
+              <div class="muted">Act: ${renderActName(act)} | Skill avg ${skillLabel} | Catharsis avg ${catharsisLabel}</div>
+              <div class="muted">Tour crew: ${formatCount(crewCount)} member${crewCount === 1 ? "" : "s"} | Skill avg ${skillLabel} | Catharsis avg ${catharsisLabel}</div>
+            </div>
+          `;
+        }
+
+        if (crewStaminaList) {
+          crewStaminaList.innerHTML = crew.map((creator) => {
+            const stamina = Number(creator.stamina || 0);
+            const spent = getCreatorStaminaSpentToday(creator);
+            const strikes = creator.overuseStrikes || 0;
+            const maxStreak = estimateCreatorMaxConsecutiveTourDates(creator, crewCount);
+            const entry = overuseEntries.find((item) => item.creator?.id === creator.id);
+            const risk = entry?.risk || 0;
+            const riskBadge = risk === 2
+              ? `<div class="badge danger">Overuse risk</div>`
+              : risk === 1
+                ? `<div class="badge warn">Overuse risk</div>`
+                : "";
+            return `
+              <div class="list-item">
+                <div class="list-row">
+                  <div>
+                    <div class="item-title">${creator.name}</div>
+                    <div class="muted">Stamina ${formatCount(stamina)} / ${STAMINA_MAX} | Spent ${formatCount(spent)} / ${STAMINA_OVERUSE_LIMIT} | Strikes ${formatCount(strikes)}</div>
+                    <div class="muted">Max consecutive dates ${formatCount(maxStreak)}</div>
+                  </div>
+                  ${riskBadge}
+                </div>
+              </div>
+            `;
+          }).join("");
+        }
       }
     }
   }
