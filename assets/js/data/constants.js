@@ -462,6 +462,25 @@ const ECONOMY_TUNING = {
   promoWeeksMax: 4,
   physicalUnitCostMin: 0.5
 };
+const RELEASE_DISTRIBUTION = {
+  digitalLeadWeeks: 1,
+  physicalLeadWeeks: 2,
+  digitalRushFee: 1000,
+  physicalMinQuality: 80,
+  physicalMinFans: 20000,
+  physicalShare: 0.35
+};
+const AUDIENCE_OCCUPATION_SHARES = {
+  factory: 0.02,
+  shopping: 0.025,
+  broadcast: 0.01
+};
+const AUDIENCE_OCCUPATION_MIN_AGE = 16;
+const AUDIENCE_OCCUPATION_MAX_AGE = 70;
+const DISTRIBUTION_CAPACITY = {
+  factoryUnitsPerStaffWeek: 25,
+  storeUnitsPerStaffWeek: 20
+};
 const TOUR_TIER_CONFIG = {
   Club: {
     capacityMin: 500,

@@ -265,7 +265,15 @@ function computeCharts(payload) {
       .slice(0, chartSizes.region);
   });
 
-  return { charts, globalScores };
+  const allScores = { nations: {}, regions: {} };
+  nations.forEach((nation) => {
+    allScores.nations[nation] = Array.isArray(nationScores[nation]) ? nationScores[nation].slice() : [];
+  });
+  regionIds.forEach((regionId) => {
+    allScores.regions[regionId] = Array.isArray(regionScores[regionId]) ? regionScores[regionId].slice() : [];
+  });
+
+  return { charts, globalScores, allScores };
 }
 
 async function persistSnapshots(snapshots) {

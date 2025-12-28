@@ -1,5 +1,13 @@
 # Patch Notes
 
+## 2025-12-28 (RLS-PATCH-20251228-1138Z)
+- Chart history panels now cache snapshot entry lookups and archive market-track maps to cut rerender scans. [PN-20251228-AC84]
+- Release scheduling now enforces distribution lead times, supports digital rush fees, gates physical drops by quality/fan thresholds, and surfaces regional inventory/store capacity on the Release Desk. [PN-20251228-AC85]
+
+## 2025-12-28 (RLS-PATCH-20251228-1126Z)
+- External storage prompts now skip unsupported origins and persist cancel/skip choices to stop re-prompting. [PN-20251228-AC82]
+- Monopoly losses now stay in a soft-loss state (achievements disabled) even after Year 4000 so play can continue. [PN-20251228-AC83]
+
 ## 2025-12-28 (RLS-PATCH-20251228-1028Z)
 - Time control buttons now stack parenthetical speed/skip details under the main label for quicker scanning. [PN-20251228-AC77]
 - Local storage writes now preflight log/settings payloads, warn on quota, and capture storage health diagnostics. [PN-20251228-AC79]
@@ -869,3 +877,7 @@
 - PN-20251228-AC79 (2025-12-28 11:30Z): Local storage writes now preflight log/settings payloads, warn on quota, and capture storage health diagnostics.
 - PN-20251228-AC80 (2025-12-28 11:31Z): Usage sessions now flush on visibility changes and debug bundle exports; external mirror failures keep local copies and log diagnostics.
 - PN-20251228-AC81 (2025-12-28 11:32Z): Chart worker requests now time out and clear pending promises on termination to avoid leaks.
+- PN-20251228-AC82 (2025-12-28 11:26Z): External storage prompts now skip unsupported origins and persist cancel/skip choices to stop re-prompting.
+- PN-20251228-AC83 (2025-12-28 11:26Z): Monopoly losses now stay in a soft-loss state (achievements disabled) even after Year 4000 so play can continue.
+- PN-20251228-AC84 (2025-12-28 11:38Z): Chart history panels now cache snapshot entry lookups and archive market-track maps to cut rerender scans.
+- PN-20251228-AC85 (2025-12-28 12:02Z): Release scheduling now enforces distribution lead times, supports digital rush fees, gates physical drops by quality/fan thresholds, and surfaces regional inventory/store capacity on the Release Desk.

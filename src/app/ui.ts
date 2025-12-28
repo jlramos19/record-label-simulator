@@ -142,9 +142,8 @@ const {
   getMarketTrackById,
   getMarketTrackByTrackId,
   assignTrackAct,
-  releaseTrack,
   scheduleRelease,
-  getReleaseAsapHours,
+  getReleaseAsapAtForDistribution,
   scrapTrack,
   buildMarketCreators,
   injectCheaterMarketCreators,
@@ -388,10 +387,10 @@ function setStoredUiTheme(value) {
   safeSetLocalStorageString(UI_THEME_KEY, value, { context: "UI theme" });
 }
 
-function getExternalStoragePromptState() {
-  if (typeof localStorage === "undefined") return null;
+function readExternalStoragePromptState(storage) {
+  if (!storage) return null;
   try {
-    const raw = localStorage.getItem(EXTERNAL_STORAGE_PROMPT_KEY);
+    const raw = storage.getItem(EXTERNAL_STORAGE_PROMPT_KEY);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch {
@@ -399,7 +398,15 @@ function getExternalStoragePromptState() {
   }
 }
 
+function getExternalStoragePromptState() {
+  const local = typeof localStorage === "undefined" ? null : readExternalStoragePromptState(localStorage);
+  if (local) return local;
+  const sessionStore = typeof sessionStorage === "undefined" ? null : readExternalStoragePromptState(sessionStorage);
+  return sessionStore || null;
+}
+
 function isExternalStoragePromptDismissed() {
+  if (session?.externalStoragePromptDismissed) return true;
   const stored = getExternalStoragePromptState();
   if (!stored) return false;
   if (stored === true) return true;
@@ -408,23 +415,43 @@ function isExternalStoragePromptDismissed() {
 }
 
 function setExternalStoragePromptDismissed(reason) {
-  if (typeof localStorage === "undefined") return;
-  safeSetLocalStorageJson(
-    EXTERNAL_STORAGE_PROMPT_KEY,
-    {
-      dismissedAt: new Date().toISOString(),
-      reason: reason || "skipped"
-    },
-    { context: "external storage prompt status" }
-  );
+  const payload = {
+    dismissedAt: new Date().toISOString(),
+    reason: reason || "skipped"
+  };
+  let stored = false;
+  if (typeof localStorage !== "undefined") {
+    stored = safeSetLocalStorageJson(
+      EXTERNAL_STORAGE_PROMPT_KEY,
+      payload,
+      { context: "external storage prompt status" }
+    );
+  }
+  if (!stored && typeof sessionStorage !== "undefined") {
+    try {
+      sessionStorage.setItem(EXTERNAL_STORAGE_PROMPT_KEY, JSON.stringify(payload));
+    } catch {
+      // Ignore storage failures (private mode, quota, etc.).
+    }
+  }
+  if (session) session.externalStoragePromptDismissed = true;
 }
 
 function clearExternalStoragePromptDismissed() {
-  if (typeof localStorage === "undefined") return;
-  try {
-    localStorage.removeItem(EXTERNAL_STORAGE_PROMPT_KEY);
-  } catch {
-    // Ignore storage failures (private mode, quota, etc.).
+  if (session) session.externalStoragePromptDismissed = false;
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.removeItem(EXTERNAL_STORAGE_PROMPT_KEY);
+    } catch {
+      // Ignore storage failures (private mode, quota, etc.).
+    }
+  }
+  if (typeof sessionStorage !== "undefined") {
+    try {
+      sessionStorage.removeItem(EXTERNAL_STORAGE_PROMPT_KEY);
+    } catch {
+      // Ignore storage failures (private mode, quota, etc.).
+    }
   }
 }
 
@@ -7011,7 +7038,6 @@ function handleReleaseAction(e) {
     logEvent(`Release action failed: track ${trackId || "unknown"} not found.`, "warn");
     return;
   }
-  const isReady = track.status === "Ready";
   if (!track.actId || !getAct(track.actId)) {
     logEvent("Cannot release track: assign an Act first.", "warn");
     return;
@@ -7022,49 +7048,60 @@ function handleReleaseAction(e) {
     version: rec.version,
     trackId: track.id,
     distribution: rec.distribution,
+    rush: rec.rush,
     scheduleKey: rec.scheduleKey,
     scheduleHours: rec.scheduleHours,
     reason: rec.reason
   });
+  const resolveAsapHours = (dist, rushFlag) => {
+    const asapAt = getReleaseAsapAtForDistribution(dist, { rush: rushFlag });
+    return Math.max(0, (asapAt - state.time.epochMs) / HOUR_MS);
+  };
   let distribution = $("releaseDistribution") ? $("releaseDistribution").value : "Digital";
   let scheduleHours = 0;
+  let rush = false;
+  const scheduleWithHours = (hours, { rush: rushFlag = false } = {}) => {
+    rush = Boolean(rushFlag);
+    scheduleHours = hours;
+    scheduleRelease(track, scheduleHours, distribution, undefined, { rush });
+  };
   if (btn.dataset.release === "recommend") {
     distribution = rec.distribution;
-    scheduleHours = rec.scheduleHours;
-    if (rec.scheduleKey === "now") {
-      if (isReady) {
-        releaseTrack(track, distribution, distribution, { chargeFee: true });
-      } else {
-        scheduleRelease(track, 0, distribution);
-      }
+    rush = Boolean(rec.rush);
+    if (rec.scheduleKey === "rush") {
+      scheduleWithHours(resolveAsapHours(distribution, true), { rush: true });
+    } else if (rec.scheduleKey === "now") {
+      scheduleWithHours(resolveAsapHours(distribution, false));
     } else {
-      scheduleRelease(track, rec.scheduleHours, distribution);
+      scheduleWithHours(rec.scheduleHours, { rush });
     }
-  }
-  if (btn.dataset.release === "asap" || btn.dataset.release === "now") {
-    scheduleHours = getReleaseAsapHours();
-    scheduleRelease(track, scheduleHours, distribution);
-  }
-  if (btn.dataset.release === "week") {
-    scheduleHours = WEEK_HOURS;
-    scheduleRelease(track, WEEK_HOURS, distribution);
-  }
-  if (btn.dataset.release === "fortnight") {
-    scheduleHours = WEEK_HOURS * 2;
-    scheduleRelease(track, WEEK_HOURS * 2, distribution);
+  } else if (btn.dataset.release === "rush") {
+    if (distribution !== "Digital") {
+      logEvent("Digital rush only applies to Digital distribution.", "warn");
+      return;
+    }
+    scheduleWithHours(resolveAsapHours(distribution, true), { rush: true });
+  } else if (btn.dataset.release === "asap" || btn.dataset.release === "now") {
+    scheduleWithHours(resolveAsapHours(distribution, false));
+  } else if (btn.dataset.release === "week") {
+    scheduleWithHours(WEEK_HOURS);
+  } else if (btn.dataset.release === "fortnight") {
+    scheduleWithHours(WEEK_HOURS * 2);
   }
   logChoice("release", {
     trackId: track.id,
     action: btn.dataset.release,
     distribution,
-    scheduleHours
+    scheduleHours,
+    rush
   });
   logUiEvent("action_submit", {
     action: "release_track",
     trackId: track.id,
     releaseAction: btn.dataset.release,
     distribution,
-    scheduleHours
+    scheduleHours,
+    rush
   });
   renderAll();
 }

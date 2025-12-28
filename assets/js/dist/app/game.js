@@ -268,6 +268,14 @@ function makeDefaultState() {
         tracks: [],
         workOrders: [],
         releaseQueue: [],
+        distribution: {
+            inventoryByRegion: {},
+            pendingUsageWeek: null,
+            pendingUsageByRegion: {},
+            lastAppliedWeek: null,
+            lastUsageByRegion: {},
+            lastWarningWeek: null
+        },
         scheduledEvents: [],
         marketTracks: [],
         trends: [],
@@ -2473,6 +2481,41 @@ function driftAudiencePreferences(chunk) {
     chunk.prefGenres = next.prefGenres;
     chunk.communityId = next.communityId;
 }
+const DEFAULT_OCCUPATION_SHARES = { factory: 0.02, shopping: 0.025, broadcast: 0.01 };
+function resolveOccupationShares() {
+    const base = typeof AUDIENCE_OCCUPATION_SHARES === "object" && AUDIENCE_OCCUPATION_SHARES
+        ? AUDIENCE_OCCUPATION_SHARES
+        : DEFAULT_OCCUPATION_SHARES;
+    return {
+        factory: clamp(Number(base.factory) || 0, 0, 1),
+        shopping: clamp(Number(base.shopping) || 0, 0, 1),
+        broadcast: clamp(Number(base.broadcast) || 0, 0, 1)
+    };
+}
+function resolveAudienceRegionId(nation, rng = Math.random) {
+    const regions = REGION_DEFS.filter((region) => region.nation === nation);
+    if (!regions.length)
+        return null;
+    const capital = regions.find((region) => region.id.includes("Capital")) || regions[0];
+    const elsewhere = regions.find((region) => region.id.includes("Elsewhere")) || regions[1] || capital;
+    const roll = typeof rng === "function" ? rng() : Math.random();
+    const share = clamp(Number(REGION_CAPITAL_SHARE) || 0.35, 0, 1);
+    return roll < share ? capital.id : elsewhere.id;
+}
+function buildAudienceOccupations({ age, size } = {}) {
+    const shares = resolveOccupationShares();
+    const minAge = Number.isFinite(AUDIENCE_OCCUPATION_MIN_AGE) ? AUDIENCE_OCCUPATION_MIN_AGE : 16;
+    const maxAge = Number.isFinite(AUDIENCE_OCCUPATION_MAX_AGE) ? AUDIENCE_OCCUPATION_MAX_AGE : 70;
+    const population = Math.max(0, Math.round(Number(size) || 0));
+    const workingEligible = Number.isFinite(age) ? age >= minAge && age <= maxAge : true;
+    const workforce = workingEligible ? population : 0;
+    const factory = Math.round(workforce * shares.factory);
+    const shopping = Math.round(workforce * shares.shopping);
+    const broadcast = Math.round(workforce * shares.broadcast);
+    const used = factory + shopping + broadcast;
+    const consumer = Math.max(0, population - used);
+    return { factory, shopping, broadcast, consumer };
+}
 function makeAudienceChunk({ nation, year, age, parent = null, snapshot = null } = {}) {
     const popSnapshot = snapshot || computePopulationSnapshot();
     const resolvedNation = nation || pickAudienceNation(popSnapshot);
@@ -2489,10 +2532,13 @@ function makeAudienceChunk({ nation, year, age, parent = null, snapshot = null }
     if (parent)
         driftAudiencePreferences(preferences);
     const profile = pickAudienceTimeProfile(resolvedAge);
+    const regionId = resolveAudienceRegionId(resolvedNation);
+    const occupations = buildAudienceOccupations({ age: resolvedAge, size: AUDIENCE_CHUNK_SIZE });
     return {
         id: uid("AU"),
         nation: resolvedNation,
         originNation: parent?.originNation || resolvedNation,
+        regionId,
         age: resolvedAge,
         ageGroup: ageGroup?.label || resolveAudienceAgeGroupForAge(resolvedAge)?.label || null,
         generation,
@@ -2508,6 +2554,7 @@ function makeAudienceChunk({ nation, year, age, parent = null, snapshot = null }
         prefMoods: preferences.prefMoods,
         prefGenres: preferences.prefGenres,
         communityId: preferences.communityId,
+        occupations,
         size: AUDIENCE_CHUNK_SIZE,
         createdYear: Number.isFinite(year) ? year : currentYear()
     };
@@ -2523,6 +2570,10 @@ function normalizeAudienceChunk(chunk) {
     }
     if (!normalized.originNation || !NATIONS.includes(normalized.originNation)) {
         normalized.originNation = normalized.nation;
+    }
+    const region = REGION_DEFS.find((entry) => entry.id === normalized.regionId);
+    if (!normalized.regionId || !region || region.nation !== normalized.nation) {
+        normalized.regionId = resolveAudienceRegionId(normalized.nation);
     }
     normalized.age = clamp(Math.floor(Number(normalized.age) || 0), 0, AUDIENCE_AGE_GROUPS[AUDIENCE_AGE_GROUPS.length - 1]?.maxAge ?? 119);
     const ageGroup = resolveAudienceAgeGroupForAge(normalized.age);
@@ -2565,6 +2616,7 @@ function normalizeAudienceChunk(chunk) {
     }
     if (!Number.isFinite(normalized.size))
         normalized.size = AUDIENCE_CHUNK_SIZE;
+    normalized.occupations = buildAudienceOccupations({ age: normalized.age, size: normalized.size });
     if (!Number.isFinite(normalized.createdYear))
         normalized.createdYear = currentYear();
     return normalized;
@@ -2580,6 +2632,34 @@ function ensureAudienceChunksStore() {
     if (!Number.isFinite(state.audienceChunks.lastUpdateAt))
         state.audienceChunks.lastUpdateAt = null;
     return state.audienceChunks;
+}
+function ensureDistributionStore() {
+    if (!state.distribution || typeof state.distribution !== "object") {
+        state.distribution = {
+            inventoryByRegion: {},
+            pendingUsageWeek: null,
+            pendingUsageByRegion: {},
+            lastAppliedWeek: null,
+            lastUsageByRegion: {},
+            lastWarningWeek: null
+        };
+    }
+    if (!state.distribution.inventoryByRegion || typeof state.distribution.inventoryByRegion !== "object") {
+        state.distribution.inventoryByRegion = {};
+    }
+    if (!state.distribution.pendingUsageByRegion || typeof state.distribution.pendingUsageByRegion !== "object") {
+        state.distribution.pendingUsageByRegion = {};
+    }
+    if (!state.distribution.lastUsageByRegion || typeof state.distribution.lastUsageByRegion !== "object") {
+        state.distribution.lastUsageByRegion = {};
+    }
+    if (typeof state.distribution.pendingUsageWeek !== "number")
+        state.distribution.pendingUsageWeek = null;
+    if (typeof state.distribution.lastAppliedWeek !== "number")
+        state.distribution.lastAppliedWeek = null;
+    if (typeof state.distribution.lastWarningWeek !== "number")
+        state.distribution.lastWarningWeek = null;
+    return state.distribution;
 }
 function buildAudienceChunksSample(year = currentYear()) {
     const snapshot = computePopulationSnapshot();
@@ -2666,8 +2746,10 @@ function advanceAudienceChunksYear(year = currentYear()) {
         }
         if (Math.random() < (chunk.emigrationRate || 0)) {
             const options = NATIONS.filter((nation) => nation !== chunk.nation);
-            if (options.length)
+            if (options.length) {
                 chunk.nation = pickOne(options);
+                chunk.regionId = resolveAudienceRegionId(chunk.nation);
+            }
         }
         const lifeMax = chunk.lifeExpectancy?.maxAge;
         if (Number.isFinite(lifeMax) && chunk.age > lifeMax) {
@@ -2692,6 +2774,258 @@ function advanceAudienceChunksYear(year = currentYear()) {
 }
 function getAudienceChunksSnapshot(year = currentYear()) {
     return ensureAudienceChunksReady(year);
+}
+const DEFAULT_DISTRIBUTION_CAPACITY = { factoryUnitsPerStaffWeek: 25, storeUnitsPerStaffWeek: 20 };
+function resolveDistributionCapacityConfig() {
+    const raw = typeof DISTRIBUTION_CAPACITY === "object" && DISTRIBUTION_CAPACITY
+        ? DISTRIBUTION_CAPACITY
+        : DEFAULT_DISTRIBUTION_CAPACITY;
+    return {
+        factoryUnitsPerStaffWeek: Math.max(0, Number(raw.factoryUnitsPerStaffWeek) || DEFAULT_DISTRIBUTION_CAPACITY.factoryUnitsPerStaffWeek),
+        storeUnitsPerStaffWeek: Math.max(0, Number(raw.storeUnitsPerStaffWeek) || DEFAULT_DISTRIBUTION_CAPACITY.storeUnitsPerStaffWeek)
+    };
+}
+function resolveRegionPopulation(snapshot, regionId) {
+    if (!snapshot || !regionId)
+        return 0;
+    const region = REGION_DEFS.find((entry) => entry.id === regionId);
+    if (!region)
+        return 0;
+    const nation = snapshot.nations.find((entry) => entry.nation === region.nation);
+    if (!nation)
+        return 0;
+    const lowerId = String(region.id).toLowerCase();
+    if (lowerId.includes("capital"))
+        return nation.capital || 0;
+    if (lowerId.includes("elsewhere"))
+        return nation.elsewhere || 0;
+    return nation.total || 0;
+}
+function buildDistributionSnapshot() {
+    const store = ensureDistributionStore();
+    const snapshot = computePopulationSnapshot();
+    const chunks = getAudienceChunksSnapshot().chunks || [];
+    const capacityConfig = resolveDistributionCapacityConfig();
+    const regionSample = {};
+    REGION_DEFS.forEach((region) => {
+        regionSample[region.id] = {
+            regionId: region.id,
+            nation: region.nation,
+            label: region.label || region.id,
+            sampleMembers: 0,
+            sampleFactory: 0,
+            sampleShopping: 0,
+            sampleBroadcast: 0
+        };
+    });
+    chunks.forEach((chunk) => {
+        const regionId = chunk.regionId || resolveAudienceRegionId(chunk.nation);
+        if (!regionId || !regionSample[regionId])
+            return;
+        const sample = regionSample[regionId];
+        const members = Math.max(0, Math.round(Number(chunk.size) || 0));
+        sample.sampleMembers += members;
+        sample.sampleFactory += Math.max(0, Math.round(Number(chunk.occupations?.factory) || 0));
+        sample.sampleShopping += Math.max(0, Math.round(Number(chunk.occupations?.shopping) || 0));
+        sample.sampleBroadcast += Math.max(0, Math.round(Number(chunk.occupations?.broadcast) || 0));
+    });
+    const regions = {};
+    REGION_DEFS.forEach((region) => {
+        const sample = regionSample[region.id] || {
+            sampleMembers: 0,
+            sampleFactory: 0,
+            sampleShopping: 0,
+            sampleBroadcast: 0
+        };
+        const population = resolveRegionPopulation(snapshot, region.id);
+        const scale = sample.sampleMembers > 0 ? population / sample.sampleMembers : 0;
+        const factoryStaff = Math.round(sample.sampleFactory * scale);
+        const shoppingStaff = Math.round(sample.sampleShopping * scale);
+        const broadcastStaff = Math.round(sample.sampleBroadcast * scale);
+        const production = roundToAudienceChunk(factoryStaff * capacityConfig.factoryUnitsPerStaffWeek);
+        const storeCapacity = roundToAudienceChunk(shoppingStaff * capacityConfig.storeUnitsPerStaffWeek);
+        const inventory = Math.max(0, Math.round(Number(store.inventoryByRegion?.[region.id] || 0)));
+        const lastUsage = store.lastUsageByRegion?.[region.id] || {};
+        regions[region.id] = {
+            regionId: region.id,
+            regionLabel: region.label || region.id,
+            nation: region.nation,
+            population,
+            sampleMembers: sample.sampleMembers,
+            staff: {
+                factory: factoryStaff,
+                shopping: shoppingStaff,
+                broadcast: broadcastStaff
+            },
+            capacity: {
+                production,
+                store: storeCapacity
+            },
+            inventory,
+            lastDemand: Math.max(0, Math.round(Number(lastUsage.demand || 0))),
+            lastSold: Math.max(0, Math.round(Number(lastUsage.sold || 0)))
+        };
+    });
+    const nations = {};
+    NATIONS.forEach((nation) => {
+        const regionIds = REGION_DEFS.filter((region) => region.nation === nation).map((region) => region.id);
+        const aggregate = regionIds.reduce((totals, regionId) => {
+            const region = regions[regionId];
+            if (!region)
+                return totals;
+            totals.population += region.population;
+            totals.inventory += region.inventory;
+            totals.production += region.capacity.production;
+            totals.storeCapacity += region.capacity.store;
+            totals.lastDemand += region.lastDemand;
+            totals.lastSold += region.lastSold;
+            return totals;
+        }, { population: 0, inventory: 0, production: 0, storeCapacity: 0, lastDemand: 0, lastSold: 0 });
+        nations[nation] = { nation, ...aggregate };
+    });
+    const global = Object.values(nations).reduce((totals, nation) => {
+        totals.population += nation.population;
+        totals.inventory += nation.inventory;
+        totals.production += nation.production;
+        totals.storeCapacity += nation.storeCapacity;
+        totals.lastDemand += nation.lastDemand;
+        totals.lastSold += nation.lastSold;
+        return totals;
+    }, { population: 0, inventory: 0, production: 0, storeCapacity: 0, lastDemand: 0, lastSold: 0 });
+    return { regions, nations, global };
+}
+function roundDownToAudienceChunk(value) {
+    const chunk = Number.isFinite(AUDIENCE_CHUNK_SIZE) ? AUDIENCE_CHUNK_SIZE : 1000;
+    return Math.floor(Math.max(0, value) / chunk) * chunk;
+}
+function applyDistributionAdjustmentsForScope(entries, capacity, scopeId) {
+    const config = resolveReleaseDistributionConfig();
+    const physicalShare = config.physicalShare;
+    const bucket = [];
+    let totalDesiredPhysical = 0;
+    (entries || []).forEach((entry) => {
+        if (!entry)
+            return;
+        const metrics = entry.metrics || {};
+        const baseSales = Math.max(0, Number(metrics.sales || 0));
+        const track = entry.track || null;
+        if (!track || baseSales <= 0) {
+            metrics.salesPhysical = 0;
+            metrics.salesDigital = roundDownToAudienceChunk(baseSales);
+            metrics.sales = roundToAudienceChunk(metrics.salesPhysical + metrics.salesDigital);
+            entry.metrics = metrics;
+            return;
+        }
+        const isPlayer = typeof track.isPlayer === "boolean" ? track.isPlayer : Boolean(track.actId);
+        const labelFans = isPlayer ? Number(state.label?.fans || 0) : null;
+        const distResult = resolveReleaseDistributionForTrack(track, track.distribution || "Digital", { labelFans });
+        const dist = distResult.distribution;
+        let desiredPhysical = 0;
+        let desiredDigital = baseSales;
+        if (dist === "Physical") {
+            desiredPhysical = baseSales;
+            desiredDigital = 0;
+        }
+        else if (dist === "Both") {
+            desiredPhysical = baseSales * physicalShare;
+            desiredDigital = baseSales - desiredPhysical;
+        }
+        bucket.push({ entry, metrics, desiredPhysical, desiredDigital });
+        totalDesiredPhysical += desiredPhysical;
+    });
+    const inventory = Math.max(0, Number(capacity?.inventory || 0));
+    const production = Math.max(0, Number(capacity?.production || 0));
+    const storeCapacity = Math.max(0, Number(capacity?.storeCapacity || 0));
+    const supply = inventory + production;
+    const sellCap = Math.max(0, Math.min(supply, storeCapacity));
+    const ratio = totalDesiredPhysical > 0 ? Math.min(1, sellCap / totalDesiredPhysical) : 0;
+    let soldTotal = 0;
+    bucket.forEach((item) => {
+        const actualPhysical = item.desiredPhysical > 0 ? roundDownToAudienceChunk(item.desiredPhysical * ratio) : 0;
+        const actualDigital = item.desiredDigital > 0 ? roundDownToAudienceChunk(item.desiredDigital) : 0;
+        item.metrics.salesPhysical = actualPhysical;
+        item.metrics.salesDigital = actualDigital;
+        item.metrics.sales = roundToAudienceChunk(actualPhysical + actualDigital);
+        item.entry.metrics = item.metrics;
+        soldTotal += actualPhysical;
+    });
+    return {
+        scopeId: scopeId || "global",
+        demand: roundToAudienceChunk(totalDesiredPhysical),
+        sold: soldTotal,
+        sellCap,
+        supply,
+        storeCap: storeCapacity
+    };
+}
+function logDistributionCapacityWarnings(usageByRegion) {
+    const store = ensureDistributionStore();
+    const week = weekIndex() + 1;
+    if (store.lastWarningWeek === week)
+        return;
+    const constrained = Object.entries(usageByRegion || {})
+        .filter(([, usage]) => usage && usage.demand > usage.sellCap && usage.sellCap > 0);
+    if (!constrained.length)
+        return;
+    constrained.sort((a, b) => (b[1].demand - b[1].sellCap) - (a[1].demand - a[1].sellCap));
+    const top = constrained[0];
+    const topRegion = REGION_DEFS.find((region) => region.id === top[0]);
+    const topLabel = topRegion?.label || top[0];
+    logEvent(`Physical demand exceeded store capacity in ${constrained.length} region${constrained.length === 1 ? "" : "s"} (top: ${topLabel}).`, "warn");
+    store.lastWarningWeek = week;
+}
+function applyDistributionAdjustments({ globalScores, nationScores, regionScores } = {}) {
+    const snapshot = buildDistributionSnapshot();
+    const usageByRegion = {};
+    const nationUsage = {};
+    REGION_DEFS.forEach((region) => {
+        const entries = regionScores?.[region.id] || [];
+        usageByRegion[region.id] = applyDistributionAdjustmentsForScope(entries, {
+            inventory: snapshot.regions?.[region.id]?.inventory || 0,
+            production: snapshot.regions?.[region.id]?.capacity?.production || 0,
+            storeCapacity: snapshot.regions?.[region.id]?.capacity?.store || 0
+        }, region.id);
+    });
+    NATIONS.forEach((nation) => {
+        const entries = nationScores?.[nation] || [];
+        nationUsage[nation] = applyDistributionAdjustmentsForScope(entries, {
+            inventory: snapshot.nations?.[nation]?.inventory || 0,
+            production: snapshot.nations?.[nation]?.production || 0,
+            storeCapacity: snapshot.nations?.[nation]?.storeCapacity || 0
+        }, nation);
+    });
+    const globalUsage = applyDistributionAdjustmentsForScope(globalScores || [], {
+        inventory: snapshot.global?.inventory || 0,
+        production: snapshot.global?.production || 0,
+        storeCapacity: snapshot.global?.storeCapacity || 0
+    }, "global");
+    const store = ensureDistributionStore();
+    store.pendingUsageWeek = weekIndex() + 1;
+    store.pendingUsageByRegion = usageByRegion;
+    logDistributionCapacityWarnings(usageByRegion);
+    return { snapshot, usageByRegion, nationUsage, globalUsage };
+}
+function applyDistributionInventoryForWeek() {
+    const store = ensureDistributionStore();
+    const week = weekIndex() + 1;
+    if (store.lastAppliedWeek === week)
+        return false;
+    const snapshot = buildDistributionSnapshot();
+    const usage = store.pendingUsageByRegion || {};
+    REGION_DEFS.forEach((region) => {
+        const regionId = region.id;
+        const capacity = snapshot.regions?.[regionId]?.capacity || { production: 0 };
+        const currentInventory = Math.max(0, Math.round(Number(store.inventoryByRegion?.[regionId] || 0)));
+        const sold = Math.max(0, Math.round(Number(usage[regionId]?.sold || 0)));
+        const nextInventory = Math.max(0, Math.round(currentInventory + capacity.production - sold));
+        store.inventoryByRegion[regionId] = nextInventory;
+    });
+    store.lastAppliedWeek = week;
+    store.lastUsageByRegion = { ...usage };
+    return true;
+}
+function getDistributionSnapshot() {
+    return buildDistributionSnapshot();
 }
 const CREATOR_AGE_MIN = 20;
 const CREATOR_AGE_MAX = 119;
@@ -5321,6 +5655,8 @@ const STATE_INDEXES = {
     tracks: { label: "tracks", source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
     marketTracks: { label: "market-tracks", source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
     marketTracksByTrackId: { label: "market-tracks-by-track", source: null, length: 0, map: new Map(), key: (entry) => entry?.trackId || null },
+    marketTrackArchive: { label: "market-track-archive", source: null, length: 0, map: new Map(), key: (entry) => entry?.id || null },
+    marketTrackArchiveByTrackId: { label: "market-track-archive-by-track", source: null, length: 0, map: new Map(), key: (entry) => entry?.trackId || null },
     rivals: { label: "rivals", source: null, length: 0, map: new Map(), key: (entry) => entry?.name || null }
 };
 function rebuildStateIndex(index, list) {
@@ -6025,6 +6361,12 @@ function getMarketTrackById(id) {
 }
 function getMarketTrackByTrackId(trackId) {
     return getStateEntry("marketTracksByTrackId", state.marketTracks, trackId);
+}
+function getArchivedMarketTrackById(id) {
+    return getStateEntry("marketTrackArchive", state.meta?.marketTrackArchive, id);
+}
+function getArchivedMarketTrackByTrackId(trackId) {
+    return getStateEntry("marketTrackArchiveByTrackId", state.meta?.marketTrackArchive, trackId);
 }
 function assignTrackAct(trackId, actId) {
     const track = getTrack(trackId);
@@ -7759,6 +8101,100 @@ function completeStage(order) {
         track.status = "Scheduled";
     logEvent(`Track ready${queuedRelease ? " and queued for release" : ""}: "${track.title}" (${qualityGrade(track.quality)}).`);
 }
+const DEFAULT_RELEASE_DISTRIBUTION_CONFIG = {
+    digitalLeadWeeks: 1,
+    physicalLeadWeeks: 2,
+    digitalRushFee: 1000,
+    physicalMinQuality: 80,
+    physicalMinFans: 20000,
+    physicalShare: 0.35
+};
+function resolveReleaseDistributionConfig() {
+    const raw = typeof RELEASE_DISTRIBUTION === "object" && RELEASE_DISTRIBUTION
+        ? RELEASE_DISTRIBUTION
+        : DEFAULT_RELEASE_DISTRIBUTION_CONFIG;
+    return {
+        digitalLeadWeeks: Math.max(0, Number(raw.digitalLeadWeeks) || DEFAULT_RELEASE_DISTRIBUTION_CONFIG.digitalLeadWeeks),
+        physicalLeadWeeks: Math.max(0, Number(raw.physicalLeadWeeks) || DEFAULT_RELEASE_DISTRIBUTION_CONFIG.physicalLeadWeeks),
+        digitalRushFee: Math.max(0, Number(raw.digitalRushFee) || DEFAULT_RELEASE_DISTRIBUTION_CONFIG.digitalRushFee),
+        physicalMinQuality: Math.max(0, Number(raw.physicalMinQuality) || DEFAULT_RELEASE_DISTRIBUTION_CONFIG.physicalMinQuality),
+        physicalMinFans: Math.max(0, Number(raw.physicalMinFans) || DEFAULT_RELEASE_DISTRIBUTION_CONFIG.physicalMinFans),
+        physicalShare: clamp(Number(raw.physicalShare) || DEFAULT_RELEASE_DISTRIBUTION_CONFIG.physicalShare, 0, 1)
+    };
+}
+function resolveDistributionLeadWeeks(distribution, { rush = false } = {}) {
+    const config = resolveReleaseDistributionConfig();
+    const dist = distribution || "Digital";
+    if ((dist === "Physical" || dist === "Both"))
+        return config.physicalLeadWeeks;
+    return rush ? 0 : config.digitalLeadWeeks;
+}
+function getReleaseRushFee(distribution, { rush = false } = {}) {
+    if (!rush)
+        return 0;
+    if (distribution !== "Digital")
+        return 0;
+    const config = resolveReleaseDistributionConfig();
+    return Math.max(0, config.digitalRushFee || 0);
+}
+function applyReleaseRushFee(distribution, { rush = false } = {}) {
+    const fee = getReleaseRushFee(distribution, { rush });
+    if (!fee)
+        return { ok: true, fee: 0 };
+    if (state.label.cash < fee)
+        return { ok: false, fee };
+    state.label.cash -= fee;
+    return { ok: true, fee };
+}
+function getReleaseAsapAtForDistribution(distribution, { rush = false } = {}) {
+    const leadWeeks = resolveDistributionLeadWeeks(distribution, { rush });
+    const leadHours = leadWeeks * WEEK_HOURS;
+    return alignReleaseAtToProcessing(state.time.epochMs + leadHours * HOUR_MS);
+}
+function resolveReleaseScheduleWindow(requestedAt, { distribution, rush = false } = {}) {
+    const now = state.time.epochMs;
+    const leadWeeks = resolveDistributionLeadWeeks(distribution, { rush });
+    const leadHours = leadWeeks * WEEK_HOURS;
+    const earliestAt = alignReleaseAtToProcessing(now + leadHours * HOUR_MS);
+    const alignedRequested = alignReleaseAtToProcessing(requestedAt);
+    const releaseAt = alignedRequested < earliestAt ? earliestAt : alignedRequested;
+    return { releaseAt, alignedRequested, earliestAt, delayed: alignedRequested < earliestAt, leadWeeks };
+}
+function evaluatePhysicalEligibility(track, { labelFans } = {}) {
+    const config = resolveReleaseDistributionConfig();
+    const quality = resolveTrackQualityScore(track);
+    const minQuality = Number.isFinite(config.physicalMinQuality) ? config.physicalMinQuality : 0;
+    const minFans = Number.isFinite(config.physicalMinFans) ? config.physicalMinFans : 0;
+    const fans = Number.isFinite(labelFans) ? labelFans : null;
+    const qualityOk = !Number.isFinite(minQuality) || (Number.isFinite(quality) && quality >= minQuality);
+    const fansOk = !Number.isFinite(minFans) || !Number.isFinite(fans) || fans >= minFans;
+    return {
+        ok: qualityOk && fansOk,
+        quality: Number.isFinite(quality) ? quality : null,
+        minQuality,
+        fans,
+        minFans,
+        qualityOk,
+        fansOk
+    };
+}
+function resolveReleaseDistributionForTrack(track, distribution, { labelFans, log } = {}) {
+    const dist = distribution || track?.distribution || "Digital";
+    if (dist !== "Physical" && dist !== "Both")
+        return { distribution: dist, downgraded: false, eligibility: null };
+    const eligibility = evaluatePhysicalEligibility(track, { labelFans });
+    if (eligibility.ok)
+        return { distribution: dist, downgraded: false, eligibility };
+    if (log) {
+        const reasons = [];
+        if (!eligibility.qualityOk)
+            reasons.push(`quality ${eligibility.quality ?? "?"} < ${eligibility.minQuality}`);
+        if (!eligibility.fansOk)
+            reasons.push(`fans ${formatCount(eligibility.fans ?? 0)} < ${formatCount(eligibility.minFans)}`);
+        logEvent(`Physical distribution blocked (${reasons.join(", ") || "eligibility fail"}). Switching to Digital.`, "warn");
+    }
+    return { distribution: "Digital", downgraded: true, eligibility };
+}
 function getReleaseDistributionFee(distribution) {
     const fee = Number.isFinite(ECONOMY_BASELINES?.physicalReleaseFee) ? ECONOMY_BASELINES.physicalReleaseFee : 0;
     if (distribution === "Physical" || distribution === "Both")
@@ -7773,6 +8209,21 @@ function applyReleaseDistributionFee(distribution) {
         return { ok: false, fee };
     state.label.cash -= fee;
     return { ok: true, fee };
+}
+function applyReleaseFees({ distribution, rush = false, track = null } = {}) {
+    const distFee = getReleaseDistributionFee(distribution);
+    const rushFee = getReleaseRushFee(distribution, { rush });
+    const total = Math.max(0, distFee + rushFee);
+    if (total && state.label.cash < total) {
+        return { ok: false, total, distributionFee: distFee, rushFee };
+    }
+    if (total)
+        state.label.cash -= total;
+    if (track && distFee)
+        recordTrackDistributionFee(track, distFee);
+    if (track && rushFee)
+        recordTrackDistributionFee(track, rushFee);
+    return { ok: true, total, distributionFee: distFee, rushFee };
 }
 function estimatePhysicalUnitPrice(projectType = "Single") {
     const base = Number.isFinite(ECONOMY_BASELINES?.physicalSingle) ? ECONOMY_BASELINES.physicalSingle : 4.99;
@@ -7878,7 +8329,11 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
         logEvent("Cannot release track without a content genre.", "warn");
         return false;
     }
-    const dist = distribution || track.distribution || "Digital";
+    const distResult = resolveReleaseDistributionForTrack(track, distribution || track.distribution || "Digital", {
+        labelFans: Number(state.label?.fans || 0),
+        log: true
+    });
+    const dist = distResult.distribution;
     let feeNote = "";
     if (chargeFee) {
         const feeResult = applyReleaseDistributionFee(dist);
@@ -7975,7 +8430,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     }
     return true;
 }
-function scheduleRelease(track, hoursFromNow, distribution, note) {
+function scheduleRelease(track, hoursFromNow, distribution, note, { rush = false } = {}) {
     if (!track || !track.actId || !getAct(track.actId)) {
         logEvent("Cannot schedule release: assign an Act first.", "warn");
         return false;
@@ -7997,34 +8452,59 @@ function scheduleRelease(track, hoursFromNow, distribution, note) {
         return false;
     }
     let scheduleHours = Number.isFinite(hoursFromNow) ? hoursFromNow : 0;
-    if (scheduleHours <= 0) {
+    if (scheduleHours < 0) {
         logEvent("Scheduled releases must target a future time. Defaulting to +1h.", "warn");
         scheduleHours = 1;
     }
+    if (scheduleHours === 0 && !rush) {
+        logEvent("Scheduled releases must target a future time. Defaulting to +1h.", "warn");
+        scheduleHours = 1;
+    }
+    const distResult = resolveReleaseDistributionForTrack(track, distribution, {
+        labelFans: Number(state.label?.fans || 0),
+        log: true
+    });
+    let dist = distResult.distribution;
+    if (rush && dist !== "Digital") {
+        logEvent("Digital rush applies only to Digital distribution. Using standard lead time.", "warn");
+        rush = false;
+    }
     const requestedAt = state.time.epochMs + scheduleHours * HOUR_MS;
-    const releaseAt = alignReleaseAtToProcessing(requestedAt);
-    const dist = distribution || "Digital";
-    const feeResult = applyReleaseDistributionFee(dist);
+    const scheduleWindow = resolveReleaseScheduleWindow(requestedAt, { distribution: dist, rush });
+    const releaseAt = scheduleWindow.releaseAt;
+    if (scheduleWindow.delayed) {
+        logEvent(`Release window too soon for ${dist} lead time; auto-delayed to ${formatDate(releaseAt)}.`, "warn");
+    }
+    const feeResult = applyReleaseFees({ distribution: dist, rush, track });
     if (!feeResult.ok) {
-        logEvent(`Cannot schedule release: insufficient funds for ${dist} distribution fee (${formatMoney(feeResult.fee)}).`, "warn");
+        logEvent(`Cannot schedule release: insufficient funds for ${dist} release fees (${formatMoney(feeResult.total)}).`, "warn");
         return false;
     }
-    if (feeResult.fee) {
-        recordTrackDistributionFee(track, feeResult.fee);
-    }
-    const releaseNote = note || dist;
-    state.releaseQueue.push({ id: uid("RQ"), trackId: track.id, releaseAt, note: releaseNote, distribution: dist });
+    const releaseNote = note || (rush ? "Digital Rush" : dist);
+    state.releaseQueue.push({
+        id: uid("RQ"),
+        trackId: track.id,
+        releaseAt,
+        note: releaseNote,
+        distribution: dist,
+        rush
+    });
     if (isReady)
         track.status = "Scheduled";
     ensureEraForTrack(track, "Release scheduled", { releaseType: track.releaseType, mode: "schedule" });
-    const feeNote = feeResult.fee ? ` Distribution fee: ${formatMoney(feeResult.fee)}.` : "";
+    const feeParts = [];
+    if (feeResult.distributionFee)
+        feeParts.push(`Distribution fee: ${formatMoney(feeResult.distributionFee)}`);
+    if (feeResult.rushFee)
+        feeParts.push(`Rush fee: ${formatMoney(feeResult.rushFee)}`);
+    const feeNote = feeParts.length ? ` ${feeParts.join(" ")}.` : "";
     logEvent(`Scheduled "${track.title}" for release on ${formatDate(releaseAt)}.${feeNote}`);
     if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("rls:state-changed"));
     }
     return true;
 }
-function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, suppressLog = false } = {}) {
+function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, suppressLog = false, rush = false } = {}) {
     if (!track || !track.actId || !getAct(track.actId)) {
         return { ok: false, reason: "Track missing Act assignment." };
     }
@@ -8046,26 +8526,37 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
     if (!Number.isFinite(releaseAt) || releaseAt <= now) {
         return { ok: false, reason: "Release window is in the past." };
     }
-    const dist = distribution || track.distribution || "Digital";
-    const feeResult = applyReleaseDistributionFee(dist);
-    if (!feeResult.ok) {
-        return { ok: false, reason: `Insufficient funds for ${dist} distribution fee (${formatMoney(feeResult.fee)}).`, fee: feeResult.fee };
+    const distResult = resolveReleaseDistributionForTrack(track, distribution || track.distribution || "Digital", {
+        labelFans: Number(state.label?.fans || 0),
+        log: true
+    });
+    let dist = distResult.distribution;
+    if (rush && dist !== "Digital") {
+        logEvent("Digital rush applies only to Digital distribution. Using standard lead time.", "warn");
+        rush = false;
     }
-    if (feeResult.fee) {
-        recordTrackDistributionFee(track, feeResult.fee);
+    const scheduleWindow = resolveReleaseScheduleWindow(releaseAt, { distribution: dist, rush });
+    const resolvedAt = scheduleWindow.releaseAt;
+    if (scheduleWindow.delayed && !suppressLog) {
+        logEvent(`Release window too soon for ${dist} lead time; auto-delayed to ${formatDate(resolvedAt)}.`, "warn");
+    }
+    const feeResult = applyReleaseFees({ distribution: dist, rush, track });
+    if (!feeResult.ok) {
+        return { ok: false, reason: `Insufficient funds for ${dist} release fees (${formatMoney(feeResult.total)}).`, fee: feeResult.total };
     }
     if (rolloutMeta?.rolloutStrategyId) {
         track.rolloutStrategyId = rolloutMeta.rolloutStrategyId;
         track.rolloutItemId = rolloutMeta.rolloutItemId || null;
         track.rolloutWeekIndex = Number.isFinite(rolloutMeta.rolloutWeekIndex) ? rolloutMeta.rolloutWeekIndex : null;
     }
-    const releaseNote = note || dist;
+    const releaseNote = note || (rush ? "Digital Rush" : dist);
     const entry = {
         id: uid("RQ"),
         trackId: track.id,
-        releaseAt,
+        releaseAt: resolvedAt,
         note: releaseNote,
         distribution: dist,
+        rush,
         ...(rolloutMeta || {})
     };
     state.releaseQueue.push(entry);
@@ -8073,8 +8564,13 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
         track.status = "Scheduled";
     ensureEraForTrack(track, "Release scheduled", { releaseType: track.releaseType, mode: "schedule" });
     if (!suppressLog) {
-        const feeNote = feeResult.fee ? ` Distribution fee: ${formatMoney(feeResult.fee)}.` : "";
-        logEvent(`Scheduled "${track.title}" for release on ${formatDate(releaseAt)}.${feeNote}`);
+        const feeParts = [];
+        if (feeResult.distributionFee)
+            feeParts.push(`Distribution fee: ${formatMoney(feeResult.distributionFee)}`);
+        if (feeResult.rushFee)
+            feeParts.push(`Rush fee: ${formatMoney(feeResult.rushFee)}`);
+        const feeNote = feeParts.length ? ` ${feeParts.join(" ")}.` : "";
+        logEvent(`Scheduled "${track.title}" for release on ${formatDate(resolvedAt)}.${feeNote}`);
     }
     if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("rls:state-changed"));
@@ -8098,7 +8594,11 @@ function processReleaseQueue() {
                 track.rolloutWeekIndex = Number.isFinite(entry.rolloutWeekIndex) ? entry.rolloutWeekIndex : null;
             }
             if (track.status === "Ready" || track.status === "Scheduled") {
-                releaseTrack(track, entry.note, entry.distribution);
+                const distResult = resolveReleaseDistributionForTrack(track, entry.distribution || "Digital", {
+                    labelFans: Number(state.label?.fans || 0),
+                    log: true
+                });
+                releaseTrack(track, entry.note, distResult.distribution);
                 return;
             }
             remaining.push(entry);
@@ -12258,7 +12758,49 @@ function debugChartWorkerParity(result, trackMap) {
 }
 function applyChartWorkerResults(result, trackMap) {
     const charts = result?.charts || {};
+    const allScores = result?.allScores || {};
+    const nationScores = {};
+    const regionScores = {};
     const globalScores = [];
+    NATIONS.forEach((nation) => {
+        const scored = Array.isArray(allScores.nations?.[nation]) ? allScores.nations[nation] : [];
+        nationScores[nation] = scored.map((entry) => {
+            const track = trackMap.get(entry.key);
+            if (!track)
+                return null;
+            return { key: entry.key, track, score: entry.score, metrics: entry.metrics };
+        }).filter(Boolean);
+    });
+    REGION_DEFS.forEach((region) => {
+        const scored = Array.isArray(allScores.regions?.[region.id]) ? allScores.regions[region.id] : [];
+        regionScores[region.id] = scored.map((entry) => {
+            const track = trackMap.get(entry.key);
+            if (!track)
+                return null;
+            return { key: entry.key, track, score: entry.score, metrics: entry.metrics };
+        }).filter(Boolean);
+    });
+    (result?.globalScores || []).forEach((entry) => {
+        const track = trackMap.get(entry.key);
+        if (!track)
+            return;
+        globalScores.push({ key: entry.key, track, score: entry.score, metrics: entry.metrics });
+    });
+    applyDistributionAdjustments({ globalScores, nationScores, regionScores });
+    const metricsByNation = {};
+    const metricsByRegion = {};
+    const globalMetricsByKey = new Map();
+    NATIONS.forEach((nation) => {
+        const map = new Map();
+        nationScores[nation].forEach((entry) => map.set(entry.key, entry.metrics));
+        metricsByNation[nation] = map;
+    });
+    REGION_DEFS.forEach((region) => {
+        const map = new Map();
+        regionScores[region.id].forEach((entry) => map.set(entry.key, entry.metrics));
+        metricsByRegion[region.id] = map;
+    });
+    globalScores.forEach((entry) => globalMetricsByKey.set(entry.key, entry.metrics));
     NATIONS.forEach((nation) => {
         const prev = state.charts.nations[nation] || [];
         const ordered = Array.isArray(charts.nations?.[nation]) ? charts.nations[nation] : [];
@@ -12275,7 +12817,7 @@ function applyChartWorkerResults(result, trackMap) {
                 woc: history.weeks,
                 track,
                 score: entry.score,
-                metrics: entry.metrics
+                metrics: metricsByNation[nation]?.get(entry.key) || entry.metrics
             };
         }).filter(Boolean);
     });
@@ -12295,7 +12837,7 @@ function applyChartWorkerResults(result, trackMap) {
                 woc: history.weeks,
                 track,
                 score: entry.score,
-                metrics: entry.metrics
+                metrics: metricsByRegion[region.id]?.get(entry.key) || entry.metrics
             };
         }).filter(Boolean);
     });
@@ -12314,19 +12856,18 @@ function applyChartWorkerResults(result, trackMap) {
             woc: history.weeks,
             track,
             score: entry.score,
-            metrics: entry.metrics
+            metrics: globalMetricsByKey.get(entry.key) || entry.metrics
         };
     }).filter(Boolean);
-    (result?.globalScores || []).forEach((entry) => {
-        const track = trackMap.get(entry.key);
-        if (!track)
-            return;
-        globalScores.push({ track, score: entry.score, metrics: entry.metrics });
-    });
+    const globalScoresOut = globalScores.map((entry) => ({
+        track: entry.track,
+        score: entry.score,
+        metrics: entry.metrics
+    }));
     computePromoCharts();
     computeTourCharts();
     persistChartHistorySnapshots();
-    return { globalScores };
+    return { globalScores: globalScoresOut };
 }
 function persistChartHistorySnapshots() {
     const week = weekIndex() + 1;
@@ -12448,6 +12989,7 @@ function computeChartsLocal(marketTracks = paginateMarketTracks()) {
             regionScores[region.id].push({ track, score, metrics: buildChartMetrics(score, regionWeights[region.id]) });
         });
     });
+    applyDistributionAdjustments({ globalScores, nationScores, regionScores });
     NATIONS.forEach((nation) => {
         const prev = state.charts.nations[nation] || [];
         const ordered = nationScores[nation].sort((a, b) => b.score - a.score).slice(0, CHART_SIZES.nation);
@@ -14136,22 +14678,12 @@ function checkWinLoss(scores) {
     if (state.meta.gameOver)
         return;
     const year = currentYear();
-    if (state.meta.monopolyLoss) {
-        if (year >= 4000) {
-            finalizeGame("loss", state.meta.monopolyLoss.reason || "Final Year 4000 verdict.");
-        }
+    if (state.meta.monopolyLoss)
         return;
-    }
     const achievements = Math.max(state.meta.achievementsUnlocked.length, state.meta.achievements || 0);
     const monopoly = findChartMonopoly();
     if (monopoly) {
-        if (year >= 4000) {
-            logEvent(`Monopoly rule triggered: ${monopoly.label} occupies the ${monopoly.chart}.`, "warn");
-            finalizeGame("loss", `Monopoly rule: ${monopoly.label} occupies the ${monopoly.chart}.`);
-        }
-        else {
-            applyMonopolyLoss(monopoly);
-        }
+        applyMonopolyLoss(monopoly);
         return;
     }
     if (year < 3000) {
@@ -16737,6 +17269,7 @@ async function weeklyUpdate() {
     generateRivalReleases();
     resolveTourBookings();
     const { globalScores } = await computeCharts();
+    applyDistributionInventoryForWeek();
     updateAudienceBiasFromCharts();
     const labelScores = computeLabelScoresFromCharts();
     const labelCompetition = refreshLabelCompetition(labelScores);
@@ -17251,20 +17784,18 @@ function updateLeadWeek(metricMap, leadMap, week) {
 function resolveMarketEntryById(marketId) {
     if (!marketId)
         return null;
-    const active = state.marketTracks?.find((entry) => entry.id === marketId) || null;
+    const active = getMarketTrackById(marketId);
     if (active)
         return active;
-    const archived = state.meta?.marketTrackArchive?.find((entry) => entry.id === marketId) || null;
-    return archived || null;
+    return getArchivedMarketTrackById(marketId) || null;
 }
 function resolveMarketEntryByTrackId(trackId) {
     if (!trackId)
         return null;
-    const active = state.marketTracks?.find((entry) => entry.trackId === trackId) || null;
+    const active = getMarketTrackByTrackId(trackId);
     if (active)
         return active;
-    const archived = state.meta?.marketTrackArchive?.find((entry) => entry.trackId === trackId) || null;
-    return archived || null;
+    return getArchivedMarketTrackByTrackId(trackId) || null;
 }
 function resolveCriticScoreForEntry(entry, scopeKey) {
     if (!entry)
@@ -21392,6 +21923,7 @@ function normalizeState() {
     if (!Number.isFinite(audienceChunks.lastUpdateYear)) {
         audienceChunks.lastUpdateYear = audienceChunks.chunks.length ? currentYear() : null;
     }
+    ensureDistributionStore();
     ensureAudienceBiasStore();
     if (state.label && !state.label.country)
         state.label.country = "Annglora";
@@ -21498,8 +22030,8 @@ function normalizeState() {
             ensureTrackEconomy(track);
             if (track.status === "Released" && !Number.isFinite(track.criticScore)) {
                 const marketEntry = track.marketId
-                    ? state.marketTracks?.find((entry) => entry.id === track.marketId)
-                    : state.marketTracks?.find((entry) => entry.trackId === track.id);
+                    ? getMarketTrackById(track.marketId)
+                    : getMarketTrackByTrackId(track.id);
                 applyCriticsReview({ track, marketEntry });
             }
         });
@@ -21675,7 +22207,8 @@ function normalizeState() {
         return {
             ...entry,
             releaseAt,
-            distribution: entry.distribution || entry.note || "Digital"
+            distribution: entry.distribution || entry.note || "Digital",
+            rush: Boolean(entry.rush)
         };
     });
     const timeDefaults = makeDefaultState().time;
@@ -22077,37 +22610,46 @@ function recommendTrackPlan() {
 }
 function recommendReleasePlan(track) {
     const trendMatch = state.trends.includes(track.genre);
+    const config = resolveReleaseDistributionConfig();
+    const leadDigital = config.digitalLeadWeeks * WEEK_HOURS;
+    const leadPhysical = config.physicalLeadWeeks * WEEK_HOURS;
+    const isPlayer = typeof track?.isPlayer === "boolean" ? track.isPlayer : Boolean(track?.actId);
+    const labelFans = isPlayer ? Number(state.label?.fans || 0) : null;
+    const eligibility = evaluatePhysicalEligibility(track, { labelFans });
     if (trendMatch) {
         return {
             version: RECOMMEND_VERSION,
             distribution: "Digital",
-            scheduleKey: "now",
+            scheduleKey: "rush",
             scheduleHours: 0,
-            reason: "Trend match favors an immediate digital release."
+            rush: true,
+            reason: "Trend match favors a rushed digital release."
         };
     }
-    if (track.quality >= 85) {
+    if (eligibility.ok) {
         return {
             version: RECOMMEND_VERSION,
             distribution: "Physical",
             scheduleKey: "fortnight",
-            scheduleHours: WEEK_HOURS * 2,
-            reason: "High quality warrants a physical rollout."
+            scheduleHours: leadPhysical,
+            rush: false,
+            reason: "Physical rollout unlocked by quality and fan thresholds."
         };
     }
     return {
         version: RECOMMEND_VERSION,
         distribution: "Digital",
         scheduleKey: "week",
-        scheduleHours: WEEK_HOURS,
-        reason: "Give one week for prep and momentum."
+        scheduleHours: leadDigital,
+        rush: false,
+        reason: "Give one week for digital prep and momentum."
     };
 }
 function planRivalRelease(genre, quality) {
     const plan = recommendReleasePlan({ genre, quality });
     return {
         distribution: plan.distribution,
-        releaseAt: getReleaseAsapAt(state.time.epochMs)
+        releaseAt: getReleaseAsapAtForDistribution(plan.distribution, { rush: plan.rush })
     };
 }
 function collectKnownLabelNames() {
@@ -22644,7 +23186,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapHours, getReleaseDistributionFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getMarketTrackById, getMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, getDistributionSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapAtForDistribution, getReleaseAsapHours, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getMarketTrackById, getMarketTrackByTrackId, getArchivedMarketTrackById, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, evaluatePhysicalEligibility, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

@@ -126,6 +126,25 @@ declare const ECONOMY_TUNING: {
   promoWeeksMax: number;
   physicalUnitCostMin: number;
 };
+declare const RELEASE_DISTRIBUTION: {
+  digitalLeadWeeks: number;
+  physicalLeadWeeks: number;
+  digitalRushFee: number;
+  physicalMinQuality: number;
+  physicalMinFans: number;
+  physicalShare: number;
+};
+declare const AUDIENCE_OCCUPATION_SHARES: {
+  factory: number;
+  shopping: number;
+  broadcast: number;
+};
+declare const AUDIENCE_OCCUPATION_MIN_AGE: number;
+declare const AUDIENCE_OCCUPATION_MAX_AGE: number;
+declare const DISTRIBUTION_CAPACITY: {
+  factoryUnitsPerStaffWeek: number;
+  storeUnitsPerStaffWeek: number;
+};
 declare const TOUR_TIER_CONFIG: Record<string, {
   capacityMin: number;
   capacityMax: number;

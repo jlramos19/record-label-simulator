@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, getReleaseAsapAt, getReleaseDistributionFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, evaluatePhysicalEligibility, getDistributionSnapshot, getReleaseAsapAtForDistribution, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getMarketTrackByTrackId, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -1816,7 +1816,7 @@ function renderDashboard() {
                 .map((entry) => {
                 const track = getTrack(entry.trackId);
                 const date = entry.releaseAt ? formatDate(entry.releaseAt) : "TBD";
-                const distribution = entry.distribution || entry.note || "Digital";
+                const distribution = entry.rush ? "Digital Rush" : (entry.distribution || entry.note || "Digital");
                 return `
             <div class="list-item">
               <div class="list-row">
@@ -3633,6 +3633,66 @@ function renderInventory() {
     </div>
   `).join("");
 }
+function renderDistributionInventory() {
+    const listEl = $("distributionInventoryList");
+    if (!listEl)
+        return;
+    const snapshot = getDistributionSnapshot();
+    if (!snapshot || !snapshot.regions) {
+        listEl.innerHTML = `<div class="muted">No distribution data yet.</div>`;
+        return;
+    }
+    const regions = Object.values(snapshot.regions || {});
+    if (!regions.length) {
+        listEl.innerHTML = `<div class="muted">No region inventory tracked yet.</div>`;
+        return;
+    }
+    const global = snapshot.global || {};
+    const globalInventory = formatCount(global.inventory || 0);
+    const globalProduction = formatCount(global.production || 0);
+    const globalStore = formatCount(global.storeCapacity || 0);
+    const globalDemand = formatCount(global.lastDemand || 0);
+    const globalSold = formatCount(global.lastSold || 0);
+    const globalHtml = `
+    <div class="list-item">
+      <div class="list-row">
+        <div>
+          <div class="item-title">Global total</div>
+          <div class="muted">Inventory ${globalInventory} | Weekly prod ${globalProduction} | Store cap ${globalStore}</div>
+          <div class="muted">Last week: Demand ${globalDemand} | Sold ${globalSold}</div>
+        </div>
+        <div class="pill">Stock ${globalInventory}</div>
+      </div>
+    </div>
+  `;
+    const regionHtml = regions
+        .sort((a, b) => String(a.regionLabel || a.regionId).localeCompare(String(b.regionLabel || b.regionId)))
+        .map((region) => {
+        const inventory = formatCount(region.inventory || 0);
+        const production = formatCount(region.capacity?.production || 0);
+        const storeCap = formatCount(region.capacity?.store || 0);
+        const demand = formatCount(region.lastDemand || 0);
+        const sold = formatCount(region.lastSold || 0);
+        const factoryStaff = formatCount(region.staff?.factory || 0);
+        const shoppingStaff = formatCount(region.staff?.shopping || 0);
+        return `
+        <div class="list-item">
+          <div class="list-row">
+            <div>
+              <div class="item-title">${region.regionLabel || region.regionId}</div>
+              <div class="muted">Nation: ${region.nation}</div>
+              <div class="muted">Inventory ${inventory} | Weekly prod ${production} | Store cap ${storeCap}</div>
+              <div class="muted">Staff: Factory ${factoryStaff} | Shopping ${shoppingStaff}</div>
+              <div class="muted">Last week: Demand ${demand} | Sold ${sold}</div>
+            </div>
+            <div class="pill">Stock ${inventory}</div>
+          </div>
+        </div>
+      `;
+    })
+        .join("");
+    listEl.innerHTML = `${globalHtml}${regionHtml}`;
+}
 function renderModifierInventory() {
     const listEl = $("modifierInventoryList");
     if (!listEl)
@@ -5291,6 +5351,18 @@ function renderWorkOrders() {
     });
     listEl.innerHTML = list.join("");
 }
+function buildChartSnapshotEntryMap(snapshot) {
+    if (!snapshot || !Array.isArray(snapshot.entries))
+        return null;
+    const map = new Map();
+    snapshot.entries.forEach((entry) => {
+        const key = entry?.trackId || null;
+        if (!key || map.has(key))
+            return;
+        map.set(key, entry);
+    });
+    return map;
+}
 function renderTrackHistoryPanel(activeTab) {
     const panel = $("trackHistoryPanel");
     if (!panel || activeTab !== "history")
@@ -5362,8 +5434,9 @@ function renderTrackHistoryPanel(activeTab) {
                 return;
             const scopeMap = new Map();
             snapshots.forEach((snapshot, index) => {
-                if (snapshot)
-                    scopeMap.set(scopes[index].scope, snapshot);
+                const entryMap = buildChartSnapshotEntryMap(snapshot);
+                if (entryMap)
+                    scopeMap.set(scopes[index].scope, entryMap);
             });
             snapshotsByWeek.set(week, scopeMap);
         }
@@ -5381,8 +5454,8 @@ function renderTrackHistoryPanel(activeTab) {
                 const weekLabel = weekTitle;
                 const scopeMap = snapshotsByWeek.get(week);
                 const cells = scopes.map((scope) => {
-                    const snapshot = scopeMap?.get(scope.scope);
-                    const entry = snapshot?.entries?.find((item) => item.trackId === track.id);
+                    const entryMap = scopeMap?.get(scope.scope);
+                    const entry = entryMap?.get(track.id);
                     let value = "-";
                     let cellClass = "chart-rank is-unreleased";
                     if (Number.isFinite(releaseWeek) && week >= releaseWeek) {
@@ -5919,8 +5992,9 @@ function renderEraHistoryPanel(targetEra) {
                 return;
             const scopeMap = new Map();
             snapshots.forEach((snapshot, index) => {
-                if (snapshot)
-                    scopeMap.set(scopes[index].scope, snapshot);
+                const entryMap = buildChartSnapshotEntryMap(snapshot);
+                if (entryMap)
+                    scopeMap.set(scopes[index].scope, entryMap);
             });
             snapshotsByWeek.set(week, scopeMap);
         }
@@ -5938,8 +6012,8 @@ function renderEraHistoryPanel(targetEra) {
                 const weekLabel = weekTitle;
                 const scopeMap = snapshotsByWeek.get(week);
                 const cells = scopes.map((scope) => {
-                    const snapshot = scopeMap?.get(scope.scope);
-                    const entry = snapshot?.entries?.find((item) => item.trackId === track.id);
+                    const entryMap = scopeMap?.get(scope.scope);
+                    const entry = entryMap?.get(track.id);
                     let value = "-";
                     let cellClass = "chart-rank is-unreleased";
                     if (Number.isFinite(releaseWeek) && week >= releaseWeek) {
@@ -6020,7 +6094,7 @@ function renderEraPerformance() {
         const economy = track.economy || {};
         const isReleased = track.status === "Released";
         const marketEntry = getMarketTrackByTrackId(track.id)
-            || state.meta?.marketTrackArchive?.find((entry) => entry.trackId === track.id);
+            || getArchivedMarketTrackByTrackId(track.id);
         const history = marketEntry?.chartHistory?.global || null;
         const peakLabel = history?.peak ? `#${history.peak}` : "-";
         const wocLabel = history?.weeks ? formatCount(history.weeks) : "-";
@@ -6234,11 +6308,20 @@ function renderReleaseDesk() {
             }).join("");
         }
     }
-    const asapAt = getReleaseAsapAt();
-    const asapLabel = formatDate(asapAt);
     const distributionSelect = $("releaseDistribution");
     const selectedDistribution = distributionSelect ? distributionSelect.value : "Digital";
-    const selectedFeeLabel = formatMoney(getReleaseDistributionFee(selectedDistribution));
+    const resolveReleaseFeeLabel = (distribution, { rush = false } = {}) => {
+        const distFee = getReleaseDistributionFee(distribution);
+        const rushFee = getReleaseRushFee(distribution, { rush });
+        return formatMoney(distFee + rushFee);
+    };
+    const selectedFeeLabel = resolveReleaseFeeLabel(selectedDistribution);
+    const rushFeeLabel = resolveReleaseFeeLabel("Digital", { rush: true });
+    const canRush = selectedDistribution === "Digital";
+    const asapAt = getReleaseAsapAtForDistribution(selectedDistribution);
+    const asapLabel = formatDate(asapAt);
+    const rushAt = getReleaseAsapAtForDistribution("Digital", { rush: true });
+    const rushLabel = formatDate(rushAt);
     const readyTracks = state.tracks.filter((track) => {
         if (queuedIds.has(track.id))
             return false;
@@ -6285,11 +6368,29 @@ function renderReleaseDesk() {
             const derivedGenre = track.genre || makeGenre(track.theme, track.mood);
             const grade = qualityGrade(track.quality);
             const rec = derivedGenre ? recommendReleasePlan({ ...track, genre: derivedGenre }) : recommendReleasePlan(track);
-            const recLabel = `${rec.distribution} ${rec.scheduleKey === "now" ? "now" : rec.scheduleKey === "fortnight" ? "+14d" : "+7d"}`;
-            const recFeeLabel = formatMoney(getReleaseDistributionFee(rec.distribution));
+            const recScheduleLabel = rec.scheduleKey === "rush"
+                ? "rush"
+                : rec.scheduleKey === "now"
+                    ? "now"
+                    : rec.scheduleKey === "fortnight"
+                        ? "+14d"
+                        : rec.scheduleKey === "week"
+                            ? "+7d"
+                            : rec.scheduleKey;
+            const recLabel = `${rec.distribution} ${recScheduleLabel}`;
+            const recFeeLabel = resolveReleaseFeeLabel(rec.distribution, { rush: rec.rush });
             const genreLabel = renderGenrePillsFromGenre(derivedGenre, { fallback: "-", alignment: track.alignment });
             const hasAct = Boolean(track.actId);
             const canSchedule = hasAct && isReady;
+            const eligibility = evaluatePhysicalEligibility(track, { labelFans: Number(state.label?.fans || 0) });
+            const qualityLabel = Number.isFinite(eligibility.quality) ? Math.round(eligibility.quality) : "-";
+            const minQualityLabel = Number.isFinite(eligibility.minQuality) ? Math.round(eligibility.minQuality) : 0;
+            const fansLabel = Number.isFinite(eligibility.fans) ? formatCount(eligibility.fans) : "-";
+            const minFansLabel = Number.isFinite(eligibility.minFans) ? formatCount(eligibility.minFans) : "-";
+            const eligibilityText = eligibility.ok
+                ? `Physical eligible: Quality ${qualityLabel}/${minQualityLabel}, Fans ${fansLabel}/${minFansLabel}`
+                : `Physical locked: Quality ${qualityLabel}/${minQualityLabel}, Fans ${fansLabel}/${minFansLabel}`;
+            const eligibilityClass = eligibility.ok ? "muted" : "muted warn";
             const releaseTypeSelect = `
         <div class="field">
           <label>Release Type</label>
@@ -6313,6 +6414,7 @@ function renderReleaseDesk() {
                 <div class="muted">${projectCountLine}</div>
                 <div class="muted">Modifier: ${modifierName}</div>
                 <div class="muted">Recommended: ${recLabel} - ${rec.reason}</div>
+                <div class="${eligibilityClass}">${eligibilityText}</div>
                 ${releaseTypeSelect}
                 ${actSelect}
               </div>
@@ -6321,7 +6423,9 @@ function renderReleaseDesk() {
               <div>
               <button type="button" data-release="asap" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Release ASAP (${selectedFeeLabel})</button>
                 <div class="time-meta">${asapLabel} (earliest Friday at midnight)</div>
+                ${canRush ? `<div class="time-meta">Rush window: ${rushLabel}</div>` : ""}
               </div>
+              <button type="button" class="ghost" data-release="rush" data-track="${track.id}"${canSchedule && canRush ? "" : " disabled"}>Instant (Rush) (${rushFeeLabel})</button>
               <button type="button" class="ghost" data-release="week" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+7d (${selectedFeeLabel})</button>
               <button type="button" class="ghost" data-release="fortnight" data-track="${track.id}"${canSchedule ? "" : " disabled"}>+14d (${selectedFeeLabel})</button>
               <button type="button" class="ghost" data-release="recommend" data-track="${track.id}"${canSchedule ? "" : " disabled"}>Use Recommended (${recFeeLabel})</button>
@@ -6368,7 +6472,7 @@ function renderReleaseDesk() {
             const releaseType = track ? resolveTrackReleaseType(track) : "Single";
             const releaseTypeLabel = releaseType === "Single" ? "Single" : "Project track";
             const editionLabel = track?.projectEdition === "Deluxe" ? " | Deluxe" : "";
-            const distribution = entry.distribution || entry.note || "Digital";
+            const distribution = entry.rush ? "Digital Rush" : (entry.distribution || entry.note || "Digital");
             return `
       <div class="list-item">
         <div class="list-row">
@@ -6387,6 +6491,7 @@ function renderReleaseDesk() {
         }).join("")
         : `<div class="muted">No release-ready scheduled entries.</div>`;
     releaseQueueList.innerHTML = `${blockedNote}${queueHtml}`;
+    renderDistributionInventory();
 }
 function renderTouringDesk() {
     const draftSelect = $("tourDraftSelect");
