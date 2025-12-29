@@ -9,7 +9,7 @@ const TOAST_THROTTLE_MS = 600;
 const TOAST_LIFETIME_MS = 12000;
 
 let lastSaveAt = 0;
-let lastToastAt = 0;
+let lastCriticalToastAt = 0;
 
 function safeSetStorage(storage, key, value) {
   try {
@@ -68,48 +68,27 @@ function formatToastDetail(detail) {
 
 function showCriticalToast(summary, detail) {
   const now = Date.now();
-  if (now - lastToastAt < TOAST_THROTTLE_MS) return;
-  lastToastAt = now;
-  const toast = document.createElement("div");
-  toast.className = "toast toast--critical";
-  const dismiss = () => toast.remove();
-  const title = document.createElement("div");
-  title.className = "toast-title";
-  title.textContent = summary;
-  toast.appendChild(title);
-  const detailText = formatToastDetail(detail);
-  if (detailText) {
-    const detailEl = document.createElement("div");
-    detailEl.className = "toast-detail";
-    detailEl.textContent = detailText;
-    toast.appendChild(detailEl);
-  }
-  const actions = document.createElement("div");
-  actions.className = "toast-actions";
-  const reload = document.createElement("button");
-  reload.type = "button";
-  reload.className = "ghost mini";
-  reload.textContent = "Reload";
-  reload.addEventListener("click", () => window.location.reload());
-  const close = document.createElement("button");
-  close.type = "button";
-  close.className = "ghost mini";
-  close.textContent = "Dismiss";
-  close.addEventListener("click", dismiss);
-  actions.appendChild(reload);
-  actions.appendChild(close);
-  toast.appendChild(actions);
-  appendToast(toast);
+  if (now - lastCriticalToastAt < TOAST_THROTTLE_MS) return;
+  lastCriticalToastAt = now;
+  showToast(summary, detail, {
+    tone: "critical",
+    actions: [
+      { label: "Reload", handler: () => window.location.reload() },
+      { label: "Dismiss", handler: (toast) => toast?.remove() }
+    ]
+  });
 }
 
-function showToast(summary, detail, { tone = "info" } = {}) {
+function showToast(summary, detail, { tone = "info", actions = [] } = {}) {
   if (!summary) return;
   const toast = document.createElement("div");
   const toneClass = tone === "critical"
     ? "toast--critical"
     : tone === "success"
       ? "toast--success"
-      : "toast--info";
+      : tone === "warn"
+        ? "toast--warn"
+        : "toast--info";
   toast.className = `toast ${toneClass}`;
   const title = document.createElement("div");
   title.className = "toast-title";
@@ -121,6 +100,24 @@ function showToast(summary, detail, { tone = "info" } = {}) {
     detailEl.className = "toast-detail";
     detailEl.textContent = detailText;
     toast.appendChild(detailEl);
+  }
+  if (actions && actions.length) {
+    const actionsEl = document.createElement("div");
+    actionsEl.className = "toast-actions";
+    actions.forEach((action) => {
+      if (!action || !action.label) return;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ghost mini";
+      button.textContent = action.label;
+      button.addEventListener("click", () => {
+        if (typeof action.handler === "function") action.handler(toast);
+      });
+      actionsEl.appendChild(button);
+    });
+    if (actionsEl.children.length) {
+      toast.appendChild(actionsEl);
+    }
   }
   appendToast(toast);
 }

@@ -173,6 +173,8 @@ import {
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
+import { getExternalStorageStatus } from "../../file-storage.js";
+import { showToast } from "../../guardrails.js";
 import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
 import {
   buildMoodOptions,
@@ -816,7 +818,11 @@ function ensureTrackSlotGrid() {
         slot.dataset.slotRole = entry.role;
         slot.dataset.slotGroup = "track";
         slot.dataset.slotIndex = String(index);
+        slot.tabIndex = 0;
+        slot.setAttribute("role", "button");
+        slot.setAttribute("aria-haspopup", "listbox");
         const label = `${roleLabel(entry.role)} Slot`;
+        slot.setAttribute("aria-label", `${label} ${index}`);
         slot.innerHTML = `
           <div class="slot-label">${label} ${index}</div>
           <div class="slot-id">
@@ -1801,6 +1807,132 @@ function renderDashboardFocusPanels() {
     panel.classList.toggle("is-active", isActive);
     panel.setAttribute("aria-hidden", String(!isActive));
   });
+  const chartControls = document.querySelector(".chart-pulse-controls");
+  if (chartControls) {
+    const showControls = active === "charts";
+    chartControls.classList.toggle("charts-active", showControls);
+    chartControls.setAttribute("aria-hidden", String(!showControls));
+  }
+}
+
+function computeLabelShare(entries, size, labelName) {
+  if (!Array.isArray(entries) || !labelName || !Number.isFinite(size) || size <= 0) return null;
+  let count = 0;
+  entries.forEach((entry) => {
+    if (resolveChartEntryLabel(entry) === labelName) count += 1;
+  });
+  if (!count) return null;
+  return { share: count / size, count, size };
+}
+
+function formatMonopolyScopeLabel(scope, type) {
+  const typeLabel = type === "promotions" ? "Promotions" : type === "tours" ? "Tours" : "Tracks";
+  if (!scope || scope === "global") return `Global ${typeLabel}`;
+  if (Array.isArray(NATIONS) && NATIONS.includes(scope)) {
+    return `${scope} ${typeLabel}`;
+  }
+  if (Array.isArray(REGION_DEFS)) {
+    const region = REGION_DEFS.find((entry) => entry.id === scope);
+    if (region && region.label) return `${region.label} ${typeLabel}`;
+  }
+  return `${scope} ${typeLabel}`;
+}
+
+function buildMonopolyChecks() {
+  const chartSizes = typeof CHART_SIZES === "object" && CHART_SIZES
+    ? CHART_SIZES
+    : { global: 200, nation: 100, region: 40 };
+  const checks = [];
+  const push = ({ entries, size, scope, type }) => {
+    if (!Array.isArray(entries) || !Number.isFinite(size) || size <= 0) return;
+    checks.push({ entries, size, scope, type });
+  };
+  push({ entries: state.charts?.global || [], size: chartSizes.global, scope: "global", type: "tracks" });
+  (Array.isArray(NATIONS) ? NATIONS : []).forEach((nation) => {
+    push({ entries: state.charts?.nations?.[nation] || [], size: chartSizes.nation, scope: nation, type: "tracks" });
+  });
+  (Array.isArray(REGION_DEFS) ? REGION_DEFS : []).forEach((region) => {
+    push({ entries: state.charts?.regions?.[region.id] || [], size: chartSizes.region, scope: region.id, type: "tracks" });
+  });
+  push({ entries: state.promoCharts?.global || [], size: chartSizes.global, scope: "global", type: "promotions" });
+  (Array.isArray(NATIONS) ? NATIONS : []).forEach((nation) => {
+    push({ entries: state.promoCharts?.nations?.[nation] || [], size: chartSizes.nation, scope: nation, type: "promotions" });
+  });
+  (Array.isArray(REGION_DEFS) ? REGION_DEFS : []).forEach((region) => {
+    push({ entries: state.promoCharts?.regions?.[region.id] || [], size: chartSizes.region, scope: region.id, type: "promotions" });
+  });
+  push({ entries: state.tourCharts?.global || [], size: chartSizes.global, scope: "global", type: "tours" });
+  (Array.isArray(NATIONS) ? NATIONS : []).forEach((nation) => {
+    push({ entries: state.tourCharts?.nations?.[nation] || [], size: chartSizes.nation, scope: nation, type: "tours" });
+  });
+  (Array.isArray(REGION_DEFS) ? REGION_DEFS : []).forEach((region) => {
+    push({ entries: state.tourCharts?.regions?.[region.id] || [], size: chartSizes.region, scope: region.id, type: "tours" });
+  });
+  return checks;
+}
+
+function resolveMonopolyRisk() {
+  const labelName = state.label?.name || "";
+  if (!labelName) return null;
+  const checks = buildMonopolyChecks();
+  const shares = checks
+    .map((check) => {
+      const share = computeLabelShare(check.entries, check.size, labelName);
+      if (!share) return null;
+      return {
+        ...share,
+        scope: check.scope,
+        type: check.type,
+        label: formatMonopolyScopeLabel(check.scope, check.type)
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.share - a.share);
+  return shares[0] || null;
+}
+
+function maybeWarnMonopolyRisk(share, label) {
+  if (!label || !Number.isFinite(share)) return;
+  const threshold = Number.isFinite(MONOPOLY_SHARE) ? MONOPOLY_SHARE : 0.6;
+  if (!Number.isFinite(threshold) || threshold <= 0) return;
+  const warningThreshold = threshold * 0.85;
+  const resetThreshold = Math.max(0, warningThreshold - (threshold * 0.05));
+  if (!state.ui) state.ui = {};
+  if (share >= warningThreshold) {
+    if (!state.ui.monopolyWarningActive) {
+      state.ui.monopolyWarningActive = true;
+      showToast(
+        "You are at risk of Monopoly Loss.",
+        `Your label controls ${Math.round(share * 100)}% of ${label}.`,
+        { tone: "warn" }
+      );
+    }
+  } else if (state.ui.monopolyWarningActive && share < resetThreshold) {
+    state.ui.monopolyWarningActive = false;
+  }
+}
+
+function updateMonopolyRiskIndicator() {
+  const panel = $("monopolyRiskPanel");
+  if (!panel) return;
+  const statusEl = $("monopolyRiskStatus");
+  const meter = $("monopolyRiskMeter");
+  const note = $("monopolyRiskNote");
+  const threshold = Number.isFinite(MONOPOLY_SHARE) ? MONOPOLY_SHARE : 0.6;
+  const thresholdPct = Math.round(threshold * 100);
+  const best = resolveMonopolyRisk();
+  if (!best) {
+    if (statusEl) statusEl.textContent = `0% / ${thresholdPct}%`;
+    if (meter) meter.style.width = "0%";
+    if (note) note.textContent = `Threshold ${thresholdPct}%`;
+    maybeWarnMonopolyRisk(0, "");
+    return;
+  }
+  const sharePct = Math.round(best.share * 100);
+  if (statusEl) statusEl.textContent = `${sharePct}% / ${thresholdPct}% (${best.label})`;
+  if (meter) meter.style.width = `${Math.min(100, sharePct)}%`;
+  if (note) note.textContent = `Threshold ${thresholdPct}% (${best.label})`;
+  maybeWarnMonopolyRisk(best.share, best.label);
 }
 
 function formatAudienceHour(hour) {
@@ -1868,6 +2000,7 @@ function renderDashboard() {
   if (!statsEl) return;
   renderAchievements();
   renderDashboardFocusPanels();
+  updateMonopolyRiskIndicator();
   const weekLabel = $("dashboardWeekLabel");
   if (weekLabel) weekLabel.textContent = formatWeekRangeLabel(weekIndex() + 1);
   const dateLabel = $("dashboardDateLabel");
@@ -2710,6 +2843,46 @@ function renderPromoAlerts() {
     `);
   });
   listEl.innerHTML = blocks.join("");
+}
+
+async function updateSaveStatusPanel(root) {
+  const scope = root || document;
+  const lastLabel = scope.querySelector("#saveLastLabel");
+  const targetLabel = scope.querySelector("#saveTargetLabel");
+  const targetDetail = scope.querySelector("#saveTargetDetail");
+  const autoLabel = scope.querySelector("#saveAutoLabel");
+  const autoLast = scope.querySelector("#saveAutoLastLabel");
+  const savedAt = state.meta?.savedAt;
+  if (lastLabel) {
+    lastLabel.textContent = savedAt ? `Last saved: ${formatDate(savedAt)}` : "Last saved: Never";
+  }
+  const autoSave = state.meta?.autoSave;
+  if (autoLabel) {
+    const minutes = Number.isFinite(autoSave?.minutes) ? autoSave.minutes : 2;
+    autoLabel.textContent = `Auto-save interval: ${minutes} min`;
+  }
+  if (autoLast) {
+    const lastAuto = autoSave?.lastSavedAt;
+    autoLast.textContent = lastAuto ? `Last auto save: ${formatDate(lastAuto)}` : "Last auto save: Pending";
+  }
+  if (targetLabel) targetLabel.textContent = "Save target: Local storage";
+  if (targetDetail) targetDetail.textContent = "External storage not configured.";
+  if (typeof window === "undefined") return;
+  try {
+    const status = await getExternalStorageStatus();
+    if (status?.supported === false) {
+      if (targetDetail) targetDetail.textContent = "External storage not supported in this browser.";
+    } else if (status?.status === "ready") {
+      if (targetLabel) targetLabel.textContent = `Save target: ${status.name || "External folder"}`;
+      if (targetDetail) targetDetail.textContent = "External storage ready.";
+    } else if (status?.status === "not-set") {
+      if (targetDetail) targetDetail.textContent = "External folder not selected.";
+    } else if (status?.status) {
+      if (targetDetail) targetDetail.textContent = `External storage permission: ${status.status}.`;
+    }
+  } catch {
+    if (targetDetail) targetDetail.textContent = "Unable to read external storage status.";
+  }
 }
 
 function renderAwardPerformanceBidControls(shows) {
@@ -4447,9 +4620,14 @@ function renderCreators() {
       const nationalityPill = renderNationalityPill(creator.country);
       const memberships = listCreatorActs(creator.id);
       const sortedActs = sortActsByPopularity(memberships, actPopularityMap);
-      const primaryAct = sortedActs[0] || null;
-      const primaryActLabel = primaryAct ? renderActName(primaryAct) : "No Act";
-      const hasMultipleActs = sortedActs.length > 1;
+      const actLabels = sortedActs.map((act) => renderActName(act));
+      const visibleActs = actLabels.slice(0, 2);
+      const overflowCount = Math.max(0, actLabels.length - visibleActs.length);
+      const actsInline = visibleActs.length
+        ? visibleActs.map((label) => `<span class="creator-acts-name">${label}</span>`).join(", ")
+        : `<span class="creator-acts-name muted">No Act</span>`;
+      const overflowHint = overflowCount ? `<span class="creator-acts-overflow">+${overflowCount} more</span>` : "";
+      const hasMultipleActs = actLabels.length > 1;
       const popoverId = `creator-acts-popover-${creator.id}`;
       const actsPopover = hasMultipleActs
         ? `
@@ -4485,7 +4663,8 @@ function renderCreators() {
                     <div class="muted">Catharsis <span class="grade-text" data-grade="${catharsisGrade}">${catharsisScore}</span></div>
                     <div class="muted creator-card-acts">
                       <span class="creator-acts-label">Acts:</span>
-                      <span class="creator-acts-primary">${primaryActLabel}</span>
+                      <span class="creator-acts-primary">${actsInline}</span>
+                      ${overflowHint}
                       ${actsMoreButton}
                       ${actsPopover}
                     </div>
@@ -4521,7 +4700,7 @@ function renderCreators() {
           <div class="tiny muted">${roleCreators.length} signed</div>
         </div>
         <div class="list ccc-market-list">
-          ${list.length ? list.join("") : `<div class="muted">${emptyMsg}</div>`}
+          ${list.length ? list : `<div class="muted">${emptyMsg}</div>`}
         </div>
       </div>
     `;
@@ -4675,7 +4854,9 @@ function renderMarket({ skipThrottle = false } = {}) {
       return themeMatch && moodMatch;
     });
     const sortedCreators = sortCreators(filteredCreators);
-    const list = sortedCreators.map((creator) => {
+    const roleFiltered = filters[role] === false;
+    const creatorsToRender = roleFiltered ? [] : sortedCreators;
+    const list = creatorsToRender.map((creator) => {
       const catharsisScore = getCreatorCatharsisScore(creator);
       const catharsisGrade = scoreGrade(catharsisScore);
       const staminaPct = Math.round((creator.stamina / STAMINA_MAX) * 100);
@@ -4741,15 +4922,19 @@ function renderMarket({ skipThrottle = false } = {}) {
         </div>
       `;
     });
-    const emptyMsg = filtersActive
-      ? `No ${roleLabelText} Creator IDs match the current filters.`
-      : pool.length
-        ? `No ${roleLabelText} Creator IDs available.`
-        : "No Creator IDs available.";
-    const columnState = filters[role] === false ? " is-hidden" : "";
-    const countLabel = filtersActive
+    const filteredNotice = `${roleLabelText}s are hidden by the role filters. Toggle the checkboxes to view them.`;
+    const emptyMsg = roleFiltered
+      ? filteredNotice
+      : filtersActive
+        ? `No ${roleLabelText} Creator IDs match the current filters.`
+        : pool.length
+          ? `No ${roleLabelText} Creator IDs available.`
+          : "No Creator IDs available.";
+    const columnState = roleFiltered ? " filtered" : "";
+    const baseCountLabel = filtersActive
       ? `${sortedCreators.length} of ${roleCreators.length} available`
       : `${roleCreators.length} available`;
+    const countLabel = `${baseCountLabel}${roleFiltered ? " · Filtered out" : ""}`;
     return `
       <div class="ccc-market-column${columnState}" data-role="${role}">
         <div class="ccc-market-head">
@@ -4757,7 +4942,7 @@ function renderMarket({ skipThrottle = false } = {}) {
           <div class="tiny muted">${countLabel}</div>
         </div>
         <div class="list ccc-market-list">
-          ${list.length ? list.join("") : `<div class="muted">${emptyMsg}</div>`}
+          ${list.length ? list : `<div class="muted">${emptyMsg}</div>`}
         </div>
       </div>
     `;
@@ -8394,6 +8579,7 @@ function renderMainMenu() {
     cheaterToggle.checked = Boolean(state.meta.cheaterMode);
     cheaterToggle.disabled = !session.activeSlot;
   }
+  void updateSaveStatusPanel(document);
 }
 
 function openMainMenu() {
@@ -8931,6 +9117,30 @@ function recordChartsRender() {
   if (state.ui?.forceChartsRender) state.ui.forceChartsRender = false;
 }
 
+function safeRenderCreateView() {
+  try {
+    renderCreateStageControls();
+    renderSlots();
+    renderTracks();
+    renderModifierInventory();
+    renderCreateTrends();
+    updateGenrePreview();
+    if (typeof window !== "undefined" && typeof window.updateCreateModePanels === "function") {
+      window.updateCreateModePanels();
+    }
+    if (typeof window !== "undefined" && typeof window.updateAutoCreateSummary === "function") {
+      window.updateAutoCreateSummary();
+    }
+  } catch (error) {
+    console.error("Create view render failed:", error);
+    showToast(
+      "Create view error",
+      "The Create tab encountered an issue; try reloading the view or switching tabs to recover.",
+      { tone: "warn" }
+    );
+  }
+}
+
 function renderActiveView(view) {
   const raw = view || state.ui.activeView || "dashboard";
   const active = raw === "promotion" ? "logs" : raw === "era" ? "eras" : raw;
@@ -8946,18 +9156,7 @@ function renderActiveView(view) {
   } else if (active === "release") {
     renderReleaseDesk();
   } else if (active === "create") {
-    renderCreateStageControls();
-    renderSlots();
-    renderTracks();
-    renderModifierInventory();
-    renderCreateTrends();
-    updateGenrePreview();
-    if (typeof window !== "undefined" && typeof window.updateCreateModePanels === "function") {
-      window.updateCreateModePanels();
-    }
-    if (typeof window !== "undefined" && typeof window.updateAutoCreateSummary === "function") {
-      window.updateAutoCreateSummary();
-    }
+    safeRenderCreateView();
   } else if (active === "releases") {
     renderCalendarView();
     renderCalendarStructuresPanel();
@@ -9060,6 +9259,7 @@ export {
   renderAwardsCircuit,
   renderSocialFeed,
   renderMainMenu,
+  updateSaveStatusPanel,
   renderRankingModal,
   renderRankingWindow,
   renderAll,

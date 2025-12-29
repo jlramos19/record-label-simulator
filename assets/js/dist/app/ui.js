@@ -10,7 +10,7 @@ import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
 import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistoryFromExternal, importSavesFromExternal, isExternalStorageSupported, requestExternalStorageHandle, syncExternalStorageNow } from "./file-storage.js";
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { showToast } from "./guardrails.js";
-import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
+import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, updateSaveStatusPanel, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
 const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
 setUiHooks({
@@ -159,16 +159,6 @@ async function describeSaveLocation() {
     catch {
         return buildSaveLocationLabel(null);
     }
-    root.addEventListener("click", (event) => {
-        const trigger = event.target.closest("[data-achievement-route]");
-        if (!trigger)
-            return;
-        const route = trigger.dataset.achievementRoute;
-        if (!route)
-            return;
-        event.preventDefault();
-        window.location.hash = `#/${route}`;
-    });
 }
 async function refreshSaveLocationStatus() {
     const statusEl = $("saveLocationStatus");
@@ -1330,6 +1320,8 @@ async function handleExternalStoragePick(root, { fromPrompt = false } = {}) {
         }
         else if (result.reason !== "cancelled") {
             logEvent(`External storage folder could not be set (${result.reason}).`, "warn");
+            const detail = result.detail || result.reason || "unknown issue";
+            showToast("Save folder unavailable", `Unable to open the save folder picker (${detail}). Check browser permissions or try a supported browser.`, { tone: "warn" });
         }
     }
     const usageSession = getUsageSessionSnapshot();
@@ -2675,44 +2667,99 @@ function updateAutoCreateSummary(scope) {
     const summary = root.querySelector("#autoCreateSummary");
     if (!summary)
         return;
+    const statusEl = root.querySelector("#autoCreateStatus");
+    const reasonsEl = root.querySelector("#autoCreateReasons");
+    const modeEl = root.querySelector("#autoCreateModeLabel");
+    const enabledEl = root.querySelector("#autoCreateEnabledLabel");
+    const rolesEl = root.querySelector("#autoCreateRolesLabel");
+    const actsEl = root.querySelector("#autoCreateActsLabel");
+    const cashEl = root.querySelector("#autoCreateCashLabel");
+    const nextRunEl = root.querySelector("#autoCreateNextRunLabel");
+    const eraEl = root.querySelector("#autoCreateEraLabel");
     const settings = state.meta?.autoCreate;
-    if (!settings) {
-        summary.innerHTML = `<div class="muted">Auto create unavailable.</div>`;
-        return;
-    }
-    const enabled = Boolean(settings.enabled);
-    const pct = Number.isFinite(settings.budgetPct) ? clamp(settings.budgetPct, 0, 1) : 0;
     const walletCash = state.label.wallet?.cash ?? state.label.cash ?? 0;
-    const reserve = Number.isFinite(settings.minCash) ? settings.minCash : 0;
-    const maxTracks = Number.isFinite(settings.maxTracks) ? settings.maxTracks : 1;
-    const budgetCap = computeAutoCreateBudget(walletCash, pct, reserve);
+    const reserve = Number.isFinite(settings?.minCash) ? settings.minCash : 0;
+    const budgetPct = Number.isFinite(settings?.budgetPct) ? clamp(settings.budgetPct, 0, 1) : 0;
+    const budgetCap = computeAutoCreateBudget(walletCash, budgetPct, reserve);
+    const modeLabel = settings?.mode === "collab" ? "Collab" : "Solo";
+    const enabled = Boolean(settings?.enabled);
     const scheduleHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
     const scheduleText = formatHourCountdown(scheduleHours);
-    const scheduleLabel = scheduleText === "-" ? "-" : `${scheduleText}h`;
-    const modeLabel = settings.mode === "collab" ? "Collab" : "Solo";
-    const pctLabel = `${Math.round(pct * 100)}%`;
-    const last = settings.lastOutcome;
-    const lastStamp = last?.at ? formatDate(last.at) : "-";
-    const lastCounts = last
-        ? [
-            last.actsAssigned ? `${last.actsAssigned} act${last.actsAssigned === 1 ? "" : "s"} assigned` : null,
-            last.demoStarted ? `${last.demoStarted} demo${last.demoStarted === 1 ? "" : "s"}` : null,
-            last.masterStarted ? `${last.masterStarted} master${last.masterStarted === 1 ? "" : "s"}` : null,
-            last.created ? `${last.created} track${last.created === 1 ? "" : "s"} started` : null
-        ].filter(Boolean).join(" | ")
-        : "";
-    const lastLine = last?.message
-        ? `Last run ${lastStamp}: ${last.message}`
-        : "No auto-create runs yet.";
-    summary.innerHTML = `
-    <div class="list-item">
-      <div class="item-title">Auto Create Plan</div>
-      <div class="muted">${enabled ? "Enabled" : "Disabled"} | Next check ${scheduleLabel} (chart update)</div>
-      <div class="muted">Budget cap ${formatMoney(budgetCap)} (${pctLabel}) | Reserve ${formatMoney(reserve)} | Max ${maxTracks} | Mode ${modeLabel}</div>
-      ${lastCounts ? `<div class="muted">Last run output: ${lastCounts}</div>` : ""}
-      <div class="muted">${lastLine}</div>
-    </div>
-  `;
+    const nextRunText = scheduleText === "-" ? "Pending" : `${scheduleText}h`;
+    const focusEra = getFocusedEra();
+    const focusLabel = focusEra ? focusEra.name : "Not set";
+    const actsReady = Array.isArray(state.acts) ? state.acts.length : 0;
+    const roleCounts = ["Songwriter", "Performer", "Producer"].map((role) => {
+        const ready = rankCandidates(role)
+            .filter((creator) => creator.ready && !creator.busy)
+            .length;
+        return `${role}s ${ready}`;
+    });
+    const reasons = [];
+    if (!settings) {
+        reasons.push("Auto create plan is unavailable.");
+    }
+    else {
+        if (!enabled) {
+            reasons.push("Auto create content is disabled.");
+        }
+        else {
+            if (roleCounts[0].endsWith("0")) {
+                reasons.push("No ready Songwriter available.");
+            }
+            if (modeLabel === "Collab") {
+                if (roleCounts[1].endsWith("0")) {
+                    reasons.push("No ready Performer available.");
+                }
+                if (roleCounts[2].endsWith("0")) {
+                    reasons.push("No ready Producer available.");
+                }
+            }
+            if (!actsReady) {
+                reasons.push("Assign at least one Act before auto-create.");
+            }
+            if (walletCash <= reserve) {
+                reasons.push(`Cash reserve ${formatMoney(reserve)} must remain untouched.`);
+            }
+            if (budgetCap <= 0) {
+                reasons.push("Budget cap is zero; adjust the budget percentages or cash.");
+            }
+            if (!focusEra) {
+                reasons.push("Select a focus era before running auto-create.");
+            }
+        }
+    }
+    const ready = enabled && reasons.length === 0;
+    if (statusEl) {
+        statusEl.textContent = ready ? "Ready" : "Blocked";
+        statusEl.classList.toggle("ready", ready);
+        statusEl.classList.toggle("blocked", !ready);
+    }
+    if (reasonsEl) {
+        if (reasons.length) {
+            reasonsEl.innerHTML = `<div class="auto-create-blocked-heading">Blocked because</div>` +
+                reasons.map((reason) => `<div class="blocked-item">${reason}</div>`).join("");
+            reasonsEl.classList.remove("hidden");
+        }
+        else {
+            reasonsEl.classList.add("hidden");
+            reasonsEl.innerHTML = "";
+        }
+    }
+    if (modeEl)
+        modeEl.textContent = modeLabel;
+    if (enabledEl)
+        enabledEl.textContent = enabled ? "Yes" : "No";
+    if (rolesEl)
+        rolesEl.textContent = roleCounts.join(" | ");
+    if (actsEl)
+        actsEl.textContent = actsReady ? formatCount(actsReady) : "0";
+    if (cashEl)
+        cashEl.textContent = `Cap ${formatMoney(budgetCap)} | Reserve ${formatMoney(reserve)} | Cash ${formatMoney(walletCash)}`;
+    if (nextRunEl)
+        nextRunEl.textContent = `Next run in ${nextRunText}`;
+    if (eraEl)
+        eraEl.textContent = focusLabel;
 }
 function updateCreateModePanels(scope) {
     const root = scope || document;
@@ -2816,15 +2863,31 @@ function bindGlobalHandlers() {
     const handleManualSave = async (refreshMenu) => {
         if (!session.activeSlot) {
             logEvent("Select a game slot before saving.", "warn");
+            showToast("Save blocked", "Pick a game slot before saving.", { tone: "warn" });
             return;
         }
-        saveToActiveSlot();
-        if (refreshMenu)
-            renderMainMenu();
-        logEvent(`Saved Game Slot ${session.activeSlot}.`);
-        const timestamp = formatTimestampShort(Date.now());
-        const locationLabel = await describeSaveLocation();
-        showToast(`Saved at ${timestamp}`, `→ ${locationLabel}`, { tone: "success" });
+        try {
+            saveToActiveSlot();
+            if (refreshMenu)
+                renderMainMenu();
+            await updateSaveStatusPanel(document);
+            const timestamp = formatTimestampShort(Date.now());
+            let locationLabel = "";
+            try {
+                locationLabel = await describeSaveLocation();
+            }
+            catch {
+                locationLabel = "Unknown location";
+            }
+            const toastDetail = locationLabel ? `Saved at ${timestamp} (${locationLabel}).` : `Saved at ${timestamp}.`;
+            showToast("Save complete", toastDetail, { tone: "success" });
+            logEvent("Saved Game Slot.");
+        }
+        catch (error) {
+            const detail = error?.message || "Check storage permissions or retry.";
+            logEvent("Manual save failed.", "warn");
+            showToast("Save failed", `Slot could not be saved: ${detail}`, { tone: "warn" });
+        }
     };
     const setTutorialTab = (tabId) => {
         if (!tabId)
@@ -3357,6 +3420,7 @@ function bindGlobalHandlers() {
         }
         const slot = e.target.closest(".id-slot");
         if (slot) {
+            slot.focus();
             setSlotTarget(slot.dataset.slotTarget);
         }
     });
@@ -3372,12 +3436,15 @@ function bindGlobalHandlers() {
         if (!slot)
             return;
         e.preventDefault();
+        document.querySelectorAll(".id-slot.is-dragover").forEach((target) => target.classList.remove("is-dragover"));
+        slot.classList.add("is-dragover");
     });
     document.addEventListener("drop", (e) => {
         const slot = e.target.closest(".id-slot");
         if (!slot)
             return;
         e.preventDefault();
+        slot.classList.remove("is-dragover");
         try {
             const payload = JSON.parse(e.dataTransfer.getData("text/plain"));
             if (!payload)
@@ -3387,6 +3454,9 @@ function bindGlobalHandlers() {
         catch {
             logEvent("Drop failed: invalid ID payload.", "warn");
         }
+    });
+    document.addEventListener("dragend", () => {
+        document.querySelectorAll(".id-slot.is-dragover").forEach((slot) => slot.classList.remove("is-dragover"));
     });
     const mainMenu = $("mainMenu");
     if (mainMenu) {
@@ -3400,6 +3470,13 @@ function bindGlobalHandlers() {
     }
     document.addEventListener("keydown", (e) => {
         const active = document.activeElement;
+        const slotTargetEl = active?.closest ? active.closest(".id-slot") : null;
+        if (slotTargetEl && (e.code === "Enter" || e.code === "Space")) {
+            e.preventDefault();
+            slotTargetEl.focus();
+            setSlotTarget(slotTargetEl.dataset.slotTarget);
+            return;
+        }
         const label = active?.closest ? active.closest("[data-rival-label]") : null;
         if (label && (e.code === "Enter" || e.code === "Space")) {
             e.preventDefault();
@@ -5287,29 +5364,34 @@ window.updateAutoCreateSummary = () => updateAutoCreateSummary(document);
 window.updateAutoPromoSummary = () => updateAutoPromoSummary(document);
 window.updateCreateModePanels = () => updateCreateModePanels(document);
 function ensureSlotDropdowns() {
-    document.querySelectorAll(".id-slot").forEach((slot) => {
-        if (slot.closest("#rls-react-trackslots-root"))
-            return;
-        if (slot.querySelector(".slot-select"))
-            return;
-        const select = document.createElement("select");
-        select.className = "slot-select";
-        select.setAttribute("aria-label", "Select slot value");
-        select.addEventListener("click", (e) => e.stopPropagation());
-        select.addEventListener("change", () => {
-            const target = slot.dataset.slotTarget;
-            const type = slot.dataset.slotType;
-            const value = select.value;
-            if (!target || !type)
+    try {
+        document.querySelectorAll(".id-slot").forEach((slot) => {
+            if (slot.closest("#rls-react-trackslots-root"))
                 return;
-            if (!value) {
-                clearSlot(target);
+            if (slot.querySelector(".slot-select"))
                 return;
-            }
-            assignToSlot(target, type, value);
+            const select = document.createElement("select");
+            select.className = "slot-select";
+            select.setAttribute("aria-label", "Select slot value");
+            select.addEventListener("click", (e) => e.stopPropagation());
+            select.addEventListener("change", () => {
+                const target = slot.dataset.slotTarget;
+                const type = slot.dataset.slotType;
+                const value = select.value;
+                if (!target || !type)
+                    return;
+                if (!value) {
+                    clearSlot(target);
+                    return;
+                }
+                assignToSlot(target, type, value);
+            });
+            slot.appendChild(select);
         });
-        slot.appendChild(select);
-    });
+    }
+    catch (error) {
+        console.error("ensureSlotDropdowns failed:", error);
+    }
 }
 function listPromoProjectOptions(actId) {
     const activeEraIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.id));
@@ -5352,121 +5434,127 @@ if (typeof window !== "undefined") {
     window.stopAutoSkips = () => false;
     window.loadCSV = loadCSV;
     window.emitStateChanged = emitStateChanged;
+    window.updateSaveStatusPanel = () => updateSaveStatusPanel(document);
     window.rlsUi = window.rlsUi || {};
     window.rlsUi.setCalendarTab = setCalendarTab;
     window.rlsUi.setCalendarFilter = setCalendarFilter;
 }
 function updateSlotDropdowns() {
-    document.querySelectorAll(".id-slot").forEach((slot) => {
-        if (slot.closest("#rls-react-trackslots-root"))
-            return;
-        const select = slot.querySelector(".slot-select");
-        if (!select)
-            return;
-        const target = slot.dataset.slotTarget;
-        const type = slot.dataset.slotType;
-        const role = slot.dataset.slotRole;
-        const currentValue = getSlotValue(target) || "";
-        const autoPromoSlot = parseAutoPromoSlotTarget(target);
-        const autoPromoSlots = autoPromoSlot ? ensureAutoPromoSlots() : null;
-        const isPromoActSlot = target === "promo-act" || autoPromoSlot?.kind === "act";
-        const isPromoProjectSlot = target === "promo-project" || autoPromoSlot?.kind === "project";
-        const isPromoTrackSlot = target === "promo-track" || autoPromoSlot?.kind === "track";
-        const options = [{ value: "", label: "Unassigned" }];
-        if (type === "creator") {
-            const req = role ? staminaRequirement(role) : 0;
-            const creators = state.creators.filter((creator) => !role || creator.role === role);
-            creators.forEach((creator) => {
-                const lowStamina = role && creator.stamina < req;
-                const roleText = roleLabel(creator.role);
-                const label = lowStamina
-                    ? `${creator.name} (${roleText}) - Low stamina`
-                    : `${creator.name} (${roleText})`;
-                options.push({ value: creator.id, label, disabled: lowStamina });
-            });
-        }
-        else if (type === "act") {
-            let acts = state.acts;
-            if (isPromoActSlot) {
-                const activeActIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.actId));
-                acts = state.acts.filter((act) => activeActIds.has(act.id));
-            }
-            acts.forEach((act) => {
-                options.push({ value: act.id, label: act.name });
-            });
-        }
-        else if (type === "project") {
-            let actId = null;
-            if (target === "promo-project") {
-                actId = state.ui?.promoSlots?.actId || null;
-            }
-            else if (isPromoProjectSlot && autoPromoSlots) {
-                actId = autoPromoSlots.actIds[autoPromoSlot.index] || null;
-            }
-            const projects = listPromoProjectOptions(actId);
-            projects.forEach((project) => {
-                options.push({ value: project.value, label: project.label });
-            });
-        }
-        else if (type === "track") {
-            let tracks = state.tracks;
-            if (isPromoTrackSlot) {
-                const activeEraIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.id));
-                let selectedActId = null;
-                let selectedProjectId = null;
-                if (target === "promo-track") {
-                    selectedActId = state.ui?.promoSlots?.actId || null;
-                    selectedProjectId = state.ui?.promoSlots?.projectId || null;
-                }
-                else if (autoPromoSlot && autoPromoSlot.kind === "track" && autoPromoSlots) {
-                    selectedActId = autoPromoSlots.actIds[autoPromoSlot.index] || null;
-                    selectedProjectId = autoPromoSlots.projectIds[autoPromoSlot.index] || null;
-                }
-                const selectedProject = selectedProjectId ? parsePromoProjectKey(selectedProjectId) : null;
-                const projectName = selectedProject?.projectName || "";
-                const projectType = normalizeProjectType(selectedProject?.projectType || "Single");
-                const projectEraId = selectedProject?.eraId || null;
-                const projectActId = selectedProject?.actId || null;
-                tracks = state.tracks.filter((track) => {
-                    if (!track.eraId || !activeEraIds.has(track.eraId))
-                        return false;
-                    if (track.status === "Released")
-                        return true;
-                    return state.releaseQueue.some((entry) => entry.trackId === track.id);
-                });
-                tracks = tracks.filter((track) => {
-                    if (selectedActId && track.actId !== selectedActId)
-                        return false;
-                    if (!selectedProject)
-                        return true;
-                    if (projectEraId && track.eraId !== projectEraId)
-                        return false;
-                    if (projectActId && track.actId !== projectActId)
-                        return false;
-                    const trackProject = track.projectName || `${track.title} - Single`;
-                    if (normalizeProjectName(trackProject) !== normalizeProjectName(projectName))
-                        return false;
-                    if (normalizeProjectType(track.projectType || "Single") !== projectType)
-                        return false;
-                    return true;
+    try {
+        document.querySelectorAll(".id-slot").forEach((slot) => {
+            if (slot.closest("#rls-react-trackslots-root"))
+                return;
+            const select = slot.querySelector(".slot-select");
+            if (!select)
+                return;
+            const target = slot.dataset.slotTarget;
+            const type = slot.dataset.slotType;
+            const role = slot.dataset.slotRole;
+            const currentValue = getSlotValue(target) || "";
+            const autoPromoSlot = parseAutoPromoSlotTarget(target);
+            const autoPromoSlots = autoPromoSlot ? ensureAutoPromoSlots() : null;
+            const isPromoActSlot = target === "promo-act" || autoPromoSlot?.kind === "act";
+            const isPromoProjectSlot = target === "promo-project" || autoPromoSlot?.kind === "project";
+            const isPromoTrackSlot = target === "promo-track" || autoPromoSlot?.kind === "track";
+            const options = [{ value: "", label: "Unassigned" }];
+            if (type === "creator") {
+                const req = role ? staminaRequirement(role) : 0;
+                const creators = state.creators.filter((creator) => !role || creator.role === role);
+                creators.forEach((creator) => {
+                    const lowStamina = role && creator.stamina < req;
+                    const roleText = roleLabel(creator.role);
+                    const label = lowStamina
+                        ? `${creator.name} (${roleText}) - Low stamina`
+                        : `${creator.name} (${roleText})`;
+                    options.push({ value: creator.id, label, disabled: lowStamina });
                 });
             }
-            tracks.forEach((track) => {
-                options.push({ value: track.id, label: `${track.title} (${track.status})` });
+            else if (type === "act") {
+                let acts = state.acts;
+                if (isPromoActSlot) {
+                    const activeActIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.actId));
+                    acts = state.acts.filter((act) => activeActIds.has(act.id));
+                }
+                acts.forEach((act) => {
+                    options.push({ value: act.id, label: act.name });
+                });
+            }
+            else if (type === "project") {
+                let actId = null;
+                if (target === "promo-project") {
+                    actId = state.ui?.promoSlots?.actId || null;
+                }
+                else if (isPromoProjectSlot && autoPromoSlots) {
+                    actId = autoPromoSlots.actIds[autoPromoSlot.index] || null;
+                }
+                const projects = listPromoProjectOptions(actId);
+                projects.forEach((project) => {
+                    options.push({ value: project.value, label: project.label });
+                });
+            }
+            else if (type === "track") {
+                let tracks = state.tracks;
+                if (isPromoTrackSlot) {
+                    const activeEraIds = new Set(getActiveEras().filter((era) => era.status === "Active").map((era) => era.id));
+                    let selectedActId = null;
+                    let selectedProjectId = null;
+                    if (target === "promo-track") {
+                        selectedActId = state.ui?.promoSlots?.actId || null;
+                        selectedProjectId = state.ui?.promoSlots?.projectId || null;
+                    }
+                    else if (autoPromoSlot && autoPromoSlot.kind === "track" && autoPromoSlots) {
+                        selectedActId = autoPromoSlots.actIds[autoPromoSlot.index] || null;
+                        selectedProjectId = autoPromoSlots.projectIds[autoPromoSlot.index] || null;
+                    }
+                    const selectedProject = selectedProjectId ? parsePromoProjectKey(selectedProjectId) : null;
+                    const projectName = selectedProject?.projectName || "";
+                    const projectType = normalizeProjectType(selectedProject?.projectType || "Single");
+                    const projectEraId = selectedProject?.eraId || null;
+                    const projectActId = selectedProject?.actId || null;
+                    tracks = state.tracks.filter((track) => {
+                        if (!track.eraId || !activeEraIds.has(track.eraId))
+                            return false;
+                        if (track.status === "Released")
+                            return true;
+                        return state.releaseQueue.some((entry) => entry.trackId === track.id);
+                    });
+                    tracks = tracks.filter((track) => {
+                        if (selectedActId && track.actId !== selectedActId)
+                            return false;
+                        if (!selectedProject)
+                            return true;
+                        if (projectEraId && track.eraId !== projectEraId)
+                            return false;
+                        if (projectActId && track.actId !== projectActId)
+                            return false;
+                        const trackProject = track.projectName || `${track.title} - Single`;
+                        if (normalizeProjectName(trackProject) !== normalizeProjectName(projectName))
+                            return false;
+                        if (normalizeProjectType(track.projectType || "Single") !== projectType)
+                            return false;
+                        return true;
+                    });
+                }
+                tracks.forEach((track) => {
+                    options.push({ value: track.id, label: `${track.title} (${track.status})` });
+                });
+            }
+            select.innerHTML = "";
+            options.forEach((opt) => {
+                const option = document.createElement("option");
+                option.value = opt.value;
+                option.textContent = opt.label;
+                if (opt.disabled)
+                    option.disabled = true;
+                select.appendChild(option);
             });
-        }
-        select.innerHTML = "";
-        options.forEach((opt) => {
-            const option = document.createElement("option");
-            option.value = opt.value;
-            option.textContent = opt.label;
-            if (opt.disabled)
-                option.disabled = true;
-            select.appendChild(option);
+            select.value = currentValue;
+            select.disabled = slot.classList.contains("disabled");
         });
-        select.value = currentValue;
-        select.disabled = slot.classList.contains("disabled");
-    });
+    }
+    catch (error) {
+        console.error("updateSlotDropdowns failed:", error);
+    }
 }
 window.updateSlotDropdowns = updateSlotDropdowns;
 window.ensureSlotDropdowns = ensureSlotDropdowns;
@@ -6195,8 +6283,17 @@ function createActFromUI() {
     }
     const act = makeAct({ name, nameKey, type, alignment, memberIds: members });
     state.acts.push(act);
+    if (!state.ui)
+        state.ui = {};
+    state.ui.lastCreatedActId = act.id;
     logUiEvent("action_submit", { action: "create_act", actId: act.id, type });
     logEvent(`Created ${act.type} "${act.name}".`);
+    const memberNames = members
+        .map((id) => getCreator(id))
+        .filter(Boolean)
+        .map((creator) => creator.name)
+        .filter(Boolean);
+    showToast(`Act created: ${act.name}`, memberNames.length ? `Members: ${memberNames.join(", ")}` : "Members assigned at creation.", { tone: "success" });
     nameInput.value = "";
     delete nameInput.dataset.nameKey;
     state.ui.trackSlots.actId = act.id;
@@ -7248,9 +7345,12 @@ function signCreatorById(id) {
         const card = document.querySelector(`[data-ccc-creator="${id}"]`);
         if (card)
             shakeElement(card);
+        const failureDetail = result.detail || result.reason || "Signing could not be completed.";
+        showToast("Sign failed", failureDetail, { tone: "warn" });
         renderAll();
         return;
     }
+    showToast(`Signed ${creator?.name || "Creator"}`, `${roleLabel(creator?.role || "")} for ${formatMoney(result.cost || 0)}`, { tone: "success" });
     renderCreators();
     renderSlots();
     renderAll();

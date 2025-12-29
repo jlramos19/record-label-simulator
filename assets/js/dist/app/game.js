@@ -20287,6 +20287,9 @@ function maybeAutoSave() {
         return;
     saveToActiveSlot({ immediate: true });
     state.meta.autoSave.lastSavedAt = Date.now();
+    if (typeof window !== "undefined" && typeof window.updateSaveStatusPanel === "function") {
+        window.updateSaveStatusPanel();
+    }
 }
 function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null } = {}) {
     const rngFn = typeof rng === "function" ? rng : Math.random;

@@ -19941,6 +19941,9 @@ function maybeAutoSave() {
   if (Date.now() - last < intervalMs) return;
   saveToActiveSlot({ immediate: true });
   state.meta.autoSave.lastSavedAt = Date.now();
+  if (typeof window !== "undefined" && typeof window.updateSaveStatusPanel === "function") {
+    window.updateSaveStatusPanel();
+  }
 }
 
 

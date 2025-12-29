@@ -2,7 +2,11 @@
 
 ## 2025-12-29 (RLS-PATCH-20251229-0708Z)
 - Added a dedicated Achievements hub (nav + dashboard card) that lists the 12 CEO Requests with statuses, progress bars, and Go To buttons so the win checklist is one click away. [PN-20251229-AC86]
-- Navigation now forces view renders with a quick “switching view” toast, Save Now toasts show timestamp + location, autosave status appears in the HUD, and settings expose a Save Location change control so saving feels reliable. [PN-20251229-AC87]
+- Navigation now forces view renders with a quick "switching view" toast, Save Now toasts show timestamp + location, autosave status appears in the HUD, and settings expose a Save Location change control so saving feels reliable. [PN-20251229-AC87]
+
+## 2025-12-29 (RLS-PATCH-20251229-0837Z)
+- Road to the Top now keeps the nav tabs in view with larger hit targets, the secondary Charts controls only render when Charts is active, and the monopoly/auto-create indicators spell out the blockers plus next-run countdowns. [PN-20251229-AC88]
+- The Creator Community Chamber and Harmony Hub keep their columns visible under role filters, show multi-act badges with popovers, highlight slot drag/drop targets, and deliver signing/save toasts so the workflow feels clear. [PN-20251229-AC89]
 
 ## 2025-12-28 (RLS-PATCH-20251228-1138Z)
 - Chart history panels now cache snapshot entry lookups and archive market-track maps to cut rerender scans. [PN-20251228-AC84]
@@ -795,6 +799,8 @@
 ## Patch Note Codes
 - PN-20251229-AC86 (2025-12-29 07:08Z): Added an Achievements hub with the full CEO Request checklist, progress, and deep-links plus dashboard summary access.
 - PN-20251229-AC87 (2025-12-29 07:08Z): Navigation always renders active views (with a switching toast), Save Now toasts display timestamp/location, autosave HUD badge shows last run/interval, and Save Location can be changed from Settings.
+- PN-20251229-AC88 (2025-12-29 08:37Z): Road to the Top tabs stay pinned with enlarged hit targets, Charts-only sub-controls render only under Charts, and the monopoly/auto-create indicators now list blockers plus upcoming run countdowns.
+- PN-20251229-AC89 (2025-12-29 08:37Z): Creator Community Chamber and Harmony Hub keep role columns visible while showing filtered badges, multi-act inline lists, slot drag/drop focus cues, and signing/save toasts for clarity.
 - PN-20251227-AC01 (2025-12-27 20:02Z): Tour auto-generation now clusters dates by region, respects travel-buffer gaps, and stops at tier length caps.
 - PN-20251227-AC02 (2025-12-27 20:02Z): Tour booking logs now include tour IDs; leg recap logs and eyeriSocial posts fire when dates resolve.
 - PN-20251227-AC03 (2025-12-27 20:02Z): Tour summaries now list regional leg counts, and cooldown warnings surface when tours stack too tightly.

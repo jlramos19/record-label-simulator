@@ -48,6 +48,7 @@ import {
   renderGenreIndex,
   renderLossArchives,
   renderMainMenu,
+  updateSaveStatusPanel,
   renderMarket,
   renderQuickRecipes,
   renderRankingWindow,
@@ -1510,6 +1511,12 @@ async function handleExternalStoragePick(root, { fromPrompt = false } = {}) {
       setExternalStoragePromptDismissed("cancelled");
     } else if (result.reason !== "cancelled") {
       logEvent(`External storage folder could not be set (${result.reason}).`, "warn");
+      const detail = result.detail || result.reason || "unknown issue";
+      showToast(
+        "Save folder unavailable",
+        `Unable to open the save folder picker (${detail}). Check browser permissions or try a supported browser.`,
+        { tone: "warn" }
+      );
     }
   }
   const usageSession = getUsageSessionSnapshot();
@@ -2821,44 +2828,90 @@ function updateAutoCreateSummary(scope) {
   const root = scope || document;
   const summary = root.querySelector("#autoCreateSummary");
   if (!summary) return;
+  const statusEl = root.querySelector("#autoCreateStatus");
+  const reasonsEl = root.querySelector("#autoCreateReasons");
+  const modeEl = root.querySelector("#autoCreateModeLabel");
+  const enabledEl = root.querySelector("#autoCreateEnabledLabel");
+  const rolesEl = root.querySelector("#autoCreateRolesLabel");
+  const actsEl = root.querySelector("#autoCreateActsLabel");
+  const cashEl = root.querySelector("#autoCreateCashLabel");
+  const nextRunEl = root.querySelector("#autoCreateNextRunLabel");
+  const eraEl = root.querySelector("#autoCreateEraLabel");
+
   const settings = state.meta?.autoCreate;
-  if (!settings) {
-    summary.innerHTML = `<div class="muted">Auto create unavailable.</div>`;
-    return;
-  }
-  const enabled = Boolean(settings.enabled);
-  const pct = Number.isFinite(settings.budgetPct) ? clamp(settings.budgetPct, 0, 1) : 0;
   const walletCash = state.label.wallet?.cash ?? state.label.cash ?? 0;
-  const reserve = Number.isFinite(settings.minCash) ? settings.minCash : 0;
-  const maxTracks = Number.isFinite(settings.maxTracks) ? settings.maxTracks : 1;
-  const budgetCap = computeAutoCreateBudget(walletCash, pct, reserve);
+  const reserve = Number.isFinite(settings?.minCash) ? settings.minCash : 0;
+  const budgetPct = Number.isFinite(settings?.budgetPct) ? clamp(settings.budgetPct, 0, 1) : 0;
+  const budgetCap = computeAutoCreateBudget(walletCash, budgetPct, reserve);
+  const modeLabel = settings?.mode === "collab" ? "Collab" : "Solo";
+  const enabled = Boolean(settings?.enabled);
   const scheduleHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
   const scheduleText = formatHourCountdown(scheduleHours);
-  const scheduleLabel = scheduleText === "-" ? "-" : `${scheduleText}h`;
-  const modeLabel = settings.mode === "collab" ? "Collab" : "Solo";
-  const pctLabel = `${Math.round(pct * 100)}%`;
-  const last = settings.lastOutcome;
-  const lastStamp = last?.at ? formatDate(last.at) : "-";
-  const lastCounts = last
-    ? [
-      last.actsAssigned ? `${last.actsAssigned} act${last.actsAssigned === 1 ? "" : "s"} assigned` : null,
-      last.demoStarted ? `${last.demoStarted} demo${last.demoStarted === 1 ? "" : "s"}` : null,
-      last.masterStarted ? `${last.masterStarted} master${last.masterStarted === 1 ? "" : "s"}` : null,
-      last.created ? `${last.created} track${last.created === 1 ? "" : "s"} started` : null
-    ].filter(Boolean).join(" | ")
-    : "";
-  const lastLine = last?.message
-    ? `Last run ${lastStamp}: ${last.message}`
-    : "No auto-create runs yet.";
-  summary.innerHTML = `
-    <div class="list-item">
-      <div class="item-title">Auto Create Plan</div>
-      <div class="muted">${enabled ? "Enabled" : "Disabled"} | Next check ${scheduleLabel} (chart update)</div>
-      <div class="muted">Budget cap ${formatMoney(budgetCap)} (${pctLabel}) | Reserve ${formatMoney(reserve)} | Max ${maxTracks} | Mode ${modeLabel}</div>
-      ${lastCounts ? `<div class="muted">Last run output: ${lastCounts}</div>` : ""}
-      <div class="muted">${lastLine}</div>
-    </div>
-  `;
+  const nextRunText = scheduleText === "-" ? "Pending" : `${scheduleText}h`;
+  const focusEra = getFocusedEra();
+  const focusLabel = focusEra ? focusEra.name : "Not set";
+  const actsReady = Array.isArray(state.acts) ? state.acts.length : 0;
+  const roleCounts = ["Songwriter", "Performer", "Producer"].map((role) => {
+    const ready = rankCandidates(role)
+      .filter((creator) => creator.ready && !creator.busy)
+      .length;
+    return `${role}s ${ready}`;
+  });
+  const reasons = [];
+  if (!settings) {
+    reasons.push("Auto create plan is unavailable.");
+  } else {
+    if (!enabled) {
+      reasons.push("Auto create content is disabled.");
+    } else {
+      if (roleCounts[0].endsWith("0")) {
+        reasons.push("No ready Songwriter available.");
+      }
+      if (modeLabel === "Collab") {
+        if (roleCounts[1].endsWith("0")) {
+          reasons.push("No ready Performer available.");
+        }
+        if (roleCounts[2].endsWith("0")) {
+          reasons.push("No ready Producer available.");
+        }
+      }
+      if (!actsReady) {
+        reasons.push("Assign at least one Act before auto-create.");
+      }
+      if (walletCash <= reserve) {
+        reasons.push(`Cash reserve ${formatMoney(reserve)} must remain untouched.`);
+      }
+      if (budgetCap <= 0) {
+        reasons.push("Budget cap is zero; adjust the budget percentages or cash.");
+      }
+      if (!focusEra) {
+        reasons.push("Select a focus era before running auto-create.");
+      }
+    }
+  }
+  const ready = enabled && reasons.length === 0;
+  if (statusEl) {
+    statusEl.textContent = ready ? "Ready" : "Blocked";
+    statusEl.classList.toggle("ready", ready);
+    statusEl.classList.toggle("blocked", !ready);
+  }
+  if (reasonsEl) {
+    if (reasons.length) {
+      reasonsEl.innerHTML = `<div class="auto-create-blocked-heading">Blocked because</div>` +
+        reasons.map((reason) => `<div class="blocked-item">${reason}</div>`).join("");
+      reasonsEl.classList.remove("hidden");
+    } else {
+      reasonsEl.classList.add("hidden");
+      reasonsEl.innerHTML = "";
+    }
+  }
+  if (modeEl) modeEl.textContent = modeLabel;
+  if (enabledEl) enabledEl.textContent = enabled ? "Yes" : "No";
+  if (rolesEl) rolesEl.textContent = roleCounts.join(" | ");
+  if (actsEl) actsEl.textContent = actsReady ? formatCount(actsReady) : "0";
+  if (cashEl) cashEl.textContent = `Cap ${formatMoney(budgetCap)} | Reserve ${formatMoney(reserve)} | Cash ${formatMoney(walletCash)}`;
+  if (nextRunEl) nextRunEl.textContent = `Next run in ${nextRunText}`;
+  if (eraEl) eraEl.textContent = focusLabel;
 }
 
 function updateCreateModePanels(scope) {
@@ -2952,14 +3005,28 @@ function bindGlobalHandlers() {
   const handleManualSave = async (refreshMenu) => {
     if (!session.activeSlot) {
       logEvent("Select a game slot before saving.", "warn");
+      showToast("Save blocked", "Pick a game slot before saving.", { tone: "warn" });
       return;
     }
-    saveToActiveSlot();
-    if (refreshMenu) renderMainMenu();
-    logEvent(`Saved Game Slot ${session.activeSlot}.`);
-    const timestamp = formatTimestampShort(Date.now());
-    const locationLabel = await describeSaveLocation();
-    showToast(`Saved at ${timestamp}`, `→ ${locationLabel}`, { tone: "success" });
+    try {
+      saveToActiveSlot();
+      if (refreshMenu) renderMainMenu();
+      await updateSaveStatusPanel(document);
+      const timestamp = formatTimestampShort(Date.now());
+      let locationLabel = "";
+      try {
+        locationLabel = await describeSaveLocation();
+      } catch {
+        locationLabel = "Unknown location";
+      }
+      const toastDetail = locationLabel ? `Saved at ${timestamp} (${locationLabel}).` : `Saved at ${timestamp}.`;
+      showToast("Save complete", toastDetail, { tone: "success" });
+      logEvent("Saved Game Slot.");
+    } catch (error) {
+      const detail = error?.message || "Check storage permissions or retry.";
+      logEvent("Manual save failed.", "warn");
+      showToast("Save failed", `Slot could not be saved: ${detail}`, { tone: "warn" });
+    }
   };
   const setTutorialTab = (tabId) => {
     if (!tabId) return;
@@ -3453,6 +3520,7 @@ function bindGlobalHandlers() {
     }
     const slot = e.target.closest(".id-slot");
     if (slot) {
+      slot.focus();
       setSlotTarget(slot.dataset.slotTarget);
     }
   });
@@ -3468,12 +3536,15 @@ function bindGlobalHandlers() {
     const slot = e.target.closest(".id-slot");
     if (!slot) return;
     e.preventDefault();
+    document.querySelectorAll(".id-slot.is-dragover").forEach((target) => target.classList.remove("is-dragover"));
+    slot.classList.add("is-dragover");
   });
 
   document.addEventListener("drop", (e) => {
     const slot = e.target.closest(".id-slot");
     if (!slot) return;
     e.preventDefault();
+    slot.classList.remove("is-dragover");
     try {
       const payload = JSON.parse(e.dataTransfer.getData("text/plain"));
       if (!payload) return;
@@ -3481,6 +3552,10 @@ function bindGlobalHandlers() {
     } catch {
       logEvent("Drop failed: invalid ID payload.", "warn");
     }
+  });
+
+  document.addEventListener("dragend", () => {
+    document.querySelectorAll(".id-slot.is-dragover").forEach((slot) => slot.classList.remove("is-dragover"));
   });
 
   const mainMenu = $("mainMenu");
@@ -3494,6 +3569,13 @@ function bindGlobalHandlers() {
 
   document.addEventListener("keydown", (e) => {
     const active = document.activeElement;
+    const slotTargetEl = active?.closest ? active.closest(".id-slot") : null;
+    if (slotTargetEl && (e.code === "Enter" || e.code === "Space")) {
+      e.preventDefault();
+      slotTargetEl.focus();
+      setSlotTarget(slotTargetEl.dataset.slotTarget);
+      return;
+    }
     const label = active?.closest ? active.closest("[data-rival-label]") : null;
     if (label && (e.code === "Enter" || e.code === "Space")) {
       e.preventDefault();
@@ -5295,26 +5377,30 @@ window.updateAutoPromoSummary = () => updateAutoPromoSummary(document);
 window.updateCreateModePanels = () => updateCreateModePanels(document);
 
 function ensureSlotDropdowns() {
-  document.querySelectorAll(".id-slot").forEach((slot) => {
-    if (slot.closest("#rls-react-trackslots-root")) return;
-    if (slot.querySelector(".slot-select")) return;
-    const select = document.createElement("select");
-    select.className = "slot-select";
-    select.setAttribute("aria-label", "Select slot value");
-    select.addEventListener("click", (e) => e.stopPropagation());
-    select.addEventListener("change", () => {
-      const target = slot.dataset.slotTarget;
-      const type = slot.dataset.slotType;
-      const value = select.value;
-      if (!target || !type) return;
-      if (!value) {
-        clearSlot(target);
-        return;
-      }
-      assignToSlot(target, type, value);
+  try {
+    document.querySelectorAll(".id-slot").forEach((slot) => {
+      if (slot.closest("#rls-react-trackslots-root")) return;
+      if (slot.querySelector(".slot-select")) return;
+      const select = document.createElement("select");
+      select.className = "slot-select";
+      select.setAttribute("aria-label", "Select slot value");
+      select.addEventListener("click", (e) => e.stopPropagation());
+      select.addEventListener("change", () => {
+        const target = slot.dataset.slotTarget;
+        const type = slot.dataset.slotType;
+        const value = select.value;
+        if (!target || !type) return;
+        if (!value) {
+          clearSlot(target);
+          return;
+        }
+        assignToSlot(target, type, value);
+      });
+      slot.appendChild(select);
     });
-    slot.appendChild(select);
-  });
+  } catch (error) {
+    console.error("ensureSlotDropdowns failed:", error);
+  }
 }
 
 function listPromoProjectOptions(actId) {
@@ -5356,12 +5442,14 @@ if (typeof window !== "undefined") {
   window.stopAutoSkips = () => false;
   window.loadCSV = loadCSV;
   window.emitStateChanged = emitStateChanged;
+  window.updateSaveStatusPanel = () => updateSaveStatusPanel(document);
   window.rlsUi = window.rlsUi || {};
   window.rlsUi.setCalendarTab = setCalendarTab;
   window.rlsUi.setCalendarFilter = setCalendarFilter;
 }
 
 function updateSlotDropdowns() {
+  try {
   document.querySelectorAll(".id-slot").forEach((slot) => {
     if (slot.closest("#rls-react-trackslots-root")) return;
     const select = slot.querySelector(".slot-select");
@@ -5462,6 +5550,9 @@ function updateSlotDropdowns() {
     select.value = currentValue;
     select.disabled = slot.classList.contains("disabled");
   });
+  } catch (error) {
+    console.error("updateSlotDropdowns failed:", error);
+  }
 }
 
 window.updateSlotDropdowns = updateSlotDropdowns;
@@ -6181,8 +6272,20 @@ function createActFromUI() {
   }
   const act = makeAct({ name, nameKey, type, alignment, memberIds: members });
   state.acts.push(act);
+  if (!state.ui) state.ui = {};
+  state.ui.lastCreatedActId = act.id;
   logUiEvent("action_submit", { action: "create_act", actId: act.id, type });
   logEvent(`Created ${act.type} "${act.name}".`);
+  const memberNames = members
+    .map((id) => getCreator(id))
+    .filter(Boolean)
+    .map((creator) => creator.name)
+    .filter(Boolean);
+  showToast(
+    `Act created: ${act.name}`,
+    memberNames.length ? `Members: ${memberNames.join(", ")}` : "Members assigned at creation.",
+    { tone: "success" }
+  );
   nameInput.value = "";
   delete nameInput.dataset.nameKey;
   state.ui.trackSlots.actId = act.id;
@@ -7218,9 +7321,16 @@ function signCreatorById(id) {
   if (!result.ok) {
     const card = document.querySelector(`[data-ccc-creator="${id}"]`);
     if (card) shakeElement(card);
+    const failureDetail = result.detail || result.reason || "Signing could not be completed.";
+    showToast("Sign failed", failureDetail, { tone: "warn" });
     renderAll();
     return;
   }
+  showToast(
+    `Signed ${creator?.name || "Creator"}`,
+    `${roleLabel(creator?.role || "")} for ${formatMoney(result.cost || 0)}`,
+    { tone: "success" }
+  );
   renderCreators();
   renderSlots();
   renderAll();

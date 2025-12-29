@@ -76,6 +76,20 @@
       </div>
       <div class="tiny">Auto save writes to the active game slot every 2-10 minutes.</div>
     </div>
+    <div id="saveStatusPanel" class="save-status-panel" aria-live="polite">
+      <div class="save-status-row">
+        <div class="item-title">Save status</div>
+        <div id="saveLastLabel" class="save-status-meta">Last saved: -</div>
+      </div>
+      <div class="save-status-row">
+        <div id="saveTargetLabel" class="save-status-meta">Save target: Local storage</div>
+        <div id="saveTargetDetail" class="save-status-meta">External storage not configured.</div>
+      </div>
+      <div class="save-status-row">
+        <div id="saveAutoLabel" class="save-status-meta">Auto-save interval: -</div>
+        <div id="saveAutoLastLabel" class="save-status-meta">Last auto save: -</div>
+      </div>
+    </div>
     <div class="field">
       <label for="cheaterModeToggle">Cheater Mode</label>
       <div class="toggle-row">
@@ -681,11 +695,23 @@
             <h2>Road to the Top</h2>
           </div>
           <div class="card-body">
-            <div class="tabs dashboard-focus-tabs" id="dashboardFocusTabs" role="tablist" aria-label="Road to the Top">
-              <button type="button" class="tab active" data-dashboard-focus="charts">Charts</button>
-              <button type="button" class="tab" data-dashboard-focus="quests">Tasks</button>
-              <button type="button" class="tab" data-dashboard-focus="requests">Requests</button>
-              <button type="button" class="tab" data-dashboard-focus="eras">Eras</button>
+            <div class="dashboard-focus-top">
+              <div class="tabs dashboard-focus-tabs" id="dashboardFocusTabs" role="tablist" aria-label="Road to the Top">
+                <button type="button" class="tab active" data-dashboard-focus="charts">Charts</button>
+                <button type="button" class="tab" data-dashboard-focus="quests">Tasks</button>
+                <button type="button" class="tab" data-dashboard-focus="requests">Requests</button>
+                <button type="button" class="tab" data-dashboard-focus="eras">Eras</button>
+              </div>
+              <div id="monopolyRiskPanel" class="monopoly-risk" aria-live="polite">
+                <div class="monopoly-risk-row">
+                  <div class="item-title">Monopoly risk</div>
+                  <div id="monopolyRiskStatus" class="monopoly-risk-status">0% / 0%</div>
+                </div>
+                <div class="monopoly-risk-meter">
+                  <span id="monopolyRiskMeter" class="monopoly-risk-meter-fill"></span>
+                </div>
+                <div id="monopolyRiskNote" class="monopoly-risk-note">Threshold 0%</div>
+              </div>
             </div>
             <section class="dashboard-focus-panel is-active" data-dashboard-focus-panel="charts">
               <div class="chart-pulse-controls">
@@ -1036,7 +1062,22 @@
               </select>
             </div>
           </div>
-          <div id="autoCreateSummary" class="list"></div>
+          <div id="autoCreateSummary" class="auto-create-readiness" aria-live="polite">
+            <div class="auto-create-readiness-row">
+              <div class="item-title">Auto Create Content</div>
+              <div id="autoCreateStatus" class="auto-create-status blocked">Loading...</div>
+            </div>
+            <div id="autoCreateReasons" class="auto-create-blocked-list hidden"></div>
+            <div class="auto-create-readiness-grid">
+              <div>Mode: <span id="autoCreateModeLabel">-</span></div>
+              <div>Enabled: <span id="autoCreateEnabledLabel">-</span></div>
+              <div>Roles ready: <span id="autoCreateRolesLabel">-</span></div>
+              <div>Acts: <span id="autoCreateActsLabel">-</span></div>
+              <div>Cash / Reserve: <span id="autoCreateCashLabel">-</span></div>
+              <div>Next run: <span id="autoCreateNextRunLabel">-</span></div>
+              <div>Focus Era: <span id="autoCreateEraLabel">-</span></div>
+            </div>
+          </div>
           <div class="list-item">
             <div class="item-title">Automation steps</div>
             <div class="muted">Assign Acts, start demos, start masters, then create new sheet music within budget.</div>
