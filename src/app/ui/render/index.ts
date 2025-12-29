@@ -1355,6 +1355,12 @@ function renderFocusEraStatus() {
   if (promoBtn) promoBtn.disabled = !displayEra;
 }
 
+function formatAutosaveTimestamp(ms) {
+  if (!Number.isFinite(ms)) return "not run yet";
+  const timeLabel = new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `${formatShortDate(ms)} ${timeLabel}`;
+}
+
 function renderStats() {
   $("cashDisplay").textContent = formatMoney(state.label.cash);
   const counts = getStudioUsageCounts();
@@ -1414,6 +1420,15 @@ function renderStats() {
       if (year < 4000) $("winTrackDisplay").textContent = "12 Requests (avoid monopoly)";
       else $("winTrackDisplay").textContent = "Final Year 4000 verdict";
     }
+  }
+  const autosaveEl = $("autosaveIndicator");
+  if (autosaveEl) {
+    const autosave = state.meta.autoSave || { enabled: true, minutes: 2 };
+    const interval = Number.isFinite(autosave.minutes) ? autosave.minutes : 2;
+    const statusText = autosave.enabled ? "Autosave ON" : "Autosave OFF";
+    const timestamp = formatAutosaveTimestamp(autosave.lastSavedAt);
+    autosaveEl.textContent = `${statusText} · Last run ${timestamp} · Interval ${interval} min`;
+    autosaveEl.classList.remove("hidden");
   }
   renderFocusEraStatus();
 }
@@ -1851,6 +1866,7 @@ function renderAudienceChunks({ listId, metaId, limit = 8 } = {}) {
 function renderDashboard() {
   const statsEl = $("dashboardStats");
   if (!statsEl) return;
+  renderAchievements();
   renderDashboardFocusPanels();
   const weekLabel = $("dashboardWeekLabel");
   if (weekLabel) weekLabel.textContent = formatWeekRangeLabel(weekIndex() + 1);
@@ -7968,41 +7984,125 @@ function formatAchievementWins(value, target) {
   return `Wins ${formatCount(wins)} / ${formatCount(goal)}`;
 }
 
-function renderAchievements() {
-  const listEl = $("achievementList");
-  const summaryEl = $("achievementSummary");
-  if (!listEl) return;
+const ACHIEVEMENT_DESTINATIONS = {
+  "REQ-01": { route: "charts", label: "Charts", note: "Track global hits under Charts > Tracks." },
+  "REQ-02": { route: "releases", label: "Calendar", note: "Focus on releases for project sales." },
+  "REQ-03": { route: "awards", label: "Year-End Awards", note: "Inspect critics' categories." },
+  "REQ-04": { route: "releases", label: "Calendar", note: "Watch project chart/stream totals." },
+  "REQ-05": { route: "releases", label: "Calendar", note: "Monitor best-selling releases." },
+  "REQ-06": { route: "awards", label: "Year-End Awards", note: "Inspect critics' categories." },
+  "REQ-07": { route: "logs", label: "Promotions", note: "Review promo leaderboard & EyeriSocial." },
+  "REQ-08": { route: "logs", label: "Promotions", note: "Watch promo reach & visibility." },
+  "REQ-09": { route: "awards", label: "Year-End Awards", note: "Inspect critics' categories." },
+  "REQ-10": { route: "tour", label: "Tour", note: "Use the Tour planner & timeline." },
+  "REQ-11": { route: "tour", label: "Tour", note: "Balance attendance and staffing in Tour." },
+  "REQ-12": { route: "awards", label: "Year-End Awards", note: "Tour awards live under Clubs & Tours." }
+};
+
+function getAchievementDestination(id) {
+  return ACHIEVEMENT_DESTINATIONS[id] || { route: "dashboard", label: "Dashboard" };
+}
+
+function getBlockedAchievementReason() {
+  if (state.meta?.cheaterMode) return "Cheater mode active: achievements pause until disabled.";
+  if (state.meta?.monopolyLoss) return "Monopoly loss: achievements are blocked this run.";
+  if (state.meta?.achievementsLocked && !state.meta?.bailoutUsed) return "Achievements locked until bailout clears.";
+  return "";
+}
+
+function computeAchievementProgressRatio(definition, value) {
+  if (!definition || typeof definition.target === "undefined") return 0;
+  if (value === null || typeof value === "undefined") return 0;
+  const target = Number(definition.target);
+  if (!Number.isFinite(target) || target <= 0) return 0;
+  return clamp(Number(value) / target, 0, 1);
+}
+
+function buildAchievementRowMarkup(achievement) {
   const unlocked = new Set(state.meta.achievementsUnlocked || []);
-  listEl.innerHTML = ACHIEVEMENTS.map((achievement) => {
-    const done = unlocked.has(achievement.id);
-    const badgeClass = done ? "badge" : "badge warn";
-    let progressText = "";
-    if (typeof achievement.progress === "function" && typeof achievement.target !== "undefined") {
-      const value = achievement.progress();
-      progressText = formatAchievementWins(value, achievement.target);
-    }
-    return `
-      <div class="list-item">
-        <div class="list-row">
-          <div>
-            <div class="item-title">${achievement.id} ${achievement.label}</div>
-            <div class="muted">${achievement.desc}</div>
-          </div>
-          <div class="${badgeClass}">${done ? "Done" : "Active"}</div>
-        </div>
-        <div class="muted">${progressText} | Reward ${formatCount(achievement.exp)} EXP</div>
-      </div>
-    `;
-  }).join("");
-  if (summaryEl) {
-    const count = Math.max(unlocked.size, state.meta.achievements || 0);
-    const notes = [];
-    if (state.meta.bailoutUsed) notes.push("Bailout used: win flagged for leaderboards.");
-    if (state.meta.monopolyLoss) notes.push("Monopoly loss: achievements disabled.");
-    if (state.meta.cheaterMode) notes.push("Cheater mode active: achievements paused.");
-    const noteText = notes.join(" ");
-    summaryEl.textContent = `CEO Requests ${count} / ${ACHIEVEMENT_TARGET}${noteText ? ` | ${noteText}` : ""}`;
+  const done = unlocked.has(achievement.id);
+  const value = typeof achievement.progress === "function" ? achievement.progress() : null;
+  const ratio = done ? 1 : computeAchievementProgressRatio(achievement, value);
+  const progressLabel = formatAchievementWins(value, achievement.target);
+  const blockedReason = getBlockedAchievementReason();
+  let statusLabel = "In Progress";
+  let statusState = "in-progress";
+  let reasonText = `Progress: ${progressLabel}`;
+  if (done) {
+    statusLabel = "Completed";
+    statusState = "completed";
+    reasonText = `Reward ${formatCount(achievement.exp)} EXP`;
+  } else if (blockedReason) {
+    statusLabel = "Blocked";
+    statusState = "blocked";
+    reasonText = blockedReason;
   }
+  const destination = getAchievementDestination(achievement.id);
+  const destNote = destination.note ? `<div class="tiny muted">${destination.note}</div>` : "";
+  const progressWidth = Math.round(ratio * 100);
+  return `
+    <div class="achievement-row">
+      <div class="achievement-row-head">
+        <div class="achievement-row-main">
+          <div>
+            <div class="achievement-row-title">${achievement.id} · ${achievement.label}</div>
+            <div class="achievement-desc">${achievement.desc}</div>
+          </div>
+          <span class="achievement-status-pill achievement-status-pill--${statusState}">${statusLabel}</span>
+        </div>
+        <button type="button" class="ghost mini achievement-go-btn" data-achievement-route="${destination.route}">
+          Go to ${destination.label}
+        </button>
+      </div>
+      <div class="achievement-row-reason">
+        <div class="tiny muted">${reasonText}</div>
+        ${destNote}
+      </div>
+      <div class="achievement-progress">
+        <div class="achievement-progress-bar">
+          <div class="achievement-progress-fill" style="width: ${progressWidth}%"></div>
+        </div>
+        <div class="tiny muted">${progressLabel}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAchievementChecklist(targetId) {
+  const listEl = $(targetId);
+  if (!listEl) return;
+  listEl.innerHTML = ACHIEVEMENTS.map(buildAchievementRowMarkup).join("");
+}
+
+function buildAchievementSummaryText() {
+  const unlockedCount = state.meta.achievementsUnlocked?.length || 0;
+  const count = Math.max(unlockedCount, state.meta.achievements || 0);
+  const notes = [];
+  if (state.meta.bailoutUsed) notes.push("Bailout used: win flagged for leaderboards.");
+  if (state.meta.monopolyLoss) notes.push("Monopoly loss: achievements disabled.");
+  if (state.meta.cheaterMode) notes.push("Cheater mode active: achievements paused.");
+  const noteText = notes.join(" ");
+  return `CEO Requests ${count} / ${ACHIEVEMENT_TARGET}${noteText ? ` | ${noteText}` : ""}`;
+}
+
+function updateAchievementSummaries() {
+  const summaryText = buildAchievementSummaryText();
+  const summaryEl = $("achievementSummary");
+  if (summaryEl) summaryEl.textContent = summaryText;
+  const dashboardSummary = $("dashboardAchievementSummary");
+  if (dashboardSummary) dashboardSummary.textContent = summaryText;
+  const viewMeta = $("achievementViewMeta");
+  if (viewMeta) viewMeta.textContent = summaryText;
+}
+
+function renderAchievementsView() {
+  renderAchievementChecklist("achievementsList");
+  updateAchievementSummaries();
+}
+
+function renderAchievements() {
+  renderAchievementChecklist("achievementList");
+  updateAchievementSummaries();
 }
 
 function renderRivalAchievementRace() {
@@ -8841,6 +8941,8 @@ function renderActiveView(view) {
     renderSlots();
   } else if (active === "awards") {
     renderAnnualAwardsView();
+  } else if (active === "achievements") {
+    renderAchievementsView();
   } else if (active === "release") {
     renderReleaseDesk();
   } else if (active === "create") {

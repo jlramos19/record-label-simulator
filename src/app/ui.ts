@@ -27,6 +27,7 @@ import {
   shakeSlot,
   showEndScreen
 } from "./ui/dom.js";
+import { showToast } from "./guardrails.js";
 import {
   closeMainMenu,
   openMainMenu,
@@ -224,7 +225,7 @@ setUiHooks({
   refreshPromoTypes: () => updatePromoTypeHint(document)
 });
 
-const ROUTES = ["dashboard", "charts", "awards", "create", "release", "releases", "eras", "roster", "world", "logs", "tour", "patch-notes"];
+const ROUTES = ["dashboard", "charts", "awards", "achievements", "create", "release", "releases", "eras", "roster", "world", "logs", "tour", "patch-notes"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
   promotion: "logs",
@@ -324,6 +325,74 @@ function endUiRenderHold() {
   const ui = ensureUiState();
   ui.renderHoldActive = false;
   ui.renderHoldUntil = 0;
+}
+
+const VIEW_SWITCH_TOAST_ID = "viewSwitchToast";
+const VIEW_SWITCH_HIDE_DELAY = 220;
+let viewSwitchHideTimer = null;
+
+function formatTimestampShort(ms) {
+  const safeMs = Number.isFinite(ms) && ms > 0 ? ms : Date.now();
+  const localDate = new Date(safeMs);
+  const dateLabel = game.formatShortDate(safeMs);
+  const timeLabel = localDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `${dateLabel} ${timeLabel}`;
+}
+
+function buildSaveLocationLabel(status) {
+  const slotPrefix = session.activeSlot ? `Slot ${session.activeSlot}` : "Slot -";
+  if (!status) {
+    return `${slotPrefix} (local)`;
+  }
+  const name = status.name || "External folder";
+  if (status.status === "ready") {
+    return `${slotPrefix} → ${name}`;
+  }
+  if (status.status === "not-set") {
+    return `${slotPrefix} (local)`;
+  }
+  const note = status.status === "unsupported" ? "unsupported" : status.status;
+  return `${slotPrefix} → ${name} (${note})`;
+}
+
+async function describeSaveLocation() {
+  try {
+    const status = await getExternalStorageStatus();
+    return buildSaveLocationLabel(status);
+  } catch {
+    return buildSaveLocationLabel(null);
+  }
+}
+
+async function refreshSaveLocationStatus() {
+  const statusEl = $("saveLocationStatus");
+  if (!statusEl) return;
+  const label = await describeSaveLocation();
+  statusEl.textContent = label;
+}
+
+function showViewSwitchToast() {
+  if (typeof document === "undefined") return;
+  const toast = document.getElementById(VIEW_SWITCH_TOAST_ID);
+  if (!toast) return;
+  toast.classList.remove("hidden");
+  toast.classList.add("visible");
+  if (viewSwitchHideTimer) {
+    window.clearTimeout(viewSwitchHideTimer);
+    viewSwitchHideTimer = null;
+  }
+}
+
+function hideViewSwitchToast() {
+  if (typeof document === "undefined") return;
+  const toast = document.getElementById(VIEW_SWITCH_TOAST_ID);
+  if (!toast) return;
+  toast.classList.remove("visible");
+  if (viewSwitchHideTimer) window.clearTimeout(viewSwitchHideTimer);
+  viewSwitchHideTimer = window.setTimeout(() => {
+    toast.classList.add("hidden");
+    viewSwitchHideTimer = null;
+  }, VIEW_SWITCH_HIDE_DELAY);
 }
 
 function normalizeUiTheme(value) {
@@ -1817,7 +1886,12 @@ function toggleSidePanels() {
 
 function updateRoute(route) {
   const next = ROUTES.includes(route) ? route : DEFAULT_ROUTE;
-  if (activeRoute === next && hasMountedRoute) return;
+  showViewSwitchToast();
+  endUiRenderHold();
+  if (activeRoute === next && hasMountedRoute) {
+    hideViewSwitchToast();
+    return;
+  }
   const prevRoute = activeRoute;
   if (prevRoute === "charts" && next !== "charts") {
     resetChartHistoryView({ render: false });
@@ -1835,6 +1909,7 @@ function updateRoute(route) {
   mountView(next);
   hasMountedRoute = true;
   logUiEvent("route_change", { route: next });
+  hideViewSwitchToast();
 }
 
 function mountView(route) {
@@ -2874,7 +2949,7 @@ function bindGlobalHandlers() {
     }
     return cleaned;
   };
-  const handleManualSave = (refreshMenu) => {
+  const handleManualSave = async (refreshMenu) => {
     if (!session.activeSlot) {
       logEvent("Select a game slot before saving.", "warn");
       return;
@@ -2882,6 +2957,9 @@ function bindGlobalHandlers() {
     saveToActiveSlot();
     if (refreshMenu) renderMainMenu();
     logEvent(`Saved Game Slot ${session.activeSlot}.`);
+    const timestamp = formatTimestampShort(Date.now());
+    const locationLabel = await describeSaveLocation();
+    showToast(`Saved at ${timestamp}`, `→ ${locationLabel}`, { tone: "success" });
   };
   const setTutorialTab = (tabId) => {
     if (!tabId) return;
@@ -2985,8 +3063,18 @@ function bindGlobalHandlers() {
     openOverlay("tutorialModal");
   });
   on("labelSettingsBtn", "click", () => {
+    void refreshSaveLocationStatus();
     refreshSelectOptions();
     openOverlay("labelSettingsModal");
+  });
+  on("dashboardAchievementViewBtn", "click", () => {
+    window.location.hash = "#/achievements";
+  });
+  on("saveLocationChangeBtn", "click", () => {
+    void (async () => {
+      await handleExternalStoragePick();
+      await refreshSaveLocationStatus();
+    })();
   });
   on("hudStatsMoreBtn", "click", () => toggleHudStatsExpanded());
   on("panelMenuBtn", "click", () => {
@@ -3040,7 +3128,9 @@ function bindGlobalHandlers() {
   on("uiThemeSelect", "change", (e) => {
     applyUiTheme(e.target.value, { persist: true });
   });
-  on("saveNowBtn", "click", () => handleManualSave(false));
+  on("saveNowBtn", "click", () => {
+    void handleManualSave(false);
+  });
   const lossList = $("usageLedgerList");
   if (lossList) {
     lossList.addEventListener("click", (e) => {
@@ -3861,7 +3951,9 @@ function bindViewHandlers(route, root) {
 
   if (route === "logs") {
     on("externalStoragePickBtn", "click", () => {
-      void handleExternalStoragePick(root);
+      void handleExternalStoragePick(root).then(() => {
+        refreshSaveLocationStatus();
+      });
     });
     on("externalStorageSyncBtn", "click", () => {
       void handleExternalStorageSync(root);

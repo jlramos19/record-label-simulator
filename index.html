@@ -111,6 +111,7 @@
       <div class="actions">
         <button id="resetLayoutBtn" type="button" class="ghost">Reset Layout</button>
       </div>
+      <div id="autosaveIndicator" class="hud-autosave hidden" role="status" aria-live="polite"></div>
     </div>
   </div>
 </div>
@@ -451,6 +452,14 @@
           <label class="file-btn">Load File <input type="file" id="loadInput" accept="application/json"></label>
         </div>
       </div>
+      <div class="field">
+        <label>Save Location</label>
+        <div id="saveLocationStatus" class="tiny muted">Slot - (local)</div>
+        <div id="saveLocationDetail" class="tiny muted">Choose a folder to sync saves and logs.</div>
+        <div class="actions">
+          <button id="saveLocationChangeBtn" type="button" class="ghost mini">Save Location (Change…)</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -581,6 +590,10 @@
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">emoji_events</span>
           <span class="nav-label">Awards</span>
         </a>
+        <a href="#/achievements" data-route="achievements" class="nav-item" aria-label="Achievements" title="Achievements">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">military_tech</span>
+          <span class="nav-label">Achievements</span>
+        </a>
         <a href="#/create" data-route="create" class="nav-item" aria-label="Create" title="Create">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">edit_note</span>
           <span class="nav-label">Create</span>
@@ -644,6 +657,14 @@
               <a href="#/releases" class="ghost mini">Calendar</a>
               <a href="#/roster" class="ghost mini">Signed</a>
               <a href="#/eras" class="ghost mini">Eras</a>
+            </div>
+            <div class="subhead">Achievements</div>
+            <div class="dashboard-achievement-card">
+              <div id="dashboardAchievementSummary" class="tiny muted">CEO Requests 0 / 12.</div>
+              <div id="dashboardAchievementHint" class="tiny muted">Unlock all 12 CEO Requests to win the game.</div>
+              <div class="actions">
+                <button id="dashboardAchievementViewBtn" type="button" class="ghost mini">View Achievements</button>
+              </div>
             </div>
             <div class="subhead">Pipeline</div>
             <div class="dashboard-pipeline-block">
@@ -795,6 +816,23 @@
         </div>
       </div>
     </aside>
+  </div>
+</template>
+
+<template id="view-achievements">
+  <div class="view view--achievements view--single">
+    <section class="view-main">
+      <div class="panel card panel--scroll">
+        <div class="card-head">
+          <h2>Achievements</h2>
+        </div>
+        <div class="card-body">
+          <div class="callout">Track all 12 CEO Requests to secure the win state.</div>
+          <div id="achievementViewMeta" class="tiny muted"></div>
+          <div id="achievementsList" class="list achievement-checklist"></div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -2093,5 +2131,6 @@
 <script src="assets/js/data/creator-portraits.js"></script>
 <script type="module" src="assets/js/dist/main.js"></script>
 <script type="module" src="assets/js/ui-react/ui-react.js"></script>
+<div id="viewSwitchToast" class="view-switch-toast hidden" aria-live="polite">Switching view…</div>
 </body>
 </html>

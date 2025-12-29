@@ -275,6 +275,18 @@ body::before {
   justify-items: end;
   align-content: start;
 }
+.hud-autosave {
+  align-self: start;
+  justify-self: end;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: var(--line-width) solid var(--line);
+  background: var(--surface-1);
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 260px;
+  text-align: right;
+}
 .hud-stat {
   display: grid;
   gap: 2px;
@@ -1121,6 +1133,13 @@ body::before {
 .toast--critical {
   border-left-color: var(--danger);
 }
+.toast--info {
+  border-left-color: var(--accent);
+}
+.toast--success {
+  border-left-color: rgba(var(--accent-rgb), 0.8);
+  background: rgba(var(--accent-rgb), 0.08);
+}
 .toast-title {
   font-size: 12px;
   font-weight: 700;
@@ -1143,6 +1162,27 @@ body::before {
     right: 16px;
     width: auto;
   }
+}
+.view-switch-toast {
+  position: fixed;
+  top: 88px;
+  right: 16px;
+  z-index: 45;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: var(--line-width) solid var(--line);
+  background: var(--surface-1);
+  box-shadow: 0 20px 36px rgba(0, 0, 0, 0.25);
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+.view-switch-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 .overlay {
   position: fixed;
@@ -2316,6 +2356,99 @@ select.theme-select {
 .dashboard-stat .stat-value {
   font-size: 18px;
   font-weight: 700;
+}
+.dashboard-achievement-card {
+  padding: 10px;
+  border-radius: 12px;
+  border: var(--line-width) solid var(--line);
+  background: var(--surface-1-mid);
+  display: grid;
+  gap: 4px;
+}
+.dashboard-achievement-card .actions {
+  justify-content: flex-start;
+  padding: 0;
+}
+.achievement-checklist {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+.achievement-row {
+  padding: 12px;
+  border-radius: 12px;
+  border: var(--line-width) solid var(--line);
+  background: var(--surface-1);
+  display: grid;
+  gap: 8px;
+}
+.achievement-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.achievement-row-main {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.achievement-row-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+.achievement-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.achievement-status-pill {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: var(--line-width) solid transparent;
+}
+.achievement-status-pill--completed {
+  color: #fff;
+  background: linear-gradient(120deg, var(--accent) 0%, var(--accent) 100%);
+  border-color: transparent;
+}
+.achievement-status-pill--blocked {
+  color: var(--danger);
+  border-color: rgba(var(--danger-rgb), 0.4);
+  background: rgba(var(--danger-rgb), 0.12);
+}
+.achievement-status-pill--in-progress {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+.achievement-go-btn {
+  align-self: flex-start;
+}
+.achievement-row-reason {
+  display: grid;
+  gap: 2px;
+}
+.achievement-progress {
+  display: grid;
+  gap: 4px;
+}
+.achievement-progress-bar {
+  height: 6px;
+  border-radius: 6px;
+  background: var(--line);
+  overflow: hidden;
+}
+.achievement-progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.9), rgba(var(--accent-rgb), 0.6));
+  transition: width 0.15s ease;
 }
 .dashboard-actions {
   display: flex;

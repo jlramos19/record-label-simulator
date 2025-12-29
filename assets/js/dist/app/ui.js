@@ -9,6 +9,7 @@ import { getStorageHealthSnapshot, recordStorageError } from "./storage-health.j
 import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
 import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistoryFromExternal, importSavesFromExternal, isExternalStorageSupported, requestExternalStorageHandle, syncExternalStorageNow } from "./file-storage.js";
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
+import { showToast } from "./guardrails.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
 const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
@@ -29,7 +30,7 @@ setUiHooks({
     updateGenrePreview,
     refreshPromoTypes: () => updatePromoTypeHint(document)
 });
-const ROUTES = ["dashboard", "charts", "awards", "create", "release", "releases", "eras", "roster", "world", "logs", "tour", "patch-notes"];
+const ROUTES = ["dashboard", "charts", "awards", "achievements", "create", "release", "releases", "eras", "roster", "world", "logs", "tour", "patch-notes"];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
     promotion: "logs",
@@ -124,6 +125,84 @@ function endUiRenderHold() {
     const ui = ensureUiState();
     ui.renderHoldActive = false;
     ui.renderHoldUntil = 0;
+}
+const VIEW_SWITCH_TOAST_ID = "viewSwitchToast";
+const VIEW_SWITCH_HIDE_DELAY = 220;
+let viewSwitchHideTimer = null;
+function formatTimestampShort(ms) {
+    const safeMs = Number.isFinite(ms) && ms > 0 ? ms : Date.now();
+    const localDate = new Date(safeMs);
+    const dateLabel = game.formatShortDate(safeMs);
+    const timeLabel = localDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return `${dateLabel} ${timeLabel}`;
+}
+function buildSaveLocationLabel(status) {
+    const slotPrefix = session.activeSlot ? `Slot ${session.activeSlot}` : "Slot -";
+    if (!status) {
+        return `${slotPrefix} (local)`;
+    }
+    const name = status.name || "External folder";
+    if (status.status === "ready") {
+        return `${slotPrefix} → ${name}`;
+    }
+    if (status.status === "not-set") {
+        return `${slotPrefix} (local)`;
+    }
+    const note = status.status === "unsupported" ? "unsupported" : status.status;
+    return `${slotPrefix} → ${name} (${note})`;
+}
+async function describeSaveLocation() {
+    try {
+        const status = await getExternalStorageStatus();
+        return buildSaveLocationLabel(status);
+    }
+    catch {
+        return buildSaveLocationLabel(null);
+    }
+    root.addEventListener("click", (event) => {
+        const trigger = event.target.closest("[data-achievement-route]");
+        if (!trigger)
+            return;
+        const route = trigger.dataset.achievementRoute;
+        if (!route)
+            return;
+        event.preventDefault();
+        window.location.hash = `#/${route}`;
+    });
+}
+async function refreshSaveLocationStatus() {
+    const statusEl = $("saveLocationStatus");
+    if (!statusEl)
+        return;
+    const label = await describeSaveLocation();
+    statusEl.textContent = label;
+}
+function showViewSwitchToast() {
+    if (typeof document === "undefined")
+        return;
+    const toast = document.getElementById(VIEW_SWITCH_TOAST_ID);
+    if (!toast)
+        return;
+    toast.classList.remove("hidden");
+    toast.classList.add("visible");
+    if (viewSwitchHideTimer) {
+        window.clearTimeout(viewSwitchHideTimer);
+        viewSwitchHideTimer = null;
+    }
+}
+function hideViewSwitchToast() {
+    if (typeof document === "undefined")
+        return;
+    const toast = document.getElementById(VIEW_SWITCH_TOAST_ID);
+    if (!toast)
+        return;
+    toast.classList.remove("visible");
+    if (viewSwitchHideTimer)
+        window.clearTimeout(viewSwitchHideTimer);
+    viewSwitchHideTimer = window.setTimeout(() => {
+        toast.classList.add("hidden");
+        viewSwitchHideTimer = null;
+    }, VIEW_SWITCH_HIDE_DELAY);
 }
 function normalizeUiTheme(value) {
     if (value === "dark" || value === "light" || value === "system")
@@ -1627,8 +1706,12 @@ function toggleSidePanels() {
 }
 function updateRoute(route) {
     const next = ROUTES.includes(route) ? route : DEFAULT_ROUTE;
-    if (activeRoute === next && hasMountedRoute)
+    showViewSwitchToast();
+    endUiRenderHold();
+    if (activeRoute === next && hasMountedRoute) {
+        hideViewSwitchToast();
         return;
+    }
     const prevRoute = activeRoute;
     if (prevRoute === "charts" && next !== "charts") {
         resetChartHistoryView({ render: false });
@@ -1648,6 +1731,7 @@ function updateRoute(route) {
     mountView(next);
     hasMountedRoute = true;
     logUiEvent("route_change", { route: next });
+    hideViewSwitchToast();
 }
 function mountView(route) {
     const appRoot = $("app");
@@ -2729,7 +2813,7 @@ function bindGlobalHandlers() {
         }
         return cleaned;
     };
-    const handleManualSave = (refreshMenu) => {
+    const handleManualSave = async (refreshMenu) => {
         if (!session.activeSlot) {
             logEvent("Select a game slot before saving.", "warn");
             return;
@@ -2738,6 +2822,9 @@ function bindGlobalHandlers() {
         if (refreshMenu)
             renderMainMenu();
         logEvent(`Saved Game Slot ${session.activeSlot}.`);
+        const timestamp = formatTimestampShort(Date.now());
+        const locationLabel = await describeSaveLocation();
+        showToast(`Saved at ${timestamp}`, `→ ${locationLabel}`, { tone: "success" });
     };
     const setTutorialTab = (tabId) => {
         if (!tabId)
@@ -2853,8 +2940,18 @@ function bindGlobalHandlers() {
         openOverlay("tutorialModal");
     });
     on("labelSettingsBtn", "click", () => {
+        void refreshSaveLocationStatus();
         refreshSelectOptions();
         openOverlay("labelSettingsModal");
+    });
+    on("dashboardAchievementViewBtn", "click", () => {
+        window.location.hash = "#/achievements";
+    });
+    on("saveLocationChangeBtn", "click", () => {
+        void (async () => {
+            await handleExternalStoragePick();
+            await refreshSaveLocationStatus();
+        })();
     });
     on("hudStatsMoreBtn", "click", () => toggleHudStatsExpanded());
     on("panelMenuBtn", "click", () => {
@@ -2908,7 +3005,9 @@ function bindGlobalHandlers() {
     on("uiThemeSelect", "change", (e) => {
         applyUiTheme(e.target.value, { persist: true });
     });
-    on("saveNowBtn", "click", () => handleManualSave(false));
+    on("saveNowBtn", "click", () => {
+        void handleManualSave(false);
+    });
     const lossList = $("usageLedgerList");
     if (lossList) {
         lossList.addEventListener("click", (e) => {
@@ -3794,7 +3893,9 @@ function bindViewHandlers(route, root) {
     }
     if (route === "logs") {
         on("externalStoragePickBtn", "click", () => {
-            void handleExternalStoragePick(root);
+            void handleExternalStoragePick(root).then(() => {
+                refreshSaveLocationStatus();
+            });
         });
         on("externalStorageSyncBtn", "click", () => {
             void handleExternalStorageSync(root);

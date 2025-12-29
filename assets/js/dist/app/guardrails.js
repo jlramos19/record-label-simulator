@@ -48,6 +48,17 @@ function ensureToastStack() {
     document.body.appendChild(stack);
     return stack;
 }
+function appendToast(toast) {
+    const stack = ensureToastStack();
+    if (!stack)
+        return;
+    stack.appendChild(toast);
+    window.setTimeout(() => toast.remove(), TOAST_LIFETIME_MS);
+    const toasts = stack.querySelectorAll(".toast");
+    if (toasts.length > TOAST_LIMIT) {
+        toasts[0].remove();
+    }
+}
 function formatToastDetail(detail) {
     const text = String(detail || "").trim();
     if (!text)
@@ -61,9 +72,6 @@ function showCriticalToast(summary, detail) {
     if (now - lastToastAt < TOAST_THROTTLE_MS)
         return;
     lastToastAt = now;
-    const stack = ensureToastStack();
-    if (!stack)
-        return;
     const toast = document.createElement("div");
     toast.className = "toast toast--critical";
     const dismiss = () => toast.remove();
@@ -93,12 +101,30 @@ function showCriticalToast(summary, detail) {
     actions.appendChild(reload);
     actions.appendChild(close);
     toast.appendChild(actions);
-    stack.appendChild(toast);
-    window.setTimeout(dismiss, TOAST_LIFETIME_MS);
-    const toasts = stack.querySelectorAll(".toast");
-    if (toasts.length > TOAST_LIMIT) {
-        toasts[0].remove();
+    appendToast(toast);
+}
+function showToast(summary, detail, { tone = "info" } = {}) {
+    if (!summary)
+        return;
+    const toast = document.createElement("div");
+    const toneClass = tone === "critical"
+        ? "toast--critical"
+        : tone === "success"
+            ? "toast--success"
+            : "toast--info";
+    toast.className = `toast ${toneClass}`;
+    const title = document.createElement("div");
+    title.className = "toast-title";
+    title.textContent = summary;
+    toast.appendChild(title);
+    const detailText = formatToastDetail(detail);
+    if (detailText) {
+        const detailEl = document.createElement("div");
+        detailEl.className = "toast-detail";
+        detailEl.textContent = detailText;
+        toast.appendChild(detailEl);
     }
+    appendToast(toast);
 }
 function showSafeMode(error) {
     if (typeof document === "undefined")
@@ -138,6 +164,7 @@ function recordReleaseStamp(release) {
         safeSetStorage(sessionStorage, "rls_release_changed", `${previous} -> ${release.patchId}`);
     }
 }
+export { showToast };
 export function installLiveEditGuardrails(release) {
     startUsageSession({ release });
     recordReleaseStamp(release);
