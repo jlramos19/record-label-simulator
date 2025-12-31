@@ -36,6 +36,19 @@ const PERF_INDEX_REBUILD_LOG_MS = 4;
 const LOCAL_SAVE_QUOTA_BYTES = 4.5 * 1024 * 1024;
 const SAVE_DEBOUNCE_MS = 1500;
 const LABEL_KPI_PROJECTION_WEEKS = 4;
+const TRACK_RELEASE_STATUS = {
+    unreleased: "unreleased",
+    scheduled: "scheduled",
+    released: "released",
+    shelved: "shelved"
+};
+const TRACK_RELEASE_STATUS_LABELS = {
+    unreleased: "Unreleased",
+    scheduled: "Scheduled",
+    released: "Released",
+    shelved: "Shelved"
+};
+const TRACK_RELEASE_STATUS_SET = new Set(Object.values(TRACK_RELEASE_STATUS));
 let saveDebounceTimer = null;
 let saveDebounceQueued = false;
 const perfLogLast = new Map();
@@ -129,6 +142,62 @@ function resolveTrackPricingType(track) {
     if (releaseType === "Single")
         return "Single";
     return normalizeProjectType(track?.projectType || "Single");
+}
+function normalizeTrackReleaseStatus(status) {
+    if (typeof status !== "string")
+        return null;
+    const normalized = status.toLowerCase();
+    return TRACK_RELEASE_STATUS_SET.has(normalized) ? normalized : null;
+}
+function getTrackReleaseStatusLabel(status) {
+    const normalized = normalizeTrackReleaseStatus(status) || TRACK_RELEASE_STATUS.unreleased;
+    return TRACK_RELEASE_STATUS_LABELS[normalized] || TRACK_RELEASE_STATUS_LABELS.unreleased;
+}
+function getTrackReleaseStatus(track) {
+    if (!track)
+        return TRACK_RELEASE_STATUS.unreleased;
+    const activeMarket = track.marketId ? getMarketTrackById(track.marketId) : getMarketTrackByTrackId(track.id);
+    if (activeMarket)
+        return TRACK_RELEASE_STATUS.released;
+    const archivedMarket = track.marketId
+        ? getArchivedMarketTrackById(track.marketId)
+        : getArchivedMarketTrackByTrackId(track.id);
+    if (archivedMarket)
+        return TRACK_RELEASE_STATUS.shelved;
+    const queued = Array.isArray(state.releaseQueue)
+        ? state.releaseQueue.find((entry) => entry.trackId === track.id)
+        : null;
+    if (queued && Number.isFinite(queued.releaseAt))
+        return TRACK_RELEASE_STATUS.scheduled;
+    const stored = normalizeTrackReleaseStatus(track.releaseStatus);
+    if (stored)
+        return stored;
+    const legacy = normalizeTrackReleaseStatus(track.status);
+    if (legacy)
+        return legacy;
+    return TRACK_RELEASE_STATUS.unreleased;
+}
+function syncTrackReleaseStatus(track) {
+    if (!track)
+        return TRACK_RELEASE_STATUS.unreleased;
+    const next = getTrackReleaseStatus(track);
+    track.releaseStatus = next;
+    return next;
+}
+function isTrackReleaseScheduled(track) {
+    return getTrackReleaseStatus(track) === TRACK_RELEASE_STATUS.scheduled;
+}
+function isTrackReleaseReleased(track, { includeShelved = false } = {}) {
+    const status = getTrackReleaseStatus(track);
+    if (status === TRACK_RELEASE_STATUS.released)
+        return true;
+    return includeShelved && status === TRACK_RELEASE_STATUS.shelved;
+}
+function isTrackReleaseShelved(track) {
+    return getTrackReleaseStatus(track) === TRACK_RELEASE_STATUS.shelved;
+}
+function isTrackReleaseUnreleased(track) {
+    return getTrackReleaseStatus(track) === TRACK_RELEASE_STATUS.unreleased;
 }
 function nowMs() {
     return typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
@@ -963,7 +1032,7 @@ function currentYear() {
     return new Date(state.time.epochMs).getUTCFullYear();
 }
 function releasedTracks() {
-    return state.tracks.filter((track) => track.status === "Released");
+    return state.tracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true }));
 }
 function releasedProjectCount() {
     const projects = new Set();
@@ -2025,7 +2094,7 @@ function assignToSlot(targetId, entityType, entityId) {
     if (entityType === "track" && promoKind === "track") {
         const track = getTrack(entityId);
         const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
-        const isReleased = Boolean(track && track.status === "Released" && track.marketId);
+        const isReleased = Boolean(track && isTrackReleaseReleased(track) && track.marketId);
         if (!track || (!isReleased && !scheduled)) {
             shakeSlot(targetId);
             logEvent("Promo slot requires a scheduled or released Track ID.", "warn");
@@ -3741,7 +3810,7 @@ function findActChartingTrack(actId, minQuality = 0) {
     if (!actId)
         return null;
     const candidates = state.tracks
-        .filter((track) => track.actId === actId && track.status === "Released")
+        .filter((track) => track.actId === actId && isTrackReleaseReleased(track))
         .filter((track) => (track.quality || 0) >= minQuality)
         .filter((track) => isTrackCharting(track.id));
     if (!candidates.length)
@@ -4539,7 +4608,7 @@ function generateEraRolloutHusk(era) {
 function getEraReleasedTracks(era) {
     if (!era)
         return [];
-    return state.tracks.filter((track) => track.status === "Released" && track.eraId === era.id);
+    return state.tracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true }) && track.eraId === era.id);
 }
 function dominantValue(values, fallback = null) {
     const counts = {};
@@ -4593,7 +4662,7 @@ function buildEraProfitabilitySummary(era) {
         actName: act ? act.name : null,
         label: labelName,
         trackCount: tracks.length,
-        releasedCount: tracks.filter((track) => track.status === "Released").length,
+        releasedCount: tracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true })).length,
         trackRevenue: 0,
         tourRevenue: 0,
         productionCost: 0,
@@ -4682,7 +4751,7 @@ function computeProjectProfitabilitySummaries() {
             net: 0
         };
         summary.trackCount += 1;
-        if (track.status === "Released")
+        if (isTrackReleaseReleased(track, { includeShelved: true }))
             summary.releasedCount += 1;
         const economy = ensureTrackEconomy(track);
         if (economy) {
@@ -6436,7 +6505,7 @@ function assignTrackAct(trackId, actId) {
         logEvent("Track not found for assignment.", "warn");
         return false;
     }
-    if (track.status === "Released") {
+    if (isTrackReleaseReleased(track, { includeShelved: true })) {
         logEvent("Cannot change Act after release.", "warn");
         return false;
     }
@@ -6540,10 +6609,11 @@ function scrapTrack(trackId, { reason } = {}) {
         logEvent("Track scrap failed: track not found.", "warn");
         return { ok: false, reason: "NOT_FOUND" };
     }
-    if (track.status === "Released") {
+    if (isTrackReleaseReleased(track, { includeShelved: true })) {
         logEvent("Cannot scrap released tracks.", "warn");
         return { ok: false, reason: "RELEASED" };
     }
+    const releaseLabel = getTrackReleaseStatusLabel(getTrackReleaseStatus(track));
     const ordersBefore = state.workOrders.length;
     state.workOrders = state.workOrders.filter((order) => order.trackId !== trackId);
     const removedOrders = ordersBefore - state.workOrders.length;
@@ -6554,6 +6624,7 @@ function scrapTrack(trackId, { reason } = {}) {
     const rolloutRemoved = removeTrackFromRolloutPlans(trackId);
     const eraRemoved = removeTrackFromEraContent(trackId);
     clearTrackUiSelections(trackId);
+    track.releaseStatus = TRACK_RELEASE_STATUS.unreleased;
     state.tracks = state.tracks.filter((entry) => entry.id !== trackId);
     syncStudioUsage();
     const details = [];
@@ -6571,7 +6642,7 @@ function scrapTrack(trackId, { reason } = {}) {
         details.push(`${eraRemoved} era content tag${eraRemoved === 1 ? "" : "s"}`);
     const detailText = details.length ? ` (${details.join(", ")})` : "";
     const reasonText = reason ? ` Reason: ${reason}.` : "";
-    logEvent(`Scrapped "${track.title}" (${track.status}).${detailText}${reasonText}`);
+    logEvent(`Scrapped "${track.title}" (${releaseLabel}).${detailText}${reasonText}`);
     return {
         ok: true,
         trackId: track.id,
@@ -7204,7 +7275,7 @@ function countEraProjectReleasedTracks(eraId, projectName) {
     if (!eraId || !normalized)
         return 0;
     return state.tracks.filter((track) => {
-        if (track.status !== "Released")
+        if (!isTrackReleaseReleased(track, { includeShelved: true }))
             return false;
         if (track.eraId !== eraId)
             return false;
@@ -7821,6 +7892,7 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
         },
         stageIndex: 0,
         status: "In Production",
+        releaseStatus: TRACK_RELEASE_STATUS.unreleased,
         qualityPotential: 0,
         quality: 0,
         completedAt: null,
@@ -7828,6 +7900,7 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
         marketId: null,
         promo: {
             preReleaseWeeks: 0,
+            preReleaseMomentum: 0,
             musicVideoUsed: false,
             typesUsed: {},
             typesLastAt: {}
@@ -8160,7 +8233,7 @@ function completeStage(order) {
     track.genre = makeGenre(track.theme, track.mood);
     const queuedRelease = state.releaseQueue.some((entry) => entry.trackId === track.id);
     if (queuedRelease)
-        track.status = "Scheduled";
+        track.releaseStatus = TRACK_RELEASE_STATUS.scheduled;
     logEvent(`Track ready${queuedRelease ? " and queued for release" : ""}: "${track.title}" (${qualityGrade(track.quality)}).`);
 }
 const DEFAULT_RELEASE_DISTRIBUTION_CONFIG = {
@@ -8331,7 +8404,7 @@ function recommendPhysicalRun(track, { act = null, label = state.label } = {}) {
     const memberCount = Math.max(1, act?.memberIds?.length || 1);
     const actFactor = clamp(0.95 + Math.min(memberCount, 5) * 0.05, 0.95, 1.2);
     const alignmentFactor = act?.alignment && track.alignment && act.alignment === track.alignment ? 1.05 : 1;
-    const promoWeeks = Math.max(0, track.promo?.preReleaseWeeks || 0);
+    const promoWeeks = Math.max(0, track.promo?.preReleaseWeeks || 0, track.promo?.preReleaseMomentum || 0);
     const promoFactor = clamp(1 + promoWeeks * 0.05, 1, 1.25);
     const basePrice = Number.isFinite(ECONOMY_BASELINES?.physicalSingle) ? ECONOMY_BASELINES.physicalSingle : 4.99;
     const priceFactor = clamp(1.05 - (unitPrice / basePrice) * 0.08, 0.75, 1.05);
@@ -8382,8 +8455,8 @@ function trendRankForGenre(genre, ranking = null) {
 }
 function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     if (!track || !track.actId || !getAct(track.actId)) {
-        if (track && track.status === "Scheduled")
-            track.status = "Ready";
+        if (track && isTrackReleaseScheduled(track))
+            track.releaseStatus = TRACK_RELEASE_STATUS.unreleased;
         logEvent("Cannot release track: assign an Act first.", "warn");
         return false;
     }
@@ -8409,7 +8482,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
         }
     }
     const era = ensureEraForTrack(track, "Release", { releaseType: track.releaseType, mode: "release" });
-    track.status = "Released";
+    track.releaseStatus = TRACK_RELEASE_STATUS.released;
     track.releasedAt = state.time.epochMs;
     recordEraProjectReleaseActivity(era || (track.eraId ? getEraById(track.eraId) : null), track.releasedAt);
     track.trendAtRelease = state.trends.includes(track.genre);
@@ -8420,6 +8493,8 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     track.trendTotalAtRelease = trendTotalAtRelease;
     track.distribution = dist;
     const preReleaseWeeks = Math.max(0, track.promo?.preReleaseWeeks || 0);
+    const preReleaseMomentum = Math.max(0, track.promo?.preReleaseMomentum || 0);
+    const bankedMomentum = Math.max(preReleaseWeeks, preReleaseMomentum);
     const promoTypesUsed = track.promo?.typesUsed && typeof track.promo.typesUsed === "object"
         ? { ...track.promo.typesUsed }
         : {};
@@ -8469,7 +8544,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
         trendTotalAtRelease,
         releasedAt: track.releasedAt,
         weeksOnChart: 0,
-        promoWeeks: preReleaseWeeks,
+        promoWeeks: bankedMomentum,
         promoTypesUsed,
         promoTypesLastAt,
         rolloutPlanId: rolloutStrategyId,
@@ -8481,8 +8556,11 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     applyCriticsReview({ track, marketEntry, log: true });
     track.marketId = marketEntry.id;
     state.marketTracks.push(marketEntry);
-    if (track.promo)
+    // Test scenario: schedule a track, fund pre-release promo, then release and confirm launch promo weeks match the banked momentum.
+    if (track.promo) {
         track.promo.preReleaseWeeks = 0;
+        track.promo.preReleaseMomentum = 0;
+    }
     markCreatorRelease(getTrackCreatorIds(track), track.releasedAt);
     logEvent(`Released "${track.title}" to market${note ? ` (${note})` : ""}.${feeNote}`);
     postTrackRelease(track);
@@ -8500,6 +8578,10 @@ function scheduleRelease(track, hoursFromNow, distribution, note, { rush = false
     const isReady = track.status === "Ready";
     if (!isReady) {
         logEvent("Only Ready (mastered) tracks can be scheduled for release.", "warn");
+        return false;
+    }
+    if (isTrackReleaseReleased(track, { includeShelved: true })) {
+        logEvent("Track is already released.", "warn");
         return false;
     }
     if (!track.genre && track.theme && track.mood) {
@@ -8552,7 +8634,7 @@ function scheduleRelease(track, hoursFromNow, distribution, note, { rush = false
         rush
     });
     if (isReady)
-        track.status = "Scheduled";
+        track.releaseStatus = TRACK_RELEASE_STATUS.scheduled;
     ensureEraForTrack(track, "Release scheduled", { releaseType: track.releaseType, mode: "schedule" });
     const feeParts = [];
     if (feeResult.distributionFee)
@@ -8573,6 +8655,9 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
     const isReady = track.status === "Ready";
     if (!isReady) {
         return { ok: false, reason: "Track must be mastered before scheduling." };
+    }
+    if (isTrackReleaseReleased(track, { includeShelved: true })) {
+        return { ok: false, reason: "Track is already released." };
     }
     if (!track.genre && track.theme && track.mood) {
         track.genre = makeGenre(track.theme, track.mood);
@@ -8623,7 +8708,7 @@ function scheduleReleaseAt(track, releaseAt, { distribution, note, rolloutMeta, 
     };
     state.releaseQueue.push(entry);
     if (isReady)
-        track.status = "Scheduled";
+        track.releaseStatus = TRACK_RELEASE_STATUS.scheduled;
     ensureEraForTrack(track, "Release scheduled", { releaseType: track.releaseType, mode: "schedule" });
     if (!suppressLog) {
         const feeParts = [];
@@ -8648,14 +8733,15 @@ function processReleaseQueue() {
             const track = getTrack(entry.trackId);
             if (!track)
                 return;
-            if (track.status === "Released")
+            syncTrackReleaseStatus(track);
+            if (isTrackReleaseReleased(track, { includeShelved: true }))
                 return;
             if (entry.rolloutStrategyId && !track.rolloutStrategyId) {
                 track.rolloutStrategyId = entry.rolloutStrategyId;
                 track.rolloutItemId = entry.rolloutItemId || null;
                 track.rolloutWeekIndex = Number.isFinite(entry.rolloutWeekIndex) ? entry.rolloutWeekIndex : null;
             }
-            if (track.status === "Ready" || track.status === "Scheduled") {
+            if (track.status === "Ready") {
                 const distResult = resolveReleaseDistributionForTrack(track, entry.distribution || "Digital", {
                     labelFans: Number(state.label?.fans || 0),
                     log: true
@@ -8798,7 +8884,7 @@ function scheduleRolloutDrop(strategy, era, weekIndex, drop, mode) {
         recordRolloutBlock(drop, "Track not found.", mode, "Rollout drop");
         return { ok: false, blocked: true };
     }
-    if (track.status === "Released") {
+    if (isTrackReleaseReleased(track, { includeShelved: true })) {
         markRolloutDropCompleted(drop, track.releasedAt || state.time.epochMs);
         return { ok: true, completed: true };
     }
@@ -8882,7 +8968,7 @@ function scheduleRolloutEvent(strategy, era, weekIndex, eventItem, eventIndex, m
                 return { ok: false, blocked: true };
             }
         }
-        else if (track.status !== "Released" || !track.marketId) {
+        else if (!isTrackReleaseReleased(track) || !track.marketId) {
             recordRolloutBlock(eventItem, "Event requires a released track.", mode, "Rollout event");
             return { ok: false, blocked: true };
         }
@@ -8938,6 +9024,26 @@ function resolveScheduledPromoTarget(entry) {
     const track = targetType === "track" && entry?.contentId ? getTrack(entry.contentId) : null;
     return { act, track, project, targetType };
 }
+function isTrackPromoEligible(track) {
+    if (!track)
+        return false;
+    const releaseStatus = getTrackReleaseStatus(track);
+    if (releaseStatus === TRACK_RELEASE_STATUS.released)
+        return true;
+    if (releaseStatus === TRACK_RELEASE_STATUS.scheduled)
+        return true;
+    return state.releaseQueue.some((entry) => entry.trackId === track.id);
+}
+function bankPreReleaseMomentum(track, boostWeeks) {
+    if (!track)
+        return;
+    const promo = track.promo && typeof track.promo === "object" ? track.promo : {};
+    const current = Math.max(0, Number(promo.preReleaseMomentum || 0));
+    const next = Math.max(current, boostWeeks);
+    promo.preReleaseMomentum = next;
+    promo.preReleaseWeeks = Math.max(Number(promo.preReleaseWeeks) || 0, next);
+    track.promo = promo;
+}
 function applyScheduledPromoEntry(entry, now) {
     if (!entry)
         return { ok: false, reason: "Scheduled promo missing." };
@@ -8955,37 +9061,41 @@ function applyScheduledPromoEntry(entry, now) {
     if (project && project.actId && project.actId !== act.id) {
         return { ok: false, reason: "Scheduled promo project does not match the Act." };
     }
-    if (promoType === "musicVideo" && track && track.status !== "Released") {
+    if (track && !isTrackPromoEligible(track)) {
+        return { ok: false, reason: "Scheduled promo requires a scheduled or released track." };
+    }
+    if (promoType === "musicVideo" && track && !isTrackReleaseReleased(track)) {
         return { ok: false, reason: "Music video promo requires a released track." };
     }
     const projectTargets = project ? listPromoEligibleTracksForProject(project) : [];
     if (project && details.requiresTrack && !projectTargets.length) {
         return { ok: false, reason: "Scheduled promo project has no eligible tracks." };
     }
-    const market = track && track.status === "Released"
+    const market = track && isTrackReleaseReleased(track)
         ? getMarketTrackById(track.marketId)
         : null;
-    if (track && track.status === "Released" && !market) {
+    if (track && isTrackReleaseReleased(track) && !market) {
         return { ok: false, reason: "Scheduled promo track is not active on the market." };
     }
     const budget = Math.max(0, Math.round(Number(entry.budget || 0)));
     const weeks = Math.max(1, Math.round(Number(entry.weeks || promoWeeksFromBudget(budget))));
     const boostWeeks = weeks;
     if (track) {
-        const promo = track.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
-        if (track.status === "Released" && market) {
+        if (isTrackReleaseReleased(track) && market) {
             market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
         }
         else {
-            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+            bankPreReleaseMomentum(track, boostWeeks);
         }
-        if (promoType === "musicVideo")
-            promo.musicVideoUsed = true;
-        track.promo = promo;
+        if (promoType === "musicVideo") {
+            if (!track.promo || typeof track.promo !== "object")
+                track.promo = {};
+            track.promo.musicVideoUsed = true;
+        }
     }
     else if (projectTargets.length) {
         projectTargets.forEach((entryTrack) => {
-            if (entryTrack.status === "Released") {
+            if (isTrackReleaseReleased(entryTrack)) {
                 const marketEntry = entryTrack.marketId
                     ? getMarketTrackById(entryTrack.marketId)
                     : getMarketTrackByTrackId(entryTrack.id);
@@ -8993,11 +9103,12 @@ function applyScheduledPromoEntry(entry, now) {
                     marketEntry.promoWeeks = Math.max(marketEntry.promoWeeks || 0, boostWeeks);
                 return;
             }
-            const promo = entryTrack.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
-            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
-            if (promoType === "musicVideo")
-                promo.musicVideoUsed = true;
-            entryTrack.promo = promo;
+            bankPreReleaseMomentum(entryTrack, boostWeeks);
+            if (promoType === "musicVideo") {
+                if (!entryTrack.promo || typeof entryTrack.promo !== "object")
+                    entryTrack.promo = {};
+                entryTrack.promo.musicVideoUsed = true;
+            }
         });
     }
     act.promoWeeks = Math.max(act.promoWeeks || 0, boostWeeks);
@@ -9047,7 +9158,9 @@ function applyScheduledPromoEntry(entry, now) {
             return formatDate(scheduled.releaseAt);
         if (projectTargets.length) {
             const latest = projectTargets
-                .map((entryTrack) => (entryTrack.status === "Released" ? entryTrack.releasedAt : state.releaseQueue.find((release) => release.trackId === entryTrack.id)?.releaseAt))
+                .map((entryTrack) => (isTrackReleaseReleased(entryTrack, { includeShelved: true })
+                ? entryTrack.releasedAt
+                : state.releaseQueue.find((release) => release.trackId === entryTrack.id)?.releaseAt))
                 .filter(Number.isFinite)
                 .sort((a, b) => b - a)[0];
             if (latest)
@@ -9975,9 +10088,10 @@ function listPromoEligibleTracksForProject(project) {
             return false;
         if (normalizeProjectType(track.projectType || "Single") !== targetType)
             return false;
-        if (track.status === "Released")
+        const releaseStatus = getTrackReleaseStatus(track);
+        if (releaseStatus === TRACK_RELEASE_STATUS.released)
             return true;
-        if (track.status === "Scheduled")
+        if (releaseStatus === TRACK_RELEASE_STATUS.scheduled)
             return true;
         return scheduledIds.has(track.id);
     });
@@ -9985,8 +10099,9 @@ function listPromoEligibleTracksForProject(project) {
 function getTrackMissingPromoTypes(track, { includeScheduled = false } = {}) {
     if (!track)
         return [];
-    const isReleased = track.status === "Released" || Number.isFinite(track.releasedAt);
-    const isScheduled = track.status === "Scheduled";
+    const releaseStatus = getTrackReleaseStatus(track);
+    const isReleased = releaseStatus === TRACK_RELEASE_STATUS.released || releaseStatus === TRACK_RELEASE_STATUS.shelved;
+    const isScheduled = releaseStatus === TRACK_RELEASE_STATUS.scheduled;
     const isEligible = isReleased || (includeScheduled && isScheduled);
     if (!isEligible)
         return [];
@@ -12985,6 +13100,14 @@ function archiveMarketTracks(entries) {
         criticScores: entry.criticScores && typeof entry.criticScores === "object" ? { ...entry.criticScores } : null,
         chartHistory: entry.chartHistory || {},
     }));
+    archived.forEach((entry) => {
+        if (!entry.trackId || !entry.isPlayer)
+            return;
+        const track = getTrack(entry.trackId);
+        if (!track)
+            return;
+        track.releaseStatus = TRACK_RELEASE_STATUS.shelved;
+    });
     state.meta.marketTrackArchive = state.meta.marketTrackArchive.concat(archived).slice(-MARKET_TRACK_ARCHIVE_LIMIT);
 }
 function paginateMarketTracks() {
@@ -13155,7 +13278,7 @@ function buildProjectedMarketTracks(targetEpochMs) {
             if (!Number.isFinite(entry.releaseAt) || entry.releaseAt > safeEpoch)
                 return;
             const track = getTrack(entry.trackId);
-            if (!track || track.status === "Released")
+            if (!track || isTrackReleaseReleased(track, { includeShelved: true }))
                 return;
             const key = trackKey({ trackId: track.id, id: track.id, title: track.title });
             if (key && seen.has(key))
@@ -13200,7 +13323,7 @@ function buildProjectedMarketTracks(targetEpochMs) {
                 distribution: entry.distribution || track.distribution || "Digital",
                 releasedAt: entry.releaseAt,
                 weeksOnChart,
-                promoWeeks: Math.max(0, track.promo?.preReleaseWeeks || 0),
+                promoWeeks: Math.max(0, track.promo?.preReleaseMomentum || track.promo?.preReleaseWeeks || 0),
                 promoTypesUsed,
                 promoTypesLastAt
             });
@@ -14201,7 +14324,8 @@ function updateLabelReach() {
     const chartEntries = (state.charts.global || []).filter((entry) => entry.track.isPlayer);
     const points = chartEntries.reduce((sum, entry) => sum + Math.max(1, CHART_SIZES.global + 1 - entry.rank), 0);
     const snapshot = computePopulationSnapshot();
-    const gain = points * 1500 + state.tracks.filter((track) => track.status === "Released").length * 40;
+    const gain = points * 1500
+        + state.tracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true })).length * 40;
     state.label.fans = clamp(state.label.fans + gain, 0, snapshot.total);
 }
 const LABEL_SCORE_WEIGHTS = {
@@ -15124,7 +15248,7 @@ function countReleasedProjects(projectType) {
     const targetType = projectType ? normalizeProjectType(projectType) : null;
     const keys = new Set();
     state.tracks.forEach((track) => {
-        if (track.status !== "Released")
+        if (!isTrackReleaseReleased(track, { includeShelved: true }))
             return;
         const type = normalizeProjectType(track.projectType || "Single");
         if (targetType && type !== targetType)
@@ -15244,7 +15368,7 @@ function makeQuest(template) {
     return quest;
 }
 function questTemplates() {
-    const hasReleasedTracks = state.tracks.some((track) => track.status === "Released");
+    const hasReleasedTracks = state.tracks.some((track) => isTrackReleaseReleased(track, { includeShelved: true }));
     const hasActiveEra = getActiveEras().some((entry) => entry.status === "Active");
     const templates = [
         {
@@ -15253,7 +15377,7 @@ function questTemplates() {
             focusRequests: questFocusRequests("tracks"),
             build: (week) => {
                 const target = clamp(2 + Math.floor(week / 4), 2, 8);
-                const startCount = state.tracks.filter((track) => track.status === "Released").length;
+                const startCount = state.tracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true })).length;
                 return {
                     target,
                     progress: 0,
@@ -15431,7 +15555,7 @@ function buildQuests() {
 function updateQuests() {
     if (state.meta?.cheaterMode)
         return;
-    const released = state.tracks.filter((track) => track.status === "Released");
+    const released = state.tracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true }));
     state.quests.forEach((quest) => {
         if (quest.type === "releaseCount") {
             quest.progress = released.length - quest.startCount;
@@ -16687,6 +16811,7 @@ function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek }) 
         quality,
         genre,
         distribution: releasePlan.distribution,
+        preReleaseMomentum: 0,
         focusType,
         focusLabel,
         focusId,
@@ -17311,12 +17436,15 @@ function collectRivalProjectMarkets(rival, anchorMarket) {
     });
     return matches.length ? matches : [anchorMarket];
 }
-function resolveRivalPromoCreatorIds(rival, market, entry = null) {
+function resolveRivalPromoCreatorIds(rival, market, entry = null, releaseEntry = null) {
     if (!rival || !Array.isArray(rival.creators) || !rival.creators.length)
         return [];
     const fromEntry = Array.isArray(entry?.creatorIds) ? entry.creatorIds.filter(Boolean) : [];
     if (fromEntry.length)
         return fromEntry;
+    const fromRelease = Array.isArray(releaseEntry?.creatorIds) ? releaseEntry.creatorIds.filter(Boolean) : [];
+    if (fromRelease.length)
+        return fromRelease;
     const fromMarket = Array.isArray(market?.creatorIds) ? market.creatorIds.filter(Boolean) : [];
     if (fromMarket.length)
         return fromMarket;
@@ -17326,6 +17454,23 @@ function resolveRivalPromoCreatorIds(rival, market, entry = null) {
     const fallback = pickOne(rival.creators)?.id;
     return fallback ? [fallback] : [];
 }
+function pickRivalScheduledReleaseEntry(rival, now = state.time.epochMs) {
+    if (!rival)
+        return null;
+    const candidates = state.rivalReleaseQueue.filter((entry) => {
+        if (!entry || entry.label !== rival.name)
+            return false;
+        const kind = entry.queueType || "release";
+        if (kind === "promo")
+            return false;
+        if (!Number.isFinite(entry.releaseAt) || entry.releaseAt <= now)
+            return false;
+        return true;
+    });
+    if (!candidates.length)
+        return null;
+    return candidates.slice().sort((a, b) => (a.releaseAt || 0) - (b.releaseAt || 0))[0];
+}
 function processRivalPromoEntry(entry) {
     const rival = getRivalByName(entry.label);
     if (!rival)
@@ -17333,17 +17478,22 @@ function processRivalPromoEntry(entry) {
     const promoType = entry.promoType || AUTO_PROMO_RIVAL_TYPE;
     const promoDetails = getPromoTypeDetails(promoType);
     const market = pickRivalAutoPromoTrack(rival);
-    if (!market || (market.promoWeeks || 0) > 0)
+    const scheduledRelease = market ? null : pickRivalScheduledReleaseEntry(rival);
+    if (market && (market.promoWeeks || 0) > 0)
         return false;
-    const projectMarkets = collectRivalProjectMarkets(rival, market);
-    const isProjectPromo = projectMarkets.length > 1 && market.projectName;
+    if (!market && !scheduledRelease)
+        return false;
+    if (scheduledRelease && promoType === "musicVideo")
+        return false;
+    const projectMarkets = market ? collectRivalProjectMarkets(rival, market) : [];
+    const isProjectPromo = Boolean(market && projectMarkets.length > 1 && market.projectName);
     const walletCash = rival.wallet?.cash ?? rival.cash;
     const budget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
     if (!budget || walletCash < budget || rival.cash < budget)
         return false;
     const facilityId = getPromoFacilityForType(promoType);
     if (facilityId) {
-        const reservation = reservePromoFacilitySlot(facilityId, promoType, market.trackId);
+        const reservation = reservePromoFacilitySlot(facilityId, promoType, market?.trackId || null);
         if (!reservation.ok)
             return false;
     }
@@ -17352,26 +17502,31 @@ function processRivalPromoEntry(entry) {
         rival.wallet = { cash: rival.cash };
     rival.wallet.cash = rival.cash;
     const boostWeeks = promoWeeksFromBudget(budget);
-    projectMarkets.forEach((entryMarket) => {
-        entryMarket.promoWeeks = Math.max(entryMarket.promoWeeks || 0, boostWeeks);
-        recordPromoUsage({ market: entryMarket, promoType, atMs: state.time.epochMs });
-    });
+    if (market) {
+        projectMarkets.forEach((entryMarket) => {
+            entryMarket.promoWeeks = Math.max(entryMarket.promoWeeks || 0, boostWeeks);
+            recordPromoUsage({ market: entryMarket, promoType, atMs: state.time.epochMs });
+        });
+    }
+    else if (scheduledRelease) {
+        scheduledRelease.preReleaseMomentum = Math.max(0, scheduledRelease.preReleaseMomentum || 0, boostWeeks);
+    }
     recordPromoContent({
         promoType,
-        actId: market.actId || null,
-        actName: market.actName || null,
-        actNameKey: market.actNameKey || null,
-        trackId: market.trackId || null,
-        marketId: market.id,
-        trackTitle: isProjectPromo ? market.projectName : market.title,
-        projectName: market.projectName || null,
-        label: market.label || rival.name,
+        actId: market?.actId || null,
+        actName: market?.actName || scheduledRelease?.actName || null,
+        actNameKey: market?.actNameKey || scheduledRelease?.actNameKey || null,
+        trackId: market?.trackId || null,
+        marketId: market?.id || null,
+        trackTitle: isProjectPromo ? market?.projectName : market ? market.title : scheduledRelease?.title || null,
+        projectName: market?.projectName || scheduledRelease?.projectName || null,
+        label: market?.label || rival.name,
         budget,
         weeks: boostWeeks,
         isPlayer: false,
         targetType: isProjectPromo ? "project" : "track"
     });
-    const promoCrewIds = resolveRivalPromoCreatorIds(rival, market, entry);
+    const promoCrewIds = resolveRivalPromoCreatorIds(rival, market, entry, scheduledRelease);
     if (promoCrewIds.length) {
         applyActStaminaSpend(promoCrewIds, ACTIVITY_STAMINA_PROMO, {
             roster: rival.creators,
@@ -17443,7 +17598,7 @@ function processRivalReleaseQueue() {
                 trendTotalAtRelease,
                 releasedAt: entry.releaseAt,
                 weeksOnChart: 0,
-                promoWeeks: 0,
+                promoWeeks: Math.max(0, entry.preReleaseMomentum || 0),
                 rolloutPlanId: entry.huskId || null,
                 rolloutPlanSource: entry.huskSource || null,
                 rolloutFocusType: entry.focusType || null,
@@ -17555,7 +17710,7 @@ function runAutoCreateContent() {
     };
     let blockedReason = "";
     state.tracks.forEach((track) => {
-        if (!track || track.status === "Released" || track.actId)
+        if (!track || isTrackReleaseReleased(track, { includeShelved: true }) || track.actId)
             return;
         const rec = recommendActForTrack(track);
         if (!rec.actId)
@@ -17756,14 +17911,24 @@ function runAutoPromoForPlayer() {
         let projectTargets = [];
         let promoTargetType = null;
         if (track) {
-            if (track.status !== "Released" || !track.marketId)
+            const isReleased = isTrackReleaseReleased(track) && track.marketId;
+            const scheduled = !isReleased ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
+            const isScheduled = isTrackReleaseScheduled(track) || Boolean(scheduled);
+            if (!isReleased && !isScheduled)
                 return;
             era = track.eraId ? getEraById(track.eraId) : null;
             if (!era || era.status !== "Active")
                 return;
-            market = getMarketTrackById(track.marketId);
-            if (!market || (market.promoWeeks || 0) > 0)
-                return;
+            if (isReleased) {
+                market = getMarketTrackById(track.marketId);
+                if (!market || (market.promoWeeks || 0) > 0)
+                    return;
+            }
+            else {
+                const banked = Math.max(0, track.promo?.preReleaseMomentum || track.promo?.preReleaseWeeks || 0);
+                if (banked > 0)
+                    return;
+            }
             act = track.actId ? getAct(track.actId) : act;
             promoTargetType = "track";
         }
@@ -17786,7 +17951,7 @@ function runAutoPromoForPlayer() {
                     const entryMarket = findMarketEntry(entry);
                     return entryMarket && (entryMarket.promoWeeks || 0) <= 0;
                 }
-                return Math.max(0, entry.promo?.preReleaseWeeks || 0) <= 0;
+                return Math.max(0, entry.promo?.preReleaseMomentum || entry.promo?.preReleaseWeeks || 0) <= 0;
             });
             if (!boostable)
                 return;
@@ -17805,6 +17970,9 @@ function runAutoPromoForPlayer() {
         }
         let usableTypes = selectedTypes.slice();
         if (track && track.promo?.musicVideoUsed) {
+            usableTypes = usableTypes.filter((typeId) => typeId !== "musicVideo");
+        }
+        if (track && !isTrackReleaseReleased(track)) {
             usableTypes = usableTypes.filter((typeId) => typeId !== "musicVideo");
         }
         if (!track) {
@@ -17865,6 +18033,9 @@ function runAutoPromoForPlayer() {
         if (track && market) {
             market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
         }
+        else if (track) {
+            bankPreReleaseMomentum(track, boostWeeks);
+        }
         else if (projectTargets.length) {
             projectTargets.forEach((entry) => {
                 if (entry.status === "Released") {
@@ -17873,9 +18044,7 @@ function runAutoPromoForPlayer() {
                         entryMarket.promoWeeks = Math.max(entryMarket.promoWeeks || 0, boostWeeks);
                     return;
                 }
-                const promo = entry.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
-                promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
-                entry.promo = promo;
+                bankPreReleaseMomentum(entry, boostWeeks);
             });
         }
         if (act)
@@ -18011,19 +18180,22 @@ function runAutoPromoForRivals() {
         if (hasScheduledRivalPromo(rival, 1))
             return;
         const market = pickRivalAutoPromoTrack(rival);
-        if (!market)
+        const scheduledRelease = market ? null : pickRivalScheduledReleaseEntry(rival);
+        if (!market && !scheduledRelease)
             return;
-        const projectMarkets = collectRivalProjectMarkets(rival, market);
-        const isProjectPromo = projectMarkets.length > 1 && market.projectName;
         const walletCash = rival.wallet?.cash ?? rival.cash;
         const budget = computeAutoPromoBudget(walletCash, pct);
         if (!budget || walletCash < budget || rival.cash < budget)
             return;
         const promoType = AUTO_PROMO_RIVAL_TYPE;
         const promoDetails = getPromoTypeDetails(promoType);
+        if (scheduledRelease && promoType === "musicVideo")
+            return;
+        const projectMarkets = market ? collectRivalProjectMarkets(rival, market) : [];
+        const isProjectPromo = Boolean(market && projectMarkets.length > 1 && market.projectName);
         const facilityId = getPromoFacilityForType(promoType);
         if (facilityId) {
-            const reservation = reservePromoFacilitySlot(facilityId, promoType, market.trackId);
+            const reservation = reservePromoFacilitySlot(facilityId, promoType, market?.trackId || null);
             if (!reservation.ok)
                 return;
         }
@@ -18032,26 +18204,31 @@ function runAutoPromoForRivals() {
             rival.wallet = { cash: rival.cash };
         rival.wallet.cash = rival.cash;
         const boostWeeks = promoWeeksFromBudget(budget);
-        projectMarkets.forEach((entry) => {
-            entry.promoWeeks = Math.max(entry.promoWeeks || 0, boostWeeks);
-            recordPromoUsage({ market: entry, promoType, atMs: state.time.epochMs });
-        });
+        if (market) {
+            projectMarkets.forEach((entry) => {
+                entry.promoWeeks = Math.max(entry.promoWeeks || 0, boostWeeks);
+                recordPromoUsage({ market: entry, promoType, atMs: state.time.epochMs });
+            });
+        }
+        else if (scheduledRelease) {
+            scheduledRelease.preReleaseMomentum = Math.max(0, scheduledRelease.preReleaseMomentum || 0, boostWeeks);
+        }
         recordPromoContent({
             promoType,
-            actId: market.actId || null,
-            actName: market.actName || null,
-            actNameKey: market.actNameKey || null,
-            trackId: market.trackId || null,
-            marketId: market.id,
-            trackTitle: isProjectPromo ? market.projectName : market.title,
-            projectName: market.projectName || null,
-            label: market.label || rival.name,
+            actId: market?.actId || null,
+            actName: market?.actName || scheduledRelease?.actName || null,
+            actNameKey: market?.actNameKey || scheduledRelease?.actNameKey || null,
+            trackId: market?.trackId || null,
+            marketId: market?.id || null,
+            trackTitle: isProjectPromo ? market?.projectName : market ? market.title : scheduledRelease?.title || null,
+            projectName: market?.projectName || scheduledRelease?.projectName || null,
+            label: market?.label || rival.name,
             budget,
             weeks: boostWeeks,
             isPlayer: false,
             targetType: isProjectPromo ? "project" : "track"
         });
-        const promoCrewIds = resolveRivalPromoCreatorIds(rival, market);
+        const promoCrewIds = resolveRivalPromoCreatorIds(rival, market, null, scheduledRelease);
         if (promoCrewIds.length) {
             applyActStaminaSpend(promoCrewIds, ACTIVITY_STAMINA_PROMO, {
                 roster: rival.creators,
@@ -20200,7 +20377,7 @@ function resolveAwardPerformanceTrackFromCandidate(candidate, range) {
         const market = resolveMarketEntryById(candidate.marketId);
         track = market?.trackId ? getTrack(market.trackId) : null;
     }
-    if (track && track.status === "Released" && isTrackEligibleForAwardPerformance(track, range)) {
+    if (track && isTrackReleaseReleased(track) && isTrackEligibleForAwardPerformance(track, range)) {
         return track;
     }
     if (candidate.actId) {
@@ -20239,7 +20416,7 @@ function buildAwardPerformanceBidCandidate(show, actId, trackId) {
         return { ok: false, reason: "Performance bids require a track from an active era." };
     }
     const scheduled = state.releaseQueue.find((entry) => entry.trackId === track.id);
-    const isReleased = track.status === "Released" && track.marketId;
+    const isReleased = isTrackReleaseReleased(track) && track.marketId;
     if (!isReleased && !scheduled) {
         return { ok: false, reason: "Performance bids require a scheduled or released track." };
     }
@@ -22752,8 +22929,11 @@ function normalizeState() {
             next.promoType = AUTO_PROMO_RIVAL_TYPE;
         if (typeof next.releaseAt !== "number")
             next.releaseAt = state.time?.epochMs || Date.now();
-        if (queueType === "release")
+        if (queueType === "release") {
             next.projectType = normalizeProjectType(next.projectType || "Single");
+            if (typeof next.preReleaseMomentum !== "number")
+                next.preReleaseMomentum = 0;
+        }
         return next;
     });
     if (!state.population)
@@ -22862,6 +23042,8 @@ function normalizeState() {
                 track.promo = {};
             if (typeof track.promo.preReleaseWeeks !== "number")
                 track.promo.preReleaseWeeks = 0;
+            if (typeof track.promo.preReleaseMomentum !== "number")
+                track.promo.preReleaseMomentum = 0;
             if (typeof track.promo.musicVideoUsed !== "boolean")
                 track.promo.musicVideoUsed = false;
             if (!track.promo.typesUsed || typeof track.promo.typesUsed !== "object")
@@ -22871,16 +23053,21 @@ function normalizeState() {
             if (track.promo.musicVideoUsed && !Number.isFinite(track.promo.typesUsed.musicVideo)) {
                 track.promo.typesUsed.musicVideo = 1;
             }
+            const normalizedReleaseStatus = normalizeTrackReleaseStatus(track.releaseStatus)
+                || normalizeTrackReleaseStatus(track.status);
+            track.releaseStatus = normalizedReleaseStatus || getTrackReleaseStatus(track);
             if (typeof track.stageIndex !== "number") {
                 track.stageIndex = track.status === "Ready" ? STAGES.length : 0;
             }
-            if (!track.genre && track.theme && track.mood && ["Ready", "Scheduled", "Released"].includes(track.status)) {
-                track.genre = makeGenre(track.theme, track.mood);
+            if (!track.genre && track.theme && track.mood) {
+                if (track.status === "Ready" || track.releaseStatus !== TRACK_RELEASE_STATUS.unreleased) {
+                    track.genre = makeGenre(track.theme, track.mood);
+                }
             }
             if (track.modifier && !track.modifier.id)
                 track.modifier = getModifier(track.modifier);
             ensureTrackEconomy(track);
-            if (track.status === "Released" && !Number.isFinite(track.criticScore)) {
+            if (isTrackReleaseReleased(track, { includeShelved: true }) && !Number.isFinite(track.criticScore)) {
                 const marketEntry = track.marketId
                     ? getMarketTrackById(track.marketId)
                     : getMarketTrackByTrackId(track.id);
@@ -23063,6 +23250,9 @@ function normalizeState() {
             rush: Boolean(entry.rush)
         };
     });
+    if (state.tracks?.length) {
+        state.tracks.forEach((track) => syncTrackReleaseStatus(track));
+    }
     const timeDefaults = makeDefaultState().time;
     if (!state.time)
         state.time = { ...timeDefaults };
@@ -24038,7 +24228,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, getDistributionSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapAtForDistribution, getReleaseAsapHours, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getMarketTrackById, getMarketTrackByTrackId, getArchivedMarketTrackById, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, evaluatePhysicalEligibility, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_RELEASE_STATUS, TRACK_RELEASE_STATUS_LABELS, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, getDistributionSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapAtForDistribution, getReleaseAsapHours, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, syncTrackReleaseStatus, getMarketTrackById, getMarketTrackByTrackId, getArchivedMarketTrackById, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseShelved, isTrackReleaseUnreleased, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, evaluatePhysicalEligibility, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

@@ -12,7 +12,7 @@ import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElemen
 import { showToast } from "./guardrails.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, updateSaveStatusPanel, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
-const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, isTrackReleaseReleased, isTrackReleaseScheduled, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -2360,9 +2360,9 @@ function listPromoEligibleTracks(projectTracks) {
     return projectTracks.filter((track) => {
         if (!track)
             return false;
-        if (track.status === "Released")
+        if (isTrackReleaseReleased(track))
             return true;
-        if (track.status === "Scheduled")
+        if (isTrackReleaseScheduled(track))
             return true;
         return scheduledIds.has(track.id);
     });
@@ -2396,8 +2396,8 @@ function getPromoTargetContext(trackId, projectId, actId) {
         era = getLatestActiveEraForAct(act.id);
     const projectTracks = project ? listPromoProjectTracks(project) : [];
     const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
-    const isReleased = Boolean(track && track.status === "Released" && track.marketId);
-    const isScheduled = Boolean(scheduled && !isReleased);
+    const isReleased = Boolean(track && isTrackReleaseReleased(track));
+    const isScheduled = Boolean(track && (isTrackReleaseScheduled(track) || (scheduled && !isReleased)));
     return { track, act, era, project, projectTracks, scheduled, isReleased, isScheduled };
 }
 function getPromoTypeLockouts(context) {
@@ -3000,16 +3000,24 @@ function bindGlobalHandlers() {
     lastLoggedLabelAlignment = state.label?.alignment || null;
     setLabelAlignmentStatus(state.label?.alignment ? `Current alignment: ${state.label.alignment}.` : "");
     const syncLabelAlignmentSelections = (alignment) => {
+        if ($("labelAlignment"))
+            $("labelAlignment").value = alignment;
         if ($("trackAlignment"))
             $("trackAlignment").value = alignment;
         if ($("actAlignmentSelect"))
             $("actAlignmentSelect").value = alignment;
     };
     const applyLabelAlignment = (alignment) => {
+        if (!state.label) {
+            logEvent("Label alignment unavailable; reload the UI and try again.", "warn");
+            setLabelAlignmentStatus("Label alignment unavailable. Reload to recover.");
+            return false;
+        }
         state.label.alignment = alignment;
         syncLabelAlignmentSelections(alignment);
         renderStats();
         saveToActiveSlot();
+        return true;
     };
     const getLabelAlignmentSelection = () => {
         const select = $("labelAlignment");
@@ -5020,21 +5028,29 @@ function bindViewHandlers(route, root) {
         if (target?.dataset)
             delete target.dataset.nameKey;
     });
-    on("labelAlignment", "change", (e) => {
-        const alignment = validateLabelAlignmentSelection(e.target?.value, true);
+    const handleLabelAlignmentChange = (value) => {
+        const alignment = validateLabelAlignmentSelection(value, true);
         if (!alignment)
             return;
-        applyLabelAlignment(alignment);
+        if (!applyLabelAlignment(alignment))
+            return;
         logEvent(`Label alignment set to ${state.label.alignment}.`);
         lastLoggedLabelAlignment = state.label.alignment;
         setLabelAlignmentStatus(`Logged label alignment: ${state.label.alignment}.`);
+    };
+    on("labelAlignment", "change", (e) => {
+        handleLabelAlignmentChange(e.target?.value);
+    });
+    on("labelAlignment", "input", (e) => {
+        handleLabelAlignmentChange(e.target?.value);
     });
     on("labelAlignmentConfirm", "click", () => {
         const alignment = validateLabelAlignmentSelection(getLabelAlignmentSelection(), true);
         if (!alignment)
             return;
         if (alignment !== state.label.alignment) {
-            applyLabelAlignment(alignment);
+            if (!applyLabelAlignment(alignment))
+                return;
         }
         if (alignment !== lastLoggedLabelAlignment) {
             logEvent(`Label alignment confirmed as ${state.label.alignment}.`);
@@ -5586,8 +5602,8 @@ function listPromoProjectOptions(actId) {
             return;
         if (actId && track.actId !== actId)
             return;
-        const isReleased = track.status === "Released";
-        const isScheduled = track.status === "Scheduled" || scheduledIds.has(track.id);
+        const isReleased = isTrackReleaseReleased(track);
+        const isScheduled = isTrackReleaseScheduled(track) || scheduledIds.has(track.id);
         if (!isReleased && !isScheduled)
             return;
         const projectName = track.projectName || `${track.title} - Single`;
@@ -5698,7 +5714,7 @@ function updateSlotDropdowns() {
                     tracks = state.tracks.filter((track) => {
                         if (!track.eraId || !activeEraIds.has(track.eraId))
                             return false;
-                        if (track.status === "Released")
+                        if (isTrackReleaseReleased(track))
                             return true;
                         return state.releaseQueue.some((entry) => entry.trackId === track.id);
                     });
@@ -5720,7 +5736,8 @@ function updateSlotDropdowns() {
                     });
                 }
                 tracks.forEach((track) => {
-                    options.push({ value: track.id, label: `${track.title} (${track.status})` });
+                    const releaseLabel = getTrackReleaseStatusLabel(getTrackReleaseStatus(track));
+                    options.push({ value: track.id, label: `${track.title} (${releaseLabel})` });
                 });
             }
             select.innerHTML = "";
@@ -6911,7 +6928,7 @@ function pickPromoTargetsFromFocus() {
     const candidates = state.tracks.filter((track) => {
         if (track.eraId !== targetEra.id)
             return false;
-        if (track.status === "Released")
+        if (isTrackReleaseReleased(track))
             return true;
         return state.releaseQueue.some((entry) => entry.trackId === track.id);
     });
@@ -6944,10 +6961,10 @@ function pickPromoTargetsFromFocus() {
         return;
     }
     const picked = candidates.reduce((latest, track) => {
-        const latestSchedule = latest.status === "Released"
+        const latestSchedule = isTrackReleaseReleased(latest)
             ? latest.releasedAt
             : state.releaseQueue.find((entry) => entry.trackId === latest.id)?.releaseAt;
-        const entrySchedule = track.status === "Released"
+        const entrySchedule = isTrackReleaseReleased(track)
             ? track.releasedAt
             : state.releaseQueue.find((entry) => entry.trackId === track.id)?.releaseAt;
         const latestStamp = latestSchedule || 0;
@@ -7016,7 +7033,7 @@ function runPromotion() {
         }
     }
     if (trackContext.track && !trackContext.isReleased && !trackContext.isScheduled) {
-        logEvent("Promo push requires a scheduled or released track.", "warn");
+        logEvent("Unreleased: schedule first.", "warn");
         return;
     }
     const projectTargets = project && !trackContext.track
@@ -7186,12 +7203,14 @@ function runPromotion() {
         return getMarketTrackByTrackId(entry.id) || null;
     };
     if (trackContext.track) {
-        const promo = trackContext.track.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
+        const promo = trackContext.track.promo || { preReleaseWeeks: 0, preReleaseMomentum: 0, musicVideoUsed: false };
         if (trackContext.isReleased && market) {
             market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);
         }
         else {
-            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+            const nextMomentum = Math.max(promo.preReleaseMomentum || 0, boostWeeks);
+            promo.preReleaseMomentum = nextMomentum;
+            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, nextMomentum);
         }
         if (selectedTypes.includes("musicVideo"))
             promo.musicVideoUsed = true;
@@ -7205,8 +7224,10 @@ function runPromotion() {
                     marketEntry.promoWeeks = Math.max(marketEntry.promoWeeks || 0, boostWeeks);
                 return;
             }
-            const promo = entry.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
-            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+            const promo = entry.promo || { preReleaseWeeks: 0, preReleaseMomentum: 0, musicVideoUsed: false };
+            const nextMomentum = Math.max(promo.preReleaseMomentum || 0, boostWeeks);
+            promo.preReleaseMomentum = nextMomentum;
+            promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, nextMomentum);
             entry.promo = promo;
         });
     }
@@ -7414,7 +7435,7 @@ function handleReleaseAction(e) {
         logUiEvent("action_submit", {
             action: "scrap_track",
             trackId,
-            status: track.status,
+            status: getTrackReleaseStatus(track),
             outcome: result.ok ? "success" : "failed",
             reason: result.reason
         });

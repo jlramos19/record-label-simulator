@@ -107,6 +107,8 @@ import {
   getTopActSnapshot,
   getTopTrendGenre,
   getTrack,
+  getTrackReleaseStatus,
+  getTrackReleaseStatusLabel,
   getMarketTrackByTrackId,
   getArchivedMarketTrackByTrackId,
   getTrackRoleIds,
@@ -117,6 +119,9 @@ import {
   hoursUntilNextScheduledTime,
   isAwardPerformanceBidWindowOpen,
   isMasteringTrack,
+  isTrackReleaseReleased,
+  isTrackReleaseScheduled,
+  isTrackReleaseUnreleased,
   listAnnualAwardDefinitions,
   listAwardShows,
   listFromIds,
@@ -2100,8 +2105,8 @@ function renderDashboard() {
   const dateLabel = $("dashboardDateLabel");
   if (dateLabel) dateLabel.textContent = formatDate(state.time.epochMs);
 
-  const activeTracks = state.tracks.filter((track) => track.status !== "Released");
-  const releasedTracks = state.tracks.filter((track) => track.status === "Released");
+  const activeTracks = state.tracks.filter((track) => !isTrackReleaseReleased(track, { includeShelved: true }));
+  const releasedTracks = state.tracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true }));
   const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
   const focusEra = getFocusedEra();
   const studioCounts = getStudioUsageCounts();
@@ -2861,11 +2866,11 @@ function renderPromoAlerts() {
   const eraLabel = `${displayEra.name}${actLabel ? ` (${actLabel})` : ""} | ${stageName}`;
   const now = state.time.epochMs;
   const tracks = state.tracks.filter((track) => track.eraId === displayEra.id)
-    .filter((track) => track.status === "Released" || track.status === "Scheduled");
+    .filter((track) => isTrackReleaseReleased(track) || isTrackReleaseScheduled(track));
   const trackAlerts = tracks.map((track) => {
     const used = track.promo?.typesUsed || {};
     const missing = PROMO_TRACK_REQUIRED_TYPES.filter((typeId) => {
-      if (typeId === "musicVideo" && track.status !== "Released") return false;
+      if (typeId === "musicVideo" && !isTrackReleaseReleased(track)) return false;
       const count = Number.isFinite(used[typeId]) ? used[typeId] : 0;
       if (count > 0) return false;
       if (typeId === "musicVideo" && track.promo?.musicVideoUsed) return false;
@@ -2923,13 +2928,14 @@ function renderPromoAlerts() {
     const act = track.actId ? getAct(track.actId) : null;
     const actLabel = act ? renderActName(act) : "Unassigned";
     const releaseLabel = track.releasedAt ? ` | Released ${formatShortDate(track.releasedAt)}` : "";
+    const releaseStatusLabel = getTrackReleaseStatusLabel(getTrackReleaseStatus(track));
     blocks.push(`
       <div class="list-item">
         <div class="list-row">
           <div>
             <div class="item-title">${renderTrackTitle(track.title)}</div>
             <div class="muted">Missing promo: ${missingLabels}</div>
-            <div class="muted">Act: ${actLabel} | Status: ${track.status}${releaseLabel}</div>
+            <div class="muted">Act: ${actLabel} | Status: ${releaseStatusLabel}${releaseLabel}</div>
           </div>
           <span class="badge warn">Promo gap</span>
         </div>
@@ -3082,8 +3088,9 @@ function renderAwardPerformanceBidControls(shows) {
     .map((track) => {
       const quality = resolveTrackQuality(track);
       const scheduled = state.releaseQueue.find((entry) => entry.trackId === track.id);
-      const isReleased = track.status === "Released" && track.marketId;
-      const inReleaseWindow = Boolean(isReleased || scheduled);
+      const isReleased = isTrackReleaseReleased(track);
+      const isScheduled = isTrackReleaseScheduled(track) || Boolean(scheduled);
+      const inReleaseWindow = Boolean(isReleased || isScheduled);
       const inRange = Number.isFinite(quality)
         && quality >= qualityRange.min
         && quality <= qualityRange.max;
@@ -3092,7 +3099,7 @@ function renderAwardPerformanceBidControls(shows) {
         quality,
         inReleaseWindow,
         inRange,
-        statusLabel: isReleased ? "Released" : scheduled ? "Scheduled" : track.status || "Draft"
+        statusLabel: getTrackReleaseStatusLabel(getTrackReleaseStatus(track))
       };
     })
     .filter((entry) => entry.inReleaseWindow && entry.inRange && Number.isFinite(entry.quality));
@@ -3984,12 +3991,16 @@ function renderActiveArea() {
 
 function renderInventory() {
   if (!$("inventoryList")) return;
-  const ready = state.tracks.filter((track) => track.status === "Ready" || track.status === "Scheduled");
+  const ready = state.tracks.filter((track) => track.status === "Ready" || isTrackReleaseScheduled(track));
   if (!ready.length) {
     $("inventoryList").innerHTML = `<div class="muted">No finished content yet.</div>`;
     return;
   }
-  $("inventoryList").innerHTML = ready.map((track) => `
+  $("inventoryList").innerHTML = ready.map((track) => {
+    const statusLabel = isTrackReleaseScheduled(track)
+      ? getTrackReleaseStatusLabel(getTrackReleaseStatus(track))
+      : track.status;
+    return `
     <div class="list-item">
       <div class="list-row">
         <div class="item-main">
@@ -3997,13 +4008,14 @@ function renderInventory() {
           <div>
             <div class="item-title">${renderTrackTitle(track.title)}</div>
             <div class="muted">Item: Track  ID ${track.id}</div>
-            <div class="muted">${track.status}  ${renderTrackGenrePills(track)}</div>
+            <div class="muted">${statusLabel}  ${renderTrackGenrePills(track)}</div>
           </div>
         </div>
         <div class="pill grade" data-grade="${qualityGrade(track.quality)}">${qualityGrade(track.quality)}</div>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 }
 
 function renderDistributionInventory() {
@@ -5782,7 +5794,7 @@ function renderTrackHistoryPanel(activeTab) {
     return;
   }
 
-  const tracks = state.tracks.filter((track) => track.status === "Released" && track.eraId === targetEra.id);
+  const tracks = state.tracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true }) && track.eraId === targetEra.id);
   if (metaEl) metaEl.textContent = `${targetEra.name} | ${formatCount(tracks.length)} released tracks`;
   if (!tracks.length) {
     panel.dataset.historyKey = "";
@@ -5914,8 +5926,8 @@ function renderTracks() {
     || track.status === "Awaiting Demo"
     || track.status === "Awaiting Master"
   ));
-  const archivedTracks = allTracks.filter((track) => track.status === "Released");
-  let tracks = allTracks.filter((track) => track.status !== "Released");
+  const archivedTracks = allTracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true }));
+  let tracks = allTracks.filter((track) => !isTrackReleaseReleased(track, { includeShelved: true }));
   if (activeView === "create") {
     tracks = pipelineTracks;
     if (createStage === "demo") {
@@ -5957,6 +5969,10 @@ function renderTracks() {
     const focusSuffix = focusEra && era && focusEra.id === era.id ? " | Focus" : "";
     const modifierName = track.modifier ? track.modifier.label : "None";
     const genreLabel = renderTrackGenrePills(track, { fallback: "Genre: -" });
+    const releaseStatusLabel = getTrackReleaseStatusLabel(getTrackReleaseStatus(track));
+    const releaseSuffix = activeView !== "create" && !isTrackReleaseUnreleased(track)
+      ? ` | Release ${releaseStatusLabel}`
+      : "";
     const activeOrder = track.status === "In Production"
       ? state.workOrders.find((order) => order.trackId === track.id && order.status === "In Progress")
       : null;
@@ -5989,7 +6005,7 @@ function renderTracks() {
           </div>
           <div class="badge grade" data-grade="${grade}">${grade}</div>
         </div>
-        <div class="muted">Status: ${stageName} | Quality ${track.quality}${eraName ? ` | Era: ${eraName}${focusSuffix}` : ""}</div>
+        <div class="muted">Status: ${stageName}${releaseSuffix} | Quality ${track.quality}${eraName ? ` | Era: ${eraName}${focusSuffix}` : ""}</div>
         ${progressBlock}
       </div>
     `;
@@ -6011,6 +6027,7 @@ function renderTracks() {
     const projectType = track.projectType || "Single";
     const releaseDate = track.releasedAt ? formatDate(track.releasedAt) : "TBD";
     const grade = qualityGrade(track.quality);
+    const releaseStatusLabel = getTrackReleaseStatusLabel(getTrackReleaseStatus(track));
     const genreLabel = renderTrackGenrePills(track, { fallback: "Genre: -" });
     const actLine = `Act: ${renderActName(act || "Unassigned")} | Project: ${renderProjectName(project)} (${projectType})`;
     return `
@@ -6022,7 +6039,7 @@ function renderTracks() {
               <div class="item-title">${renderTrackTitle(track.title)}</div>
               <div class="muted">ID ${track.id} | ${genreLabel}</div>
               <div class="muted">${actLine}</div>
-              <div class="muted">Released ${releaseDate} | ${track.distribution || "Digital"}</div>
+              <div class="muted">Status: ${releaseStatusLabel} | Released ${releaseDate} | ${track.distribution || "Digital"}</div>
             </div>
           </div>
           <div class="badge grade" data-grade="${grade}">${grade}</div>
@@ -6321,7 +6338,7 @@ function renderEraHistoryPanel(targetEra) {
     return;
   }
 
-  const tracks = state.tracks.filter((track) => track.status === "Released" && track.eraId === targetEra.id);
+  const tracks = state.tracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true }) && track.eraId === targetEra.id);
   if (metaEl) metaEl.textContent = `${targetEra.name} | ${formatCount(tracks.length)} released tracks`;
   if (!tracks.length) {
     panel.dataset.historyKey = "";
@@ -6461,7 +6478,7 @@ function renderEraPerformance() {
   }
 
   const eraTracks = state.tracks.filter((track) => track.eraId === targetEra.id);
-  const released = eraTracks.filter((track) => track.status === "Released");
+  const released = eraTracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true }));
   if (metaEl) metaEl.textContent = `${targetEra.name} | ${formatCount(eraTracks.length)} tracks | Released ${formatCount(released.length)}`;
   if (!eraTracks.length) {
     tableWrap.innerHTML = `<div class="muted">No tracks linked to ${targetEra.name} yet.</div>`;
@@ -6472,7 +6489,7 @@ function renderEraPerformance() {
   const rows = eraTracks.map((track) => {
     const act = getAct(track.actId);
     const economy = track.economy || {};
-    const isReleased = track.status === "Released";
+    const isReleased = isTrackReleaseReleased(track, { includeShelved: true });
     const marketEntry = getMarketTrackByTrackId(track.id)
       || getArchivedMarketTrackByTrackId(track.id);
     const history = marketEntry?.chartHistory?.global || null;
@@ -6504,7 +6521,7 @@ function renderEraPerformance() {
       <tr>
         <td>
           <div class="item-title">${renderTrackTitle(track.title)}</div>
-          <div class="muted">Act: ${renderActName(act || "Unassigned")} | Status: ${track.status}</div>
+          <div class="muted">Act: ${renderActName(act || "Unassigned")} | Status: ${getTrackReleaseStatusLabel(getTrackReleaseStatus(track))}</div>
         </td>
         <td>
           <div>${projectType}</div>
@@ -6584,10 +6601,10 @@ function collectProjectSummaries(tracks, queuedIds) {
       profit: 0
     };
     summary.trackCount += 1;
-    if (track.status === "Released") summary.releasedCount += 1;
+    if (isTrackReleaseReleased(track, { includeShelved: true })) summary.releasedCount += 1;
     if (track.status === "Ready") summary.readyCount += 1;
     if (track.status !== "Ready" && isMasteringTrack(track)) summary.masteringCount += 1;
-    if (queuedIds.has(track.id)) summary.scheduledCount += 1;
+    if (isTrackReleaseScheduled(track) || queuedIds.has(track.id)) summary.scheduledCount += 1;
     const economy = track.economy || {};
     summary.revenue += Number(economy.revenue || 0);
     summary.productionCost += Number(economy.productionCost || 0);
@@ -6616,17 +6633,22 @@ function renderReleaseDesk() {
   } else if (state.ui.releaseDeskLock) {
     state.ui.releaseDeskLock = false;
   }
-  const releaseReadyStatuses = new Set(["Ready", "Scheduled", "Released"]);
+  const isReleaseReadyTrack = (track) => (
+    Boolean(track)
+    && (track.status === "Ready"
+      || isTrackReleaseScheduled(track)
+      || isTrackReleaseReleased(track, { includeShelved: true }))
+  );
   const queueEntries = state.releaseQueue.map((entry) => {
     const track = getTrack(entry.trackId);
-    const isReleaseReady = track ? releaseReadyStatuses.has(track.status) : false;
+    const isReleaseReady = isReleaseReadyTrack(track);
     return { entry, track, isReleaseReady };
   });
   const queuedIds = new Set(queueEntries.filter((item) => item.isReleaseReady).map((item) => item.entry.trackId));
   const blockedQueue = queueEntries.filter((item) => !item.isReleaseReady);
-  const projectTracks = state.tracks.filter((track) => releaseReadyStatuses.has(track.status) && track.actId);
+  const projectTracks = state.tracks.filter((track) => isReleaseReadyTrack(track) && track.actId);
   const projectSummaries = collectProjectSummaries(projectTracks, queuedIds);
-  const hasReadyUnassigned = state.tracks.some((track) => releaseReadyStatuses.has(track.status) && !track.actId);
+  const hasReadyUnassigned = state.tracks.some((track) => isReleaseReadyTrack(track) && !track.actId);
   const projectSummaryByKey = new Map(
     projectSummaries.map((summary) => [projectKey(summary.projectName, summary.projectType), summary])
   );

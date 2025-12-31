@@ -1,5 +1,17 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-0940Z)
+- Track release status is now canonical (unreleased → scheduled → released → shelved) across UI, promos, logs, and release execution for player + rival content, with save migration defaults. [PN-20251231-AC105]
+
+## 2025-12-31 (RLS-PATCH-20251231-0833Z)
+- Promotions now allow scheduled targets, bank pre-release momentum, and convert it on release for player + rival launches, with updated promo messaging. [PN-20251231-AC104]
+
+## 2025-12-31 (RLS-PATCH-20251231-0825Z)
+- Label Settings now apply alignment changes consistently from the dropdown or confirm button, with status feedback when the label state is unavailable. [PN-20251231-AC103]
+
+## 2025-12-31 (RLS-PATCH-20251231-0835Z)
+- Rival AutoOps now runs weekly with deterministic plan selection, budgets, release/promo/tour scheduling, and blocker + action observability logs. [PN-20251231-AC102]
+
 ## 2025-12-31 (RLS-PATCH-20251231-0810Z)
 - Monopoly checks now read internal Top-K evaluation pools (1000/400/100) across track/promo/tour scopes and log dominance detection telemetry so losses only trigger under full-pool control. [PN-20251231-AC101]
 
@@ -830,6 +842,10 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC105 (2025-12-31 09:40Z): Track release status is now canonical (unreleased → scheduled → released → shelved) across UI, promos, logs, and release execution for player + rival content, with save migration defaults.
+- PN-20251231-AC104 (2025-12-31 08:33Z): Promotions now allow scheduled targets, bank pre-release momentum, and convert it on release for player + rival launches, with updated promo messaging.
+- PN-20251231-AC103 (2025-12-31 08:25Z): Label Settings now apply alignment changes consistently from the dropdown or confirm button, with status feedback when the label state is unavailable.
+- PN-20251231-AC102 (2025-12-31 08:35Z): Rival AutoOps now runs weekly with deterministic plan selection, budgets, release/promo/tour scheduling, and blocker + action observability logs.
 - PN-20251231-AC101 (2025-12-31 08:10Z): Monopoly checks now read internal Top-K evaluation pools (1000/400/100) across track/promo/tour scopes and log dominance detection telemetry so losses only trigger under full-pool control.
 - PN-20251231-AC100 (2025-12-31 07:52Z): Charts now compute internal Top-K evaluation pools (1000/400/100) to drive dominance telemetry and rival pacing while keeping visible charts at 100/40/10.
 - PN-20251231-AC99 (2025-12-31 07:49Z): Harmony Hub now splits into Acts and Creators views, and the Menu groups navigation into era stages plus a World bucket for Calendar/Community/Rivals.

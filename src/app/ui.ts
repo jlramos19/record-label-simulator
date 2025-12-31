@@ -141,6 +141,10 @@ const {
   weekIndex,
   clamp,
   getTrack,
+  getTrackReleaseStatus,
+  getTrackReleaseStatusLabel,
+  isTrackReleaseReleased,
+  isTrackReleaseScheduled,
   getMarketTrackById,
   getMarketTrackByTrackId,
   assignTrackAct,
@@ -2545,8 +2549,8 @@ function listPromoEligibleTracks(projectTracks) {
   const scheduledIds = new Set(state.releaseQueue.map((entry) => entry.trackId).filter(Boolean));
   return projectTracks.filter((track) => {
     if (!track) return false;
-    if (track.status === "Released") return true;
-    if (track.status === "Scheduled") return true;
+    if (isTrackReleaseReleased(track)) return true;
+    if (isTrackReleaseScheduled(track)) return true;
     return scheduledIds.has(track.id);
   });
 }
@@ -2577,8 +2581,8 @@ function getPromoTargetContext(trackId, projectId, actId) {
   if (!era && act) era = getLatestActiveEraForAct(act.id);
   const projectTracks = project ? listPromoProjectTracks(project) : [];
   const scheduled = track ? state.releaseQueue.find((entry) => entry.trackId === track.id) : null;
-  const isReleased = Boolean(track && track.status === "Released" && track.marketId);
-  const isScheduled = Boolean(scheduled && !isReleased);
+  const isReleased = Boolean(track && isTrackReleaseReleased(track));
+  const isScheduled = Boolean(track && (isTrackReleaseScheduled(track) || (scheduled && !isReleased)));
   return { track, act, era, project, projectTracks, scheduled, isReleased, isScheduled };
 }
 
@@ -3140,14 +3144,21 @@ function bindGlobalHandlers() {
   lastLoggedLabelAlignment = state.label?.alignment || null;
   setLabelAlignmentStatus(state.label?.alignment ? `Current alignment: ${state.label.alignment}.` : "");
   const syncLabelAlignmentSelections = (alignment) => {
+    if ($("labelAlignment")) $("labelAlignment").value = alignment;
     if ($("trackAlignment")) $("trackAlignment").value = alignment;
     if ($("actAlignmentSelect")) $("actAlignmentSelect").value = alignment;
   };
   const applyLabelAlignment = (alignment) => {
+    if (!state.label) {
+      logEvent("Label alignment unavailable; reload the UI and try again.", "warn");
+      setLabelAlignmentStatus("Label alignment unavailable. Reload to recover.");
+      return false;
+    }
     state.label.alignment = alignment;
     syncLabelAlignmentSelections(alignment);
     renderStats();
     saveToActiveSlot();
+    return true;
   };
   const getLabelAlignmentSelection = () => {
     const select = $("labelAlignment");
@@ -5028,19 +5039,25 @@ function bindViewHandlers(route, root) {
     const target = e.target;
     if (target?.dataset) delete target.dataset.nameKey;
   });
-  on("labelAlignment", "change", (e) => {
-    const alignment = validateLabelAlignmentSelection(e.target?.value, true);
+  const handleLabelAlignmentChange = (value) => {
+    const alignment = validateLabelAlignmentSelection(value, true);
     if (!alignment) return;
-    applyLabelAlignment(alignment);
+    if (!applyLabelAlignment(alignment)) return;
     logEvent(`Label alignment set to ${state.label.alignment}.`);
     lastLoggedLabelAlignment = state.label.alignment;
     setLabelAlignmentStatus(`Logged label alignment: ${state.label.alignment}.`);
+  };
+  on("labelAlignment", "change", (e) => {
+    handleLabelAlignmentChange(e.target?.value);
+  });
+  on("labelAlignment", "input", (e) => {
+    handleLabelAlignmentChange(e.target?.value);
   });
   on("labelAlignmentConfirm", "click", () => {
     const alignment = validateLabelAlignmentSelection(getLabelAlignmentSelection(), true);
     if (!alignment) return;
     if (alignment !== state.label.alignment) {
-      applyLabelAlignment(alignment);
+      if (!applyLabelAlignment(alignment)) return;
     }
     if (alignment !== lastLoggedLabelAlignment) {
       logEvent(`Label alignment confirmed as ${state.label.alignment}.`);
@@ -5587,8 +5604,8 @@ function listPromoProjectOptions(actId) {
   state.tracks.forEach((track) => {
     if (!track?.eraId || !activeEraIds.has(track.eraId)) return;
     if (actId && track.actId !== actId) return;
-    const isReleased = track.status === "Released";
-    const isScheduled = track.status === "Scheduled" || scheduledIds.has(track.id);
+    const isReleased = isTrackReleaseReleased(track);
+    const isScheduled = isTrackReleaseScheduled(track) || scheduledIds.has(track.id);
     if (!isReleased && !isScheduled) return;
     const projectName = track.projectName || `${track.title} - Single`;
     const projectType = normalizeProjectType(track.projectType || "Single");
@@ -5695,7 +5712,7 @@ function updateSlotDropdowns() {
         const projectActId = selectedProject?.actId || null;
         tracks = state.tracks.filter((track) => {
           if (!track.eraId || !activeEraIds.has(track.eraId)) return false;
-          if (track.status === "Released") return true;
+          if (isTrackReleaseReleased(track)) return true;
           return state.releaseQueue.some((entry) => entry.trackId === track.id);
         });
         tracks = tracks.filter((track) => {
@@ -5710,7 +5727,8 @@ function updateSlotDropdowns() {
         });
       }
       tracks.forEach((track) => {
-        options.push({ value: track.id, label: `${track.title} (${track.status})` });
+        const releaseLabel = getTrackReleaseStatusLabel(getTrackReleaseStatus(track));
+        options.push({ value: track.id, label: `${track.title} (${releaseLabel})` });
       });
     }
 
@@ -6892,7 +6910,7 @@ function pickPromoTargetsFromFocus() {
   }
   const candidates = state.tracks.filter((track) => {
     if (track.eraId !== targetEra.id) return false;
-    if (track.status === "Released") return true;
+    if (isTrackReleaseReleased(track)) return true;
     return state.releaseQueue.some((entry) => entry.trackId === track.id);
   });
   if (!candidates.length) {
@@ -6924,10 +6942,10 @@ function pickPromoTargetsFromFocus() {
     return;
   }
   const picked = candidates.reduce((latest, track) => {
-    const latestSchedule = latest.status === "Released"
+    const latestSchedule = isTrackReleaseReleased(latest)
       ? latest.releasedAt
       : state.releaseQueue.find((entry) => entry.trackId === latest.id)?.releaseAt;
-    const entrySchedule = track.status === "Released"
+    const entrySchedule = isTrackReleaseReleased(track)
       ? track.releasedAt
       : state.releaseQueue.find((entry) => entry.trackId === track.id)?.releaseAt;
     const latestStamp = latestSchedule || 0;
@@ -6996,7 +7014,7 @@ function runPromotion() {
     }
   }
   if (trackContext.track && !trackContext.isReleased && !trackContext.isScheduled) {
-    logEvent("Promo push requires a scheduled or released track.", "warn");
+    logEvent("Unreleased: schedule first.", "warn");
     return;
   }
   const projectTargets = project && !trackContext.track
@@ -7169,11 +7187,13 @@ function runPromotion() {
     return getMarketTrackByTrackId(entry.id) || null;
   };
   if (trackContext.track) {
-    const promo = trackContext.track.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
+    const promo = trackContext.track.promo || { preReleaseWeeks: 0, preReleaseMomentum: 0, musicVideoUsed: false };
     if (trackContext.isReleased && market) {
       market.promoWeeks = Math.max(market.promoWeeks, boostWeeks);
     } else {
-      promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+      const nextMomentum = Math.max(promo.preReleaseMomentum || 0, boostWeeks);
+      promo.preReleaseMomentum = nextMomentum;
+      promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, nextMomentum);
     }
     if (selectedTypes.includes("musicVideo")) promo.musicVideoUsed = true;
     trackContext.track.promo = promo;
@@ -7184,8 +7204,10 @@ function runPromotion() {
         if (marketEntry) marketEntry.promoWeeks = Math.max(marketEntry.promoWeeks || 0, boostWeeks);
         return;
       }
-      const promo = entry.promo || { preReleaseWeeks: 0, musicVideoUsed: false };
-      promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, boostWeeks);
+      const promo = entry.promo || { preReleaseWeeks: 0, preReleaseMomentum: 0, musicVideoUsed: false };
+      const nextMomentum = Math.max(promo.preReleaseMomentum || 0, boostWeeks);
+      promo.preReleaseMomentum = nextMomentum;
+      promo.preReleaseWeeks = Math.max(promo.preReleaseWeeks || 0, nextMomentum);
       entry.promo = promo;
     });
   }
@@ -7389,7 +7411,7 @@ function handleReleaseAction(e) {
     logUiEvent("action_submit", {
       action: "scrap_track",
       trackId,
-      status: track.status,
+      status: getTrackReleaseStatus(track),
       outcome: result.ok ? "success" : "failed",
       reason: result.reason
     });
