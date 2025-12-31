@@ -1,6 +1,7 @@
 # Patch Notes
 
 ## 2025-12-31 (RLS-PATCH-20251231-0940Z)
+- Release execution now gates scheduled releases by releaseAt, applies banked pre-release momentum on launch week for player + rival queues, clears banked momentum deterministically, and logs the applied momentum to prevent double-release. [PN-20251231-AC106]
 - Track release status is now canonical (unreleased → scheduled → released → shelved) across UI, promos, logs, and release execution for player + rival content, with save migration defaults. [PN-20251231-AC105]
 
 ## 2025-12-31 (RLS-PATCH-20251231-0833Z)
@@ -842,6 +843,7 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC106 (2025-12-31 09:40Z): Release execution now gates scheduled releases by releaseAt, applies banked pre-release momentum on launch week for player + rival queues, clears banked momentum deterministically, and logs the applied momentum to prevent double-release.
 - PN-20251231-AC105 (2025-12-31 09:40Z): Track release status is now canonical (unreleased → scheduled → released → shelved) across UI, promos, logs, and release execution for player + rival content, with save migration defaults.
 - PN-20251231-AC104 (2025-12-31 08:33Z): Promotions now allow scheduled targets, bank pre-release momentum, and convert it on release for player + rival launches, with updated promo messaging.
 - PN-20251231-AC103 (2025-12-31 08:25Z): Label Settings now apply alignment changes consistently from the dropdown or confirm button, with status feedback when the label state is unavailable.

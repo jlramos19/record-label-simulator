@@ -8561,6 +8561,13 @@ function trendRankForGenre(genre, ranking = null) {
   return index >= 0 ? index + 1 : null;
 }
 
+function resolveBankedPromoMomentum(promo) {
+  if (!promo) return 0;
+  const preReleaseWeeks = Math.max(0, promo.preReleaseWeeks || 0);
+  const preReleaseMomentum = Math.max(0, promo.preReleaseMomentum || 0);
+  return Math.max(preReleaseWeeks, preReleaseMomentum);
+}
+
 function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
   if (!track || !track.actId || !getAct(track.actId)) {
     if (track && isTrackReleaseScheduled(track)) track.releaseStatus = TRACK_RELEASE_STATUS.unreleased;
@@ -8599,9 +8606,7 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
   track.trendRankAtRelease = trendRankAtRelease;
   track.trendTotalAtRelease = trendTotalAtRelease;
   track.distribution = dist;
-  const preReleaseWeeks = Math.max(0, track.promo?.preReleaseWeeks || 0);
-  const preReleaseMomentum = Math.max(0, track.promo?.preReleaseMomentum || 0);
-  const bankedMomentum = Math.max(preReleaseWeeks, preReleaseMomentum);
+  const bankedMomentum = resolveBankedPromoMomentum(track.promo);
   const promoTypesUsed = track.promo?.typesUsed && typeof track.promo.typesUsed === "object"
     ? { ...track.promo.typesUsed }
     : {};
@@ -8833,10 +8838,18 @@ function processReleaseQueue() {
   const previousCount = state.releaseQueue.length;
   const remaining = [];
   state.releaseQueue.forEach((entry) => {
+      if (!entry || !Number.isFinite(entry.releaseAt)) {
+        if (entry) remaining.push(entry);
+        return;
+      }
       if (entry.releaseAt <= now) {
         const track = getTrack(entry.trackId);
         if (!track) return;
-        syncTrackReleaseStatus(track);
+        const status = syncTrackReleaseStatus(track);
+        if (status !== TRACK_RELEASE_STATUS.scheduled) {
+          remaining.push(entry);
+          return;
+        }
         if (isTrackReleaseReleased(track, { includeShelved: true })) return;
         if (entry.rolloutStrategyId && !track.rolloutStrategyId) {
           track.rolloutStrategyId = entry.rolloutStrategyId;
@@ -8844,17 +8857,21 @@ function processReleaseQueue() {
           track.rolloutWeekIndex = Number.isFinite(entry.rolloutWeekIndex) ? entry.rolloutWeekIndex : null;
         }
         if (track.status === "Ready") {
+          const bankedMomentum = resolveBankedPromoMomentum(track.promo);
           const distResult = resolveReleaseDistributionForTrack(track, entry.distribution || "Digital", {
             labelFans: Number(state.label?.fans || 0),
             log: true
           });
-        releaseTrack(track, entry.note, distResult.distribution);
-        return;
+          const released = releaseTrack(track, entry.note, distResult.distribution);
+          if (released) {
+            logEvent(`Released: ${entry.trackId} (bankedMomentumApplied=${bankedMomentum})`);
+            return;
+          }
+        }
+        remaining.push(entry);
+      } else {
+        remaining.push(entry);
       }
-      remaining.push(entry);
-    } else {
-      remaining.push(entry);
-    }
   });
   state.releaseQueue = remaining;
   if (remaining.length !== previousCount && typeof window !== "undefined") {
@@ -17468,12 +17485,17 @@ function processRivalReleaseQueue() {
   const now = state.time.epochMs;
   const remaining = [];
   state.rivalReleaseQueue.forEach((entry) => {
+    if (!entry || !Number.isFinite(entry.releaseAt)) {
+      if (entry) remaining.push(entry);
+      return;
+    }
     if (entry.releaseAt <= now) {
       const queueType = entry.queueType || "release";
       if (queueType === "promo") {
         processRivalPromoEntry(entry);
         return;
       }
+      const bankedMomentum = Math.max(0, entry.preReleaseMomentum || 0);
       const rival = getRivalByName(entry.label);
       const creatorCountries = [];
       if (rival && Array.isArray(entry.creatorIds)) {
@@ -17515,7 +17537,7 @@ function processRivalReleaseQueue() {
         trendTotalAtRelease,
         releasedAt: entry.releaseAt,
         weeksOnChart: 0,
-        promoWeeks: Math.max(0, entry.preReleaseMomentum || 0),
+        promoWeeks: bankedMomentum,
         rolloutPlanId: entry.huskId || null,
         rolloutPlanSource: entry.huskSource || null,
         rolloutFocusType: entry.focusType || null,
@@ -17525,6 +17547,8 @@ function processRivalReleaseQueue() {
       applyCriticsReview({ marketEntry });
       state.marketTracks.push(marketEntry);
       markRivalReleaseActivity(entry.label, entry.releaseAt, entry.creatorIds);
+      entry.preReleaseMomentum = 0;
+      logEvent(`Released: ${entry.trackId || entry.id} (bankedMomentumApplied=${bankedMomentum})`);
     } else {
       remaining.push(entry);
     }
