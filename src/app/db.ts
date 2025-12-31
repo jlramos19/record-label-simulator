@@ -1,9 +1,11 @@
 const DB_NAME = "record-label-simulator";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_CHART_HISTORY = "chart_history";
 const STORE_CHART_WEEK_INDEX = "chart_week_index";
 const STORE_FILE_HANDLES = "file_handles";
 const STORE_EVENT_LOG = "event_log";
+const STORE_ROLLOUT_STRATEGY_TEMPLATES = "rollout_strategy_templates";
+const STORE_TRACK_ROLLOUT_INSTANCES = "track_rollout_instances";
 const STORE_RELEASE_PRODUCTION_VIEW = "release_production_view";
 const STORE_KPI_SNAPSHOT = "kpi_snapshot";
 
@@ -102,6 +104,36 @@ function openDb() {
           store.createIndex("by_event_type", "event_type");
         }
       }
+      if (!db.objectStoreNames.contains(STORE_ROLLOUT_STRATEGY_TEMPLATES)) {
+        const store = db.createObjectStore(STORE_ROLLOUT_STRATEGY_TEMPLATES, { keyPath: "template_id" });
+        store.createIndex("by_fingerprint", "fingerprint", { unique: true });
+        store.createIndex("by_created_source", "created_source");
+        store.createIndex("by_name", "name");
+      } else {
+        const store = request.transaction.objectStore(STORE_ROLLOUT_STRATEGY_TEMPLATES);
+        if (!store.indexNames.contains("by_fingerprint")) {
+          store.createIndex("by_fingerprint", "fingerprint", { unique: true });
+        }
+        if (!store.indexNames.contains("by_created_source")) {
+          store.createIndex("by_created_source", "created_source");
+        }
+        if (!store.indexNames.contains("by_name")) {
+          store.createIndex("by_name", "name");
+        }
+      }
+      if (!db.objectStoreNames.contains(STORE_TRACK_ROLLOUT_INSTANCES)) {
+        const store = db.createObjectStore(STORE_TRACK_ROLLOUT_INSTANCES, { keyPath: "instance_id" });
+        store.createIndex("by_track_id", "track_id", { unique: true });
+        store.createIndex("by_template_id", "template_id");
+      } else {
+        const store = request.transaction.objectStore(STORE_TRACK_ROLLOUT_INSTANCES);
+        if (!store.indexNames.contains("by_track_id")) {
+          store.createIndex("by_track_id", "track_id", { unique: true });
+        }
+        if (!store.indexNames.contains("by_template_id")) {
+          store.createIndex("by_template_id", "template_id");
+        }
+      }
       if (!db.objectStoreNames.contains(STORE_RELEASE_PRODUCTION_VIEW)) {
         const store = db.createObjectStore(STORE_RELEASE_PRODUCTION_VIEW, { keyPath: "release_id" });
         store.createIndex("by_current_step", "current_step");
@@ -184,6 +216,14 @@ export function verifyIndexedDbSchema() {
       {
         name: STORE_EVENT_LOG,
         indexes: ["by_occurred_at_hour", "by_entity", "by_event_type"],
+      },
+      {
+        name: STORE_ROLLOUT_STRATEGY_TEMPLATES,
+        indexes: ["by_fingerprint", "by_created_source", "by_name"],
+      },
+      {
+        name: STORE_TRACK_ROLLOUT_INSTANCES,
+        indexes: ["by_track_id", "by_template_id"],
       },
       {
         name: STORE_RELEASE_PRODUCTION_VIEW,
@@ -422,5 +462,96 @@ export function clearFileHandle(id) {
     tx.oncomplete = () => resolve(true);
     tx.onerror = () => reject(tx.error);
     tx.objectStore(STORE_FILE_HANDLES).delete(id);
+  })).catch(() => false);
+}
+
+export function listRolloutStrategyTemplates() {
+  return openDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROLLOUT_STRATEGY_TEMPLATES, "readonly");
+    const store = tx.objectStore(STORE_ROLLOUT_STRATEGY_TEMPLATES);
+    const results = [];
+    store.openCursor().onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        results.push(cursor.value);
+        cursor.continue();
+      } else {
+        resolve(results);
+      }
+    };
+    tx.onerror = () => reject(tx.error);
+  })).catch(() => []);
+}
+
+export function fetchRolloutStrategyTemplateByFingerprint(fingerprint) {
+  if (!fingerprint) return Promise.resolve(null);
+  return openDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROLLOUT_STRATEGY_TEMPLATES, "readonly");
+    const store = tx.objectStore(STORE_ROLLOUT_STRATEGY_TEMPLATES);
+    if (store.indexNames.contains("by_fingerprint")) {
+      const index = store.index("by_fingerprint");
+      const request = index.get(fingerprint);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+      return;
+    }
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const list = Array.isArray(request.result) ? request.result : [];
+      resolve(list.find((entry) => entry?.fingerprint === fingerprint) || null);
+    };
+    request.onerror = () => reject(request.error);
+  })).catch(() => null);
+}
+
+export function fetchRolloutStrategyTemplateById(templateId) {
+  if (!templateId) return Promise.resolve(null);
+  return openDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROLLOUT_STRATEGY_TEMPLATES, "readonly");
+    const store = tx.objectStore(STORE_ROLLOUT_STRATEGY_TEMPLATES);
+    const request = store.get(templateId);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  })).catch(() => null);
+}
+
+export function upsertRolloutStrategyTemplate(template) {
+  if (!template || !template.template_id) return Promise.resolve(false);
+  return openDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROLLOUT_STRATEGY_TEMPLATES, "readwrite");
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+    tx.objectStore(STORE_ROLLOUT_STRATEGY_TEMPLATES).put(template);
+  })).catch(() => false);
+}
+
+export function fetchTrackRolloutInstanceByTrackId(trackId) {
+  if (!trackId) return Promise.resolve(null);
+  return openDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_TRACK_ROLLOUT_INSTANCES, "readonly");
+    const store = tx.objectStore(STORE_TRACK_ROLLOUT_INSTANCES);
+    if (store.indexNames.contains("by_track_id")) {
+      const index = store.index("by_track_id");
+      const request = index.get(trackId);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+      return;
+    }
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const list = Array.isArray(request.result) ? request.result : [];
+      resolve(list.find((entry) => entry?.track_id === trackId) || null);
+    };
+    request.onerror = () => reject(request.error);
+  })).catch(() => null);
+}
+
+export function upsertTrackRolloutInstance(instance) {
+  if (!instance || !instance.instance_id) return Promise.resolve(false);
+  return openDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_TRACK_ROLLOUT_INSTANCES, "readwrite");
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+    tx.objectStore(STORE_TRACK_ROLLOUT_INSTANCES).put(instance);
   })).catch(() => false);
 }

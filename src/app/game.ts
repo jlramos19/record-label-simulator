@@ -604,6 +604,13 @@ function makeDefaultState() {
       createHelpOpen: false,
       createAdvancedOpen: false,
       trackPanelTab: "active",
+      trackRollout: {
+        trackId: null,
+        templateId: null,
+        weights: { interviews: 25, live: 25, eyeriSocial: 25, tour: 25 },
+        toggles: { musicVideoOn: false, tourTieInOn: false, primeTimeLiveOn: false, isSingle: true },
+        duplicateTemplateId: null
+      },
       actSlots: { lead: null, member2: null, member3: null },
       quickActFilters: {
         groupSize: "2-3",
@@ -6897,6 +6904,11 @@ function clearTrackUiSelections(trackId) {
   }
   if (state.ui.socialSlots?.trackId === trackId) state.ui.socialSlots.trackId = null;
   if (state.ui.awardBidTrackId === trackId) state.ui.awardBidTrackId = null;
+  if (state.ui.trackRollout?.trackId === trackId) {
+    state.ui.trackRollout.trackId = null;
+    state.ui.trackRollout.templateId = null;
+    state.ui.trackRollout.duplicateTemplateId = null;
+  }
 }
 
 function removeTrackFromRolloutPlans(trackId) {
@@ -21980,6 +21992,38 @@ function normalizeState() {
       && state.ui.trackPanelTab !== "archive"
       && state.ui.trackPanelTab !== "history")) {
     state.ui.trackPanelTab = "active";
+  }
+  if (!state.ui.trackRollout || typeof state.ui.trackRollout !== "object") {
+    state.ui.trackRollout = {
+      trackId: null,
+      templateId: null,
+      weights: { interviews: 25, live: 25, eyeriSocial: 25, tour: 25 },
+      toggles: { musicVideoOn: false, tourTieInOn: false, primeTimeLiveOn: false, isSingle: true },
+      duplicateTemplateId: null
+    };
+  } else {
+    const rollout = state.ui.trackRollout;
+    if (typeof rollout.trackId !== "string") rollout.trackId = rollout.trackId || null;
+    if (typeof rollout.templateId !== "string") rollout.templateId = rollout.templateId || null;
+    if (!rollout.weights || typeof rollout.weights !== "object") {
+      rollout.weights = { interviews: 25, live: 25, eyeriSocial: 25, tour: 25 };
+    } else {
+      ["interviews", "live", "eyeriSocial", "tour"].forEach((key) => {
+        const value = Number(rollout.weights[key]);
+        rollout.weights[key] = Number.isFinite(value) ? value : 25;
+      });
+    }
+    if (!rollout.toggles || typeof rollout.toggles !== "object") {
+      rollout.toggles = { musicVideoOn: false, tourTieInOn: false, primeTimeLiveOn: false, isSingle: true };
+    } else {
+      rollout.toggles.musicVideoOn = Boolean(rollout.toggles.musicVideoOn);
+      rollout.toggles.tourTieInOn = Boolean(rollout.toggles.tourTieInOn);
+      rollout.toggles.primeTimeLiveOn = Boolean(rollout.toggles.primeTimeLiveOn);
+      rollout.toggles.isSingle = Boolean(rollout.toggles.isSingle);
+    }
+    if (typeof rollout.duplicateTemplateId !== "string") {
+      rollout.duplicateTemplateId = rollout.duplicateTemplateId || null;
+    }
   }
   if (typeof state.ui.focusEraId === "undefined") state.ui.focusEraId = null;
   if (state.ui.focusEraId !== null && typeof state.ui.focusEraId !== "string") state.ui.focusEraId = null;

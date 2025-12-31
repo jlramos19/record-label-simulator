@@ -3,6 +3,8 @@
 ## Intent
 Rollout Strategy Plans turn rollout planning into a reusable, auditable schedule. Plans can scope to an Era, a single release, a project release, a tour, or a promo campaign. They live on the Era surface today, expand into calendar entries, and can auto-run when the player enables them.
 
+Note: Track rollout strategies (promo weighting templates) are defined separately in `docs/systems/content/track-rollout-strategies.md`.
+
 ## Data Model
 A Rollout Strategy Plan is attached to an Act + focus target (Era/Release/Project/Tour/Campaign) and saved alongside other state.
 

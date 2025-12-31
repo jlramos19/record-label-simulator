@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-1500Z)
+- Track Rollout Strategies now use a global template library with 5-point bucketed uniqueness, per-track details, and Save-as-Global duplicate checks. [PN-20251231-AC119]
+
 ## 2025-12-31 (RLS-PATCH-20251231-1326Z)
 - Charts now include a Rollout Strategies tab with plan usage, outcomes, preference signals, cadence, and rival adoption odds for analytics. [PN-20251231-AC117]
 - Acts now track Active/Legacy lifecycles with reactivation on releases, CCC retention preserves previously signed creators while disposable unsigneds despawn, and non-charting releases surface as DNC in archives/performance. [PN-20251231-AC118]
@@ -867,6 +870,7 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC119 (2025-12-31 15:00Z): Track Rollout Strategies now use a global template library with 5-point bucketed uniqueness, per-track details, and Save-as-Global duplicate checks.
 - PN-20251231-AC117 (2025-12-31 13:26Z): Charts now include a Rollout Strategies tab with plan usage, outcomes, preference signals, cadence, and rival adoption odds for analytics.
 - PN-20251231-AC118 (2025-12-31 13:26Z): Acts now track Active/Legacy lifecycles with reactivation on releases, CCC retention preserves previously signed creators while disposable unsigneds despawn, and non-charting releases surface as DNC in archives/performance.
 - PN-20251231-AC116 (2025-12-31 12:08Z): Debug bundle exports now include a promo overlap snapshot (scheduled promos + banked momentum), and pre-release momentum banking logs are emitted for player + rivals.

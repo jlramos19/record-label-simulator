@@ -5,7 +5,7 @@ Define the IndexedDB physical schema used by the web client for append-only logs
 
 ## Database
 - Name: `record-label-simulator`
-- Version: `2`
+- Version: `3`
 
 ## Stores
 
@@ -32,6 +32,19 @@ Define the IndexedDB physical schema used by the web client for append-only logs
   - `by_occurred_at_hour` -> `occurred_at_hour`
   - `by_entity` -> [`entity_type`, `entity_id`]
   - `by_event_type` -> `event_type`
+
+### rollout_strategy_templates (global templates)
+- Key path: `template_id`
+- Indexes:
+  - `by_fingerprint` -> `fingerprint` (unique)
+  - `by_created_source` -> `created_source`
+  - `by_name` -> `name`
+
+### track_rollout_instances (per-track)
+- Key path: `instance_id`
+- Indexes:
+  - `by_track_id` -> `track_id` (unique)
+  - `by_template_id` -> `template_id`
 
 ### release_production_view (materialized)
 - Key path: `release_id`

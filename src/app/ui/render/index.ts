@@ -195,6 +195,16 @@ import {
   getModifierCosts,
   getPromoInflationMultiplier
 } from "./promo-budget.js";
+import {
+  TRACK_ROLLOUT_DEFAULT_TOGGLES,
+  TRACK_ROLLOUT_DEFAULT_WEIGHTS,
+  TRACK_ROLLOUT_FOCUS_LABELS,
+  TRACK_ROLLOUT_TOGGLE_KEYS,
+  TRACK_ROLLOUT_WEIGHT_KEYS,
+  deriveFocuses,
+  getTrackRolloutTemplateCache,
+  sanitizeWeights
+} from "../../track-rollout.js";
 
 const ACCESSIBLE_TEXT = { dark: "#000000", light: "#ffffff" };
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
@@ -6189,6 +6199,151 @@ function renderTracks() {
   renderTrackHistoryPanel(activeTab);
 }
 
+function renderTrackRolloutToggleTags(toggles) {
+  const flags = { ...TRACK_ROLLOUT_DEFAULT_TOGGLES, ...(toggles || {}) };
+  const tags = [];
+  if (flags.musicVideoOn) tags.push({ label: "Video On" });
+  if (flags.tourTieInOn) tags.push({ label: "Tour tie-in On" });
+  if (flags.primeTimeLiveOn) tags.push({ label: "Prime time On" });
+  tags.push({ label: flags.isSingle ? "Single track" : "Project track", tone: flags.isSingle ? "" : " tag--off" });
+  return tags.map((tag) => (
+    `<span class="tag${tag.tone || ""}">${tag.label}</span>`
+  )).join("");
+}
+
+function renderTrackRolloutStrategy() {
+  const panel = $("trackRolloutPanel");
+  if (!panel) return;
+  const trackSelect = $("trackRolloutTrackSelect");
+  const trackMeta = $("trackRolloutTrackMeta");
+  const templateList = $("trackRolloutTemplateList");
+  const details = $("trackRolloutDetails");
+  if (!trackSelect || !templateList || !details) return;
+  const rollout = state.ui?.trackRollout || {};
+  const tracks = Array.isArray(state.tracks) ? state.tracks : [];
+  if (!tracks.length) {
+    trackSelect.innerHTML = `<option value="">No tracks available</option>`;
+    trackSelect.disabled = true;
+    if (trackMeta) trackMeta.textContent = "No tracks available.";
+    templateList.innerHTML = `<div class="muted">No rollout templates loaded.</div>`;
+    details.innerHTML = `<div class="muted">Create a track to start a rollout strategy.</div>`;
+    return;
+  }
+  trackSelect.disabled = false;
+  const selectedTrack = tracks.find((track) => track.id === rollout.trackId) || null;
+  const selectedTrackId = selectedTrack?.id || "";
+  trackSelect.innerHTML = tracks.map((track) => {
+    const releaseStatus = getTrackReleaseStatusLabel(getTrackReleaseStatus(track));
+    return `<option value="${track.id}">${renderTrackTitle(track.title)} (${releaseStatus})</option>`;
+  }).join("");
+  if (selectedTrackId) trackSelect.value = selectedTrackId;
+  if (trackMeta) {
+    const projectName = selectedTrack?.projectName || (selectedTrack ? `${selectedTrack.title} - Single` : "");
+    const projectType = selectedTrack?.projectType || "Single";
+    const statusLabel = selectedTrack
+      ? `${getTrackReleaseStatusLabel(getTrackReleaseStatus(selectedTrack))} | ${selectedTrack.status || "Unknown"}`
+      : "Select a track to begin.";
+    trackMeta.textContent = selectedTrack
+      ? `Project: ${projectName} (${projectType}) | Status: ${statusLabel}`
+      : "Select a track to begin.";
+  }
+
+  const templates = getTrackRolloutTemplateCache();
+  if (!Array.isArray(templates)) {
+    templateList.innerHTML = `<div class="muted">Loading templates...</div>`;
+  } else if (!templates.length) {
+    templateList.innerHTML = `<div class="muted">No rollout templates available.</div>`;
+  } else {
+    templateList.innerHTML = templates.map((template) => {
+      const isSelected = template.template_id === rollout.templateId;
+      const tags = renderTrackRolloutToggleTags(template.toggles_json || {});
+      return `
+        <button type="button" class="list-item rollout-template-item${isSelected ? " is-selected" : ""}" data-track-rollout-template="${template.template_id}">
+          <div class="item-title">${template.name || "Untitled focus"}</div>
+          <div class="track-rollout-tags">${tags}</div>
+        </button>
+      `;
+    }).join("");
+  }
+
+  const draftWeights = sanitizeWeights(rollout.weights || TRACK_ROLLOUT_DEFAULT_WEIGHTS);
+  const draftToggles = { ...TRACK_ROLLOUT_DEFAULT_TOGGLES, ...(rollout.toggles || {}) };
+  const weightSum = TRACK_ROLLOUT_WEIGHT_KEYS.reduce((total, key) => total + (draftWeights[key] || 0), 0);
+  const focuses = deriveFocuses(draftWeights);
+  const primaryLabel = TRACK_ROLLOUT_FOCUS_LABELS[focuses.primary] || focuses.primary || "Focus";
+  const secondaryLabel = focuses.secondary ? (TRACK_ROLLOUT_FOCUS_LABELS[focuses.secondary] || focuses.secondary) : null;
+  const focusLine = secondaryLabel ? `${primaryLabel} + ${secondaryLabel}` : primaryLabel;
+  const selectedTemplate = Array.isArray(templates)
+    ? templates.find((template) => template.template_id === rollout.templateId)
+    : null;
+  const templateMatch = selectedTemplate && TRACK_ROLLOUT_WEIGHT_KEYS.every(
+    (key) => Number(selectedTemplate?.weights_json?.[key]) === Number(draftWeights[key])
+  ) && TRACK_ROLLOUT_TOGGLE_KEYS.every(
+    (key) => Boolean(selectedTemplate?.toggles_json?.[key]) === Boolean(draftToggles[key])
+  );
+  const showSave = !selectedTemplate || !templateMatch;
+  const duplicateTemplate = Array.isArray(templates)
+    ? templates.find((template) => template.template_id === rollout.duplicateTemplateId)
+    : null;
+  const disableActions = !selectedTrack;
+  const weightRows = TRACK_ROLLOUT_WEIGHT_KEYS.map((key) => {
+    const label = TRACK_ROLLOUT_FOCUS_LABELS[key] || key;
+    const value = Math.round(Number(draftWeights[key]) || 0);
+    return `
+      <div class="track-rollout-weight">
+        <div class="track-rollout-weight-label">${label}</div>
+        <div class="track-rollout-weight-row">
+          <input type="range" min="0" max="100" step="1" value="${value}" data-track-rollout-weight="${key}">
+          <div class="track-rollout-weight-value">${value}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+  const sumClass = weightSum === 100 ? "tiny muted" : "tiny muted warn";
+  details.innerHTML = `
+    <div class="track-rollout-focus">
+      <div class="track-rollout-focus-label">Focus</div>
+      <div class="track-rollout-focus-value">${focusLine}</div>
+    </div>
+    <div class="track-rollout-section">
+      <div class="track-rollout-section-title">Weights</div>
+      <div class="track-rollout-weights">${weightRows}</div>
+      <div class="${sumClass}">Total: ${Math.round(weightSum)}</div>
+    </div>
+    <div class="track-rollout-section">
+      <div class="track-rollout-section-title">Toggles</div>
+      <div class="track-rollout-toggles">
+        <label class="toggle-pill">
+          <input type="checkbox" data-track-rollout-toggle="musicVideoOn"${draftToggles.musicVideoOn ? " checked" : ""}>
+          <span>Music video</span>
+        </label>
+        <label class="toggle-pill">
+          <input type="checkbox" data-track-rollout-toggle="tourTieInOn"${draftToggles.tourTieInOn ? " checked" : ""}>
+          <span>Tour tie-in</span>
+        </label>
+        <label class="toggle-pill">
+          <input type="checkbox" data-track-rollout-toggle="primeTimeLiveOn"${draftToggles.primeTimeLiveOn ? " checked" : ""}>
+          <span>Prime time live</span>
+        </label>
+        <label class="toggle-pill">
+          <input type="checkbox" data-track-rollout-toggle="isSingle"${draftToggles.isSingle ? " checked" : ""}>
+          <span>Single track</span>
+        </label>
+      </div>
+    </div>
+    <div class="track-rollout-actions">
+      <button id="trackRolloutApplyBtn" type="button"${disableActions ? " disabled" : ""}>Apply to Track</button>
+      <button id="trackRolloutSaveBtn" type="button" class="ghost${showSave ? "" : " hidden"}"${disableActions ? " disabled" : ""}>Save as Global Template</button>
+    </div>
+    ${duplicateTemplate ? `
+      <div class="callout callout--warn track-rollout-duplicate">
+        Already exists: ${duplicateTemplate.name || "Existing focus"}
+        <button id="trackRolloutUseExistingBtn" type="button" class="ghost mini"${disableActions ? " disabled" : ""}>Use existing template</button>
+      </div>
+    ` : ""}
+  `;
+}
+
 function renderRolloutStrategyPlanner() {
   const select = $("rolloutStrategySelect");
   const summary = $("rolloutStrategySummary");
@@ -6980,6 +7135,7 @@ function renderReleaseDesk() {
   if (!releaseQueueList) return;
   if (!queueEntries.length) {
     releaseQueueList.innerHTML = `<div class="muted">No scheduled releases.</div>`;
+    renderTrackRolloutStrategy();
     return;
   }
   const blockedNote = (() => {
@@ -7024,6 +7180,7 @@ function renderReleaseDesk() {
     }).join("")
     : `<div class="muted">No release-ready scheduled entries.</div>`;
   releaseQueueList.innerHTML = `${blockedNote}${queueHtml}`;
+  renderTrackRolloutStrategy();
   renderDistributionInventory();
 }
 
@@ -9553,6 +9710,7 @@ export {
   renderTracks,
   renderModifierInventory,
   renderReleaseDesk,
+  renderTrackRolloutStrategy,
   renderTouringDesk,
   renderQuickRecipes,
   renderCalendarView,

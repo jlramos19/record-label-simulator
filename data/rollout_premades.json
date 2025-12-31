@@ -1,0 +1,32 @@
+[
+  {
+    "weights": { "interviews": 40, "live": 20, "eyeriSocial": 20, "tour": 20 },
+    "toggles": { "musicVideoOn": false, "tourTieInOn": false, "primeTimeLiveOn": false, "isSingle": true }
+  },
+  {
+    "weights": { "interviews": 15, "live": 55, "eyeriSocial": 15, "tour": 15 },
+    "toggles": { "musicVideoOn": false, "tourTieInOn": false, "primeTimeLiveOn": true, "isSingle": true }
+  },
+  {
+    "weights": { "interviews": 15, "live": 15, "eyeriSocial": 55, "tour": 15 },
+    "toggles": { "musicVideoOn": true, "tourTieInOn": false, "primeTimeLiveOn": false, "isSingle": true }
+  },
+  {
+    "weights": { "interviews": 10, "live": 20, "eyeriSocial": 15, "tour": 55 },
+    "toggles": { "musicVideoOn": false, "tourTieInOn": true, "primeTimeLiveOn": true, "isSingle": false }
+  },
+  {
+    "weights": { "interviews": 10, "live": 45, "eyeriSocial": 10, "tour": 35 },
+    "toggles": { "musicVideoOn": false, "tourTieInOn": true, "primeTimeLiveOn": true, "isSingle": false }
+  },
+  {
+    "weights": { "interviews": 40, "live": 15, "eyeriSocial": 30, "tour": 15 },
+    "toggles": { "musicVideoOn": false, "tourTieInOn": false, "primeTimeLiveOn": false, "isSingle": true }
+  },
+  {
+    "primary_focus": "musicVideo",
+    "secondary_focus": "eyeriSocial",
+    "weights": { "interviews": 15, "live": 20, "eyeriSocial": 40, "tour": 25 },
+    "toggles": { "musicVideoOn": true, "tourTieInOn": false, "primeTimeLiveOn": false, "isSingle": true }
+  }
+]

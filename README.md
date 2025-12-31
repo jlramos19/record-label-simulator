@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-31 09:26:44 -04:00
+Last updated: 2025-12-31 11:00:48 -04:00
 
 ## Quick start
 
@@ -89,6 +89,7 @@ npm run dev:islands
 - Unity to web glossary: `docs/glossary/unity-to-web.md`
 - Awards circuit: `docs/systems/awards/award-shows.md`
 - Annual awards: `docs/systems/endgame/annual-awards.md`
+- Track rollout strategies: `docs/systems/content/track-rollout-strategies.md`
 - IndexedDB schema: `docs/systems/data/indexeddb-schema.md`
 - Rivalry goals + KPIs: `docs/systems/endgame/rivalry-goals-and-metrics.md`
 
@@ -110,10 +111,13 @@ npm run dev:islands
 ### IndexedDB
 
 - Database: `record-label-simulator`
-- Stores: `chart_history`, `file_handles`, `event_log`, `release_production_view`, `kpi_snapshot`
+- Stores: `chart_history`, `chart_week_index`, `file_handles`, `event_log`, `rollout_strategy_templates`, `track_rollout_instances`, `release_production_view`, `kpi_snapshot`
 - Indexes:
-  - `chart_history`: `by_scope`, `by_week`, `by_ts`
+  - `chart_history`: `by_scope`, `by_week`, `by_ts`, `by_week_scope`, `by_scope_week`
+  - `chart_week_index`: `by_ts`
   - `event_log`: `by_occurred_at_hour`, `by_entity`, `by_event_type`
+  - `rollout_strategy_templates`: `by_fingerprint`, `by_created_source`, `by_name`
+  - `track_rollout_instances`: `by_track_id`, `by_template_id`
   - `release_production_view`: `by_current_step`, `by_overall_risk`, `by_eta_hour`
   - `kpi_snapshot`: `by_entity_kpi`, `by_calculated_at_hour`
 

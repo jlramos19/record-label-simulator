@@ -1,6 +1,7 @@
 # TODO
 
 - [x] RLS-ACTS-LIST-001: Add a Current Acts list in the Acts tab with summaries and act selection behavior. (Agent Codex, started 2025-12-31 08:00:00 -04:00, completed 2025-12-31 08:08:00 -04:00)
+- [x] RLS-TRACK-ROLLOUT-GLOBAL-001: Add track rollout strategy templates with a global library, 5-point fingerprint bucketing, and save-if-unique behavior. (Agent Codex, started 2025-12-31 10:40:07 -04:00, completed 2025-12-31 11:00:48 -04:00)
 - [ ] RLS-RIVALS-ROSTER-ROUTE-001: Replace the floating rival roster window with a dedicated route/tab and updated entry points.
 - [ ] RLS-DOC-DRAGGING-001: Update MVP UI copy/docs to use Recommend + dropdowns and defer drag-and-drop.
 - [ ] RLS-FOCUS-ERA-UX-001: Improve Auto Create focus-era blocking guidance with actionable copy and an Eras link.

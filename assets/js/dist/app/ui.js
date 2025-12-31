@@ -2,6 +2,7 @@
 import * as game from "./game.js";
 import { loadCSV } from "./csv.js";
 import { fetchChartSnapshot, listChartWeeks } from "./db.js";
+import { TRACK_ROLLOUT_DEFAULT_TOGGLES, TRACK_ROLLOUT_DEFAULT_WEIGHTS, TRACK_ROLLOUT_TOGGLE_KEYS, TRACK_ROLLOUT_WEIGHT_KEYS, ensurePremadeRolloutTemplates, fetchTrackRolloutInstance, getTrackRolloutTemplateCache, listTrackRolloutTemplates, normalizeWeights, saveTrackRolloutInstance, saveTrackRolloutTemplate, setTrackRolloutTemplateCache } from "./track-rollout.js";
 import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails, PROMO_TYPE_DETAILS } from "./promo_types.js";
 import { setUiHooks } from "./game/ui-hooks.js";
 import { flushUsageSession, getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
@@ -10,7 +11,7 @@ import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
 import { clearExternalStorageHandle, getExternalStorageStatus, importChartHistoryFromExternal, importSavesFromExternal, isExternalStorageSupported, requestExternalStorageHandle, syncExternalStorageNow } from "./file-storage.js";
 import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElement, shakeField, shakeSlot, showEndScreen } from "./ui/dom.js";
 import { showToast } from "./guardrails.js";
-import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, updateSaveStatusPanel, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
+import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, updateSaveStatusPanel, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderTrackRolloutStrategy, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
 import { createRenderScheduler } from "./ui/render-scheduler.js";
 const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, registerAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, isTrackReleaseReleased, isTrackReleaseScheduled, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
@@ -82,6 +83,10 @@ let uiThemeMediaBound = false;
 let activeRoute = DEFAULT_ROUTE;
 let hasMountedRoute = false;
 let chartHistoryRequestId = 0;
+let trackRolloutTemplateRequestId = 0;
+let trackRolloutTemplatesStatus = "idle";
+let trackRolloutInstanceRequestId = 0;
+let trackRolloutLoadedTrackId = null;
 let lastLoggedLabelAlignment = null;
 const CALENDAR_WHEEL_THRESHOLD = 120;
 const CALENDAR_WHEEL_RESET_MS = 320;
@@ -3776,6 +3781,49 @@ function bindViewHandlers(route, root) {
             saveToActiveSlot();
         });
     }
+    if (route === "release") {
+        refreshTrackRolloutTemplates();
+        ensureTrackRolloutTrackSelection();
+        const trackSelect = root.querySelector("#trackRolloutTrackSelect");
+        if (trackSelect) {
+            trackSelect.addEventListener("change", (event) => {
+                const value = event.target?.value || null;
+                setTrackRolloutTrackId(value);
+            });
+        }
+        root.addEventListener("input", (event) => {
+            if (!(event.target instanceof HTMLElement))
+                return;
+            if (event.target.matches("[data-track-rollout-weight]")) {
+                updateTrackRolloutWeightFromUI(event.target);
+            }
+        });
+        root.addEventListener("change", (event) => {
+            if (!(event.target instanceof HTMLElement))
+                return;
+            if (event.target.matches("[data-track-rollout-toggle]")) {
+                updateTrackRolloutToggleFromUI(event.target);
+            }
+        });
+        root.addEventListener("click", (event) => {
+            const templateBtn = event.target.closest("[data-track-rollout-template]");
+            if (templateBtn) {
+                selectTrackRolloutTemplateFromUI(templateBtn.dataset.trackRolloutTemplate);
+                return;
+            }
+            if (event.target.closest("#trackRolloutApplyBtn")) {
+                applyTrackRolloutToTrackFromUI();
+                return;
+            }
+            if (event.target.closest("#trackRolloutSaveBtn")) {
+                saveTrackRolloutTemplateFromUI();
+                return;
+            }
+            if (event.target.closest("#trackRolloutUseExistingBtn")) {
+                useExistingTrackRolloutTemplateFromUI();
+            }
+        });
+    }
     if (route === "world") {
         bindRivalRosterSelect(root.querySelector("#rivalRosterSelect"));
         if (state.ui?.rivalRosterFocus) {
@@ -7102,6 +7150,249 @@ function expandRolloutStrategyFromUI() {
     renderEraStatus();
     saveToActiveSlot();
 }
+function ensureTrackRolloutUiState() {
+    if (!state.ui)
+        state.ui = {};
+    if (!state.ui.trackRollout || typeof state.ui.trackRollout !== "object") {
+        state.ui.trackRollout = {
+            trackId: null,
+            templateId: null,
+            weights: { ...TRACK_ROLLOUT_DEFAULT_WEIGHTS },
+            toggles: { ...TRACK_ROLLOUT_DEFAULT_TOGGLES },
+            duplicateTemplateId: null
+        };
+    }
+    return state.ui.trackRollout;
+}
+function resolveTrackRolloutDefaultToggles(track) {
+    const toggles = { ...TRACK_ROLLOUT_DEFAULT_TOGGLES };
+    const projectType = track?.projectType || track?.releaseType || "Single";
+    toggles.isSingle = String(projectType).toLowerCase() === "single";
+    return toggles;
+}
+function applyTrackRolloutDefaults(track) {
+    const rollout = ensureTrackRolloutUiState();
+    rollout.weights = { ...TRACK_ROLLOUT_DEFAULT_WEIGHTS };
+    rollout.toggles = resolveTrackRolloutDefaultToggles(track);
+    rollout.templateId = null;
+    rollout.duplicateTemplateId = null;
+}
+function getTrackRolloutTemplateById(templateId) {
+    const templates = getTrackRolloutTemplateCache();
+    if (!Array.isArray(templates))
+        return null;
+    return templates.find((template) => template?.template_id === templateId) || null;
+}
+function doesTrackRolloutMatchTemplate(draft, template) {
+    if (!draft || !template)
+        return false;
+    const weightsMatch = TRACK_ROLLOUT_WEIGHT_KEYS.every((key) => Number(draft.weights?.[key]) === Number(template.weights_json?.[key]));
+    if (!weightsMatch)
+        return false;
+    return TRACK_ROLLOUT_TOGGLE_KEYS.every((key) => Boolean(draft.toggles?.[key]) === Boolean(template.toggles_json?.[key]));
+}
+async function refreshTrackRolloutTemplates({ force = false } = {}) {
+    if (!force && trackRolloutTemplatesStatus === "loading")
+        return;
+    trackRolloutTemplatesStatus = "loading";
+    const requestId = ++trackRolloutTemplateRequestId;
+    try {
+        const templates = await listTrackRolloutTemplates();
+        if (requestId !== trackRolloutTemplateRequestId)
+            return;
+        setTrackRolloutTemplateCache(templates);
+        trackRolloutTemplatesStatus = "ready";
+        renderTrackRolloutStrategy();
+    }
+    catch (error) {
+        if (requestId !== trackRolloutTemplateRequestId)
+            return;
+        trackRolloutTemplatesStatus = "error";
+        logEvent("Track rollout templates unavailable.", "warn");
+    }
+}
+async function refreshTrackRolloutInstance(trackId, { force = false } = {}) {
+    if (!trackId)
+        return;
+    if (!force && trackRolloutLoadedTrackId === trackId)
+        return;
+    const requestId = ++trackRolloutInstanceRequestId;
+    const track = getTrack(trackId);
+    try {
+        const instance = await fetchTrackRolloutInstance(trackId);
+        if (requestId !== trackRolloutInstanceRequestId)
+            return;
+        const rollout = ensureTrackRolloutUiState();
+        trackRolloutLoadedTrackId = trackId;
+        if (instance) {
+            rollout.weights = { ...TRACK_ROLLOUT_DEFAULT_WEIGHTS, ...(instance.weights_json || {}) };
+            rollout.toggles = { ...TRACK_ROLLOUT_DEFAULT_TOGGLES, ...(instance.toggles_json || {}) };
+            rollout.templateId = instance.template_id || null;
+        }
+        else {
+            applyTrackRolloutDefaults(track);
+        }
+        rollout.duplicateTemplateId = null;
+        renderTrackRolloutStrategy();
+    }
+    catch (error) {
+        if (requestId !== trackRolloutInstanceRequestId)
+            return;
+        logEvent("Track rollout could not be loaded.", "warn");
+    }
+}
+function setTrackRolloutTrackId(trackId) {
+    const rollout = ensureTrackRolloutUiState();
+    rollout.trackId = trackId || null;
+    rollout.duplicateTemplateId = null;
+    applyTrackRolloutDefaults(trackId ? getTrack(trackId) : null);
+    trackRolloutLoadedTrackId = null;
+    renderTrackRolloutStrategy();
+    saveToActiveSlot();
+    if (trackId)
+        refreshTrackRolloutInstance(trackId, { force: true });
+}
+function ensureTrackRolloutTrackSelection() {
+    const rollout = ensureTrackRolloutUiState();
+    const tracks = Array.isArray(state.tracks) ? state.tracks : [];
+    if (!tracks.length) {
+        rollout.trackId = null;
+        renderTrackRolloutStrategy();
+        return;
+    }
+    const selected = tracks.find((track) => track.id === rollout.trackId);
+    if (!selected) {
+        setTrackRolloutTrackId(tracks[0].id);
+        return;
+    }
+    refreshTrackRolloutInstance(selected.id);
+}
+function updateTrackRolloutWeightFromUI(target) {
+    const key = target?.dataset?.trackRolloutWeight;
+    if (!key)
+        return;
+    const rollout = ensureTrackRolloutUiState();
+    const value = Number(target.value);
+    rollout.weights = { ...rollout.weights, [key]: Number.isFinite(value) ? value : 0 };
+    rollout.duplicateTemplateId = null;
+    renderTrackRolloutStrategy();
+}
+function updateTrackRolloutToggleFromUI(target) {
+    const key = target?.dataset?.trackRolloutToggle;
+    if (!key)
+        return;
+    const rollout = ensureTrackRolloutUiState();
+    rollout.toggles = { ...rollout.toggles, [key]: Boolean(target.checked) };
+    rollout.duplicateTemplateId = null;
+    renderTrackRolloutStrategy();
+}
+function selectTrackRolloutTemplateFromUI(templateId) {
+    const rollout = ensureTrackRolloutUiState();
+    const template = getTrackRolloutTemplateById(templateId);
+    if (!template) {
+        logEvent("Track rollout template not found.", "warn");
+        return;
+    }
+    rollout.templateId = template.template_id;
+    rollout.weights = { ...TRACK_ROLLOUT_DEFAULT_WEIGHTS, ...(template.weights_json || {}) };
+    rollout.toggles = { ...TRACK_ROLLOUT_DEFAULT_TOGGLES, ...(template.toggles_json || {}) };
+    rollout.duplicateTemplateId = null;
+    renderTrackRolloutStrategy();
+    saveToActiveSlot();
+}
+function logTrackRolloutUsageEvent(type, payload) {
+    recordUsageEvent(type, payload, {
+        route: state.ui?.activeView || activeRoute,
+        gameTs: state.time?.epochMs,
+        isAction: true,
+        reportToConsole: true
+    });
+}
+async function applyTrackRolloutToTrackFromUI() {
+    const rollout = ensureTrackRolloutUiState();
+    const trackId = rollout.trackId;
+    if (!trackId) {
+        logEvent("Select a track before applying a rollout strategy.", "warn");
+        return;
+    }
+    const template = rollout.templateId ? getTrackRolloutTemplateById(rollout.templateId) : null;
+    const normalized = normalizeWeights(rollout.weights, { bucket: false }).weights;
+    const templateMatch = template && doesTrackRolloutMatchTemplate({ weights: normalized, toggles: rollout.toggles }, template);
+    const templateId = templateMatch ? template.template_id : null;
+    const instance = await saveTrackRolloutInstance({
+        trackId,
+        templateId,
+        weights: normalized,
+        toggles: rollout.toggles,
+        primaryFocus: templateMatch ? template.primary_focus : null,
+        secondaryFocus: templateMatch ? template.secondary_focus : null,
+        status: "draft"
+    });
+    if (!instance) {
+        logEvent("Track rollout could not be applied.", "warn");
+        return;
+    }
+    rollout.weights = { ...TRACK_ROLLOUT_DEFAULT_WEIGHTS, ...(instance.weights_json || {}) };
+    rollout.toggles = { ...TRACK_ROLLOUT_DEFAULT_TOGGLES, ...(instance.toggles_json || {}) };
+    rollout.templateId = instance.template_id || null;
+    rollout.duplicateTemplateId = null;
+    logEvent("Track rollout applied.");
+    logTrackRolloutUsageEvent("TRACK_ROLLOUT_SET_WEIGHTS", { track_id: trackId, weights: instance.weights_json });
+    logTrackRolloutUsageEvent("TRACK_ROLLOUT_SET_TOGGLES", { track_id: trackId, toggles: instance.toggles_json });
+    logTrackRolloutUsageEvent("TRACK_ROLLOUT_APPLY_TEMPLATE", { track_id: trackId, template_id: instance.template_id || null });
+    renderTrackRolloutStrategy();
+    saveToActiveSlot();
+}
+async function saveTrackRolloutTemplateFromUI() {
+    const rollout = ensureTrackRolloutUiState();
+    const trackId = rollout.trackId;
+    if (!trackId) {
+        logEvent("Select a track before saving a rollout template.", "warn");
+        return;
+    }
+    const result = await saveTrackRolloutTemplate({
+        weights: rollout.weights,
+        toggles: rollout.toggles,
+        createdSource: "player_saved"
+    });
+    if (!result?.template) {
+        logEvent("Track rollout template could not be saved.", "warn");
+        return;
+    }
+    logTrackRolloutUsageEvent("TRACK_ROLLOUT_SAVE_GLOBAL", {
+        track_id: trackId,
+        template_id: result.template.template_id,
+        fingerprint: result.fingerprint
+    });
+    if (result.created) {
+        logTrackRolloutUsageEvent("ROLLOUT_TEMPLATE_CREATE_GLOBAL", {
+            template_id: result.template.template_id,
+            fingerprint: result.fingerprint,
+            created_source: result.template.created_source
+        });
+        rollout.templateId = result.template.template_id;
+        rollout.weights = { ...TRACK_ROLLOUT_DEFAULT_WEIGHTS, ...(result.template.weights_json || {}) };
+        rollout.toggles = { ...TRACK_ROLLOUT_DEFAULT_TOGGLES, ...(result.template.toggles_json || {}) };
+        rollout.duplicateTemplateId = null;
+        logEvent(`Saved global rollout template: ${result.template.name || "focus"}.`);
+        await refreshTrackRolloutTemplates({ force: true });
+        renderTrackRolloutStrategy();
+        saveToActiveSlot();
+        return;
+    }
+    rollout.duplicateTemplateId = result.template.template_id;
+    logEvent(`Already exists: ${result.template.name || "Existing focus"}.`);
+    renderTrackRolloutStrategy();
+}
+function useExistingTrackRolloutTemplateFromUI() {
+    const rollout = ensureTrackRolloutUiState();
+    if (!rollout.duplicateTemplateId)
+        return;
+    selectTrackRolloutTemplateFromUI(rollout.duplicateTemplateId);
+    rollout.duplicateTemplateId = null;
+    renderTrackRolloutStrategy();
+    saveToActiveSlot();
+}
 function renameActById(actId, nextName) {
     const act = getAct(actId);
     if (!act)
@@ -7774,6 +8065,12 @@ function signCreatorById(id) {
 }
 export async function initUI() {
     applyUiTheme(getStoredUiTheme());
+    try {
+        await ensurePremadeRolloutTemplates();
+    }
+    catch (error) {
+        logEvent("Track rollout premades could not be loaded.", "warn");
+    }
     ensureSlotDropdowns();
     updateSlotDropdowns();
     ensureSocialDetailModal();
