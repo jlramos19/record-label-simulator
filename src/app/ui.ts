@@ -105,6 +105,7 @@ const {
   makeActName,
   makeActNameEntry,
   makeAct,
+  registerAct,
   pickDistinct,
   getAct,
   getCreator,
@@ -6672,8 +6673,7 @@ function createActFromUI() {
   } else if (!inputNameKey) {
     nameKey = null;
   }
-  const act = makeAct({ name, nameKey, type, alignment, memberIds: members });
-  state.acts.push(act);
+  const act = registerAct(makeAct({ name, nameKey, type, alignment, memberIds: members }), { reason: "Created" });
   if (!state.ui) state.ui = {};
   state.ui.lastCreatedActId = act.id;
   logUiEvent("action_submit", { action: "create_act", actId: act.id, type });
@@ -6733,14 +6733,13 @@ function createQuickAct() {
   const actKind = memberIds.length > 1 ? "group" : "solo";
   const type = actKind === "group" ? "Group Act" : "Solo Act";
   const actNameEntry = makeActNameEntry({ actKind, memberIds });
-  const act = makeAct({
+  const act = registerAct(makeAct({
     name: actNameEntry.name,
     nameKey: actNameEntry.nameKey,
     type,
     alignment: state.label.alignment,
     memberIds
-  });
-  state.acts.push(act);
+  }), { reason: "Quick Act" });
   logUiEvent("action_submit", { action: "create_act_quick", actId: act.id, type });
   logEvent(`Created ${act.type} "${act.name}".`);
   state.ui.trackSlots.actId = act.id;
@@ -6784,14 +6783,13 @@ function createQuickGroupAct() {
   }
   const actNameEntry = makeActNameEntry({ actKind: "group", memberIds });
   const alignment = filters.alignment === "Label" ? state.label.alignment : filters.alignment;
-  const act = makeAct({
+  const act = registerAct(makeAct({
     name: actNameEntry.name,
     nameKey: actNameEntry.nameKey,
     type: "Group Act",
     alignment,
     memberIds
-  });
-  state.acts.push(act);
+  }), { reason: "Quick Group Act" });
   logUiEvent("action_submit", { action: "create_act_quick_group", actId: act.id, type: act.type });
   logEvent(`Created ${act.type} "${act.name}".`);
   state.ui.trackSlots.actId = act.id;

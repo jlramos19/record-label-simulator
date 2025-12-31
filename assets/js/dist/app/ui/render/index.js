@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, evaluatePhysicalEligibility, getDistributionSnapshot, getReleaseAsapAtForDistribution, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, getMarketTrackByTrackId, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseUnreleased, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, renderActNameByNation, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildRolloutPlanAdoptionOdds, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, evaluatePhysicalEligibility, getDistributionSnapshot, getReleaseAsapAtForDistribution, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, getMarketTrackByTrackId, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseUnreleased, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, renderActNameByNation, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -115,6 +115,73 @@ function renderPlanContextLines(context) {
         : "";
     const lines = [signalLine, outcomeLine, marketLine].filter(Boolean);
     return lines.length ? lines.join("") : `<div class="muted">Context: No tracked outcomes yet.</div>`;
+}
+function uniqueStrings(list) {
+    if (!Array.isArray(list))
+        return [];
+    return Array.from(new Set(list.filter(Boolean)));
+}
+function renderPlanPreferenceLine(plan) {
+    const context = plan?.context || {};
+    const alignmentTags = Array.isArray(context.alignmentTags) ? context.alignmentTags.filter(Boolean) : [];
+    const trendTags = Array.isArray(context.trendTags) ? context.trendTags.filter(Boolean) : [];
+    const themes = uniqueStrings(trendTags.map((tag) => themeFromGenre(tag)).filter(Boolean));
+    const moods = uniqueStrings(trendTags.map((tag) => moodFromGenre(tag)).filter(Boolean));
+    const parts = [];
+    if (alignmentTags.length)
+        parts.push(`Alignment: ${alignmentTags.join(", ")}`);
+    if (themes.length)
+        parts.push(`Themes: ${themes.join(", ")}`);
+    if (moods.length)
+        parts.push(`Moods: ${moods.join(", ")}`);
+    return parts.length ? `<div class="muted">${parts.join(" | ")}</div>` : `<div class="muted">Alignment: - | Preferences: -</div>`;
+}
+function renderPlanCadenceLine(plan) {
+    const cadence = Array.isArray(plan?.cadence) ? plan.cadence : [];
+    const releaseCount = cadence.filter((step) => step.kind === "release").length;
+    const promoCount = cadence.filter((step) => step.kind === "promo").length;
+    const windowWeeks = cadence.length ? Math.max(...cadence.map((step) => step.weekOffset || 0)) + 1 : 0;
+    const releases = Array.isArray(plan?.eligibleCategories?.releases) ? plan.eligibleCategories.releases : [];
+    const promos = Array.isArray(plan?.eligibleCategories?.promos) ? plan.eligibleCategories.promos : [];
+    const promoLabels = promos.map((promo) => PROMO_TYPE_DETAILS[promo]?.label || promo);
+    const parts = [];
+    if (cadence.length) {
+        parts.push(`Cadence: ${formatCount(releaseCount)} drops, ${formatCount(promoCount)} promos over ${formatCount(windowWeeks)}w`);
+    }
+    if (releases.length)
+        parts.push(`Releases: ${releases.join(", ")}`);
+    if (promoLabels.length)
+        parts.push(`Promos: ${promoLabels.join(", ")}`);
+    return parts.length ? `<div class="muted">${parts.join(" | ")}</div>` : `<div class="muted">Cadence: -</div>`;
+}
+function formatPlanBlockers(blockers) {
+    if (!Array.isArray(blockers) || !blockers.length)
+        return "";
+    const seen = new Set();
+    const formatted = [];
+    blockers.forEach((blocker) => {
+        const kind = blocker?.kind || "block";
+        const reason = blocker?.reason || "blocked";
+        const key = `${kind}:${reason}`;
+        if (seen.has(key))
+            return;
+        seen.add(key);
+        formatted.push(`${kind}: ${reason}`);
+    });
+    return formatted.join(" | ");
+}
+function renderPlanAdoptionOdds(planId, oddsByPlanId) {
+    const entries = oddsByPlanId?.get(planId) || [];
+    if (!entries.length)
+        return `<div class="muted">Adoption odds: No rival labels available.</div>`;
+    const lines = entries.map((entry) => {
+        const pct = Math.round((entry.chance || 0) * 100);
+        const reason = entry.eligible
+            ? entry.why
+            : `blocked: ${formatPlanBlockers(entry.blockers) || "gate failed"}`;
+        return `<div class="tiny muted">${entry.rivalName}: ${pct}% ${reason}</div>`;
+    }).join("");
+    return `<div class="muted">Adoption odds:</div>${lines}`;
 }
 function renderPlanLibraryList(plans) {
     const list = Array.isArray(plans) ? plans : [];
@@ -3937,6 +4004,40 @@ function renderInventory() {
   `;
     }).join("");
 }
+function renderRolloutStrategyAnalytics() {
+    const listEl = $("chartList");
+    if (!listEl)
+        return;
+    const planLibrary = listRolloutPlanLibrary();
+    if (!planLibrary.length) {
+        listEl.innerHTML = `<div class="muted">No rollout plans captured yet.</div>`;
+        return;
+    }
+    const adoption = buildRolloutPlanAdoptionOdds(planLibrary);
+    const oddsByPlanId = adoption?.oddsByPlanId || new Map();
+    const cards = planLibrary.map((plan) => {
+        const label = plan.label || plan.id || "Rollout Plan";
+        const focusLine = formatPlanFocusLine(plan);
+        const source = plan.source || "Unknown";
+        return `
+      <div class="list-item">
+        <div class="item-title">${label}</div>
+        <div class="muted">Focus: ${focusLine} | Source: ${source}</div>
+        ${renderPlanUsageLine(plan)}
+        ${renderPlanPreferenceLine(plan)}
+        ${renderPlanCadenceLine(plan)}
+        ${renderPlanContextLines(plan.context)}
+        ${renderPlanAdoptionOdds(plan.id, oddsByPlanId)}
+      </div>
+    `;
+    }).join("");
+    listEl.innerHTML = `
+    <div class="callout">
+      Rollout strategies summarize plan usage, outcomes, preferences, and rival adoption odds (AI scoring normalized per label).
+    </div>
+    ${cards}
+  `;
+}
 function renderDistributionInventory() {
     const listEl = $("distributionInventoryList");
     if (!listEl)
@@ -4588,6 +4689,8 @@ function renderActs() {
         const selectLabel = escapeAttribute(`Select act ${plainName}`);
         const renameLabel = escapeAttribute(`Rename act ${plainName}`);
         const selected = selectedActId === act.id;
+        const statusLabel = act.status || "Active";
+        const statusDetail = act.statusReason ? ` (${act.statusReason})` : "";
         return `
       <div class="list-item act-list-item ${selected ? "is-selected" : ""}" data-entity-type="act" data-entity-id="${act.id}" data-entity-name="${act.name}" draggable="true">
         <div class="list-row">
@@ -4597,6 +4700,7 @@ function renderActs() {
             </button>
             <div class="act-meta">
               <span class="act-meta-item">Type: ${typeLabel}</span>
+              <span class="act-meta-item">Status: ${statusLabel}${statusDetail}</span>
               <span class="act-meta-item">ID ${act.id}</span>
               <span class="act-meta-item">${renderAlignmentTag(act.alignment)}</span>
               ${selected ? `<span class="act-meta-item act-selected-label">Selected</span>` : ""}
@@ -6464,8 +6568,11 @@ function renderEraPerformance() {
         const marketEntry = getMarketTrackByTrackId(track.id)
             || getArchivedMarketTrackByTrackId(track.id);
         const history = marketEntry?.chartHistory?.global || null;
-        const peakLabel = history?.peak ? `#${history.peak}` : "-";
-        const wocLabel = history?.weeks ? formatCount(history.weeks) : "-";
+        const hasPeak = Number.isFinite(history?.peak);
+        const peakLabel = isReleased ? (hasPeak ? `#${history.peak}` : "DNC") : "-";
+        const wocLabel = isReleased
+            ? (Number.isFinite(history?.weeks) ? formatCount(history.weeks) : (hasPeak ? "-" : "0"))
+            : "-";
         const chartPoints = isReleased ? formatCount(economy.chartPoints || 0) : "-";
         const salesLabel = isReleased ? formatCount(economy.sales || 0) : "-";
         const streamLabel = isReleased ? formatCount(economy.streaming || 0) : "-";
@@ -7761,18 +7868,19 @@ function renderCharts() {
     const contentType = state.ui.chartContentType || "tracks";
     const isActs = contentType === "acts";
     const isDemographics = contentType === "demographics";
+    const isRollouts = contentType === "rollouts";
     document.querySelectorAll("#chartTypeTabs .tab").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.chartContent === contentType);
     });
     const chartTabs = document.querySelector("#chartTabs");
     if (chartTabs)
-        chartTabs.classList.toggle("hidden", isActs);
+        chartTabs.classList.toggle("hidden", isActs || isRollouts);
     const regionTabs = document.querySelector("#chartRegionTabs");
     const regions = Array.isArray(REGION_DEFS) ? REGION_DEFS : [];
     const regionIds = new Set(regions.map((region) => region.id));
     let activeChart = state.ui.activeChart || "global";
     let demographicsNotice = "";
-    if (isActs) {
+    if (isActs || isRollouts) {
         if (activeChart !== "global") {
             activeChart = "global";
             state.ui.activeChart = activeChart;
@@ -7808,12 +7916,29 @@ function renderCharts() {
     }
     const chartWeekBtn = $("chartWeekBtn");
     if (chartWeekBtn) {
-        chartWeekBtn.disabled = isActs || isDemographics;
+        chartWeekBtn.disabled = isActs || isDemographics || isRollouts;
         chartWeekBtn.title = isActs
             ? "History snapshots are available for charts only."
             : isDemographics
                 ? "Population snapshots update yearly."
-                : "";
+                : isRollouts
+                    ? "Rollout strategies are not charted."
+                    : "";
+    }
+    if (isRollouts) {
+        if (regionTabs) {
+            regionTabs.innerHTML = "";
+            regionTabs.classList.add("hidden");
+        }
+        if ($("chartWeekRange"))
+            $("chartWeekRange").textContent = "Rollout strategies";
+        if ($("chartHistoryNotice"))
+            $("chartHistoryNotice").textContent = "";
+        const meta = $("chartMeta");
+        if (meta)
+            meta.textContent = "Plan usage, outcomes, and rival adoption odds.";
+        renderRolloutStrategyAnalytics();
+        return;
     }
     if (isActs) {
         if (regionTabs) {

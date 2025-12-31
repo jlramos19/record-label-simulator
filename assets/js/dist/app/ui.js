@@ -13,7 +13,7 @@ import { showToast } from "./guardrails.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, updateSaveStatusPanel, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
 import { createRenderScheduler } from "./ui/render-scheduler.js";
-const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, isTrackReleaseReleased, isTrackReleaseScheduled, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
+const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, registerAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, isTrackReleaseReleased, isTrackReleaseScheduled, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
 const renderScheduler = createRenderScheduler({
     renderAll,
     renderEventLog,
@@ -6697,8 +6697,7 @@ function createActFromUI() {
     else if (!inputNameKey) {
         nameKey = null;
     }
-    const act = makeAct({ name, nameKey, type, alignment, memberIds: members });
-    state.acts.push(act);
+    const act = registerAct(makeAct({ name, nameKey, type, alignment, memberIds: members }), { reason: "Created" });
     if (!state.ui)
         state.ui = {};
     state.ui.lastCreatedActId = act.id;
@@ -6756,14 +6755,13 @@ function createQuickAct() {
     const actKind = memberIds.length > 1 ? "group" : "solo";
     const type = actKind === "group" ? "Group Act" : "Solo Act";
     const actNameEntry = makeActNameEntry({ actKind, memberIds });
-    const act = makeAct({
+    const act = registerAct(makeAct({
         name: actNameEntry.name,
         nameKey: actNameEntry.nameKey,
         type,
         alignment: state.label.alignment,
         memberIds
-    });
-    state.acts.push(act);
+    }), { reason: "Quick Act" });
     logUiEvent("action_submit", { action: "create_act_quick", actId: act.id, type });
     logEvent(`Created ${act.type} "${act.name}".`);
     state.ui.trackSlots.actId = act.id;
@@ -6808,14 +6806,13 @@ function createQuickGroupAct() {
     }
     const actNameEntry = makeActNameEntry({ actKind: "group", memberIds });
     const alignment = filters.alignment === "Label" ? state.label.alignment : filters.alignment;
-    const act = makeAct({
+    const act = registerAct(makeAct({
         name: actNameEntry.name,
         nameKey: actNameEntry.nameKey,
         type: "Group Act",
         alignment,
         memberIds
-    });
-    state.acts.push(act);
+    }), { reason: "Quick Group Act" });
     logUiEvent("action_submit", { action: "create_act_quick_group", actId: act.id, type: act.type });
     logEvent(`Created ${act.type} "${act.name}".`);
     state.ui.trackSlots.actId = act.id;

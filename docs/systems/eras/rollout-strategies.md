@@ -39,6 +39,16 @@ Plan context (archived/library entries):
 - Plans list their outcomes and market conditions so the player can see what worked and why (ex: trend rank positions when releases landed).
 - Any library plan can seed a new strategy to prefill drop/event slots.
 
+## Rollout Strategy Analytics (Charts Tab)
+The Charts view includes a Rollout Strategies tab for playback + observability:
+- Usage: release count, last used date, and labels that executed the plan.
+- Era contribution: focus target (Era/Release/Project/Tour/Campaign) plus outcomes (avg quality, avg peak, avg weeks on chart).
+- Alignment + preferences: alignment tags and trend-derived theme/mood signals.
+- Content output: release/promo cadence and eligible categories.
+- Adoption odds: per-rival chance to select the plan, plus the scoring rationale (trend/alignment/budget/action weights).
+
+Adoption odds normalize each rival's plan scores for the current week, so they explain "why this plan" rather than guarantee a pick.
+
 ## Planning (Eras Surface)
 - Create a plan for an active Era (default focus); length is derived from the Era rollout weeks.
 - Set the plan focus to Era/Release/Project/Tour/Campaign to clarify what the plan is driving.

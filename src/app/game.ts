@@ -749,6 +749,7 @@ function makeDefaultState() {
       achievementsLocked: false,
       monopolyLoss: null,
       marketTrackArchive: [],
+      memorializedCreators: [],
       bailoutUsed: false,
       bailoutPending: false,
       exp: 0,
@@ -3315,7 +3316,8 @@ function getDistributionSnapshot() {
 }
 
 const CREATOR_AGE_MIN = 20;
-const CREATOR_AGE_MAX = 119;
+const CREATOR_AGE_MAX = 120;
+const CREATOR_MEMORIAL_AGE = 120;
 const CREATOR_PORTRAIT_ROOT = "assets/png/portraits/creator-ids";
 const CREATOR_PORTRAIT_AGE_BINS = [
   { min: 20, max: 23, label: "age-20-23" },
@@ -5143,6 +5145,15 @@ function normalizeCreator(creator) {
     creator.catharsisInactivityRecoveryStartPct = creator.catharsisInactivityPct || 0;
   }
   if (typeof creator.isUnsigned !== "boolean") creator.isUnsigned = false;
+  if (typeof creator.wasSigned !== "boolean") {
+    creator.wasSigned = !creator.isUnsigned
+      || Number.isFinite(creator.lastReleaseAt)
+      || Number.isFinite(creator.lastPromoAt);
+  }
+  if (typeof creator.hasReleaseHistory !== "boolean") creator.hasReleaseHistory = Number.isFinite(creator.lastReleaseAt);
+  if (typeof creator.hasPromoHistory !== "boolean") creator.hasPromoHistory = Number.isFinite(creator.lastPromoAt);
+  if (typeof creator.memorializedAt !== "number") creator.memorializedAt = null;
+  if (typeof creator.memorializedReason !== "string") creator.memorializedReason = null;
   if (!creator.departurePending) creator.departurePending = null;
   if (typeof creator.portraitUrl !== "string") {
     creator.portraitUrl = creator.portraitUrl ? String(creator.portraitUrl) : null;
@@ -5182,6 +5193,7 @@ function markCreatorUnsigned(creator) {
 function markCreatorSigned(creator) {
   if (!creator) return;
   creator.isUnsigned = false;
+  creator.wasSigned = true;
   if (typeof creator.catharsisInactivityPct !== "number") creator.catharsisInactivityPct = 0;
   if (typeof creator.catharsisInactivityDay !== "number") creator.catharsisInactivityDay = null;
   if (typeof creator.catharsisInactivityRecoveryStartDay !== "number") {
@@ -5674,6 +5686,7 @@ function markCreatorRelease(creatorIds, atMs = state.time.epochMs) {
   creatorIds.forEach((id) => {
     const creator = getCreator(id);
     if (!creator) return;
+    creator.hasReleaseHistory = true;
     creator.lastReleaseAt = atMs;
     creator.lastActivityAt = atMs;
     startCreatorCatharsisRecovery(creator);
@@ -5685,10 +5698,67 @@ function markCreatorPromo(creatorIds, atMs = state.time.epochMs) {
   creatorIds.forEach((id) => {
     const creator = getCreator(id);
     if (!creator) return;
+    creator.hasPromoHistory = true;
     creator.lastPromoAt = atMs;
     creator.lastActivityAt = atMs;
     startCreatorCatharsisRecovery(creator);
   });
+}
+
+function creatorHasReleaseHistory(creator) {
+  return Boolean(creator?.hasReleaseHistory || Number.isFinite(creator?.lastReleaseAt));
+}
+
+function creatorHasPromoHistory(creator) {
+  return Boolean(creator?.hasPromoHistory || Number.isFinite(creator?.lastPromoAt));
+}
+
+function isLegacyMarketCreator(creator) {
+  if (!creator) return false;
+  return Boolean(creator.wasSigned && (creatorHasReleaseHistory(creator) || creatorHasPromoHistory(creator)));
+}
+
+function memorializeCreator(creator, { reason = "age", atMs = state.time.epochMs } = {}) {
+  if (!creator || Number.isFinite(creator.memorializedAt)) return false;
+  const stamp = Number.isFinite(atMs) ? atMs : state.time.epochMs;
+  creator.memorializedAt = stamp;
+  creator.memorializedReason = reason || "age";
+  if (!state.meta) state.meta = makeDefaultState().meta;
+  if (!Array.isArray(state.meta.memorializedCreators)) state.meta.memorializedCreators = [];
+  if (!state.meta.memorializedCreators.some((entry) => entry?.id === creator.id)) {
+    state.meta.memorializedCreators.push({
+      id: creator.id,
+      name: creator.name || "",
+      role: creator.role || "",
+      age: Number.isFinite(creator.age) ? creator.age : null,
+      country: creator.country || "",
+      memorializedAt: stamp,
+      reason: creator.memorializedReason
+    });
+  }
+  detachCreatorFromContent(creator.id);
+  state.creators = state.creators.filter((entry) => entry.id !== creator.id);
+  state.marketCreators = state.marketCreators.filter((entry) => entry.id !== creator.id);
+  logEvent(`Creator memorialized: ${creator.name} [${creator.id}] (age ${creator.age}).`, "warn");
+  return true;
+}
+
+function advanceCreatorAgesYear(year) {
+  const ageYear = Number.isFinite(year) ? year : currentYear();
+  const applyAge = (creator) => {
+    if (!creator || Number.isFinite(creator.memorializedAt)) return;
+    const currentAge = Number.isFinite(creator.age) ? creator.age : CREATOR_AGE_MIN;
+    const nextAge = Math.min(currentAge + 1, CREATOR_MEMORIAL_AGE);
+    creator.age = nextAge;
+    const ageGroup = resolveAudienceAgeGroupForAge(creator.age);
+    creator.ageGroup = ageGroup ? ageGroup.label : creator.ageGroup || null;
+    creator.lastAgedYear = ageYear;
+    if (creator.age >= CREATOR_MEMORIAL_AGE) {
+      memorializeCreator(creator, { reason: "age", atMs: state.time.epochMs });
+    }
+  };
+  state.creators.slice().forEach(applyAge);
+  state.marketCreators.slice().forEach(applyAge);
 }
 
 function describeOveruseContext(context = {}) {
@@ -5926,11 +5996,90 @@ function makeAct({ name, nameKey = null, type, alignment, memberIds }) {
     type,
     alignment,
     memberIds,
+    status: "Active",
+    statusReason: null,
+    statusAt: state.time?.epochMs ?? Date.now(),
     promoWeeks: 0,
     lastPromoAt: null,
     promoTypesUsed: {},
     promoTypesLastAt: {}
   };
+}
+
+function setActStatus(act, status, reason = null, { log = true } = {}) {
+  if (!act) return null;
+  const next = status || "Active";
+  const prev = act.status || "Active";
+  if (prev === next && act.statusReason === reason) return act;
+  act.status = next;
+  act.statusReason = reason || null;
+  act.statusAt = state.time?.epochMs ?? Date.now();
+  if (log) {
+    const reasonNote = reason ? ` (${reason})` : "";
+    logEvent(`Act status: ${act.name} -> ${next}${reasonNote}.`);
+  }
+  return act;
+}
+
+function setActActive(act, reason = "Active") {
+  return setActStatus(act, "Active", reason, { log: true });
+}
+
+function setActLegacy(act, reason = "Legacy") {
+  return setActStatus(act, "Legacy", reason, { log: true });
+}
+
+function actHasSignedMembers(act) {
+  if (!act || !Array.isArray(act.memberIds)) return false;
+  return act.memberIds.some((id) => Boolean(getCreator(id)));
+}
+
+function legacySoloActsForCreator(creatorId, activeActId, { reason = "Legacy" } = {}) {
+  if (!creatorId) return;
+  state.acts.forEach((act) => {
+    if (!act || act.id === activeActId) return;
+    const actKind = resolveActKindFromType(act.type);
+    if (actKind !== "solo") return;
+    if (!Array.isArray(act.memberIds) || !act.memberIds.includes(creatorId)) return;
+    if (act.status !== "Legacy") {
+      setActLegacy(act, reason);
+    }
+  });
+}
+
+function applyActMemberLifecycle(act, { reason = "Lineup change", log = true } = {}) {
+  if (!act) return;
+  const members = Array.isArray(act.memberIds) ? act.memberIds.filter(Boolean) : [];
+  act.memberIds = members;
+  if (!members.length) {
+    setActLegacy(act, "Disbanded");
+    return;
+  }
+  const actKind = resolveActKindFromType(act.type);
+  if (actKind === "group" && members.length === 1) {
+    const remaining = getCreator(members[0]);
+    act.type = "Solo Act";
+    if (log) {
+      const name = remaining?.name || "Unknown";
+      logEvent(`Act disbanded: ${act.name} continues as Solo Act with ${name}.`, "warn");
+    }
+    legacySoloActsForCreator(members[0], act.id, { reason: "Solo Act superseded" });
+  }
+}
+
+function registerAct(act, { reason = "Created" } = {}) {
+  if (!act) return null;
+  if (!Array.isArray(state.acts)) state.acts = [];
+  if (!act.status) act.status = "Active";
+  if (!act.statusReason) act.statusReason = null;
+  if (!Number.isFinite(act.statusAt)) act.statusAt = state.time?.epochMs ?? Date.now();
+  state.acts.push(act);
+  const actKind = resolveActKindFromType(act.type);
+  if (actKind === "solo" && Array.isArray(act.memberIds) && act.memberIds[0]) {
+    legacySoloActsForCreator(act.memberIds[0], act.id, { reason: "Solo Act superseded" });
+  }
+  setActStatus(act, "Active", reason, { log: false });
+  return act;
 }
 
 // Keep lightweight indexes for fast lookups across UI and gameplay surfaces.
@@ -5993,13 +6142,13 @@ function seedActs() {
   const type = members.length > 1 ? "Group Act" : "Solo Act";
   const actKind = resolveActKindFromType(type);
   const actNameEntry = makeActNameEntry({ actKind, memberIds: members });
-  state.acts.push(makeAct({
+  registerAct(makeAct({
     name: actNameEntry.name,
     nameKey: actNameEntry.nameKey,
     type,
     alignment: state.label.alignment,
     memberIds: members
-  }));
+  }), { reason: "Seeded" });
 }
 
 function pickWeightedEntry(list) {
@@ -6063,7 +6212,9 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
   state.marketCreators = state.marketCreators.filter((creator) => creator && typeof creator === "object" && creator.role);
   state.marketCreators = state.marketCreators.map((creator) => {
     const next = normalizeCreator(creator);
-    applyMarketCreatorSkill(next);
+    if (!isLegacyMarketCreator(next)) {
+      applyMarketCreatorSkill(next);
+    }
     markCreatorUnsigned(next);
     next.signCost = computeSignCost(next);
     return next;
@@ -6071,7 +6222,7 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
   if (!replenish) return;
   const existing = () => [...state.creators.map((creator) => creator.name), ...state.marketCreators.map((creator) => creator.name)];
   MARKET_ROLES.forEach((role) => {
-    const current = state.marketCreators.filter((creator) => creator.role === role).length;
+    const current = state.marketCreators.filter((creator) => creator.role === role && !isLegacyMarketCreator(creator)).length;
     const missing = Math.max(0, MARKET_MIN_PER_ROLE - current);
     for (let i = 0; i < missing; i += 1) {
       const creator = normalizeCreator(makeCreator(role, existing(), null, options));
@@ -6085,8 +6236,22 @@ function ensureMarketCreators(options = {}, { replenish = true } = {}) {
 
 function refreshDailyMarket() {
   clearCreatorSignLockouts();
+  const legacy = Array.isArray(state.marketCreators)
+    ? state.marketCreators.filter((creator) => isLegacyMarketCreator(creator))
+    : [];
   state.marketCreators = buildMarketCreators();
   ensureMarketCreators();
+  if (legacy.length) {
+    const existingIds = new Set(state.marketCreators.map((creator) => creator.id));
+    legacy.forEach((creator) => {
+      if (existingIds.has(creator.id)) return;
+      const next = normalizeCreator(creator);
+      markCreatorUnsigned(next);
+      next.signCost = computeSignCost(next);
+      state.marketCreators.push(next);
+    });
+    ensureMarketCreators({}, { replenish: false });
+  }
   if (state.ui?.activeView === "world") {
     uiHooks.renderMarket?.();
   }
@@ -7234,6 +7399,7 @@ function startEraForAct({ actId, name, rolloutId, contentType, contentId, source
   };
   registerEraContent(era, contentType, contentId);
   state.era.active.push(era);
+  if (act) setActActive(act, "Era started");
   logEvent(`Era started: ${eraName}${source ? ` (${source})` : ""}.`);
   return era;
 }
@@ -7283,6 +7449,10 @@ function endEraById(eraId, reason) {
   archiveEra(era, "Ended");
   generateEraRolloutHusk(era);
   if (state.ui.focusEraId === era.id) state.ui.focusEraId = null;
+  const act = era.actId ? getAct(era.actId) : null;
+  if (act && !getLatestActiveEraForAct(act.id)) {
+    setActLegacy(act, reason ? `Era ended (${reason})` : "Era ended");
+  }
   const outcomeLabel = outcome?.outcome ? ` | Outcome: ${outcome.outcome}` : "";
   logEvent(`Era ended: ${era.name}${reason ? ` (${reason})` : ""}${outcomeLabel}.`);
   return era;
@@ -7632,7 +7802,11 @@ function creatorHasActiveWork(creatorId) {
 
 function detachCreatorFromContent(creatorId) {
   state.acts.forEach((act) => {
+    const before = Array.isArray(act.memberIds) ? act.memberIds.length : 0;
     act.memberIds = act.memberIds.filter((id) => id !== creatorId);
+    if (before !== act.memberIds.length) {
+      applyActMemberLifecycle(act, { reason: "Member departure", log: true });
+    }
   });
   state.tracks.forEach((track) => {
     if (!track.creators) return;
@@ -7665,11 +7839,13 @@ function detachCreatorFromContent(creatorId) {
 
 function returnCreatorToMarket(creator, reason) {
   if (!creator) return;
+  if (!isLegacyMarketCreator(creator)) {
+    logEvent(`${creator.name} left the label and despawned (${reason}).`, "warn");
+    return;
+  }
   const returned = normalizeCreator({
     ...creator,
     lastActivityAt: state.time.epochMs,
-    lastReleaseAt: null,
-    lastPromoAt: null,
     departurePending: null,
     overuseStrikes: 0,
     staminaSpentToday: 0,
@@ -8765,6 +8941,9 @@ function releaseTrack(track, note, distribution, { chargeFee = false } = {}) {
     ? { ...track.promo.typesLastAt }
     : {};
   const act = getAct(track.actId);
+  if (act && act.status === "Legacy" && actHasSignedMembers(act)) {
+    setActActive(act, "Release");
+  }
   const resolvedEra = era || (track.eraId ? getEraById(track.eraId) : null);
   const projectName = track.projectName || `${track.title} - Single`;
   const projectType = normalizeProjectType(track.projectType || "Single");
@@ -13314,37 +13493,66 @@ function archiveMarketTracks(entries) {
   const now = state.time?.epochMs || Date.now();
   const archived = entries
     .filter(Boolean)
-    .map((entry) => ({
-      id: entry.id || entry.trackId || uid("MKA"),
-      trackId: entry.trackId || null,
-      title: entry.title || "",
-      label: entry.label || "",
-      actId: entry.actId || null,
-      actName: entry.actName || "",
-      actNameKey: entry.actNameKey || null,
-      projectName: entry.projectName || "",
-      projectType: normalizeProjectType(entry.projectType || "Single"),
-      releasedAt: entry.releasedAt || now,
-      archivedAt: now,
-      theme: entry.theme || "",
-      mood: entry.mood || "",
-      alignment: entry.alignment || "",
-      quality: Number.isFinite(entry.quality) ? entry.quality : 0,
-      qualityBase: Number.isFinite(entry.qualityBase) ? entry.qualityBase : (Number.isFinite(entry.quality) ? entry.quality : 0),
-      qualityFinal: Number.isFinite(entry.qualityFinal) ? entry.qualityFinal : (Number.isFinite(entry.quality) ? entry.quality : 0),
-      genre: entry.genre || "",
-      distribution: entry.distribution || "Digital",
-      trendAtRelease: Boolean(entry.trendAtRelease),
-      isPlayer: Boolean(entry.isPlayer),
-      country: entry.country || "",
-      actCountry: entry.actCountry || null,
-      creatorCountries: Array.isArray(entry.creatorCountries) ? entry.creatorCountries.slice() : [],
-      criticScore: Number.isFinite(entry.criticScore) ? entry.criticScore : null,
-      criticGrade: typeof entry.criticGrade === "string" ? entry.criticGrade : null,
-      criticDelta: Number.isFinite(entry.criticDelta) ? entry.criticDelta : null,
-      criticScores: entry.criticScores && typeof entry.criticScores === "object" ? { ...entry.criticScores } : null,
-      chartHistory: entry.chartHistory || {},
-    }));
+    .map((entry) => {
+      const chartHistory = entry.chartHistory && typeof entry.chartHistory === "object" ? entry.chartHistory : {};
+      const hasChartHistory = Object.values(chartHistory).some((history) => (
+        Number.isFinite(history?.peak) || Number.isFinite(history?.weeks)
+      ));
+      const base = {
+        id: entry.id || entry.trackId || uid("MKA"),
+        trackId: entry.trackId || null,
+        title: entry.title || "",
+        label: entry.label || "",
+        actId: entry.actId || null,
+        actName: entry.actName || "",
+        actNameKey: entry.actNameKey || null,
+        projectName: entry.projectName || "",
+        projectType: normalizeProjectType(entry.projectType || "Single"),
+        releasedAt: entry.releasedAt || now,
+        archivedAt: now,
+        theme: entry.theme || "",
+        mood: entry.mood || "",
+        alignment: entry.alignment || "",
+        quality: Number.isFinite(entry.quality) ? entry.quality : 0,
+        genre: entry.genre || "",
+        distribution: entry.distribution || "Digital",
+        trendAtRelease: Boolean(entry.trendAtRelease),
+        trendRankAtRelease: Number.isFinite(entry.trendRankAtRelease) ? entry.trendRankAtRelease : null,
+        trendTotalAtRelease: Number.isFinite(entry.trendTotalAtRelease) ? entry.trendTotalAtRelease : null,
+        huskId: entry.huskId || null,
+        huskSource: entry.huskSource || null,
+        rolloutPlanId: entry.rolloutPlanId || null,
+        rolloutPlanSource: entry.rolloutPlanSource || null,
+        rolloutFocusType: entry.rolloutFocusType || null,
+        rolloutFocusId: entry.rolloutFocusId || null,
+        rolloutFocusLabel: entry.rolloutFocusLabel || null,
+        isPlayer: Boolean(entry.isPlayer),
+        country: entry.country || "",
+        actCountry: entry.actCountry || null,
+        creatorCountries: Array.isArray(entry.creatorCountries) ? entry.creatorCountries.slice() : [],
+        chartHistory: hasChartHistory ? chartHistory : {}
+      };
+      if (!hasChartHistory) {
+        return {
+          ...base,
+          criticScore: Number.isFinite(entry.criticScore) ? entry.criticScore : null,
+          criticGrade: typeof entry.criticGrade === "string" ? entry.criticGrade : null
+        };
+      }
+      return {
+        ...base,
+        qualityBase: Number.isFinite(entry.qualityBase)
+          ? entry.qualityBase
+          : (Number.isFinite(entry.quality) ? entry.quality : 0),
+        qualityFinal: Number.isFinite(entry.qualityFinal)
+          ? entry.qualityFinal
+          : (Number.isFinite(entry.quality) ? entry.quality : 0),
+        criticScore: Number.isFinite(entry.criticScore) ? entry.criticScore : null,
+        criticGrade: typeof entry.criticGrade === "string" ? entry.criticGrade : null,
+        criticDelta: Number.isFinite(entry.criticDelta) ? entry.criticDelta : null,
+        criticScores: entry.criticScores && typeof entry.criticScores === "object" ? { ...entry.criticScores } : null
+      };
+    });
   archived.forEach((entry) => {
     if (!entry.trackId || !entry.isPlayer) return;
     const track = getTrack(entry.trackId);
@@ -16923,6 +17131,41 @@ function selectHuskForRival(rival, husks) {
   return eligible[0];
 }
 
+function buildRolloutPlanAdoptionOdds(plans = listRolloutPlanLibrary(), rivals = state.rivals, trends = state.trends) {
+  const planList = Array.isArray(plans) ? plans.filter(Boolean) : [];
+  const rivalList = Array.isArray(rivals) ? rivals.filter(Boolean) : [];
+  const trendList = Array.isArray(trends) ? trends : [];
+  const oddsByPlanId = new Map(planList.map((plan) => [plan.id, []]));
+  rivalList.forEach((rival) => {
+    const scoredPlans = planList.map((plan) => {
+      const scored = scoreHuskForRival(plan, rival, trendList);
+      return {
+        planId: plan.id,
+        score: Number.isFinite(scored?.score) ? scored.score : 0,
+        eligible: Boolean(scored?.eligible),
+        why: scored?.why || "why: planning score",
+        blockers: Array.isArray(scored?.blockers) ? scored.blockers : []
+      };
+    });
+    const eligible = scoredPlans.filter((entry) => entry.eligible && entry.score > 0);
+    const totalScore = eligible.reduce((sum, entry) => sum + entry.score, 0);
+    scoredPlans.forEach((entry) => {
+      const chance = totalScore > 0 && entry.eligible ? entry.score / totalScore : 0;
+      const list = oddsByPlanId.get(entry.planId);
+      if (!list) return;
+      list.push({
+        rivalId: rival.id || rival.name,
+        rivalName: rival.name || "Rival",
+        chance,
+        eligible: entry.eligible,
+        why: entry.why,
+        blockers: entry.blockers
+      });
+    });
+  });
+  return { oddsByPlanId, rivals: rivalList.map((rival) => ({ id: rival.id || rival.name, name: rival.name })) };
+}
+
 function huskWindowWeeks(husk) {
   const steps = normalizeHuskCadence(husk?.cadence);
   if (!steps.length) return 1;
@@ -19356,6 +19599,8 @@ async function onYearTick(year) {
   logEvent(`Population update: Year ${year}.`);
   advanceAudienceChunksYear(year);
   logEvent(`Audience chunks updated for Year ${year}.`);
+  advanceCreatorAgesYear(year);
+  logEvent(`Creator rosters aged for Year ${year}.`);
   // Recompute charts and label scores to determine annual leader
   const { globalScores } = await computeCharts();
   const labelScores = computeLabelScoresFromCharts();
@@ -21613,7 +21858,8 @@ function normalizeState() {
     && state.ui.chartContentType !== "promotions"
     && state.ui.chartContentType !== "tours"
     && state.ui.chartContentType !== "acts"
-    && state.ui.chartContentType !== "demographics") {
+    && state.ui.chartContentType !== "demographics"
+    && state.ui.chartContentType !== "rollouts") {
     state.ui.chartContentType = "tracks";
   }
   if (state.ui.chartPulseContentType !== "tracks"
@@ -21963,10 +22209,14 @@ function normalizeState() {
   state.acts = state.acts.filter(Boolean).map((act) => {
     if (!Array.isArray(act.memberIds)) act.memberIds = [];
     if (typeof act.nameKey !== "string") act.nameKey = act.nameKey || null;
+    if (typeof act.status !== "string" || !["Active", "Legacy"].includes(act.status)) act.status = "Active";
+    if (typeof act.statusReason !== "string") act.statusReason = act.statusReason || null;
+    if (typeof act.statusAt !== "number") act.statusAt = state.time?.epochMs ?? Date.now();
     if (typeof act.promoWeeks !== "number") act.promoWeeks = 0;
     if (typeof act.lastPromoAt !== "number") act.lastPromoAt = null;
     if (!act.promoTypesUsed || typeof act.promoTypesUsed !== "object") act.promoTypesUsed = {};
     if (!act.promoTypesLastAt || typeof act.promoTypesLastAt !== "object") act.promoTypesLastAt = {};
+    applyActMemberLifecycle(act, { log: false });
     return act;
   });
   if (!state.creators) state.creators = [];
@@ -22063,6 +22313,7 @@ function normalizeState() {
   state.meta.difficulty = normalizeDifficultyId(state.meta.difficulty);
   if (typeof state.meta.questIdCounter !== "number") state.meta.questIdCounter = 0;
   if (!Array.isArray(state.meta.marketTrackArchive)) state.meta.marketTrackArchive = [];
+  if (!Array.isArray(state.meta.memorializedCreators)) state.meta.memorializedCreators = [];
   if (!Array.isArray(state.meta.annualAwards)) state.meta.annualAwards = [];
   state.meta.annualAwards = state.meta.annualAwards.filter(Boolean).map((entry) => {
     if (!entry || typeof entry !== "object") return null;
@@ -22774,6 +23025,8 @@ function normalizeState() {
       if (typeof entry.trendAtRelease !== "boolean") entry.trendAtRelease = false;
       if (!Number.isFinite(entry.trendRankAtRelease)) entry.trendRankAtRelease = null;
       if (!Number.isFinite(entry.trendTotalAtRelease)) entry.trendTotalAtRelease = null;
+      if (typeof entry.huskId !== "string") entry.huskId = entry.huskId || null;
+      if (typeof entry.huskSource !== "string") entry.huskSource = entry.huskSource || null;
       if (typeof entry.rolloutPlanId !== "string") entry.rolloutPlanId = entry.rolloutPlanId || null;
       if (typeof entry.rolloutPlanSource !== "string") entry.rolloutPlanSource = entry.rolloutPlanSource || null;
       if (typeof entry.rolloutFocusType !== "string") entry.rolloutFocusType = entry.rolloutFocusType || null;
@@ -23877,6 +24130,7 @@ export {
   attemptSignCreator,
   buildCalendarProjection,
   buildLabelAchievementProgress,
+  buildRolloutPlanAdoptionOdds,
   bookTourDate,
   buildPromoProjectKey,
   buildPromoProjectKeyFromTrack,
@@ -24040,6 +24294,7 @@ export {
   makeProjectTitle,
   makeTrackTitle,
   markCreatorPromo,
+  registerAct,
   recordPromoUsage,
   recordTrackPromoCost,
   recordPromoContent,

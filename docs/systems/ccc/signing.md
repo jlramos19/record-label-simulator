@@ -17,6 +17,11 @@
 - Sign buttons disable when wallet cash is short and show "(not enough money)" in the label.
 - Creator cards reserve a fixed 2:3 portrait placeholder for head-and-shoulders art.
 
+## Retention + lifecycle
+- Daily CCC refreshes despawn unsigned creators who have no signed-release or promo history (disposable pool).
+- Previously signed creators with release or promo history remain in the CCC when unsigned, preserving their IDs.
+- Unsigned creators continue aging yearly and can retire; IDs are memorialized at age 120.
+
 ## Catharsis (CCC)
 - Catharsis is derived from skill and current stamina; higher skill keeps the catharsis floor higher even when stamina is low.
 - Stamina still governs speed/throughput checks; catharsis weights content quality and modifiers.

@@ -7,6 +7,7 @@ Classify completed Eras as Flop, Mid, Successful, or Iconic using released conte
 - Released tracks tied to the Era.
 - Track economy totals: revenue, production cost, distribution fees, promo spend.
 - Dominant alignment from Era tracks (fallback: Act, then Label alignment).
+- Non-charting releases still count toward the Era outcome; chart positions surface as DNC/- in performance panels.
 
 ## Rules
 - If no released tracks or profit < 0 -> Flop.
