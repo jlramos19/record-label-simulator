@@ -25,7 +25,8 @@ Auto promo uses a percentage-based allocation of the label wallet cash to fund p
 
 ## AI rules
 - Rival labels schedule promo events via the rollout plan planner (primary path).
-- If no rollout plan promo is scheduled for the upcoming week, rivals may fall back to auto promo on their most recent released track without active promo weeks.
+- If no rollout plan promo is scheduled for the upcoming week, rivals fall back to auto promo on their most recent scheduled or released track without active promo weeks (scheduled releases bank pre-release momentum; unscheduled/unreleased content is ignored).
+- Rival auto promo respects facility slot limits.
 - AI promo budgets use a fixed wallet-percentage rule (default 5% of wallet cash) and ignore player auto promo settings.
 
 ## Related

@@ -860,6 +860,9 @@ body::before {
   .split-handle {
     display: none;
   }
+  .acts-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .view--create .panel[data-panel="create-trends"] {
   flex: 0 0 auto;
@@ -1511,6 +1514,22 @@ body::before {
   overflow: auto;
 }
 .list { display: grid; gap: 8px; }
+.acts-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+}
+.acts-layout .panel { min-height: 0; }
+.act-list-stack {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+}
+.act-list-stack .act-grid {
+  max-height: none;
+  overflow: visible;
+}
 .act-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   align-items: start;
@@ -2360,6 +2379,26 @@ select.theme-select {
   margin-top: auto;
   display: grid;
   gap: 8px;
+}
+.create-stage-action-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 10px;
+  border: var(--line-width) solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-1);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+.create-stage-action-bar .create-stage-actions {
+  margin-top: 0;
+  padding: 8px;
+  border-radius: 10px;
+  border: var(--line-width) solid var(--line);
+  background: var(--surface-1-strong);
 }
 .stage-start-btn {
   width: 100%;

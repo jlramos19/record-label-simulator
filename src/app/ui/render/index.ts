@@ -79,6 +79,7 @@ import {
   getCreatorStaminaSpentToday,
   getEraById,
   getFocusedEra,
+  resolveEraStageDisplay,
   getGameDifficulty,
   getGameMode,
   getLabelRanking,
@@ -258,6 +259,51 @@ function formatPlanFocusLine(plan) {
   return label ? `${type}: ${label}` : type;
 }
 
+function promoTypeLabel(typeId) {
+  if (!typeId) return "Promo";
+  return PROMO_TYPE_DETAILS[typeId]?.label || typeId;
+}
+
+function buildPromoFocusLabel(typeId) {
+  return `${promoTypeLabel(typeId)} focus`;
+}
+
+function getPlanPrimaryPromoType(plan) {
+  const promos = Array.isArray(plan?.eligibleCategories?.promos) ? plan.eligibleCategories.promos.filter(Boolean) : [];
+  if (promos.length) return promos[0];
+  const cadencePromos = Array.isArray(plan?.cadence)
+    ? plan.cadence.filter((step) => step?.kind === "promo").map((step) => step?.promoType).filter(Boolean)
+    : [];
+  return cadencePromos[0] || null;
+}
+
+function shouldStandardizePlanLabel(plan) {
+  if (!plan) return false;
+  const source = String(plan.source || "");
+  const label = String(plan.label || "").toLowerCase();
+  const hasBanned = ["pulse", "blitz"].some((term) => label.includes(term));
+  if (hasBanned) return true;
+  if (source === "starter" || source === "template") {
+    return !label.includes("focus");
+  }
+  return false;
+}
+
+function formatPlanLabel(plan) {
+  const rawLabel = typeof plan?.label === "string" ? plan.label.trim() : "";
+  const promoType = getPlanPrimaryPromoType(plan);
+  const focusLabel = promoType ? buildPromoFocusLabel(promoType) : "";
+  if (shouldStandardizePlanLabel(plan) && focusLabel) {
+    const cadence = Array.isArray(plan?.cadence) ? plan.cadence : [];
+    const dropCount = cadence.filter((step) => step.kind === "release").length;
+    const detail = dropCount ? ` (${formatCount(dropCount)} drop${dropCount === 1 ? "" : "s"})` : "";
+    return `${focusLabel}${detail}`;
+  }
+  if (rawLabel) return rawLabel;
+  if (focusLabel) return focusLabel;
+  return plan?.id || "Rollout Plan";
+}
+
 function renderPlanUsageLine(plan) {
   const usage = plan?.usage;
   if (!usage) return `<div class="muted">Usage: No tracked releases yet.</div>`;
@@ -323,12 +369,17 @@ function uniqueStrings(list) {
   return Array.from(new Set(list.filter(Boolean)));
 }
 
-function renderPlanPreferenceLine(plan) {
+function getPlanPreferenceSignals(plan) {
   const context = plan?.context || {};
   const alignmentTags = Array.isArray(context.alignmentTags) ? context.alignmentTags.filter(Boolean) : [];
   const trendTags = Array.isArray(context.trendTags) ? context.trendTags.filter(Boolean) : [];
   const themes = uniqueStrings(trendTags.map((tag) => themeFromGenre(tag)).filter(Boolean));
   const moods = uniqueStrings(trendTags.map((tag) => moodFromGenre(tag)).filter(Boolean));
+  return { alignmentTags, themes, moods };
+}
+
+function renderPlanPreferenceLine(plan) {
+  const { alignmentTags, themes, moods } = getPlanPreferenceSignals(plan);
   const parts = [];
   if (alignmentTags.length) parts.push(`Alignment: ${alignmentTags.join(", ")}`);
   if (themes.length) parts.push(`Themes: ${themes.join(", ")}`);
@@ -381,11 +432,141 @@ function renderPlanAdoptionOdds(planId, oddsByPlanId) {
   return `<div class="muted">Adoption odds:</div>${lines}`;
 }
 
+function renderRolloutAnalyticsTable({
+  title,
+  headers,
+  rows,
+  emptyMessage = "No data yet."
+} = {}) {
+  const safeHeaders = Array.isArray(headers) ? headers : [];
+  const headCells = safeHeaders.map((label) => `<th>${label}</th>`).join("");
+  const rowList = Array.isArray(rows) ? rows : [];
+  const body = rowList.length
+    ? rowList.map((cells) => `<tr>${cells.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")
+    : `<tr class="chart-empty"><td colspan="${Math.max(1, safeHeaders.length)}"><div class="item-title">${emptyMessage}</div></td></tr>`;
+  return `
+    <div class="rollout-analytics-section">
+      <div class="subhead">${title}</div>
+      <div class="chart-table-wrap">
+        <table class="chart-table rollout-analytics-table">
+          <thead><tr>${headCells}</tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderPlanUsageTable(plan) {
+  const usage = plan?.usage || {};
+  const labels = Array.isArray(usage.labels) ? usage.labels.filter(Boolean) : [];
+  const listed = labels.slice(0, 3);
+  const overflow = labels.length - listed.length;
+  const labelLine = listed.length ? `${listed.join(", ")}${overflow > 0 ? ` +${overflow} more` : ""}` : "-";
+  const releaseCount = Number.isFinite(usage.releaseCount) && usage.releaseCount > 0
+    ? formatCount(usage.releaseCount)
+    : "-";
+  const lastUsed = Number.isFinite(usage.lastUsedAt) ? formatShortDate(usage.lastUsedAt) : "-";
+  const hasData = releaseCount !== "-" || lastUsed !== "-" || labelLine !== "-";
+  const rows = hasData ? [[releaseCount, lastUsed, labelLine]] : [];
+  return renderRolloutAnalyticsTable({
+    title: "Label Usage",
+    headers: ["Releases", "Last Used", "Labels"],
+    rows,
+    emptyMessage: "No tracked releases yet."
+  });
+}
+
+function renderPlanContributionTable(plan) {
+  const context = plan?.context || {};
+  const outcomes = context.outcomes || {};
+  const outcomeScore = Number.isFinite(context.outcomeScore) && context.outcomeScore > 0
+    ? formatCount(Math.round(context.outcomeScore))
+    : "-";
+  const releaseCount = Number.isFinite(outcomes.releaseCount) && outcomes.releaseCount > 0
+    ? formatCount(outcomes.releaseCount)
+    : "-";
+  const avgPeak = Number.isFinite(outcomes.avgPeak) && outcomes.avgPeak > 0
+    ? `#${Math.round(outcomes.avgPeak)}`
+    : "-";
+  const avgWeeks = Number.isFinite(outcomes.avgWeeksOnChart) && outcomes.avgWeeksOnChart > 0
+    ? formatCount(Math.round(outcomes.avgWeeksOnChart))
+    : "-";
+  const avgQuality = Number.isFinite(outcomes.avgQuality) && outcomes.avgQuality > 0
+    ? formatCount(Math.round(outcomes.avgQuality))
+    : "-";
+  const hasData = [releaseCount, avgPeak, avgWeeks, avgQuality, outcomeScore].some((value) => value !== "-");
+  const rows = hasData ? [[releaseCount, avgPeak, avgWeeks, avgQuality, outcomeScore]] : [];
+  return renderRolloutAnalyticsTable({
+    title: "Era Contribution",
+    headers: ["Releases", "Avg Peak", "Avg Weeks", "Avg Quality", "Score"],
+    rows,
+    emptyMessage: "No tracked outcomes yet."
+  });
+}
+
+function renderPlanPreferenceTable(plan) {
+  const { alignmentTags, themes, moods } = getPlanPreferenceSignals(plan);
+  const alignmentLine = alignmentTags.length ? alignmentTags.join(", ") : "-";
+  const themeLine = themes.length ? themes.join(", ") : "-";
+  const moodLine = moods.length ? moods.join(", ") : "-";
+  const hasSignals = alignmentLine !== "-" || themeLine !== "-" || moodLine !== "-";
+  const rows = hasSignals ? [[alignmentLine, themeLine, moodLine]] : [];
+  return renderRolloutAnalyticsTable({
+    title: "Alignment & Preferences",
+    headers: ["Alignment", "Themes", "Moods"],
+    rows,
+    emptyMessage: "No preference signals yet."
+  });
+}
+
+function renderPlanCadenceTable(plan) {
+  const cadence = Array.isArray(plan?.cadence) ? plan.cadence : [];
+  const releaseCount = cadence.filter((step) => step.kind === "release").length;
+  const promoCount = cadence.filter((step) => step.kind === "promo").length;
+  const windowWeeks = cadence.length ? Math.max(...cadence.map((step) => step.weekOffset || 0)) + 1 : 0;
+  const releases = Array.isArray(plan?.eligibleCategories?.releases) ? plan.eligibleCategories.releases : [];
+  const promos = Array.isArray(plan?.eligibleCategories?.promos) ? plan.eligibleCategories.promos : [];
+  const promoLabels = promos.map((promo) => promoTypeLabel(promo));
+  const rows = cadence.length || releases.length || promos.length
+    ? [[
+      formatCount(releaseCount || 0),
+      formatCount(promoCount || 0),
+      windowWeeks ? `${formatCount(windowWeeks)}w` : "-",
+      releases.length ? releases.join(", ") : "-",
+      promoLabels.length ? promoLabels.join(", ") : "-"
+    ]]
+    : [];
+  return renderRolloutAnalyticsTable({
+    title: "Content Output",
+    headers: ["Drops", "Promos", "Window", "Release Types", "Promo Types"],
+    rows,
+    emptyMessage: "No cadence data yet."
+  });
+}
+
+function renderPlanAdoptionTable(planId, oddsByPlanId) {
+  const entries = oddsByPlanId?.get(planId) || [];
+  const rows = entries.map((entry) => {
+    const pct = Math.round((entry.chance || 0) * 100);
+    const reason = entry.eligible
+      ? entry.why
+      : `blocked: ${formatPlanBlockers(entry.blockers) || "gate failed"}`;
+    return [entry.rivalName || "Rival", `${pct}%`, reason];
+  });
+  return renderRolloutAnalyticsTable({
+    title: "Rival Adoption Odds",
+    headers: ["Label", "Chance", "Why"],
+    rows,
+    emptyMessage: "No rival labels available."
+  });
+}
+
 function renderPlanLibraryList(plans) {
   const list = Array.isArray(plans) ? plans : [];
   if (!list.length) return `<div class="muted">No rollout plans captured yet.</div>`;
   return list.map((plan) => {
-    const label = plan.label || plan.id || "Rollout Plan";
+    const label = formatPlanLabel(plan);
     const focusLine = formatPlanFocusLine(plan);
     const source = plan.source || "Unknown";
     return `
@@ -1487,7 +1668,8 @@ function renderFocusEraStatus() {
   const act = displayEra ? getAct(displayEra.actId) : null;
   const actName = act ? act.name : null;
   const actLabel = act ? renderActName(act) : "";
-  const stageName = displayEra ? ERA_STAGES[displayEra.stageIndex] || "Active" : "";
+  const stageMeta = displayEra ? resolveEraStageDisplay(displayEra) : null;
+  const stageName = stageMeta?.display || "";
   const baseLabel = displayEra
     ? `${displayEra.name}${actLabel ? ` (${actLabel})` : ""}${stageName ? ` | ${stageName}` : ""}`
     : "";
@@ -1517,9 +1699,11 @@ function renderFocusEraStatus() {
   if (headerEl) {
     headerEl.innerHTML = headerLabel;
     if (displayEra) {
-      const stageName = ERA_STAGES[displayEra.stageIndex] || "Active";
       const actTitle = act ? formatActNamePlain(act) : "Unknown";
-      headerEl.title = `Act: ${actTitle} | Stage: ${stageName}`;
+      const stageTitle = stageMeta?.display || "Active";
+      const extraSignals = stageMeta?.signalLabels?.filter((label) => label !== stageMeta.base) || [];
+      const signalNote = extraSignals.length ? ` | Signals: ${extraSignals.join(", ")}` : "";
+      headerEl.title = `Act: ${actTitle} | Stage: ${stageTitle}${signalNote}`;
     } else {
       headerEl.title = "";
     }
@@ -2435,7 +2619,8 @@ function renderDashboard() {
       eraList.innerHTML = `<div class="muted">No active eras.</div>`;
     } else {
       eraList.innerHTML = activeEras.map((era) => {
-        const stageName = ERA_STAGES[era.stageIndex] || "Active";
+        const stageMeta = resolveEraStageDisplay(era);
+        const stageName = stageMeta.display || (ERA_STAGES[era.stageIndex] || "Active");
         const stageWeeks = era.rolloutWeeks || ROLLOUT_PRESETS[1].weeks;
         const stageTotal = stageWeeks[era.stageIndex] || 0;
         const weeksElapsed = Number.isFinite(era.weeksElapsed) ? era.weeksElapsed : 0;
@@ -2936,7 +3121,8 @@ function renderPromoAlerts() {
   }
   const act = getAct(displayEra.actId);
   const actLabel = act ? renderActName(act) : "";
-  const stageName = ERA_STAGES[displayEra.stageIndex] || "Active";
+  const stageMeta = resolveEraStageDisplay(displayEra);
+  const stageName = stageMeta.display || (ERA_STAGES[displayEra.stageIndex] || "Active");
   const eraLabel = `${displayEra.name}${actLabel ? ` (${actLabel})` : ""} | ${stageName}`;
   const now = state.time.epochMs;
   const tracks = state.tracks.filter((track) => track.eraId === displayEra.id)
@@ -3027,8 +3213,13 @@ async function updateSaveStatusPanel(root) {
   const autoLabel = scope.querySelector("#saveAutoLabel");
   const autoLast = scope.querySelector("#saveAutoLastLabel");
   const savedAt = state.meta?.savedAt;
+  const lastFailedAt = session.lastSaveFailedAt;
   if (lastLabel) {
-    lastLabel.textContent = savedAt ? `Last saved: ${formatDate(savedAt)}` : "Last saved: Never";
+    if (lastFailedAt) {
+      lastLabel.textContent = `Last save failed: ${formatDate(lastFailedAt)}`;
+    } else {
+      lastLabel.textContent = savedAt ? `Last saved: ${formatDate(savedAt)}` : "Last saved: Never";
+    }
   }
   const autoSave = state.meta?.autoSave;
   if (autoLabel) {
@@ -3039,23 +3230,41 @@ async function updateSaveStatusPanel(root) {
     const lastAuto = autoSave?.lastSavedAt;
     autoLast.textContent = lastAuto ? `Last auto save: ${formatDate(lastAuto)}` : "Last auto save: Pending";
   }
-  if (targetLabel) targetLabel.textContent = "Save target: Local storage";
-  if (targetDetail) targetDetail.textContent = "External storage not configured.";
+  const localDisabled = session.localStorageDisabled;
+  const localReason = session.localStorageDisabledReason;
+  const localIssue = localDisabled
+    ? (localReason === "quota" ? "Local storage full." : "Local storage unavailable.")
+    : "";
+  const withLocalIssue = (detail) => (localIssue ? `${localIssue} ${detail}` : detail);
+  if (targetLabel) {
+    targetLabel.textContent = localDisabled ? "Save target: External storage" : "Save target: Local storage";
+  }
+  if (targetDetail) targetDetail.textContent = withLocalIssue("External storage not configured.");
   if (typeof window === "undefined") return;
+  const saveBtn = scope.querySelector("#menuSaveBtn");
+  let externalReady = false;
   try {
     const status = await getExternalStorageStatus();
     if (status?.supported === false) {
-      if (targetDetail) targetDetail.textContent = "External storage not supported in this browser.";
+      if (targetDetail) targetDetail.textContent = withLocalIssue("External storage not supported in this browser.");
     } else if (status?.status === "ready") {
       if (targetLabel) targetLabel.textContent = `Save target: ${status.name || "External folder"}`;
-      if (targetDetail) targetDetail.textContent = "External storage ready.";
+      if (targetDetail) targetDetail.textContent = withLocalIssue("External storage ready.");
+      externalReady = true;
     } else if (status?.status === "not-set") {
-      if (targetDetail) targetDetail.textContent = "External folder not selected.";
+      if (targetDetail) targetDetail.textContent = withLocalIssue("External folder not selected.");
     } else if (status?.status) {
-      if (targetDetail) targetDetail.textContent = `External storage permission: ${status.status}.`;
+      if (targetDetail) targetDetail.textContent = withLocalIssue(`External storage permission: ${status.status}.`);
     }
   } catch {
-    if (targetDetail) targetDetail.textContent = "Unable to read external storage status.";
+    if (targetDetail) targetDetail.textContent = withLocalIssue("Unable to read external storage status.");
+  }
+  if (saveBtn) {
+    const saveBlocked = localDisabled && !externalReady;
+    saveBtn.disabled = !session.activeSlot || saveBlocked;
+    if (saveBlocked && targetDetail) {
+      targetDetail.textContent = withLocalIssue("Saving disabled until External Storage is ready.");
+    }
   }
 }
 
@@ -4036,7 +4245,9 @@ function renderActiveArea() {
   let era = "No active eras";
   if (activeEras.length === 1) {
     const active = activeEras[0];
-    era = `${active.name} (${ERA_STAGES[active.stageIndex] || "Active"})`;
+    const stageMeta = resolveEraStageDisplay(active);
+    const stageName = stageMeta.display || (ERA_STAGES[active.stageIndex] || "Active");
+    era = `${active.name} (${stageName})`;
   } else if (activeEras.length > 1) {
     const names = activeEras.slice(0, 2).map((entry) => entry.name).join(", ");
     const extra = activeEras.length > 2 ? ` +${activeEras.length - 2}` : "";
@@ -4103,18 +4314,18 @@ function renderRolloutStrategyAnalytics() {
   const adoption = buildRolloutPlanAdoptionOdds(planLibrary);
   const oddsByPlanId = adoption?.oddsByPlanId || new Map();
   const cards = planLibrary.map((plan) => {
-    const label = plan.label || plan.id || "Rollout Plan";
+    const label = formatPlanLabel(plan);
     const focusLine = formatPlanFocusLine(plan);
     const source = plan.source || "Unknown";
     return `
       <div class="list-item">
         <div class="item-title">${label}</div>
         <div class="muted">Focus: ${focusLine} | Source: ${source}</div>
-        ${renderPlanUsageLine(plan)}
-        ${renderPlanPreferenceLine(plan)}
-        ${renderPlanCadenceLine(plan)}
-        ${renderPlanContextLines(plan.context)}
-        ${renderPlanAdoptionOdds(plan.id, oddsByPlanId)}
+        ${renderPlanUsageTable(plan)}
+        ${renderPlanContributionTable(plan)}
+        ${renderPlanPreferenceTable(plan)}
+        ${renderPlanCadenceTable(plan)}
+        ${renderPlanAdoptionTable(plan.id, oddsByPlanId)}
       </div>
     `;
   }).join("");
@@ -4747,16 +4958,50 @@ function renderCalendarDayDetail(dayStartTs) {
 function renderActs() {
   const actList = $("actList");
   if (!actList) return;
+  const activeActList = $("activeActList");
+  const inactiveActList = $("inactiveActList");
   if (!state.acts.length) {
+    if (activeActList && inactiveActList) {
+      activeActList.innerHTML = `<div class="muted">No active acts yet.</div>`;
+      inactiveActList.innerHTML = `<div class="muted">No inactive acts yet.</div>`;
+      return;
+    }
     actList.innerHTML = `<div class="muted">No acts yet.</div>`;
     return;
   }
+  const masteredTracks = Array.isArray(state.tracks)
+    ? state.tracks.filter((track) => track.status === "Ready" && track.actId)
+    : [];
+  const readinessByAct = new Map();
+  masteredTracks.forEach((track) => {
+    const actId = track.actId;
+    if (!actId) return;
+    if (!readinessByAct.has(actId)) {
+      readinessByAct.set(actId, { total: 0, projects: new Map() });
+    }
+    const entry = readinessByAct.get(actId);
+    entry.total += 1;
+    const rawProjectName = String(track.projectName || "").trim();
+    const normalizedProject = rawProjectName ? normalizeProjectName(rawProjectName) : "";
+    const fallbackSingle = normalizeProjectName(`${track.title || "Untitled"} - Single`);
+    const projectType = normalizeProjectType(track.projectType || "Single");
+    const isCustomProject = normalizedProject && normalizedProject !== fallbackSingle;
+    if ((projectType !== "Single" || isCustomProject) && normalizedProject) {
+      const stored = entry.projects.get(normalizedProject) || { name: rawProjectName, count: 0, type: projectType };
+      stored.count += 1;
+      entry.projects.set(normalizedProject, stored);
+    }
+  });
   const selectedActId = state.ui?.trackSlots?.actId || null;
-  const list = state.acts.map((act) => {
+  const renderActCard = (act) => {
     const activeEras = getActiveEras().filter((era) => era.actId === act.id && era.status === "Active");
     const historyCount = state.era.history.filter((era) => era.actId === act.id).length;
     const eraLabel = activeEras.length
-      ? activeEras.map((era) => `${era.name} (${ERA_STAGES[era.stageIndex] || "Active"})`).join(", ")
+      ? activeEras.map((era) => {
+        const stageMeta = resolveEraStageDisplay(era);
+        const stageName = stageMeta.display || (ERA_STAGES[era.stageIndex] || "Active");
+        return `${era.name} (${stageName})`;
+      }).join(", ")
       : "None";
     const eraLine = historyCount ? `${eraLabel} | Past ${historyCount}` : eraLabel;
     const members = act.memberIds
@@ -4766,6 +5011,17 @@ function renderActs() {
       .filter(Boolean)
       .join(", ");
     const inputId = `act-rename-${act.id}`;
+    const readiness = readinessByAct.get(act.id) || { total: 0, projects: new Map() };
+    let topProject = null;
+    readiness.projects.forEach((project) => {
+      if (!topProject || project.count > topProject.count) topProject = project;
+    });
+    const hasActiveEra = activeEras.length > 0;
+    const albumReady = !hasActiveEra && topProject && topProject.count >= 8;
+    const projectLabel = topProject
+      ? `${renderProjectName(topProject.name)} (${formatCount(topProject.count)})`
+      : "None";
+    const readinessLine = `Mastered tracks: ${formatCount(readiness.total)} | Project: ${projectLabel}`;
     const actKind = normalizeActKind(act.actKind || act.actType || act.type);
     const typeLabel = actKind === "group" ? "Group" : actKind === "solo" ? "Solo" : (act.type || "Act");
     const plainName = formatActNamePlain(act) || act.name || "Act";
@@ -4790,6 +5046,16 @@ function renderActs() {
             </div>
             <div class="muted">Members: ${members || "None"}</div>
             <div class="muted">Active Era: ${eraLine}</div>
+            <div class="muted">${readinessLine}</div>
+            ${albumReady
+              ? `
+                <div class="actions">
+                  <button type="button" class="ghost mini" data-act-start-era="${act.id}">Album ready: Start Era</button>
+                </div>
+                <div class="tiny muted" title="Eras require an active project/album run; albums begin at 8 tracks.">Eras require an active project/album run; albums begin at 8 tracks.</div>
+              `
+              : ""
+            }
           </div>
           <div class="act-actions">
             <button type="button" class="ghost mini" data-act-set="${act.id}">Assign Slot</button>
@@ -4804,8 +5070,22 @@ function renderActs() {
         </div>
       </div>
     `;
-  });
-  actList.innerHTML = list.join("");
+  };
+  const isActiveStatus = (act) => (act.status || "Active") === "Active";
+  const activeActs = state.acts.filter((act) => isActiveStatus(act));
+  const inactiveActs = state.acts.filter((act) => !isActiveStatus(act));
+  const activeMarkup = activeActs.length
+    ? activeActs.map(renderActCard).join("")
+    : `<div class="muted">No active acts.</div>`;
+  const inactiveMarkup = inactiveActs.length
+    ? inactiveActs.map(renderActCard).join("")
+    : `<div class="muted">No inactive acts.</div>`;
+  if (activeActList && inactiveActList) {
+    activeActList.innerHTML = activeMarkup;
+    inactiveActList.innerHTML = inactiveMarkup;
+    return;
+  }
+  actList.innerHTML = [...activeActs, ...inactiveActs].map(renderActCard).join("");
 }
 
 function renderCreatorFallbackSymbols({ unassigned = false } = {}) {
@@ -5623,7 +5903,7 @@ function renderRivalComparisonStrip(entries) {
 function renderRivalRosterPanel() {
   const targets = [
     { listEl: $("rivalRosterList"), selectEl: $("rivalRosterSelect"), metaEl: $("rivalRosterMeta") },
-    { listEl: $("rivalRosterWindowList"), selectEl: $("rivalRosterWindowSelect"), metaEl: $("rivalRosterWindowMeta") }
+    { listEl: $("rivalRosterViewList"), selectEl: $("rivalRosterViewSelect"), metaEl: $("rivalRosterViewMeta") }
   ].filter((target) => target.listEl && target.selectEl);
   if (!targets.length) return;
   const rivals = Array.isArray(state.rivals) ? state.rivals.slice() : [];
@@ -6399,7 +6679,7 @@ function renderRolloutStrategyPlanner() {
       if (templateCreateBtn) templateCreateBtn.disabled = true;
     } else {
       templateSelect.innerHTML = planLibrary.map((plan) => {
-        const label = plan.label || plan.id || "Rollout Plan";
+        const label = formatPlanLabel(plan);
         const focusTag = plan.focusType && plan.focusType !== "Era" ? ` (${plan.focusType})` : "";
         return `<option value="${plan.id}">${label}${focusTag}</option>`;
       }).join("");
@@ -6575,7 +6855,8 @@ function renderEraStatus() {
   }
   eraBox.innerHTML = activeEras.map((era) => {
     const act = getAct(era.actId);
-    const stageName = ERA_STAGES[era.stageIndex] || "Complete";
+    const stageMeta = resolveEraStageDisplay(era);
+    const stageName = stageMeta.display || (ERA_STAGES[era.stageIndex] || "Complete");
     const stageWeeks = era.rolloutWeeks || ROLLOUT_PRESETS[1].weeks;
     const stageTotal = stageWeeks[era.stageIndex] || 0;
     const stageProgress = `${era.stageWeek}/${stageTotal} weeks`;
@@ -9021,6 +9302,14 @@ function renderMainMenu() {
   if (saveBtn) {
     saveBtn.disabled = !session.activeSlot;
   }
+  const exportBtn = $("menuExportBtn");
+  if (exportBtn) {
+    exportBtn.disabled = !session.activeSlot;
+  }
+  const importBtn = $("menuImportBtn");
+  if (importBtn) {
+    importBtn.disabled = !session.activeSlot;
+  }
   const autoSaveMinutes = $("autoSaveMinutes");
   const autoSaveToggle = $("autoSaveToggle");
   if (autoSaveMinutes && autoSaveToggle) {
@@ -9648,6 +9937,8 @@ function renderActiveView(view) {
     renderEconomySummary();
     renderQuests();
     renderTopBar();
+  } else if (active === "rival-rosters") {
+    renderRivalRosterPanel();
   } else if (active === "tour") {
     renderTouringDesk();
   } else if (active === "logs") {

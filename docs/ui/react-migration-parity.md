@@ -12,7 +12,7 @@ Use this checklist to validate React UI islands against legacy behavior.
 ## Track slots
 - In Create (Manual), verify slot groups render with correct counts and column labels.
 - Click Add Slot / Show Less and confirm visible slot count updates.
-- Click a slot to focus, then assign a creator via click + entity list or drag-and-drop.
+- Click a slot to focus, then assign a creator via click + entity list or dropdown (drag-and-drop is planned).
 - Use Recommend/Clear buttons on a slot and confirm state updates.
 - Switch create stages (Sheet/Demo/Master) and confirm active stage highlight.
 

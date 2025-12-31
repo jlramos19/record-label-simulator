@@ -9,11 +9,11 @@ Rival labels plan releases and promos from a shared rollout plan library rather 
 - Rival plans: plans that rivals actually executed, recorded with outcomes + market conditions.
 
 Starter plans (shared rollout templates):
-- Single Drip: 1 release + eyeriSocial post in week 0.
-- Pulse Loop: 2 weekly single drops with matching social promo.
-- Project Ladder: 3 spaced drops with interview support to build project momentum.
-- Video Blitz: 2 drops with music video promo spikes.
-- Tour Warmup: early drop, interview, then a live performance follow-up.
+- eyeriSocial Post focus (1 drop): 1 release + eyeriSocial post in week 0.
+- eyeriSocial Post focus (2 drops): 2 weekly single drops with matching social promo.
+- Interview focus (3 drops): 3 spaced drops with interview support to build project momentum.
+- Music Video focus (2 drops): 2 drops with music video promo spikes.
+- Interview focus (tour lead-in): early drop, interview, then a live performance follow-up.
 
 Each plan exposes:
 - Cadence: a week-pattern of drops/events (release + promo steps with day/hour offsets).
@@ -73,21 +73,27 @@ Rivals are eligible to compete when they can cover:
 ## CEO Requests + Ambition
 - Rival labels track the same CEO Requests as the player and pursue them as internal record-breaking goals.
 - Weekly evaluation updates each rival's unlocked request list and emits a log entry on unlocks.
-- Ambition score combines request progress, label share pressure, and a pre-3000 boost.
+- Ambition score combines request progress (wins + focus progress), ahead/behind pressure versus the player/leader, and time-based boosts, with difficulty-scaled pacing.
+- Promo focus progress counts scheduled promos in `state.rivalReleaseQueue` in addition to executed promo activity.
 - Ambition influences:
   - Roster targets (sign more Creator IDs when behind on Roster Builder).
   - Release quality boosts to drive chart performance.
   - Cash stabilization floors to keep all rivals active through year 3000.
   - Action weights (release/promo/tour bias) when selecting plans.
+  - Cadence dampeners (slow leaders, accelerate trailing rivals) during plan scoring and scheduling.
+  - Observability logs for focus shifts and ambition changes.
 
 ## Scheduling Rules
 - Uses `state.rivalReleaseQueue` (Calendar projection source).
 - Releases always land on Friday 00:00 (next available window).
-- Promo events snap to whole-hour timestamps and never schedule in the past (roll forward by weeks if needed).
+- Promo events snap to whole-hour timestamps and never schedule in the past (roll forward by weeks if needed); promos can land before releases while content is still scheduled.
 - Duplicate schedules for the same label + week + event kind are skipped.
 - All scheduled timestamps are whole-hour values (no minutes).
+- Tour steps only schedule when the era is active and in the Promotion stage, rival momentum clears the tour gate, stamina can cover the tour date, and tour budget has room.
+- Tour venue selection respects per-day slot availability, act booking conflicts, rest day spacing, travel buffers, and clusters regions when possible to keep legs grouped.
 - Rival promos can lift full projects when multiple releases share a project name (project-level boosts apply across those tracks).
 - Plan blockers record reasons (budget, capacity, stamina, facility limits) and emit "why" strings for observability.
+- AutoOps logs include the chosen plan's scoring rationale plus any skipped steps with reasons.
 
 ## Notes
 - AI promo budgets use a fixed AI percent, independent of player settings.

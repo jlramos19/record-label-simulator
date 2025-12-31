@@ -1,7 +1,10 @@
 const storageHealth = {
     saveSizeBytes: null,
+    saveRawBytes: null,
     localStorageUsedBytes: null,
     localStorageFreeBytes: null,
+    localStorageAvailable: null,
+    localStorageDisabledReason: null,
     externalConfigured: null,
     lastMirror: null,
     lastError: null,

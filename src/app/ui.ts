@@ -20,7 +20,7 @@ import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDeta
 import { setUiHooks } from "./game/ui-hooks.js";
 import { flushUsageSession, getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
 import { getStorageHealthSnapshot, recordStorageError } from "./storage-health.js";
-import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
+import { decodeSavePayload, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
 import {
   clearExternalStorageHandle,
   getExternalStorageStatus,
@@ -32,7 +32,7 @@ import {
 } from "./file-storage.js";
 import {
   $,
-  closeOverlay,
+  closeOverlay as closeOverlayRaw,
   describeSlot,
   getSlotElement,
   openOverlay,
@@ -96,6 +96,7 @@ const {
   rankCandidates,
   MARKET_ROLES,
   logEvent,
+  checkStorageHealth,
   saveToActiveSlot,
   makeTrackTitle,
   makeProjectTitle,
@@ -179,6 +180,7 @@ const {
   parseAutoPromoSlotTarget,
   parsePromoProjectKey,
   postCreatorSigned,
+  importSlotData,
   getSlotData,
   resetState,
   computeAutoCreateBudget,
@@ -244,6 +246,7 @@ setUiHooks({
   openMainMenu,
   openOverlay,
   closeOverlay,
+  showToast,
   showEndScreen,
   refreshSelectOptions,
   renderAll: renderScheduler.renderAll,
@@ -269,6 +272,7 @@ const ROUTES = [
   "releases",
   "eras",
   "world",
+  "rival-rosters",
   "logs",
   "tour",
   "patch-notes"
@@ -282,7 +286,9 @@ const ROUTE_ALIASES = {
   roster: "acts",
   signed: "acts",
   "year-end": "awards",
-  yearend: "awards"
+  yearend: "awards",
+  rivals: "rival-rosters",
+  "rival-roster": "rival-rosters"
 };
 const VIEW_PANEL_STATE_KEY = "rls_view_panel_state_v1";
 const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
@@ -392,20 +398,36 @@ function formatTimestampShort(ms) {
   return `${dateLabel} ${timeLabel}`;
 }
 
+function formatTimestampForFilename(ms) {
+  const safeMs = Number.isFinite(ms) && ms > 0 ? ms : Date.now();
+  const stamp = new Date(safeMs);
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${stamp.getUTCFullYear()}${pad(stamp.getUTCMonth() + 1)}${pad(stamp.getUTCDate())}_${pad(stamp.getUTCHours())}${pad(stamp.getUTCMinutes())}${pad(stamp.getUTCSeconds())}Z`;
+}
+
+function buildSaveExportFilename(slot) {
+  const slotLabel = Number.isFinite(slot) ? `slot_${slot}` : "slot";
+  return `rls_${slotLabel}_${formatTimestampForFilename(Date.now())}.json`;
+}
+
 function buildSaveLocationLabel(status) {
   const slotPrefix = session.activeSlot ? `Slot ${session.activeSlot}` : "Slot -";
+  const localDisabled = session.localStorageDisabled;
+  const localReason = session.localStorageDisabledReason;
+  const localLabel = localDisabled ? (localReason === "quota" ? "local full" : "local disabled") : "local";
   if (!status) {
-    return `${slotPrefix} (local)`;
+    return `${slotPrefix} (${localLabel})`;
   }
   const name = status.name || "External folder";
   if (status.status === "ready") {
-    return `${slotPrefix} → ${name}`;
+    return localDisabled ? `${slotPrefix}  ${name} (${localLabel})` : `${slotPrefix}  ${name}`;
   }
   if (status.status === "not-set") {
-    return `${slotPrefix} (local)`;
+    return `${slotPrefix} (${localLabel})`;
   }
   const note = status.status === "unsupported" ? "unsupported" : status.status;
-  return `${slotPrefix} → ${name} (${note})`;
+  const detail = localDisabled ? `${note}, ${localLabel}` : note;
+  return `${slotPrefix}  ${name} (${detail})`;
 }
 
 async function describeSaveLocation() {
@@ -422,6 +444,22 @@ async function refreshSaveLocationStatus() {
   if (!statusEl) return;
   const label = await describeSaveLocation();
   statusEl.textContent = label;
+}
+
+function describeSaveFailure(reason) {
+  switch (reason) {
+    case "localStorageQuota":
+      return "Local storage is full. Clear old saves or configure External Storage in Internal Log.";
+    case "localStorageUnavailable":
+    case "localStorageDisabled":
+      return "Local storage is unavailable. Enable browser storage or use External Storage in Internal Log.";
+    case "serialize":
+      return "Save data could not be serialized. Reload and try again.";
+    case "localStorageError":
+      return "Local storage write failed. Check browser settings and retry.";
+    default:
+      return "Check storage permissions or retry.";
+  }
 }
 
 function showViewSwitchToast() {
@@ -755,10 +793,6 @@ const RANKING_WINDOW_MARGIN = 12;
 const RANKING_WINDOW_OFFSET = 8;
 let rankingWindowDrag = null;
 let rankingWindowDismissalBound = false;
-const RIVAL_ROSTER_WINDOW_MARGIN = 12;
-const RIVAL_ROSTER_WINDOW_OFFSET = 8;
-let rivalRosterWindowDrag = null;
-let rivalRosterWindowDismissalBound = false;
 
 function clampRankingWindowPosition(left, top, width, height) {
   const maxLeft = Math.max(RANKING_WINDOW_MARGIN, window.innerWidth - width - RANKING_WINDOW_MARGIN);
@@ -889,137 +923,6 @@ function setupRankingWindowDismissal() {
     if (!windowEl || windowEl.classList.contains("hidden")) return;
     if (windowEl.contains(event.target)) return;
     closeRankingWindow();
-  }, { capture: true });
-}
-
-function clampRivalRosterWindowPosition(left, top, width, height) {
-  const maxLeft = Math.max(RIVAL_ROSTER_WINDOW_MARGIN, window.innerWidth - width - RIVAL_ROSTER_WINDOW_MARGIN);
-  const maxTop = Math.max(RIVAL_ROSTER_WINDOW_MARGIN, window.innerHeight - height - RIVAL_ROSTER_WINDOW_MARGIN);
-  return {
-    left: clamp(left, RIVAL_ROSTER_WINDOW_MARGIN, maxLeft),
-    top: clamp(top, RIVAL_ROSTER_WINDOW_MARGIN, maxTop)
-  };
-}
-
-function ensureRivalRosterWindowPosition(windowEl) {
-  if (!windowEl.dataset.positioned) {
-    windowEl.style.top = "140px";
-    windowEl.style.right = "16px";
-    windowEl.style.left = "auto";
-    windowEl.dataset.positioned = "true";
-    return;
-  }
-  const rect = windowEl.getBoundingClientRect();
-  const width = rect.width || windowEl.offsetWidth || 0;
-  const height = rect.height || windowEl.offsetHeight || 0;
-  if (!width || !height) return;
-  const next = clampRivalRosterWindowPosition(rect.left, rect.top, width, height);
-  windowEl.style.left = `${next.left}px`;
-  windowEl.style.top = `${next.top}px`;
-  windowEl.style.right = "auto";
-}
-
-function positionRivalRosterWindow(windowEl, anchorEl = null) {
-  if (!windowEl) return;
-  if (anchorEl && typeof anchorEl.getBoundingClientRect === "function") {
-    const rect = windowEl.getBoundingClientRect();
-    const width = rect.width || windowEl.offsetWidth || 0;
-    const height = rect.height || windowEl.offsetHeight || 0;
-    if (!width || !height) {
-      ensureRivalRosterWindowPosition(windowEl);
-      return;
-    }
-    const anchorRect = anchorEl.getBoundingClientRect();
-    let left = anchorRect.left;
-    let top = anchorRect.bottom + RIVAL_ROSTER_WINDOW_OFFSET;
-    if (left + width + RIVAL_ROSTER_WINDOW_MARGIN > window.innerWidth) {
-      left = anchorRect.right - width;
-    }
-    if (top + height + RIVAL_ROSTER_WINDOW_MARGIN > window.innerHeight) {
-      top = anchorRect.top - height - RIVAL_ROSTER_WINDOW_OFFSET;
-    }
-    const next = clampRivalRosterWindowPosition(left, top, width, height);
-    windowEl.style.left = `${next.left}px`;
-    windowEl.style.top = `${next.top}px`;
-    windowEl.style.right = "auto";
-    windowEl.dataset.positioned = "true";
-    return;
-  }
-  ensureRivalRosterWindowPosition(windowEl);
-}
-
-function openRivalRosterWindow({ anchor = null } = {}) {
-  const windowEl = $("rivalRosterWindow");
-  if (!windowEl) return;
-  windowEl.classList.remove("hidden");
-  windowEl.setAttribute("aria-hidden", "false");
-  renderRivalRosterPanel();
-  positionRivalRosterWindow(windowEl, anchor);
-}
-
-function closeRivalRosterWindow() {
-  const windowEl = $("rivalRosterWindow");
-  if (!windowEl) return;
-  windowEl.classList.add("hidden");
-  windowEl.setAttribute("aria-hidden", "true");
-}
-
-function setupRivalRosterWindowDrag() {
-  const windowEl = $("rivalRosterWindow");
-  const head = $("rivalRosterWindowHead");
-  if (!windowEl || !head || head.dataset.dragBound) return;
-  head.dataset.dragBound = "true";
-  head.addEventListener("pointerdown", (event) => {
-    if (event.button && event.button !== 0) return;
-    if (event.target.closest("button")) return;
-    const rect = windowEl.getBoundingClientRect();
-    rivalRosterWindowDrag = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      startLeft: rect.left,
-      startTop: rect.top,
-      width: rect.width,
-      height: rect.height
-    };
-    windowEl.style.left = `${rect.left}px`;
-    windowEl.style.top = `${rect.top}px`;
-    windowEl.style.right = "auto";
-    windowEl.setAttribute("data-dragging", "true");
-    head.setPointerCapture(event.pointerId);
-    event.preventDefault();
-  });
-  head.addEventListener("pointermove", (event) => {
-    if (!rivalRosterWindowDrag || event.pointerId !== rivalRosterWindowDrag.pointerId) return;
-    const dx = event.clientX - rivalRosterWindowDrag.startX;
-    const dy = event.clientY - rivalRosterWindowDrag.startY;
-    const nextLeft = rivalRosterWindowDrag.startLeft + dx;
-    const nextTop = rivalRosterWindowDrag.startTop + dy;
-    const next = clampRivalRosterWindowPosition(nextLeft, nextTop, rivalRosterWindowDrag.width, rivalRosterWindowDrag.height);
-    windowEl.style.left = `${next.left}px`;
-    windowEl.style.top = `${next.top}px`;
-  });
-  const endDrag = (event) => {
-    if (!rivalRosterWindowDrag || event.pointerId !== rivalRosterWindowDrag.pointerId) return;
-    rivalRosterWindowDrag = null;
-    windowEl.removeAttribute("data-dragging");
-    if (typeof head.releasePointerCapture === "function") {
-      head.releasePointerCapture(event.pointerId);
-    }
-  };
-  head.addEventListener("pointerup", endDrag);
-  head.addEventListener("pointercancel", endDrag);
-}
-
-function setupRivalRosterWindowDismissal() {
-  if (rivalRosterWindowDismissalBound || typeof document === "undefined") return;
-  rivalRosterWindowDismissalBound = true;
-  document.addEventListener("pointerdown", (event) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    const windowEl = $("rivalRosterWindow");
-    if (!windowEl || windowEl.classList.contains("hidden")) return;
-    if (windowEl.contains(event.target)) return;
-    closeRivalRosterWindow();
   }, { capture: true });
 }
 
@@ -1196,6 +1099,9 @@ const VIEW_DEFAULTS = {
     "community-tools": VIEW_PANEL_STATES.open,
     "community-rivals": VIEW_PANEL_STATES.open,
     "community-cheats": VIEW_PANEL_STATES.open
+  },
+  "rival-rosters": {
+    "rival-rosters": VIEW_PANEL_STATES.open
   },
   logs: {
     "eyerisocial": VIEW_PANEL_STATES.open,
@@ -1629,6 +1535,31 @@ function logUiEvent(type, payload = {}) {
     isAction,
     reportToConsole: type === "action_submit"
   });
+}
+
+function closeOverlay(id, options = {}) {
+  if (!id) return;
+  const source = options?.source || "direct";
+  const overlay = $(id);
+  logUiEvent("overlay_close_attempt", {
+    overlay_id: id,
+    source,
+    exists: Boolean(overlay)
+  });
+  if (!overlay) return;
+  const wasOpen = overlay.getAttribute("aria-hidden") !== "true";
+  closeOverlayRaw(id);
+  const closed = overlay.getAttribute("aria-hidden") === "true";
+  logUiEvent("overlay_close", {
+    overlay_id: id,
+    source,
+    wasOpen,
+    closed
+  });
+  if (id === "navMenu") {
+    const btn = $("navMenuBtn");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+  }
 }
 
 function loadUiEventLog() {
@@ -3037,6 +2968,7 @@ function updateAutoCreateSummary(scope) {
   const cashEl = root.querySelector("#autoCreateCashLabel");
   const nextRunEl = root.querySelector("#autoCreateNextRunLabel");
   const eraEl = root.querySelector("#autoCreateEraLabel");
+  const focusActionsEl = root.querySelector("#autoCreateFocusActions");
 
   const settings = state.meta?.autoCreate;
   const walletCash = state.label.wallet?.cash ?? state.label.cash ?? 0;
@@ -3048,6 +2980,7 @@ function updateAutoCreateSummary(scope) {
   const scheduleHours = hoursUntilNextScheduledTime(WEEKLY_SCHEDULE.chartUpdate);
   const scheduleText = formatHourCountdown(scheduleHours);
   const nextRunText = scheduleText === "-" ? "Pending" : `${scheduleText}h`;
+  const activeEras = getActiveEras().filter((era) => era.status === "Active");
   const focusEra = getFocusedEra();
   const focusLabel = focusEra ? focusEra.name : "Not set";
   const actsReady = Array.isArray(state.acts) ? state.acts.length : 0;
@@ -3085,7 +3018,10 @@ function updateAutoCreateSummary(scope) {
         reasons.push("Budget cap is zero; adjust the budget percentages or cash.");
       }
       if (!focusEra) {
-        reasons.push("Select a focus era before running auto-create.");
+        if (!activeEras.length) {
+          reasons.push("No active eras. Start an Era for an Act first.");
+        }
+        reasons.push("Start an Era in Eras tab, then focus it (or keep only one active Era to auto-focus).");
       }
     }
   }
@@ -3104,6 +3040,10 @@ function updateAutoCreateSummary(scope) {
       reasonsEl.classList.add("hidden");
       reasonsEl.innerHTML = "";
     }
+  }
+  if (focusActionsEl) {
+    const showFocusActions = enabled && !focusEra;
+    focusActionsEl.classList.toggle("hidden", !showFocusActions);
   }
   if (modeEl) modeEl.textContent = modeLabel;
   if (enabledEl) enabledEl.textContent = enabled ? "Yes" : "No";
@@ -3216,9 +3156,31 @@ function bindGlobalHandlers() {
       return;
     }
     try {
-      saveToActiveSlot();
+      const result = saveToActiveSlot({ immediate: true, notify: false });
+      let externalReady = false;
+      try {
+        const status = await getExternalStorageStatus();
+        externalReady = status?.status === "ready";
+      } catch {
+        externalReady = false;
+      }
       if (refreshMenu) renderMainMenu();
       await updateSaveStatusPanel(document);
+      if (!result?.ok) {
+        if (externalReady) {
+          logEvent("Local save failed; external save queued.", "warn");
+          showToast(
+            "Save queued",
+            "Local storage is unavailable. External storage will sync this slot when ready.",
+            { tone: "warn" }
+          );
+          return;
+        }
+        const detail = describeSaveFailure(result?.reason);
+        logEvent("Manual save failed.", "warn");
+        showToast("Save failed", detail, { tone: "warn" });
+        return;
+      }
       const timestamp = formatTimestampShort(Date.now());
       let locationLabel = "";
       try {
@@ -3235,6 +3197,82 @@ function bindGlobalHandlers() {
       showToast("Save failed", `Slot could not be saved: ${detail}`, { tone: "warn" });
     }
   };
+  const handleExportSave = async () => {
+    if (!session.activeSlot) {
+      logEvent("Select a game slot before exporting.", "warn");
+      showToast("Export blocked", "Pick a game slot before exporting.", { tone: "warn" });
+      return;
+    }
+    saveToActiveSlot({ immediate: true, notify: false });
+    const slot = session.activeSlot;
+    const data = getSlotData(slot) || state;
+    if (!data) {
+      logEvent("Save data unavailable for export.", "warn");
+      showToast("Export failed", "Save data unavailable. Try again after loading a slot.", { tone: "warn" });
+      return;
+    }
+    try {
+      const payload = JSON.stringify(data, null, 2);
+      const filename = buildSaveExportFilename(slot);
+      downloadFile(filename, payload, "application/json");
+      logEvent(`Exported save slot ${slot}.`);
+      showToast("Export ready", `Saved ${filename}.`, { tone: "success" });
+    } catch (error) {
+      const detail = error?.message || "Save data could not be serialized.";
+      logEvent("Save export failed.", "warn");
+      showToast("Export failed", detail, { tone: "warn" });
+    }
+  };
+  const handleImportSaveFile = async (file) => {
+    if (!session.activeSlot) {
+      logEvent("Select a game slot before importing.", "warn");
+      showToast("Import blocked", "Pick a game slot before importing.", { tone: "warn" });
+      return;
+    }
+    if (!file) return;
+    let text = "";
+    try {
+      text = await file.text();
+    } catch (error) {
+      const detail = error?.message || "Save file could not be read.";
+      logEvent("Save import failed.", "warn");
+      showToast("Import failed", detail, { tone: "warn" });
+      return;
+    }
+    const decoded = decodeSavePayload(text);
+    if (!decoded.ok || !decoded.payload) {
+      logEvent("Save import failed (decode error).", "warn");
+      showToast("Import failed", "Save file could not be decoded.", { tone: "warn" });
+      return;
+    }
+    let data = null;
+    try {
+      data = JSON.parse(decoded.payload);
+    } catch (error) {
+      const detail = error?.message || "Save file could not be parsed.";
+      logEvent("Save import failed.", "warn");
+      showToast("Import failed", detail, { tone: "warn" });
+      return;
+    }
+    const slot = session.activeSlot;
+    const result = importSlotData(slot, data, { notify: false });
+    if (!result?.ok) {
+      const detail = describeSaveFailure(result?.reason);
+      logEvent("Save import failed.", "warn");
+      showToast("Import failed", detail, { tone: "warn" });
+      return;
+    }
+    renderMainMenu();
+    await updateSaveStatusPanel(document);
+    logEvent(`Imported save to slot ${slot}.`);
+    showToast("Import complete", `Slot ${slot} updated.`, {
+      tone: "success",
+      actions: [
+        { label: "Load", handler: () => loadSlot(slot, false) },
+        { label: "Dismiss", handler: (toast) => toast?.remove() }
+      ]
+    });
+  };
   const setTutorialTab = (tabId) => {
     if (!tabId) return;
     state.ui.tutorialTab = tabId;
@@ -3245,7 +3283,7 @@ function bindGlobalHandlers() {
       section.classList.toggle("hidden", section.dataset.tutorialSection !== tabId);
     });
   };
-  const focusRivalRoster = (labelName, { anchor = null } = {}) => {
+  const focusRivalRoster = (labelName) => {
     const label = String(labelName || "").trim();
     if (!label) return;
     const rival = getRivalByName(label);
@@ -3253,10 +3291,9 @@ function bindGlobalHandlers() {
     if (!state.ui) state.ui = {};
     state.ui.rivalRosterId = rival.id;
     renderRivalRosterPanel();
-    openRivalRosterWindow({ anchor });
     saveToActiveSlot();
+    window.location.hash = "#/rival-rosters";
   };
-  bindRivalRosterSelect($("rivalRosterWindowSelect"));
   const toggleHudStatsExpanded = (forceState = null) => {
     if (!state.ui) state.ui = {};
     const next = typeof forceState === "boolean" ? forceState : !state.ui.hudStatsExpanded;
@@ -3298,7 +3335,7 @@ function bindGlobalHandlers() {
   document.addEventListener("click", (event) => {
     const label = event.target.closest("[data-rival-label]");
     if (!label) return;
-    focusRivalRoster(label.dataset.rivalLabel, { anchor: label });
+    focusRivalRoster(label.dataset.rivalLabel);
   });
 
   on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
@@ -3323,13 +3360,6 @@ function bindGlobalHandlers() {
   on("topLabelsMoreBtn", "click", (event) => openRankingWindow("labels", { anchor: event.currentTarget }));
   on("topTrendsMoreBtn", "click", (event) => openRankingWindow("trends", { anchor: event.currentTarget }));
   on("rankingWindowClose", "click", () => closeRankingWindow());
-  on("rivalRosterWindowOpen", "click", (event) => {
-    openRivalRosterWindow({ anchor: event.currentTarget });
-    closeOverlay("navMenu");
-    const btn = $("navMenuBtn");
-    if (btn) btn.setAttribute("aria-expanded", "false");
-  });
-  on("rivalRosterWindowClose", "click", () => closeRivalRosterWindow());
   on("tutorialBtn", "click", () => {
     renderRoleActions();
     renderTutorialEconomy();
@@ -3395,6 +3425,20 @@ function bindGlobalHandlers() {
     syncTimeControlAria();
   });
   on("menuSaveBtn", "click", () => handleManualSave(true));
+  on("menuExportBtn", "click", () => handleExportSave());
+  on("menuImportBtn", "click", () => {
+    const input = $("menuImportInput");
+    if (input) {
+      input.value = "";
+      input.click();
+    }
+  });
+  on("menuImportInput", "change", (event) => {
+    const input = event.currentTarget;
+    const file = input?.files ? input.files[0] : null;
+    if (input) input.value = "";
+    if (file) void handleImportSaveFile(file);
+  });
   on("externalStoragePromptPickBtn", "click", async () => {
     await handleExternalStoragePick(document, { fromPrompt: true });
     const status = await refreshExternalStoragePromptStatus();
@@ -3806,7 +3850,7 @@ function bindGlobalHandlers() {
     const label = active?.closest ? active.closest("[data-rival-label]") : null;
     if (label && (e.code === "Enter" || e.code === "Space")) {
       e.preventDefault();
-      focusRivalRoster(label.dataset.rivalLabel, { anchor: label });
+      focusRivalRoster(label.dataset.rivalLabel);
       return;
     }
     if (active && (active.tagName === "INPUT" || active.isContentEditable)) return;
@@ -3927,12 +3971,10 @@ function bindViewHandlers(route, root) {
 
   if (route === "world") {
     bindRivalRosterSelect(root.querySelector("#rivalRosterSelect"));
-    if (state.ui?.rivalRosterFocus) {
-      renderRivalRosterPanel();
-      openRivalRosterWindow();
-      state.ui.rivalRosterFocus = false;
-      saveToActiveSlot();
-    }
+  }
+
+  if (route === "rival-rosters") {
+    bindRivalRosterSelect(root.querySelector("#rivalRosterViewSelect"));
   }
 
   const setActiveChart = (chartKey) => {
@@ -4125,6 +4167,9 @@ function bindViewHandlers(route, root) {
       logEvent(state.meta.autoCreate.enabled ? "Auto create enabled." : "Auto create disabled.");
       syncAutoCreateControls();
       saveToActiveSlot();
+    });
+    on("autoCreateGoToEras", "click", () => {
+      window.location.hash = "#/eras";
     });
     on("autoCreateMinCash", "change", (e) => {
       if (!state.meta.autoCreate) return;
@@ -4665,6 +4710,14 @@ function bindViewHandlers(route, root) {
       emitStateChanged();
     });
   }
+  const stageActionBar = root.querySelector(".create-stage-action-bar");
+  if (stageActionBar) {
+    stageActionBar.addEventListener("click", (e) => {
+      const recommendBtn = e.target.closest("[data-track-recommend]");
+      if (!recommendBtn) return;
+      recommendAllCreators(recommendBtn.dataset.trackRecommend);
+    });
+  }
   on("demoTrackSelect", "change", (e) => {
     if (state.ui.createTrackIds) state.ui.createTrackIds.demo = e.target.value || null;
     if (state.ui.createStage === "demo") state.ui.createTrackId = state.ui.createTrackIds.demo;
@@ -5043,6 +5096,21 @@ function bindViewHandlers(route, root) {
         renderSlots();
         renderActs();
         saveToActiveSlot();
+        return;
+      }
+      const eraStartBtn = e.target.closest("[data-act-start-era]");
+      if (eraStartBtn) {
+        const act = getAct(eraStartBtn.dataset.actStartEra);
+        if (!act) return;
+        if (!state.ui) state.ui = {};
+        if (!state.ui.eraSlots) state.ui.eraSlots = { actId: null };
+        state.ui.eraSlots.actId = act.id;
+        const eraNameInput = $("eraNameInput");
+        if (eraNameInput && !eraNameInput.value.trim()) {
+          eraNameInput.value = makeEraName(act.name);
+        }
+        saveToActiveSlot();
+        window.location.hash = "#/eras";
         return;
       }
       const useBtn = e.target.closest("button[data-act-set]");
@@ -8051,6 +8119,7 @@ function signCreatorById(id) {
 
 export async function initUI() {
   applyUiTheme(getStoredUiTheme());
+  checkStorageHealth();
   try {
     await ensurePremadeRolloutTemplates();
   } catch (error) {
@@ -8068,8 +8137,6 @@ export async function initUI() {
   bindGlobalHandlers();
   setupRankingWindowDrag();
   setupRankingWindowDismissal();
-  setupRivalRosterWindowDrag();
-  setupRivalRosterWindowDismissal();
   updateTimeControlButtons();
   syncTimeControlAria();
   initRouter();
@@ -8359,19 +8426,26 @@ function setupHorizontalWheelScroll() {
 }
 
 function setupOverlayDismissals() {
-  // Close overlays when clicking outside the overlay-card
-  document.querySelectorAll('.overlay').forEach((overlay) => {
-    if (overlay.dataset.overlayLock === "true") return;
-    overlay.addEventListener('pointerdown', (e) => {
-      if (e.target === overlay) {
-        const id = overlay.id;
-        if (id) closeOverlay(id);
-        if (id === "navMenu") {
-          const btn = $("navMenuBtn");
-          if (btn) btn.setAttribute("aria-expanded", "false");
-        }
-      }
-    });
+  const handleBackdropClick = (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const overlay = target.closest(".overlay");
+    if (!overlay || overlay.dataset.overlayLock === "true") return;
+    if (target.closest(".overlay-card")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (overlay.id) closeOverlay(overlay.id, { source: "backdrop" });
+  };
+  document.addEventListener("click", handleBackdropClick, true);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || event.key !== "Escape") return;
+    const overlays = Array.from(document.querySelectorAll(".overlay[aria-hidden=\"false\"]"));
+    const overlay = overlays[overlays.length - 1];
+    if (!overlay || overlay.dataset.overlayLock === "true") return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (overlay.id) closeOverlay(overlay.id, { source: "escape" });
   });
 }
 

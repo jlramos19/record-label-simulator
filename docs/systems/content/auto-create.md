@@ -13,6 +13,7 @@ Auto Create lets the player schedule automatic sheet music creation on a weekly 
 - Max tracks per run caps the number of sheet music starts.
 - Demo/master automation spends from the same budget cap and reserve rules.
 - Skips if no studio slots are available, no eligible creator is ready for the stage, or the stage cost exceeds the budget cap.
+- Requires a Focus Era when multiple Eras are active; if only one Era is active, focus auto-sets.
 
 ## Selection rules
 - Uses the top trend theme and mood recommendation for new sheet music and demo mood selection.
@@ -23,6 +24,11 @@ Auto Create lets the player schedule automatic sheet music creation on a weekly 
 - Acts are auto-assigned using the recommendation engine when possible.
 - Act recommendations favor theme/mood preference matches, then alignment fit, and filter for catharsis grades within +/-1 letter of the content quality grade when available (stamina-adjusted skill on a 0-100 scale).
 - Project type and modifier follow the recommendation engine; titles auto-generate when empty.
+
+## Rival Auto Create
+- Rival AutoOps runs weekly and creates up to `aiCreateMaxTracksPerWeek` when budgets and reserve floors pass.
+- Created tracks stay in a ready pool (status: `unreleased`) and are consumed when releases are scheduled.
+- Theme/mood and quality are seeded by week + label + plan for deterministic outcomes.
 
 ## Observability
 - Create view shows the next run window, budget math, and the last auto-create outcome.

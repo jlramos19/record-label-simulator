@@ -12,13 +12,14 @@ Focus Era is the player's single active context for Era decisions. It reduces de
 ## Systems That Use Focus
 - Recommendations: act selection for new plans favors the focused Era's Act.
 - Era attachment: releases/schedules for that Act attach to the focused Era when available.
-- Promotions: the Focus Era pick targets released tracks in that Era.
+- Promotions: the Focus Era pick targets scheduled or released tracks in that Era.
 - UI: Focus status appears in the top bar, Era Desk, and Promotions panel.
 
 ## UX Guardrails
-- Always display focus status with Era name, Act, and current stage.
+- Always display focus status with Era name, Act, and the current stage (including overlap signals).
 - One-click Focus and Clear actions (no modal).
 - If multiple active Eras and no focus selected, focus-only actions are disabled with a short hint.
+- Auto Create surfaces a "Go to Eras" action when focus is missing.
 
 ## Challenge + Engagement
 - Focusing is a strategic commitment. Unfocused Eras keep advancing, so missed weeks can reduce promotion impact.

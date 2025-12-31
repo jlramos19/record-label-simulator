@@ -20,8 +20,13 @@ export const QUARTER_TICK_WARN_MS = 25;
 export const TICK_FRAME_WARN_MS = 33;
 export const STATE_VERSION = 4;
 
-export const STARTING_CASH = 50000;
+export const STARTING_CASH = 60000;
 export const STARTING_STUDIO_SLOTS = 2;
+export const STARTING_ROSTER_COUNTS = {
+  Songwriter: 15,
+  Performer: 10,
+  Producer: 5
+};
 export const STAGE_STUDIO_LIMIT = 3;
 export const STUDIO_COLUMN_SLOT_COUNT = 5;
 export const STAMINA_OVERUSE_LIMIT = 200;
@@ -115,7 +120,7 @@ export const GAME_DIFFICULTIES = {
     id: "medium",
     label: "Medium",
     description: "Balanced cashflow with a modest cushion.",
-    startingCash: 65000,
+    startingCash: 75000,
     revenueMult: 1.12,
     upkeepMult: 0.92,
     bailoutAmount: 12000000
@@ -137,6 +142,7 @@ export const AUTO_PROMO_RIVAL_TYPE = "eyeriSocialPost";
 export const AUTO_CREATE_BUDGET_PCT = 0.1;
 export const AUTO_CREATE_MIN_CASH = 15000;
 export const AUTO_CREATE_MAX_TRACKS = 1;
+export const AI_CREATE_RESERVE_PCT = 0.2;
 export const RIVAL_COMPETE_CASH_BUFFER = Math.round(STARTING_CASH * 0.1);
 export const RIVAL_COMPETE_DROP_COST = 1200;
 export const AI_PROMO_BUDGET_PCT = AUTO_PROMO_BUDGET_PCT;

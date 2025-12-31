@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { clearFileHandle, fetchFileHandle, listChartSnapshots, storeFileHandle, storeChartSnapshot } from "./db.js";
 import { recordExternalMirrorStatus, recordStorageError, updateStorageHealth } from "./storage-health.js";
-import { isQuotaExceededError } from "./storage-utils.js";
+import { decodeSavePayload, encodeSavePayload, isQuotaExceededError } from "./storage-utils.js";
 
 const STORAGE_HANDLE_ID = "rls_external_storage_root_v1";
 const STORAGE_MANIFEST_NAME = "rls-storage.json";
@@ -310,7 +310,9 @@ export async function readSaveSlotFromExternal(index) {
     const fileHandle = await dir.getFileHandle(`slot-${index}.json`);
     const file = await fileHandle.getFile();
     const text = await file.text();
-    return JSON.parse(text);
+    const decoded = decodeSavePayload(text);
+    if (!decoded.ok || !decoded.payload) return null;
+    return JSON.parse(decoded.payload);
   } catch {
     return null;
   }
@@ -437,11 +439,14 @@ export async function importSavesFromExternal() {
       try {
         const file = await handle.getFile();
         const text = await file.text();
-        const data = JSON.parse(text);
+        const decoded = decodeSavePayload(text);
+        if (!decoded.ok || !decoded.payload) continue;
+        const data = JSON.parse(decoded.payload);
         const index = Number(name.replace(/[^0-9]/g, ""));
         if (!Number.isFinite(index) || !data) continue;
         try {
-          localStorage.setItem(`${prefix}${index}`, JSON.stringify(data));
+          const encoded = encodeSavePayload(JSON.stringify(data));
+          localStorage.setItem(`${prefix}${index}`, encoded.payload);
           imported += 1;
         } catch (error) {
           if (isQuotaExceededError(error)) {

@@ -285,7 +285,7 @@ const ROLLOUT_PRESETS = [
 const ROLLOUT_STRATEGY_TEMPLATES = [
   {
     id: "single-drip",
-    label: "Single Drip",
+    label: "eyeriSocial Post focus (1 drop)",
     source: "template",
     focusType: "Release",
     cadence: [
@@ -297,7 +297,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
   },
   {
     id: "pulse-loop",
-    label: "Pulse Loop",
+    label: "eyeriSocial Post focus (2 drops)",
     source: "template",
     focusType: "Release",
     cadence: [
@@ -311,7 +311,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
   },
   {
     id: "project-ladder",
-    label: "Project Ladder",
+    label: "Interview focus (3 drops)",
     source: "template",
     focusType: "Project",
     cadence: [
@@ -327,7 +327,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
   },
   {
     id: "video-blitz",
-    label: "Video Blitz",
+    label: "Music Video focus (2 drops)",
     source: "template",
     focusType: "Campaign",
     cadence: [
@@ -341,7 +341,7 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
   },
   {
     id: "tour-warmup",
-    label: "Tour Warmup",
+    label: "Interview focus (tour lead-in)",
     source: "template",
     focusType: "Tour",
     cadence: [

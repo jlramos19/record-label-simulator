@@ -9,11 +9,11 @@ The header Top Labels list is the canonical entry point for global label ranking
 - The floating window includes a Top Theme / Mood column per label, based on released track usage.
 - All known labels remain listed even at 0 points, surfacing as Inactive or Bankrupted.
 - Each label row includes a "Since" date (first in-game release, fallback to game start).
-- Rival label pills are clickable and open the Rival Rosters window focused on that label.
+- Rival label pills are clickable and navigate to the Rival Rosters tab focused on that label.
 
 ## Notes
 - The world view no longer includes a Top Labels panel.
-- Rival rosters live in a dedicated floating window (Menu > Rival Rosters) with creators + observed acts per label.
+- Rival rosters live in the Rival Rosters tab/route (Menu > Rival Rosters) with creators + observed acts per label.
 
 ## Related
 - `docs/ui/community-trends.md`

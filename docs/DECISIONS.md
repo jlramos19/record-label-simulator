@@ -38,6 +38,7 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 
 ## Eras + projects
 - DEC-20251226-006: Era projects auto-group releases within a 26-week release/promo gap; singles attach to the Era project, albums close at 32 released tracks, Legacy-stage touring opens a 3-track deluxe window, and new releases after closure start a new Era.
+- DEC-20251231-002: Touring starts in the Promotion stage; Legacy triggers after a 26-week creation/release/promo inactivity gap, and the deluxe window opens when touring starts (supersedes the Legacy-stage touring clause in DEC-20251226-006).
 
 ## Competitive balance
 - DEC-20251226-003: Chart scoring applies label competition pressure from recent chart share to prevent runaway dominance, and modern-era seeds reduce dominant label bias.

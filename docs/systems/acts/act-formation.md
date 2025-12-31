@@ -22,6 +22,10 @@ Defines rules for forming Acts in the roster (Harmony Hub).
 - Alignment preference sets the Act alignment (Label alignment by default).
 - If filters leave fewer than 2 eligible creators or only existing lineups remain, Quick Group Act warns and stops.
 
+## Harmony Hub layout
+- The Acts view splits into two panels: Create Acts on the left, Act Roster on the right.
+- Active Acts list above Inactive Acts in the roster panel.
+
 ## Lifecycle
 - Acts carry a status (`Active` or `Legacy`) for planning and analytics.
 - Acts become Legacy when they have no active Era after an Era ends or when the lineup empties (disbanded).

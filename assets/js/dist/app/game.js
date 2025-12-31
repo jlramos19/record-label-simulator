@@ -2,13 +2,13 @@
 import { fetchChartSnapshotsForWeek, listChartWeeks, storeChartSnapshot } from "./db.js";
 import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, readSaveSlotFromExternal } from "./file-storage.js";
 import { recordStorageError, setStorageWarningHandler, updateStorageHealth } from "./storage-health.js";
-import { estimateLocalStorageBytes, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
+import { decodeSavePayload, encodeSavePayload, estimateLocalStorageBytes, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
 import { useCalendarProjection } from "./calendar.js";
 import { uiHooks } from "./game/ui-hooks.js";
 import { recordUsageEvent } from "./usage-log.js";
 import { CREATOR_NAME_PARTS, ERA_NAME_TEMPLATES, LABEL_NAMES, NAME_PARTS, PROJECT_TITLE_TEMPLATES, PROJECT_TITLE_TRANSLATIONS, PROJECT_TITLES, generateActNamePair, generateUniqueActNamePairs, getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation } from "./game/names.js";
-import { AI_CREATE_BUDGET_PCT, AI_CREATE_MIN_CASH, AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, ACTIVITY_STAMINA_PROMO, ACTIVITY_STAMINA_TOUR_DATE, TOUR_STAFFING_STAMINA_BOOST_MAX, ACTIVITY_SKILL_GAIN_PER_STAMINA, CREATOR_CATHARSIS_INACTIVITY_GRACE_DAYS, CREATOR_CATHARSIS_INACTIVITY_DAILY_PCT, CREATOR_CATHARSIS_INACTIVITY_MAX_PCT, CREATOR_CATHARSIS_INACTIVITY_RECOVERY_DAYS, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DOMINANCE_DECAY_MAX, TREND_DOMINANCE_MAX_WEEKS, TREND_DOMINANCE_MIN_WEEKS, TREND_EMERGING_ACTIVITY_DEBUFF, TREND_EMERGING_WEEKS, TREND_PEAKING_DISINTEREST_START, TREND_PEAKING_MAX_WEEKS, TREND_PEAKING_TOP_RANK, TREND_RANKING_HISTORY_WEEKS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
+import { AI_CREATE_BUDGET_PCT, AI_CREATE_MIN_CASH, AI_CREATE_RESERVE_PCT, AI_PROMO_BUDGET_PCT, AUDIENCE_ALIGNMENT_SCORE_SCALE, AUDIENCE_BASE_WEIGHT, AUDIENCE_CHART_WEIGHT, AUDIENCE_ICONIC_RISK_BOOST, AUDIENCE_PREF_DRIFT, AUDIENCE_PREF_LIMIT, AUDIENCE_RELEASE_WEIGHT, AUDIENCE_TASTE_WINDOW_WEEKS, AUDIENCE_TREND_BONUS, AUTO_CREATE_BUDGET_PCT, AUTO_CREATE_MAX_TRACKS, AUTO_CREATE_MIN_CASH, AUTO_PROMO_BUDGET_PCT, AUTO_PROMO_MIN_BUDGET, AUTO_PROMO_RIVAL_TYPE, CCC_SORT_OPTIONS, COMMUNITY_LABEL_RANKING_DEFAULT, COMMUNITY_LABEL_RANKING_LIMITS, COMMUNITY_LEGACY_RANKING_LIMITS, COMMUNITY_TREND_RANKING_DEFAULT, COMMUNITY_TREND_RANKING_LIMITS, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, GAME_DIFFICULTIES, GAME_MODES, HUSK_MAX_RELEASE_STEPS, HUSK_PROMO_DAY, HUSK_PROMO_DEFAULT_TYPE, HUSK_PROMO_HOUR, PRIME_SHOWCASE_MIN_ACT_PEAK, PRIME_SHOWCASE_MIN_QUALITY, PRIME_SHOWCASE_MIN_TRACK_PEAK, LABEL_DOMINANCE_MAX_BOOST, LABEL_DOMINANCE_MAX_PENALTY, LABEL_DOMINANCE_SMOOTHING, LABEL_DOMINANCE_TARGET_SHARE, LIVE_SYNC_INTERVAL_MS, LOSS_ARCHIVE_KEY, LOSS_ARCHIVE_LIMIT, MARKET_TRACK_ACTIVE_LIMIT, MARKET_TRACK_ARCHIVE_LIMIT, QUARTERS_PER_HOUR, QUARTER_HOUR_MS, QUARTER_TICK_FRAME_LIMIT, QUARTER_TICK_WARNING_THRESHOLD, RESOURCE_TICK_LEDGER_LIMIT, RIVAL_COMPETE_CASH_BUFFER, RIVAL_COMPETE_DROP_COST, ROLE_ACTION_STATUS, ROLE_ACTIONS, ROLLOUT_BLOCK_LOG_COOLDOWN_HOURS, ROLLOUT_EVENT_SCHEDULE, SEED_CALIBRATION_KEY, SEED_CALIBRATION_YEAR, SEED_DOMINANT_MOMENTUM_BONUS, SEED_DOMINANT_PICK_CHANCE, SEED_DOMINANT_SCORE_BONUS_PCT, STARTING_CASH, STARTING_ROSTER_COUNTS, STARTING_STUDIO_SLOTS, STAGE_STUDIO_LIMIT, STATE_VERSION, STAMINA_OVERUSE_LIMIT, STAMINA_OVERUSE_STRIKES, STAMINA_REGEN_PER_HOUR, ACTIVITY_STAMINA_PROMO, ACTIVITY_STAMINA_TOUR_DATE, TOUR_STAFFING_STAMINA_BOOST_MAX, ACTIVITY_SKILL_GAIN_PER_STAMINA, CREATOR_CATHARSIS_INACTIVITY_GRACE_DAYS, CREATOR_CATHARSIS_INACTIVITY_DAILY_PCT, CREATOR_CATHARSIS_INACTIVITY_MAX_PCT, CREATOR_CATHARSIS_INACTIVITY_RECOVERY_DAYS, STUDIO_COLUMN_SLOT_COUNT, TICK_FRAME_WARN_MS, TRACK_CREW_RULES, TRACK_ROLE_KEYS, TRACK_ROLE_MATCH, TRACK_ROLE_TARGET_PATTERN, TRACK_ROLE_TARGETS, TREND_DOMINANCE_DECAY_MAX, TREND_DOMINANCE_MAX_WEEKS, TREND_DOMINANCE_MIN_WEEKS, TREND_EMERGING_ACTIVITY_DEBUFF, TREND_EMERGING_WEEKS, TREND_PEAKING_DISINTEREST_START, TREND_PEAKING_MAX_WEEKS, TREND_PEAKING_TOP_RANK, TREND_RANKING_HISTORY_WEEKS, TREND_DETAIL_COUNT, TREND_WINDOW_WEEKS, UI_REACT_ISLANDS_ENABLED, UI_EVENT_LOG_KEY, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, WEEKLY_UPDATE_WARN_MS } from "./game/config.js";
 import { evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks, getProjectTrackLimits, normalizeProjectName, normalizeProjectType } from "./game/project-tracks.js";
 import { buildDefaultTrackSlotVisibility, buildEmptyTrackSlotList, parseTrackRoleTarget, roleLabel, trackRoleLimit } from "./game/track-roles.js";
 import { alignmentClass, countryColor, countryDemonym, formatGenreKeyLabel, formatGenreLabel, makeGenre, moodFromGenre, resolveLabelAcronym, slugify, themeFromGenre } from "./game/label-utils.js";
@@ -23,7 +23,13 @@ const session = {
     lastLiveSyncAt: 0,
     lastPerfThrottleAt: 0,
     localStorageDisabled: false,
+    localStorageDisabledReason: null,
     localStorageWarned: false,
+    lastSaveAttemptAt: null,
+    lastSaveFailedAt: null,
+    lastSaveFailureReason: null,
+    lastSaveFailureToastReason: null,
+    lastSaveFailureToastAt: null,
     suppressWeeklyRender: false,
     timeJumpActive: false
 };
@@ -35,6 +41,8 @@ const PERF_TREND_REFRESH_LOG_MS = 12;
 const PERF_INDEX_REBUILD_LOG_MS = 4;
 const LOCAL_SAVE_QUOTA_BYTES = 4.5 * 1024 * 1024;
 const SAVE_DEBOUNCE_MS = 1500;
+const LOCAL_STORAGE_PROBE_KEY = "rls_storage_probe_v1";
+const SAVE_FAILURE_TOAST_THROTTLE_MS = 4000;
 const LABEL_KPI_PROJECTION_WEEKS = 4;
 const TRACK_RELEASE_STATUS = {
     unreleased: "unreleased",
@@ -951,7 +959,7 @@ const ERA_PROJECT_GAP_WEEKS = ACT_PROMO_WARNING_WEEKS;
 const ERA_PROJECT_DELUXE_LIMIT = 3;
 const ERA_PROJECT_MAIN_LIMIT = getProjectTrackLimits("Album").max || 32;
 const ERA_PROJECT_DELUXE_SUFFIX = " (Deluxe)";
-const ERA_TOURING_STAGE_INDEX = ERA_STAGES.indexOf("Legacy");
+const ERA_TOURING_STAGE_INDEX = ERA_STAGES.indexOf("Promotion");
 const PROMO_GAP_PENALTY_PER_TYPE = 3;
 const PROMO_GAP_PENALTY_MAX = 9;
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
@@ -965,6 +973,8 @@ const TOUR_REST_DAY_MIN = 1;
 const TOUR_TRAVEL_BUFFER_MIN = 1;
 const TOUR_COOLDOWN_MIN_WEEKS = 4;
 const TOUR_COOLDOWN_MAX_WEEKS = 8;
+const RIVAL_TOUR_MOMENTUM_MIN = 0.45;
+const RIVAL_TOUR_MOMENTUM_FOCUS_BONUS = 0.05;
 const TOUR_WARNING_SELLTHROUGH_LOW = 0.5;
 const TOUR_WARNING_SELLTHROUGH_HIGH = 0.95;
 const TOUR_BOOKING_SELLTHROUGH_MIN = 0.35;
@@ -1007,9 +1017,17 @@ const RIVAL_AMBITION_FLOOR = 0.35;
 const RIVAL_AMBITION_YEAR_BOOST = 0.1;
 const RIVAL_AMBITION_QUALITY_BOOST = 6;
 const RIVAL_AMBITION_ROSTER_BONUS = 3;
+const RIVAL_AMBITION_BEHIND_BOOST = 0.2;
+const RIVAL_AMBITION_AHEAD_DAMPENER = 0.22;
+const RIVAL_AMBITION_TIME_BOOST_MAX = 0.12;
+const RIVAL_AMBITION_LOG_DELTA = 0.04;
 const RIVAL_CASH_BASE = Math.round(STARTING_CASH * 0.4);
 const RIVAL_CASH_AMBITION_BOOST = Math.round(STARTING_CASH * 0.5);
 const RIVAL_CASH_YEAR_BOOST = Math.round(STARTING_CASH * 0.1);
+const RIVAL_PACE_MIN = 0.7;
+const RIVAL_PACE_MAX = 1.25;
+const RIVAL_PACE_DELTA_SCALE = 0.35;
+const RIVAL_REQUEST_ACTIVITY_TARGETS = { tracks: 2, projects: 1, promos: 2, tours: 1 };
 const CRITIC_SCORE_WEIGHTS = { quality: 0.5, alignment: 0.3, themeMood: 0.2 };
 const CRITIC_QUALITY_BLEND = 0.35;
 const CRITIC_QUALITY_DELTA_MAX = 12;
@@ -1233,6 +1251,222 @@ function achievementProgressRatio(definition, value) {
         return 0;
     return clamp(Number(value) / target, 0, 1);
 }
+function resolveRivalDifficultyTuning() {
+    const difficulty = getGameDifficulty(state.meta?.difficulty);
+    const id = difficulty?.id || DEFAULT_GAME_DIFFICULTY;
+    if (id === "easy")
+        return { ambitionScale: 0.9, paceScale: 0.9 };
+    if (id === "hard")
+        return { ambitionScale: 1.1, paceScale: 1.1 };
+    return { ambitionScale: 1, paceScale: 1 };
+}
+function resolveAchievementGroupById(requestId) {
+    const parts = String(requestId || "").split("-");
+    const idNum = Number(parts[1]);
+    if (!Number.isFinite(idNum))
+        return null;
+    if (idNum <= 3)
+        return "tracks";
+    if (idNum <= 6)
+        return "projects";
+    if (idNum <= 9)
+        return "promos";
+    return "tours";
+}
+function currentAwardYearWindow() {
+    const { startEpoch, endEpoch } = awardYearWeekRange(currentYear());
+    return { startEpoch, endEpoch };
+}
+function countLabelReleasesInWindow(labelName, window) {
+    if (!labelName || !window)
+        return 0;
+    const entries = labelReleasePool(labelName);
+    return entries.filter((entry) => isEpochInWindow(entry?.releasedAt, window)).length;
+}
+function countLabelProjectsInWindow(labelName, window) {
+    if (!labelName || !window)
+        return 0;
+    const entries = labelReleasePool(labelName);
+    const keys = new Set();
+    entries.forEach((entry) => {
+        if (!isEpochInWindow(entry?.releasedAt, window))
+            return;
+        const name = entry.projectName || `${entry.title || "Unknown"} - Single`;
+        const type = normalizeProjectType(entry.projectType || "Single");
+        keys.add(`${name}::${type}`);
+    });
+    return keys.size;
+}
+function countLabelPromoActivityInWindow(labelName, window, { includeScheduled = false } = {}) {
+    if (!labelName || !window)
+        return 0;
+    const promos = ensurePromoContentStore();
+    const executed = promos.filter((entry) => (entry?.label === labelName && isEpochInWindow(entry?.createdAt, window))).length;
+    if (!includeScheduled)
+        return executed;
+    const scheduled = state.rivalReleaseQueue.filter((entry) => {
+        if (!entry || entry.label !== labelName)
+            return false;
+        const kind = entry.queueType || "release";
+        if (kind !== "promo")
+            return false;
+        return isEpochInWindow(entry.releaseAt, window);
+    }).length;
+    return executed + scheduled;
+}
+function countLabelTourBookingsInWindow(labelName, window) {
+    if (!labelName || !window)
+        return 0;
+    const bookings = Array.isArray(state.touring?.bookings) ? state.touring.bookings : [];
+    return bookings.filter((booking) => (booking?.label === labelName && isEpochInWindow(booking?.scheduledAt, window))).length;
+}
+function resolveRivalRequestProgressRatio(rival, definition) {
+    if (!rival || !definition)
+        return 0;
+    const wins = typeof definition.progress === "function" ? definition.progress(rival) : 0;
+    if (wins >= 1)
+        return 1;
+    const group = resolveAchievementGroupById(definition.id);
+    if (!group)
+        return 0;
+    const window = currentAwardYearWindow();
+    const labelName = rival.name;
+    let count = 0;
+    if (group === "tracks")
+        count = countLabelReleasesInWindow(labelName, window);
+    if (group === "projects")
+        count = countLabelProjectsInWindow(labelName, window);
+    if (group === "promos") {
+        count = countLabelPromoActivityInWindow(labelName, window, { includeScheduled: true });
+    }
+    if (group === "tours")
+        count = countLabelTourBookingsInWindow(labelName, window);
+    const target = RIVAL_REQUEST_ACTIVITY_TARGETS[group] || 1;
+    return clamp(count / target, 0, 1);
+}
+function resolvePlayerRequestProgressRatio(definition) {
+    if (!definition)
+        return 0;
+    const wins = typeof definition.progress === "function" ? definition.progress() : 0;
+    if (wins >= 1)
+        return 1;
+    const group = resolveAchievementGroupById(definition.id);
+    if (!group)
+        return 0;
+    const window = currentAwardYearWindow();
+    const labelName = state.label?.name;
+    let count = 0;
+    if (group === "tracks")
+        count = countLabelReleasesInWindow(labelName, window);
+    if (group === "projects")
+        count = countLabelProjectsInWindow(labelName, window);
+    if (group === "promos")
+        count = countLabelPromoActivityInWindow(labelName, window);
+    if (group === "tours")
+        count = countLabelTourBookingsInWindow(labelName, window);
+    const target = RIVAL_REQUEST_ACTIVITY_TARGETS[group] || 1;
+    return clamp(count / target, 0, 1);
+}
+function summarizeRivalRequestProgress(rival) {
+    const total = RIVAL_ACHIEVEMENTS.length || ACHIEVEMENT_TARGET;
+    const unlocked = Array.isArray(rival?.achievementsUnlocked) ? rival.achievementsUnlocked.length : 0;
+    const progressSum = RIVAL_ACHIEVEMENTS.reduce((sum, definition) => (sum + resolveRivalRequestProgressRatio(rival, definition)), 0);
+    const progressRatio = total ? clamp(progressSum / total, 0, 1) : 0;
+    return { total, unlocked, progressRatio };
+}
+function summarizePlayerRequestProgress() {
+    const total = ACHIEVEMENTS.length || ACHIEVEMENT_TARGET;
+    const unlocked = Array.isArray(state.meta?.achievementsUnlocked) ? state.meta.achievementsUnlocked.length : 0;
+    const progressSum = ACHIEVEMENTS.reduce((sum, definition) => (sum + resolvePlayerRequestProgressRatio(definition)), 0);
+    const progressRatio = total ? clamp(progressSum / total, 0, 1) : 0;
+    return { total, unlocked, progressRatio };
+}
+function resolveRivalAchievementStandings() {
+    const playerSummary = summarizePlayerRequestProgress();
+    const playerWins = playerSummary.unlocked;
+    let leaderWins = playerWins;
+    let leaderProgress = playerSummary.progressRatio;
+    const rivals = Array.isArray(state.rivals) ? state.rivals : [];
+    rivals.forEach((rival) => {
+        const summary = summarizeRivalRequestProgress(rival);
+        if (summary.unlocked > leaderWins)
+            leaderWins = summary.unlocked;
+        if (summary.progressRatio > leaderProgress)
+            leaderProgress = summary.progressRatio;
+    });
+    return {
+        playerWins,
+        leaderWins,
+        playerProgress: playerSummary.progressRatio,
+        leaderProgress
+    };
+}
+function resolveRivalTimeBoost() {
+    const year = currentYear();
+    const startYear = Number.isFinite(state.meta?.startYear) ? state.meta.startYear : year;
+    const elapsed = Math.max(0, year - startYear);
+    const ramp = clamp(elapsed / 450, 0, 1);
+    const pre3000 = year < 3000 ? RIVAL_AMBITION_YEAR_BOOST : 0;
+    return pre3000 + RIVAL_AMBITION_TIME_BOOST_MAX * ramp;
+}
+function resolveRivalPace(rival, standings = null) {
+    if (!rival) {
+        return {
+            multiplier: 1,
+            delta: 0,
+            deltaRatio: 0,
+            leaderWins: 0,
+            playerWins: 0,
+            leaderProgress: 0,
+            playerProgress: 0,
+            progressRatio: 0,
+            label: "steady"
+        };
+    }
+    const summary = summarizeRivalRequestProgress(rival);
+    const unlocked = summary.unlocked;
+    const progressRatio = summary.progressRatio;
+    const snapshot = standings || resolveRivalAchievementStandings();
+    const leaderWins = Number(snapshot.leaderWins) || 0;
+    const playerWins = Number(snapshot.playerWins) || 0;
+    const leaderProgress = Number.isFinite(snapshot.leaderProgress) ? snapshot.leaderProgress : 0;
+    const playerProgress = Number.isFinite(snapshot.playerProgress) ? snapshot.playerProgress : 0;
+    const behindDelta = leaderProgress - progressRatio;
+    const aheadDelta = progressRatio - playerProgress;
+    const delta = behindDelta > 0 ? behindDelta : -Math.max(0, aheadDelta);
+    const deltaRatio = clamp(delta, -1, 1);
+    const tuning = resolveRivalDifficultyTuning();
+    const rawPace = 1 + deltaRatio * RIVAL_PACE_DELTA_SCALE;
+    const scaled = clamp(rawPace * tuning.paceScale, RIVAL_PACE_MIN, RIVAL_PACE_MAX);
+    const label = deltaRatio > 0.15 ? "catch-up" : deltaRatio < -0.15 ? "cooldown" : "steady";
+    return {
+        multiplier: scaled,
+        delta,
+        deltaRatio,
+        leaderWins,
+        playerWins,
+        leaderProgress,
+        playerProgress,
+        progressRatio,
+        label
+    };
+}
+function rivalAmbitionBand(value) {
+    if (!Number.isFinite(value))
+        return "unknown";
+    if (value >= 0.75)
+        return "high";
+    if (value >= 0.55)
+        return "medium";
+    return "low";
+}
+function shouldLogRivalAmbitionChange(prevValue, nextValue) {
+    if (!Number.isFinite(prevValue) || !Number.isFinite(nextValue))
+        return false;
+    if (Math.abs(nextValue - prevValue) >= RIVAL_AMBITION_LOG_DELTA)
+        return true;
+    return rivalAmbitionBand(prevValue) !== rivalAmbitionBand(nextValue);
+}
 function ensureRivalAchievementState(rival) {
     if (!rival)
         return;
@@ -1272,7 +1506,8 @@ function unlockRivalAchievement(rival, definition) {
         return;
     rival.achievementsUnlocked.push(definition.id);
     rival.achievements = rival.achievementsUnlocked.length;
-    logEvent(`${rival.name} completed CEO Request ${definition.id}: ${definition.label}.`);
+    const total = RIVAL_ACHIEVEMENTS.length || ACHIEVEMENT_TARGET;
+    logEvent(`${rival.name} completed CEO Request ${definition.id}: ${definition.label} (${rival.achievements}/${total}).`);
 }
 function pickRivalAchievementFocus(rival) {
     if (!rival)
@@ -1283,19 +1518,29 @@ function pickRivalAchievementFocus(rival) {
         rival.achievementFocus = null;
         return null;
     }
+    const previous = rival.achievementFocus || null;
     const scored = options.map((definition) => {
-        const value = typeof definition.progress === "function" ? definition.progress(rival) : 0;
-        const ratio = achievementProgressRatio(definition, value);
+        const ratio = resolveRivalRequestProgressRatio(rival, definition);
         const seed = makeStableSeed([weekIndex(), rival.id || rival.name || "", definition.id, "focus"]);
         const rng = makeSeededRng(seed);
-        return { id: definition.id, ratio, jitter: rng() * 0.02 };
+        return { id: definition.id, ratio, label: definition.label, jitter: rng() * 0.02 };
     });
     scored.sort((a, b) => {
         if (a.ratio !== b.ratio)
             return b.ratio - a.ratio;
         return b.jitter - a.jitter;
     });
-    rival.achievementFocus = scored[0].id;
+    const next = scored[0]?.id || null;
+    rival.achievementFocus = next;
+    if (next && next !== previous) {
+        const focusLabel = scored[0]?.label || "CEO Request";
+        const progressPct = Math.round((scored[0]?.ratio || 0) * 100);
+        const previousLabel = previous
+            ? RIVAL_ACHIEVEMENTS.find((definition) => definition.id === previous)?.label || "CEO Request"
+            : null;
+        const priorNote = previous ? ` (from ${previous} ${previousLabel})` : "";
+        logEvent(`${rival.name} shifts CEO Request focus to ${next} ${focusLabel} (${progressPct}% progress)${priorNote}.`);
+    }
     return rival.achievementFocus;
 }
 function evaluateRivalAchievements() {
@@ -1313,37 +1558,98 @@ function evaluateRivalAchievements() {
         pickRivalAchievementFocus(rival);
     });
 }
-function computeRivalAmbition(rival) {
-    if (!rival)
-        return RIVAL_AMBITION_FLOOR;
-    const total = RIVAL_ACHIEVEMENTS.length || ACHIEVEMENT_TARGET;
-    const unlocked = Array.isArray(rival.achievementsUnlocked) ? rival.achievementsUnlocked.length : 0;
-    const requestPressure = total ? clamp(1 - unlocked / total, 0, 1) : 0;
+function buildRivalAmbitionSnapshot(rival, standings = null) {
+    if (!rival) {
+        return {
+            value: RIVAL_AMBITION_FLOOR,
+            context: {
+                unlocked: 0,
+                total: RIVAL_ACHIEVEMENTS.length || ACHIEVEMENT_TARGET,
+                requestProgress: 0,
+                focusId: null,
+                focusProgress: 0,
+                requestPressure: 0,
+                sharePressure: 0,
+                timeBoost: 0,
+                behindPressure: 0,
+                aheadPressure: 0,
+                pace: resolveRivalPace(null, standings)
+            }
+        };
+    }
+    const progress = summarizeRivalRequestProgress(rival);
+    const total = progress.total;
+    const unlocked = progress.unlocked;
+    const requestProgress = progress.progressRatio;
+    const requestPressure = total ? clamp(1 - requestProgress, 0, 1) : 0;
     const share = state.meta?.labelShare?.[rival.name];
     const targetShare = LABEL_DOMINANCE_TARGET_SHARE;
     const sharePressure = (Number.isFinite(share) && targetShare > 0 && share < targetShare)
         ? clamp((targetShare - share) / targetShare, 0, 1)
         : 0;
-    let focusPressure = 0;
-    if (rival.achievementFocus) {
-        const focus = RIVAL_ACHIEVEMENTS.find((definition) => definition.id === rival.achievementFocus);
-        if (focus && typeof focus.progress === "function") {
-            const value = focus.progress(rival);
-            focusPressure = clamp(1 - achievementProgressRatio(focus, value), 0, 1);
+    const focusId = rival.achievementFocus || null;
+    const focus = focusId ? RIVAL_ACHIEVEMENTS.find((definition) => definition.id === focusId) : null;
+    const focusProgress = focus ? resolveRivalRequestProgressRatio(rival, focus) : 0;
+    const focusPressure = focus ? clamp(1 - focusProgress, 0, 1) : 0;
+    const pace = resolveRivalPace(rival, standings);
+    const behindPressure = Math.max(0, pace.deltaRatio);
+    const aheadPressure = Math.max(0, -pace.deltaRatio);
+    const timeBoost = resolveRivalTimeBoost();
+    const raw = RIVAL_AMBITION_FLOOR
+        + timeBoost
+        + sharePressure * 0.4
+        + requestPressure * 0.25
+        + focusPressure * 0.2
+        + behindPressure * RIVAL_AMBITION_BEHIND_BOOST
+        - aheadPressure * RIVAL_AMBITION_AHEAD_DAMPENER;
+    const tuning = resolveRivalDifficultyTuning();
+    const scaled = RIVAL_AMBITION_FLOOR + (raw - RIVAL_AMBITION_FLOOR) * tuning.ambitionScale;
+    return {
+        value: clamp(scaled, RIVAL_AMBITION_FLOOR, 1),
+        context: {
+            unlocked,
+            total,
+            requestProgress,
+            focusId,
+            focusProgress,
+            requestPressure,
+            sharePressure,
+            timeBoost,
+            behindPressure,
+            aheadPressure,
+            pace
         }
-    }
-    const yearBoost = currentYear() < 3000 ? RIVAL_AMBITION_YEAR_BOOST : 0;
-    const raw = RIVAL_AMBITION_FLOOR + yearBoost + sharePressure * 0.4 + requestPressure * 0.25 + focusPressure * 0.2;
-    return clamp(raw, RIVAL_AMBITION_FLOOR, 1);
+    };
+}
+function computeRivalAmbition(rival, standings = null) {
+    return buildRivalAmbitionSnapshot(rival, standings).value;
 }
 function refreshRivalAmbition() {
     if (!Array.isArray(state.rivals))
         return;
+    const standings = resolveRivalAchievementStandings();
     state.rivals.forEach((rival) => {
         ensureRivalAchievementState(rival);
         if (!rival.achievementFocus)
             pickRivalAchievementFocus(rival);
-        rival.ambition = computeRivalAmbition(rival);
+        const previous = Number.isFinite(rival.ambition) ? rival.ambition : null;
+        const snapshot = buildRivalAmbitionSnapshot(rival, standings);
+        rival.ambition = snapshot.value;
+        if (Number.isFinite(previous) && shouldLogRivalAmbitionChange(previous, snapshot.value)) {
+            const focusId = snapshot.context.focusId || "none";
+            const focusLabel = snapshot.context.focusId
+                ? RIVAL_ACHIEVEMENTS.find((definition) => definition.id === snapshot.context.focusId)?.label || "CEO Request"
+                : "none";
+            const requestPct = Math.round((snapshot.context.requestProgress || 0) * 100);
+            const focusPct = Math.round(snapshot.context.focusProgress * 100);
+            const paceLabel = snapshot.context.pace?.label || "steady";
+            const pacePct = Math.round((snapshot.context.pace?.multiplier || 1) * 100);
+            const paceDelta = Math.round((snapshot.context.pace?.deltaRatio || 0) * 100);
+            logEvent(`${rival.name} ambition ${Math.round(previous * 100)}% -> ${Math.round(snapshot.value * 100)}% `
+                + `(requests ${snapshot.context.unlocked}/${snapshot.context.total} ${requestPct}%, `
+                + `focus ${focusId} ${focusLabel} ${focusPct}%, `
+                + `pace delta ${paceDelta}%, pace ${paceLabel} ${pacePct}%).`);
+        }
     });
 }
 function ensureRivalCashFloor() {
@@ -4207,15 +4513,158 @@ function computeAutoCreateBudget(cash, pct = AUTO_CREATE_BUDGET_PCT, minCash = A
     return budget > 0 ? budget : 0;
 }
 function rivalCreateBudgetPct(rival) {
-    const base = AI_CREATE_BUDGET_PCT;
+    const raw = rival?.aiCreatePct;
+    const base = Number.isFinite(raw) ? raw : AI_CREATE_BUDGET_PCT;
     const ambition = clamp(rival?.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
     const focusBoost = ["REQ-01", "REQ-02", "REQ-03", "REQ-05"].includes(rival?.achievementFocus) ? 0.04 : 0;
     const ambitionBoost = Math.max(0, ambition - RIVAL_AMBITION_FLOOR) * 0.08;
     return clamp(base + focusBoost + ambitionBoost, 0, 0.35);
 }
-function rivalCreateMinCash() {
-    const base = Number.isFinite(AI_CREATE_MIN_CASH) ? AI_CREATE_MIN_CASH : 0;
+function rivalCreateMinCash(rival) {
+    const raw = rival?.aiCreateMinCash;
+    const base = Number.isFinite(raw) ? raw : (Number.isFinite(AI_CREATE_MIN_CASH) ? AI_CREATE_MIN_CASH : 0);
     return Math.max(0, Math.round(base));
+}
+function resolveRivalCreateSettings(rival) {
+    const pct = rivalCreateBudgetPct(rival);
+    const minCash = rivalCreateMinCash(rival);
+    const reserveRaw = rival?.aiReservePct;
+    const reservePct = Number.isFinite(reserveRaw) ? reserveRaw : AI_CREATE_RESERVE_PCT;
+    const maxTracksRaw = rival?.aiCreateMaxTracksPerWeek;
+    const maxTracks = Number.isFinite(maxTracksRaw) ? maxTracksRaw : AUTO_CREATE_MAX_TRACKS;
+    return {
+        pct: clamp(pct, 0, 1),
+        minCash: Math.max(0, Math.round(minCash)),
+        reservePct: clamp(reservePct, 0, 0.9),
+        maxTracks: clamp(Math.round(maxTracks), 0, 5)
+    };
+}
+function buildRivalCreateBudget(rival, walletCash, reserveFloorOverride = null) {
+    const settings = resolveRivalCreateSettings(rival);
+    const reserveFloor = Math.max(settings.minCash, Math.round(Math.max(0, walletCash) * settings.reservePct), Number.isFinite(reserveFloorOverride) ? Math.max(0, reserveFloorOverride) : 0);
+    const budgetCap = computeAutoCreateBudget(walletCash, settings.pct, reserveFloor);
+    return {
+        ...settings,
+        reserveFloor,
+        budgetCap,
+        spent: 0,
+        blockedReason: ""
+    };
+}
+function spendRivalCreateBudget(rival, budget, cost) {
+    if (!budget)
+        return { ok: false, reason: "create budget missing." };
+    const safeCost = Number.isFinite(cost) ? Math.max(0, Math.round(cost)) : 0;
+    if (!safeCost)
+        return { ok: false, reason: "create cost unavailable." };
+    const budgetLeft = budget.budgetCap - (budget.spent || 0);
+    if (safeCost > budgetLeft) {
+        return { ok: false, reason: `create budget ${formatMoney(budgetLeft)} below cost ${formatMoney(safeCost)}.` };
+    }
+    const reserveFloor = Number.isFinite(budget.reserveFloor) ? budget.reserveFloor : 0;
+    if (rival.cash - safeCost < reserveFloor) {
+        return { ok: false, reason: `cash reserve ${formatMoney(reserveFloor)} blocks create cost ${formatMoney(safeCost)}.` };
+    }
+    rival.cash = Math.round(rival.cash - safeCost);
+    if (!rival.wallet)
+        rival.wallet = { cash: rival.cash };
+    rival.wallet.cash = rival.cash;
+    budget.spent = Math.round((budget.spent || 0) + safeCost);
+    return { ok: true };
+}
+function estimateRivalCreateCost(quality, crewSize = 1) {
+    const safeQuality = Number.isFinite(quality) ? quality : 0;
+    const safeCrew = Number.isFinite(crewSize) ? crewSize : 1;
+    const base = 350;
+    const qualityCost = Math.round(Math.max(0, safeQuality - 50) * 14);
+    const crewCost = Math.round(Math.max(1, safeCrew) * 120);
+    return Math.max(200, base + qualityCost + crewCost);
+}
+function ensureRivalReadyTracks(rival) {
+    const autoOps = ensureRivalAutoOpsState(rival);
+    if (!autoOps)
+        return [];
+    if (!Array.isArray(autoOps.readyTracks))
+        autoOps.readyTracks = [];
+    return autoOps.readyTracks;
+}
+function buildRivalReadyTrack({ rival, husk, weekNumber, createIndex = 0 }) {
+    if (!rival || !husk)
+        return null;
+    const seed = makeStableSeed([weekNumber, rival.id || rival.name || "", husk.id || "plan", createIndex, "create"]);
+    const rng = makeSeededRng(seed);
+    const { theme, mood } = pickRivalThemeMood(rival, husk, rng);
+    const focusType = husk?.focusType || "Era";
+    const focusLabel = husk?.focusLabel || null;
+    const focusId = husk?.focusId || null;
+    const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.5;
+    const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
+    const outcomeBoost = Math.round((normalizeHuskContext(husk).outcomeScore - 50) / 10);
+    const ambitionBoost = Math.round(ambition * RIVAL_AMBITION_QUALITY_BOOST);
+    const focusBoost = rival.achievementFocus === "REQ-04" ? 4 : 0;
+    let quality = clampQuality(seededRand(52, 88, rng) + Math.round(momentum * 8) + outcomeBoost + ambitionBoost + focusBoost);
+    if (mood === "Boring")
+        quality = clampQuality(quality - 12);
+    const genre = makeGenre(theme, mood);
+    const releasePlan = recommendReleasePlan({ genre, quality });
+    const crew = pickRivalReleaseCrew(rival, theme, mood);
+    const projectType = normalizeProjectType("Single");
+    const actKind = crew.length > 1 ? "group" : "solo";
+    const rivalAct = makeRivalActNameEntry({ rng, nation: rival.country, actKind });
+    const labelKey = rival.id || slugify(rival.name || "label") || "label";
+    const trackId = `RT-${labelKey}-${weekNumber}-${createIndex + 1}`;
+    return {
+        id: trackId,
+        trackId,
+        status: "unreleased",
+        createdWeek: weekNumber,
+        createdAt: state.time.epochMs,
+        huskId: husk.id,
+        huskSource: husk.source,
+        title: makeTrackTitleByCountrySeeded(theme, mood, rival.country, rng),
+        label: rival.name,
+        actName: rivalAct.name,
+        actNameKey: rivalAct.nameKey,
+        projectName: makeProjectTitleSeeded(rng),
+        projectType,
+        theme,
+        mood,
+        alignment: rival.alignment,
+        country: rival.country,
+        quality,
+        genre,
+        distribution: releasePlan.distribution,
+        preReleaseMomentum: 0,
+        focusType,
+        focusLabel,
+        focusId,
+        creatorIds: crew.map((creator) => creator.id)
+    };
+}
+function pickRivalReadyTrack(rival, husk) {
+    const ready = ensureRivalReadyTracks(rival);
+    if (!ready.length)
+        return null;
+    const matching = husk ? ready.filter((entry) => entry.huskId === husk.id) : [];
+    const pool = matching.length ? matching : ready;
+    const ordered = pool.slice().sort((a, b) => {
+        const aStamp = Number.isFinite(a.createdAt) ? a.createdAt : 0;
+        const bStamp = Number.isFinite(b.createdAt) ? b.createdAt : 0;
+        if (aStamp !== bStamp)
+            return aStamp - bStamp;
+        return String(a.trackId || a.id || "").localeCompare(String(b.trackId || b.id || ""));
+    });
+    return ordered[0] || null;
+}
+function consumeRivalReadyTrack(rival, husk) {
+    const ready = ensureRivalReadyTracks(rival);
+    const pick = pickRivalReadyTrack(rival, husk);
+    if (!pick)
+        return null;
+    const index = ready.findIndex((entry) => entry === pick);
+    if (index >= 0)
+        ready.splice(index, 1);
+    return pick;
 }
 function autoPromoBudgetPct() {
     const slotPcts = state.meta?.autoRollout?.budgetPctSlots;
@@ -6005,17 +6454,47 @@ function getAct(id) {
 function seedActs() {
     if (state.acts.length || !state.creators.length)
         return;
-    const members = state.creators.slice(0, Math.min(3, state.creators.length)).map((creator) => creator.id);
-    const type = members.length > 1 ? "Group Act" : "Solo Act";
-    const actKind = resolveActKindFromType(type);
-    const actNameEntry = makeActNameEntry({ actKind, memberIds: members });
-    registerAct(makeAct({
-        name: actNameEntry.name,
-        nameKey: actNameEntry.nameKey,
-        type,
-        alignment: state.label.alignment,
-        memberIds: members
-    }), { reason: "Seeded" });
+    const rolePriority = { Performer: 0, Songwriter: 1, Producer: 2 };
+    const sorted = state.creators.slice().sort((a, b) => {
+        const aScore = rolePriority[a.role] ?? 9;
+        const bScore = rolePriority[b.role] ?? 9;
+        return aScore - bScore;
+    });
+    const memberPool = sorted.map((creator) => creator.id);
+    const actMemberGroups = [];
+    const takeMembers = (count) => memberPool.splice(0, Math.min(count, memberPool.length));
+    if (memberPool.length >= 5) {
+        actMemberGroups.push(takeMembers(3));
+        actMemberGroups.push(takeMembers(2));
+    }
+    else if (memberPool.length >= 3) {
+        actMemberGroups.push(takeMembers(2));
+        actMemberGroups.push(takeMembers(1));
+    }
+    else if (memberPool.length === 2) {
+        actMemberGroups.push(takeMembers(1));
+        actMemberGroups.push(takeMembers(1));
+    }
+    else if (memberPool.length === 1) {
+        actMemberGroups.push(takeMembers(1));
+    }
+    while (memberPool.length && actMemberGroups.length < 4) {
+        actMemberGroups.push(takeMembers(1));
+    }
+    actMemberGroups.forEach((members) => {
+        if (!members.length)
+            return;
+        const type = members.length > 1 ? "Group Act" : "Solo Act";
+        const actKind = resolveActKindFromType(type);
+        const actNameEntry = makeActNameEntry({ actKind, memberIds: members });
+        registerAct(makeAct({
+            name: actNameEntry.name,
+            nameKey: actNameEntry.nameKey,
+            type,
+            alignment: state.label.alignment,
+            memberIds: members
+        }), { reason: "Seeded" });
+    });
 }
 function pickWeightedEntry(list) {
     if (!Array.isArray(list) || !list.length)
@@ -6263,6 +6742,10 @@ function buildRivals() {
         economy: { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, lastLeaseFees: 0 },
         ambition: RIVAL_AMBITION_FLOOR,
         eraCompletions: 0,
+        aiCreatePct: AI_CREATE_BUDGET_PCT,
+        aiCreateMinCash: AI_CREATE_MIN_CASH,
+        aiReservePct: AI_CREATE_RESERVE_PCT,
+        aiCreateMaxTracksPerWeek: AUTO_CREATE_MAX_TRACKS,
         aiPlan: {
             lastPlannedWeek: null,
             lastHuskId: null,
@@ -6276,6 +6759,15 @@ function buildRivals() {
             dominanceScopeKey: null,
             dominanceWeekIndex: null,
             competitive: false
+        },
+        autoOps: {
+            act: null,
+            era: null,
+            eraIndex: 0,
+            lastPlannedWeek: null,
+            blockerCooldowns: {},
+            skipCooldowns: {},
+            readyTracks: []
         }
     }));
 }
@@ -7010,10 +7502,15 @@ function getEraById(id) {
     return state.era.history.find((era) => era.id === id) || null;
 }
 function getFocusedEra() {
-    const focusId = state.ui.focusEraId;
-    if (!focusId)
-        return null;
     const active = getActiveEras().filter((era) => era.status === "Active");
+    const focusId = state.ui.focusEraId;
+    if (!focusId) {
+        if (active.length === 1) {
+            state.ui.focusEraId = active[0].id;
+            return active[0];
+        }
+        return null;
+    }
     const focus = active.find((era) => era.id === focusId) || null;
     if (!focus)
         state.ui.focusEraId = null;
@@ -7251,6 +7748,7 @@ function startEraForAct({ actId, name, rolloutId, contentType, contentId, source
         projectDeluxeName: null,
         projectClosedAt: null,
         projectClosedReason: null,
+        projectLastCreateAt: null,
         projectLastReleaseAt: null,
         projectLastPromoAt: null
     };
@@ -7292,6 +7790,7 @@ function archiveEra(era, status) {
             projectDeluxeName: era.projectDeluxeName || null,
             projectClosedAt: era.projectClosedAt || null,
             projectClosedReason: era.projectClosedReason || null,
+            projectLastCreateAt: era.projectLastCreateAt || null,
             projectLastReleaseAt: era.projectLastReleaseAt || null,
             projectLastPromoAt: era.projectLastPromoAt || null
         });
@@ -7334,11 +7833,20 @@ function ensureEraProjectState(era) {
         era.projectClosedAt = era.projectClosedAt || null;
     if (typeof era.projectClosedReason !== "string")
         era.projectClosedReason = era.projectClosedReason || null;
+    if (typeof era.projectLastCreateAt !== "number")
+        era.projectLastCreateAt = era.projectLastCreateAt || null;
     if (typeof era.projectLastReleaseAt !== "number")
         era.projectLastReleaseAt = era.projectLastReleaseAt || null;
     if (typeof era.projectLastPromoAt !== "number")
         era.projectLastPromoAt = era.projectLastPromoAt || null;
     return era;
+}
+function recordEraProjectCreateActivity(era, atMs) {
+    if (!era)
+        return;
+    ensureEraProjectState(era);
+    const stamp = Number.isFinite(atMs) ? atMs : state.time.epochMs;
+    era.projectLastCreateAt = stamp;
 }
 function recordEraProjectReleaseActivity(era, atMs) {
     if (!era)
@@ -7363,6 +7871,8 @@ function getEraProjectActivityAt(era) {
     if (!era)
         return null;
     const stamps = [];
+    if (Number.isFinite(era.projectLastCreateAt))
+        stamps.push(era.projectLastCreateAt);
     if (Number.isFinite(era.projectLastReleaseAt))
         stamps.push(era.projectLastReleaseAt);
     if (Number.isFinite(era.projectLastPromoAt))
@@ -7380,6 +7890,10 @@ function getEraProjectGapWeeks(era, now = state.time.epochMs) {
     return Math.floor((now - anchor) / WEEK_MS);
 }
 function isEraProjectStale(era, now = state.time.epochMs) {
+    const gap = getEraProjectGapWeeks(era, now);
+    return Number.isFinite(gap) && gap >= ERA_PROJECT_GAP_WEEKS;
+}
+function isEraLegacyReady(era, now = state.time.epochMs) {
     const gap = getEraProjectGapWeeks(era, now);
     return Number.isFinite(gap) && gap >= ERA_PROJECT_GAP_WEEKS;
 }
@@ -8111,8 +8625,10 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
     };
     refreshTrackQuality(track, 0);
     state.tracks.push(track);
-    if (activeEra)
+    if (activeEra) {
         registerEraContent(activeEra, "Track", track.id);
+        recordEraProjectCreateActivity(activeEra, state.time.epochMs);
+    }
     if (!scheduleStage(track, 0)) {
         state.tracks = state.tracks.filter((entry) => entry.id !== track.id);
         return null;
@@ -8415,6 +8931,9 @@ function completeStage(order) {
     if (!track)
         return;
     const stage = STAGES[order.stageIndex];
+    const era = track.eraId ? getEraById(track.eraId) : null;
+    if (era && era.status === "Active")
+        recordEraProjectCreateActivity(era, state.time.epochMs);
     const crewIds = getWorkOrderCreatorIds(order);
     crewIds.forEach((id) => {
         const creator = getCreator(id);
@@ -12992,8 +13511,6 @@ function pickRivalTourAnchorRelease(rival, weekNumber) {
     if (!rival)
         return null;
     const releases = labelReleasePool(rival.name);
-    if (!releases.length)
-        return null;
     const targetWeek = Number.isFinite(weekNumber) ? weekNumber : weekIndex() + 1;
     const cutoffWeek = Math.max(1, targetWeek - 52);
     const eligible = releases.filter((entry) => {
@@ -13013,7 +13530,37 @@ function pickRivalTourAnchorRelease(rival, weekNumber) {
             return qualityB - qualityA;
         return (b?.releasedAt || 0) - (a?.releasedAt || 0);
     });
-    return sorted[0] || null;
+    if (sorted.length)
+        return sorted[0] || null;
+    const scheduled = state.rivalReleaseQueue.filter((entry) => {
+        if (!entry || entry.label !== rival.name)
+            return false;
+        const kind = entry.queueType || "release";
+        if (kind !== "release")
+            return false;
+        return Number.isFinite(entry.releaseAt);
+    });
+    if (!scheduled.length)
+        return null;
+    const scheduledEligible = scheduled.filter((entry) => {
+        const releaseWeek = weekIndexForEpochMs(entry.releaseAt) + 1;
+        if (releaseWeek > targetWeek)
+            return false;
+        return releaseWeek >= cutoffWeek;
+    });
+    const scheduledPool = scheduledEligible.length ? scheduledEligible : scheduled.filter((entry) => {
+        const releaseWeek = weekIndexForEpochMs(entry.releaseAt) + 1;
+        return releaseWeek <= targetWeek;
+    });
+    const scheduledSorted = scheduledPool.length ? scheduledPool.slice() : scheduled.slice();
+    scheduledSorted.sort((a, b) => {
+        const qualityA = Number.isFinite(a?.qualityFinal) ? a.qualityFinal : Number.isFinite(a?.quality) ? a.quality : 0;
+        const qualityB = Number.isFinite(b?.qualityFinal) ? b.qualityFinal : Number.isFinite(b?.quality) ? b.quality : 0;
+        if (qualityA !== qualityB)
+            return qualityB - qualityA;
+        return (b?.releaseAt || 0) - (a?.releaseAt || 0);
+    });
+    return scheduledSorted[0] || null;
 }
 function buildRivalTourChartEntry(rival, weekNumber, now = state.time.epochMs) {
     if (!rival)
@@ -16179,7 +16726,7 @@ function ageMarketTracks() {
 const DEFAULT_HUSK_STARTERS = [
     {
         id: "starter-lite",
-        label: "Starter Lite",
+        label: "eyeriSocial Post focus (1 drop)",
         source: "starter",
         cadence: [
             { kind: "release", weekOffset: 0 },
@@ -16190,7 +16737,7 @@ const DEFAULT_HUSK_STARTERS = [
     },
     {
         id: "starter-pulse",
-        label: "Starter Pulse",
+        label: "eyeriSocial Post focus (2 drops)",
         source: "starter",
         cadence: [
             { kind: "release", weekOffset: 0 },
@@ -16203,7 +16750,7 @@ const DEFAULT_HUSK_STARTERS = [
     },
     {
         id: "starter-surge",
-        label: "Starter Surge",
+        label: "Music Video focus (2 drops)",
         source: "starter",
         cadence: [
             { kind: "release", weekOffset: 0 },
@@ -16697,11 +17244,24 @@ function ensureRivalAutoOpsState(rival) {
     if (!rival)
         return null;
     if (!rival.autoOps || typeof rival.autoOps !== "object") {
-        rival.autoOps = { act: null, era: null, eraIndex: 0, lastPlannedWeek: null, blockerCooldowns: {} };
+        rival.autoOps = {
+            act: null,
+            era: null,
+            eraIndex: 0,
+            lastPlannedWeek: null,
+            blockerCooldowns: {},
+            skipCooldowns: {},
+            readyTracks: []
+        };
     }
     if (!rival.autoOps.blockerCooldowns || typeof rival.autoOps.blockerCooldowns !== "object") {
         rival.autoOps.blockerCooldowns = {};
     }
+    if (!rival.autoOps.skipCooldowns || typeof rival.autoOps.skipCooldowns !== "object") {
+        rival.autoOps.skipCooldowns = {};
+    }
+    if (!Array.isArray(rival.autoOps.readyTracks))
+        rival.autoOps.readyTracks = [];
     if (typeof rival.autoOps.eraIndex !== "number")
         rival.autoOps.eraIndex = 0;
     if (typeof rival.autoOps.lastPlannedWeek !== "number")
@@ -16825,7 +17385,8 @@ function buildRivalAutoOpsBudget(rival, husk, options = {}) {
     const releaseBudget = buildRivalReleaseBudget(rival);
     const cadence = summarizeHuskCadence(husk);
     const promoBudget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
-    const createBudget = computeAutoCreateBudget(walletCash, rivalCreateBudgetPct(rival), rivalCreateMinCash());
+    const createPlan = buildRivalCreateBudget(rival, walletCash);
+    const createBudget = createPlan.budgetCap;
     const promoReserve = promoBudget ? promoBudget * (cadence.promoSteps || 0) : 0;
     const tourEstimate = estimateRivalTourReserve(husk, walletCash);
     const reserveFloor = Math.max(releaseBudget.minCash, Math.round(RIVAL_COMPETE_CASH_BUFFER + releaseCost + promoReserve + tourEstimate.reserve));
@@ -16837,6 +17398,7 @@ function buildRivalAutoOpsBudget(rival, husk, options = {}) {
         releaseBudget,
         promoBudget,
         createBudget,
+        createReserveFloor: createPlan.reserveFloor,
         promoReserve,
         tourReserve: tourEstimate.reserve,
         tourPer: tourEstimate.perTour,
@@ -16877,6 +17439,143 @@ function logRivalAutoOpsAction(rival, action, { what, at, weekNumber, why }) {
     const whenLabel = whenDate ? `${whenWeek} (${whenDate})` : whenWeek;
     const whyText = why ? ` | ${why}` : "";
     logEvent(`${rival.name} AutoOps ${action}: ${what} | When ${whenLabel}${whyText}`);
+}
+function logRivalAutoOpsSkip(rival, action, { reason, at, weekNumber, why, stepKey } = {}) {
+    const autoOps = ensureRivalAutoOpsState(rival);
+    if (!autoOps)
+        return;
+    if (!autoOps.skipCooldowns || typeof autoOps.skipCooldowns !== "object") {
+        autoOps.skipCooldowns = {};
+    }
+    const key = stepKey || `${action}:${weekNumber || "?"}:${Number.isFinite(at) ? at : "unknown"}`;
+    if (autoOps.skipCooldowns[key])
+        return;
+    autoOps.skipCooldowns[key] = true;
+    const whenWeek = Number.isFinite(weekNumber) ? `Week ${weekNumber}` : "Week ?";
+    const whenDate = Number.isFinite(at) ? formatDate(at) : null;
+    const whenLabel = whenDate ? `${whenWeek} (${whenDate})` : whenWeek;
+    const reasonText = reason ? `Reason ${reason}` : "Reason unknown";
+    const whyText = why ? ` | ${why}` : "";
+    logEvent(`${rival.name} AutoOps skipped ${action}: ${reasonText} | When ${whenLabel}${whyText}`);
+}
+function formatRivalHuskStepLabel(step) {
+    if (!step)
+        return "Step";
+    if (step.kind === "release")
+        return "Release";
+    if (step.kind === "promo" && step.promoType === "livePerformance")
+        return "Tour";
+    if (step.kind === "promo") {
+        const promoType = step.promoType || HUSK_PROMO_DEFAULT_TYPE;
+        return `${rolloutEventLabel(promoType)} promo`;
+    }
+    return "Step";
+}
+function resolveEraStageSnapshot(era, weekNumber) {
+    if (!era || !Number.isFinite(era.startedWeek) || !Number.isFinite(weekNumber))
+        return null;
+    const weeksElapsed = Math.max(0, weekNumber - era.startedWeek);
+    const stageWeeks = Array.isArray(era.rolloutWeeks) && era.rolloutWeeks.length
+        ? era.rolloutWeeks
+        : (ROLLOUT_PRESETS[1]?.weeks || [2, 2, 2, 2]);
+    let remaining = weeksElapsed;
+    let stageIndex = 0;
+    let stageWeek = 0;
+    for (let i = 0; i < stageWeeks.length; i += 1) {
+        const span = Math.max(1, stageWeeks[i] || 1);
+        if (remaining < span) {
+            stageIndex = i;
+            stageWeek = remaining;
+            break;
+        }
+        remaining -= span;
+        stageIndex = i + 1;
+        stageWeek = 0;
+    }
+    const totalWeeks = stageWeeks.reduce((sum, value) => sum + Math.max(1, value || 1), 0);
+    if (weeksElapsed >= totalWeeks) {
+        const lastIndex = Math.max(0, stageWeeks.length - 1);
+        return {
+            status: "Complete",
+            weeksElapsed,
+            stageIndex: lastIndex,
+            stageWeek: Math.max(0, stageWeeks[lastIndex] - 1)
+        };
+    }
+    return {
+        status: "Active",
+        weeksElapsed,
+        stageIndex: clamp(stageIndex, 0, Math.max(0, stageWeeks.length - 1)),
+        stageWeek: Math.max(0, stageWeek)
+    };
+}
+function resolveRivalTourStaminaProfile(rival) {
+    const crew = Array.isArray(rival?.creators) ? rival.creators.filter(Boolean) : [];
+    const crewCount = crew.length || 1;
+    const staffing = resolveTourStaffingBoost(crew);
+    const profile = resolveTourDateStaminaCost(crewCount, staffing.boostPct);
+    return { crewCount, totalCost: profile.totalCost, boostPct: staffing.boostPct };
+}
+function resolveRivalTourMomentumGate(rival, era) {
+    const base = clamp(rival?.momentum ?? 0.35, 0.35, 0.95);
+    const eraMomentum = tourEraMomentum(era);
+    const score = clamp(base * (Number.isFinite(eraMomentum) ? eraMomentum : 1), 0, 1.25);
+    const focusBoost = ["REQ-10", "REQ-11", "REQ-12"].includes(rival?.achievementFocus)
+        ? RIVAL_TOUR_MOMENTUM_FOCUS_BONUS
+        : 0;
+    const threshold = clamp(RIVAL_TOUR_MOMENTUM_MIN - focusBoost, 0.35, 0.9);
+    return { score, threshold, ok: score >= threshold };
+}
+function evaluateRivalTourGate({ rival, era, staminaRemaining, staminaCost, budget, targetWeekNumber } = {}) {
+    if (!rival)
+        return { ok: false, kind: "capacity", reason: "missing rival tour context." };
+    const stageSnapshot = Number.isFinite(targetWeekNumber)
+        ? resolveEraStageSnapshot(era, targetWeekNumber)
+        : null;
+    const eraStatus = stageSnapshot?.status || era?.status;
+    if (!era || eraStatus !== "Active") {
+        return { ok: false, kind: "era", reason: "touring requires an active era." };
+    }
+    const stageIndex = Number.isFinite(stageSnapshot?.stageIndex) ? stageSnapshot.stageIndex : era.stageIndex;
+    if (Number.isFinite(stageIndex) && ERA_TOURING_STAGE_INDEX >= 0 && stageIndex < ERA_TOURING_STAGE_INDEX) {
+        const stageLabel = ERA_STAGES[ERA_TOURING_STAGE_INDEX] || "Promotion";
+        return { ok: false, kind: "era", reason: `touring unlocks in ${stageLabel} stage.` };
+    }
+    const momentumGate = resolveRivalTourMomentumGate(rival, {
+        stageIndex,
+        weeksElapsed: stageSnapshot?.weeksElapsed
+    });
+    if (!momentumGate.ok) {
+        return {
+            ok: false,
+            kind: "momentum",
+            reason: `momentum ${Math.round(momentumGate.score * 100)} below ${Math.round(momentumGate.threshold * 100)} tour gate.`
+        };
+    }
+    const safeCost = Number.isFinite(staminaCost) ? Math.max(0, staminaCost) : ACTIVITY_STAMINA_TOUR_DATE;
+    const safeRemaining = Number.isFinite(staminaRemaining) ? Math.max(0, staminaRemaining) : 0;
+    if (safeRemaining < safeCost) {
+        return {
+            ok: false,
+            kind: "stamina",
+            reason: `tour stamina ${formatCount(safeCost)} exceeds remaining ${formatCount(safeRemaining)}.`
+        };
+    }
+    if (!budget || !Number.isFinite(budget.tourBudgetCap)) {
+        return { ok: false, kind: "budget", reason: "tour budget unavailable." };
+    }
+    const remaining = Math.max(0, budget.tourBudgetCap - (budget.tourSpent || 0));
+    if (remaining <= 0)
+        return { ok: false, kind: "budget", reason: "tour budget exhausted." };
+    const baseline = Number.isFinite(budget.tourPer) ? Math.max(0, budget.tourPer) : 0;
+    if (baseline > 0 && remaining < baseline) {
+        return {
+            ok: false,
+            kind: "budget",
+            reason: `tour budget ${formatMoney(remaining)} below baseline ${formatMoney(baseline)}.`
+        };
+    }
+    return { ok: true, momentumScore: momentumGate.score, momentumThreshold: momentumGate.threshold };
 }
 function buildRivalTourProjection({ rival, venue, anchor, scheduledAt, seed }) {
     if (!rival || !venue)
@@ -16937,9 +17636,21 @@ function buildRivalTourProjection({ rival, venue, anchor, scheduledAt, seed }) {
 function scheduleRivalTourStep({ rival, act, era, husk, budget, stepIndex, stepDay, planWeek, targetWeekIndex, now } = {}) {
     if (!rival || !act || !budget)
         return { ok: false, kind: "budget", reason: "missing rival tour context." };
+    if (!era)
+        return { ok: false, kind: "era", reason: "touring requires an active era." };
+    const stageSnapshot = resolveEraStageSnapshot(era, targetWeekIndex + 1);
+    const eraStatus = stageSnapshot?.status || era.status;
+    if (eraStatus !== "Active")
+        return { ok: false, kind: "era", reason: "touring requires an active era." };
+    const stageIndex = Number.isFinite(stageSnapshot?.stageIndex) ? stageSnapshot.stageIndex : era.stageIndex;
+    if (Number.isFinite(stageIndex) && ERA_TOURING_STAGE_INDEX >= 0 && stageIndex < ERA_TOURING_STAGE_INDEX) {
+        const stageLabel = ERA_STAGES[ERA_TOURING_STAGE_INDEX] || "Promotion";
+        return { ok: false, kind: "era", reason: `touring unlocks in ${stageLabel} stage.` };
+    }
     const anchor = pickRivalTourAnchorRelease(rival, targetWeekIndex + 1);
     if (!anchor)
         return { ok: false, kind: "capacity", reason: "no tour anchor release." };
+    const tourId = era?.id || `rival-tour-${rival.id || slugify(rival.name || "label")}`;
     const weekStart = weekStartEpochMs(targetWeekIndex + 1);
     const dayIndex = Number.isFinite(stepDay) ? stepDay : HUSK_PROMO_DAY;
     const scheduledAt = weekStart + clamp(dayIndex, 0, 6) * DAY_MS;
@@ -16962,10 +17673,44 @@ function scheduleRivalTourStep({ rival, act, era, husk, budget, stepIndex, stepD
     const dayConflict = existing.some((booking) => tourDayKey(booking.scheduledAt) === dayKey);
     if (dayConflict)
         return { ok: false, kind: "stamina", reason: "tour date conflicts with another booking." };
+    const restConflict = existing
+        .filter((booking) => Number.isFinite(booking?.scheduledAt))
+        .some((booking) => Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_REST_DAY_MIN);
+    if (restConflict) {
+        return { ok: false, kind: "stamina", reason: `rest day buffer ${TOUR_REST_DAY_MIN}d blocked.` };
+    }
+    const cooldown = resolveTourCooldownGap({ actId: act.id, draftId: tourId, scheduledAt });
+    if (cooldown && cooldown.gapWeeks < TOUR_COOLDOWN_MIN_WEEKS) {
+        return {
+            ok: false,
+            kind: "schedule",
+            reason: `tour cooldown ${TOUR_COOLDOWN_MIN_WEEKS}w not met.`
+        };
+    }
+    const tourBookings = existing
+        .filter((booking) => booking?.tourId === tourId || (era?.id && booking?.eraId === era.id))
+        .filter((booking) => Number.isFinite(booking?.scheduledAt) && booking.scheduledAt < scheduledAt)
+        .sort((a, b) => (a.scheduledAt || 0) - (b.scheduledAt || 0));
+    const preferredRegionId = tourBookings.length ? tourBookings[tourBookings.length - 1].regionId || null : null;
+    const budgetRemaining = Math.max(0, budget.tourBudgetCap - (budget.tourSpent || 0));
+    const hasTravelConflict = (regionId) => {
+        if (!regionId)
+            return false;
+        return existing
+            .filter((booking) => Number.isFinite(booking?.scheduledAt))
+            .some((booking) => {
+            if (!booking?.regionId || booking.regionId === regionId)
+                return false;
+            return Math.abs(tourDayKey(booking.scheduledAt) - dayKey) <= DAY_MS * TOUR_TRAVEL_BUFFER_MIN;
+        });
+    };
     const seed = makeStableSeed([planWeek, rival.id || rival.name || "", husk?.id || "husk", stepIndex, "tour"]);
+    let budgetFiltered = false;
     const scored = venues.map((venue, index) => {
         const availability = getTourVenueAvailability(venue.id, scheduledAt);
         if (availability.available <= 0)
+            return null;
+        if (hasTravelConflict(venue?.regionId))
             return null;
         const projection = buildRivalTourProjection({
             rival,
@@ -16976,19 +17721,32 @@ function scheduleRivalTourStep({ rival, act, era, husk, budget, stepIndex, stepD
         });
         if (!projection)
             return null;
+        if (Number.isFinite(projection.costs) && projection.costs > budgetRemaining) {
+            budgetFiltered = true;
+            return null;
+        }
         return { venue, projection, score: projection.profit };
     }).filter(Boolean);
-    if (!scored.length)
+    if (!scored.length) {
+        if (budgetFiltered) {
+            return {
+                ok: false,
+                kind: "budget",
+                reason: `tour budget ${formatMoney(budgetRemaining)} below venue costs.`
+            };
+        }
         return { ok: false, kind: "venue", reason: "venue availability blocked." };
+    }
     scored.sort((a, b) => b.score - a.score || (a.venue.capacity || 0) - (b.venue.capacity || 0));
-    const pick = scored[0];
+    const regionCandidates = preferredRegionId ? scored.filter((entry) => entry.venue.regionId === preferredRegionId) : [];
+    const pick = (regionCandidates.length ? regionCandidates : scored)[0];
     const spend = spendRivalTourBudget(budget, pick.projection.costs);
     if (!spend.ok)
         return { ok: false, kind: "budget", reason: spend.reason };
     const tourName = era?.name ? `${era.name} Tour` : `${act.name} Tour`;
     const booking = {
         id: uid("TB"),
-        tourId: era?.id || `rival-tour-${rival.id || slugify(rival.name || "label")}`,
+        tourId,
         tourName,
         actId: act.id,
         actName: act.name,
@@ -17022,16 +17780,30 @@ function scheduleRivalTourStep({ rival, act, era, husk, budget, stepIndex, stepD
 }
 function resolveRivalActionWeights(rival) {
     const focus = rival?.achievementFocus || "";
+    let base = { release: 1, promo: 1, tour: 1, label: "balanced" };
     if (["REQ-01", "REQ-02", "REQ-03", "REQ-04", "REQ-05", "REQ-06"].includes(focus)) {
-        return { release: 1.25, promo: 0.95, tour: 0.9, label: "release focus" };
+        base = { release: 1.25, promo: 0.95, tour: 0.9, label: "release focus" };
     }
-    if (["REQ-07", "REQ-08", "REQ-09"].includes(focus)) {
-        return { release: 0.95, promo: 1.3, tour: 0.9, label: "promo focus" };
+    else if (["REQ-07", "REQ-08", "REQ-09"].includes(focus)) {
+        base = { release: 0.95, promo: 1.3, tour: 0.9, label: "promo focus" };
     }
-    if (["REQ-10", "REQ-11", "REQ-12"].includes(focus)) {
-        return { release: 0.9, promo: 0.95, tour: 1.35, label: "tour focus" };
+    else if (["REQ-10", "REQ-11", "REQ-12"].includes(focus)) {
+        base = { release: 0.9, promo: 0.95, tour: 1.35, label: "tour focus" };
     }
-    return { release: 1, promo: 1, tour: 1, label: "balanced" };
+    const ambition = clamp(rival?.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
+    const ambitionRatio = RIVAL_AMBITION_FLOOR >= 1
+        ? 1
+        : clamp((ambition - RIVAL_AMBITION_FLOOR) / (1 - RIVAL_AMBITION_FLOOR), 0, 1);
+    const intensity = 0.6 + 0.6 * ambitionRatio;
+    const scale = (value) => 1 + (value - 1) * intensity;
+    const ambitionLabel = ambition >= 0.75 ? "ambition high" : ambition >= 0.55 ? "ambition medium" : "ambition low";
+    const label = base.label ? `${base.label}, ${ambitionLabel}` : ambitionLabel;
+    return {
+        release: scale(base.release),
+        promo: scale(base.promo),
+        tour: scale(base.tour),
+        label
+    };
 }
 function scoreHuskActionBias(husk, actionWeights, cadence = null) {
     const summary = cadence || summarizeHuskCadence(husk);
@@ -17045,6 +17817,23 @@ function scoreHuskActionBias(husk, actionWeights, cadence = null) {
         + tourSteps * (actionWeights.tour - 1);
     const score = clamp(0.5 + weighted / Math.max(1, totalSteps), 0, 1);
     return { score, summary };
+}
+function scoreRivalCadencePacing(husk, pace, cadence = null) {
+    const summary = cadence || summarizeHuskCadence(husk);
+    const windowWeeks = Math.max(1, summary.windowWeeks || huskWindowWeeks(husk));
+    const releaseSteps = summary.releaseSteps || 0;
+    const tourSteps = summary.tourSteps || 0;
+    const promoSteps = Math.max(0, (summary.promoSteps || 0) - tourSteps);
+    const weightedSteps = releaseSteps * 1.2 + promoSteps + tourSteps * 1.4;
+    const density = weightedSteps / windowWeeks;
+    const minDensity = 0.6;
+    const maxDensity = 2.4;
+    const normalizedDensity = clamp((density - minDensity) / (maxDensity - minDensity), 0, 1);
+    const paceRatio = pace && Number.isFinite(pace.multiplier)
+        ? clamp((pace.multiplier - RIVAL_PACE_MIN) / (RIVAL_PACE_MAX - RIVAL_PACE_MIN), 0, 1)
+        : 0.5;
+    const score = clamp(1 - Math.abs(normalizedDensity - paceRatio), 0, 1);
+    return { score, summary, density, paceRatio };
 }
 function formatPlanBlockers(blockers) {
     if (!Array.isArray(blockers) || !blockers.length)
@@ -17062,7 +17851,7 @@ function formatPlanBlockers(blockers) {
     });
     return formatted.join(" | ");
 }
-function formatRivalPlanWhy({ trendScore, alignmentScore, budgetScore, actionScore, finance, actionWeights }) {
+function formatRivalPlanWhy({ trendScore, alignmentScore, budgetScore, actionScore, cadenceScore, finance, actionWeights, pace }) {
     const parts = [];
     if (Number.isFinite(trendScore))
         parts.push(`trend ${Math.round(trendScore * 100)}%`);
@@ -17072,6 +17861,11 @@ function formatRivalPlanWhy({ trendScore, alignmentScore, budgetScore, actionSco
         parts.push(`budget ${Math.round(budgetScore * 100)}%`);
     if (Number.isFinite(actionScore))
         parts.push(`action ${Math.round(actionScore * 100)}%`);
+    if (Number.isFinite(cadenceScore))
+        parts.push(`cadence ${Math.round(cadenceScore * 100)}%`);
+    if (pace && Number.isFinite(pace.multiplier)) {
+        parts.push(`pace ${pace.label || "steady"} ${Math.round(pace.multiplier * 100)}%`);
+    }
     if (finance && Number.isFinite(finance.projectedNet)) {
         const windowWeeks = finance.cadence?.windowWeeks || 1;
         parts.push(`net ${formatMoney(finance.projectedNet)} / ${windowWeeks}w`);
@@ -17152,15 +17946,32 @@ function scoreHuskForRival(husk, rival, trends) {
     const actionWeights = resolveRivalActionWeights(rival);
     const actionBias = scoreHuskActionBias(husk, actionWeights, finance.cadence);
     const actionScore = actionBias.score;
+    const pace = resolveRivalPace(rival);
+    const cadenceBias = scoreRivalCadencePacing(husk, pace, finance.cadence);
+    const cadenceScore = cadenceBias.score;
     const budgetScore = budgetCost === 0
         ? 1
         : budgetCost === Number.POSITIVE_INFINITY
             ? 0
             : clamp(availableCash / budgetCost, 0, 1);
     const outcomeScore = clamp(context.outcomeScore / 100, 0, 1);
-    const score = trendScore * 35 + alignmentScore * 25 + budgetScore * 20 + actionScore * 10 + outcomeScore * 10;
+    const score = trendScore * 30
+        + alignmentScore * 22
+        + budgetScore * 18
+        + actionScore * 10
+        + cadenceScore * 10
+        + outcomeScore * 10;
     const eligible = eligibility.ok;
-    const why = formatRivalPlanWhy({ trendScore, alignmentScore, budgetScore, actionScore, finance, actionWeights });
+    const why = formatRivalPlanWhy({
+        trendScore,
+        alignmentScore,
+        budgetScore,
+        actionScore,
+        cadenceScore,
+        finance,
+        actionWeights,
+        pace
+    });
     return {
         score,
         eligible,
@@ -17170,6 +17981,8 @@ function scoreHuskForRival(husk, rival, trends) {
         why,
         actionWeights,
         cadence: finance.cadence,
+        pace,
+        cadenceScore,
         blockers: eligibility.blockers
     };
 }
@@ -17313,7 +18126,36 @@ function hasRivalQueueEntry(label, queueType, targetWeekIndex) {
         return weekIndexForEpochMs(entry.releaseAt) === targetWeekIndex;
     });
 }
-function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek }) {
+function planRivalReleaseEntry({ rival, husk, releaseAt, stepIndex, planWeek, readyTrack = null }) {
+    if (readyTrack) {
+        return {
+            id: uid("RR"),
+            queueType: "release",
+            huskId: readyTrack.huskId || husk.id,
+            huskSource: readyTrack.huskSource || husk.source,
+            planWeek,
+            releaseAt,
+            trackId: readyTrack.trackId || readyTrack.id,
+            title: readyTrack.title,
+            label: readyTrack.label || rival.name,
+            actName: readyTrack.actName,
+            actNameKey: readyTrack.actNameKey || null,
+            projectName: readyTrack.projectName,
+            projectType: readyTrack.projectType || normalizeProjectType("Single"),
+            theme: readyTrack.theme,
+            mood: readyTrack.mood,
+            alignment: readyTrack.alignment || rival.alignment,
+            country: readyTrack.country || rival.country,
+            quality: readyTrack.quality,
+            genre: readyTrack.genre || makeGenre(readyTrack.theme, readyTrack.mood),
+            distribution: readyTrack.distribution || "Digital",
+            preReleaseMomentum: Math.max(0, readyTrack.preReleaseMomentum || 0),
+            focusType: readyTrack.focusType || husk?.focusType || "Era",
+            focusLabel: readyTrack.focusLabel || husk?.focusLabel || null,
+            focusId: readyTrack.focusId || husk?.focusId || null,
+            creatorIds: Array.isArray(readyTrack.creatorIds) ? readyTrack.creatorIds.filter(Boolean) : []
+        };
+    }
     const seed = makeStableSeed([planWeek, rival.id, husk.id, stepIndex, "release"]);
     const rng = makeSeededRng(seed);
     const { theme, mood } = pickRivalThemeMood(rival, husk, rng);
@@ -17448,7 +18290,7 @@ function canScheduleRivalPromoStep(rival, promoType, promoAt, promoBudgetSlots, 
 function buildRivalReleaseBudget(rival) {
     const walletCash = rival?.wallet?.cash ?? rival?.cash ?? 0;
     const pct = rivalCreateBudgetPct(rival);
-    const minCash = rivalCreateMinCash();
+    const minCash = rivalCreateMinCash(rival);
     const budgetCap = computeAutoCreateBudget(walletCash, pct, minCash);
     return {
         budgetCap,
@@ -17497,19 +18339,38 @@ function scheduleHuskForRival(rival, husk, options = {}) {
     if (!steps.length)
         return null;
     const now = state.time.epochMs;
+    const pace = options.pace || resolveRivalPace(rival);
+    const paceMultiplier = Number.isFinite(pace?.multiplier) ? pace.multiplier : 1;
+    const scaleCount = (value, minValue = 0) => {
+        if (!Number.isFinite(value))
+            return value;
+        if (value <= 0)
+            return minValue;
+        const scaled = paceMultiplier >= 1
+            ? Math.ceil(value * paceMultiplier)
+            : Math.floor(value * paceMultiplier);
+        return Math.max(minValue, scaled);
+    };
     const planLabel = husk?.label || husk?.id || "plan";
-    const planWhy = options.planWhy || "";
+    const planKey = husk?.id || planLabel;
+    const planWhy = options.planWhy || rival?.aiPlan?.planWhy || "";
     const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
     const promoBudget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
-    const promoBudgetSlots = promoBudget ? Math.floor(walletCash / promoBudget) : 0;
+    const basePromoBudgetSlots = promoBudget ? Math.floor(walletCash / promoBudget) : 0;
+    const promoBudgetSlots = scaleCount(basePromoBudgetSlots, 0);
     let promoScheduled = 0;
     const budget = options.budget || null;
     const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
     const stats = { releases: 0, promos: 0, tours: 0, blockedReason: "", blockers: [] };
-    const crewCap = Number.isFinite(options.crewCap) ? options.crewCap : rivalReleaseCrewCapacity(rival);
+    const baseCrewCap = Number.isFinite(options.crewCap) ? options.crewCap : rivalReleaseCrewCapacity(rival);
+    const crewCap = scaleCount(baseCrewCap, 1);
     const staminaStats = options.staminaStats || summarizeRivalStamina(rival);
     let staminaRemaining = Math.max(0, staminaStats.totalStamina);
     const tourBudget = options.tourBudget || null;
+    const tourStaminaProfile = resolveRivalTourStaminaProfile(rival);
+    const tourStaminaCost = Number.isFinite(tourStaminaProfile?.totalCost)
+        ? tourStaminaProfile.totalCost
+        : ACTIVITY_STAMINA_TOUR_DATE;
     const autoOpsAct = options.act || null;
     const autoOpsEra = options.era || null;
     const recordBlocker = (kind, reason) => {
@@ -17535,33 +18396,56 @@ function scheduleHuskForRival(rival, husk, options = {}) {
     steps.forEach((step, index) => {
         const weekOffset = Number.isFinite(step.weekOffset) ? Math.max(0, step.weekOffset) : 0;
         const targetWeekIndex = safeBaseWeekIndex + weekOffset;
-        if (Number.isFinite(endWeekIndex) && targetWeekIndex > endWeekIndex)
+        const stepLabel = formatRivalHuskStepLabel(step);
+        const stepKey = `${planKey}:${step.kind}:${step.promoType || "release"}:${index}:${targetWeekIndex}`;
+        const logSkip = (reason, at = null) => {
+            logRivalAutoOpsSkip(rival, stepLabel, {
+                reason,
+                at,
+                weekNumber: targetWeekIndex + 1,
+                why: planWhy,
+                stepKey
+            });
+        };
+        if (Number.isFinite(endWeekIndex) && targetWeekIndex > endWeekIndex) {
+            logSkip("outside plan window.");
             return;
+        }
         if (step.kind === "release") {
             if (releaseScheduled >= crewCap) {
                 recordBlocker("capacity", `release crew capacity ${crewCap} reached.`);
+                logSkip(`release crew capacity ${crewCap} reached.`);
                 return;
             }
-            if (hasRivalQueueEntry(rival.name, "release", targetWeekIndex))
+            if (hasRivalQueueEntry(rival.name, "release", targetWeekIndex)) {
+                logSkip("release already queued.");
                 return;
+            }
             const releaseAt = rolloutReleaseTimestampForWeek(targetWeekIndex + 1);
-            if (releaseAt <= now)
+            if (releaseAt <= now) {
+                logSkip("release window already passed.", releaseAt);
                 return;
+            }
             const spendResult = spendRivalReleaseBudget(rival, budget, releaseCost);
             if (!spendResult.ok) {
                 const reason = spendResult.reason || "release budget blocked.";
                 recordBlocker("budget", reason);
                 if (budget && !budget.blockedReason)
                     budget.blockedReason = reason;
+                logSkip(reason, releaseAt);
                 return;
             }
+            const readyTrack = pickRivalReadyTrack(rival, husk);
             const entry = planRivalReleaseEntry({
                 rival,
                 husk,
                 releaseAt,
                 stepIndex: index,
-                planWeek
+                planWeek,
+                readyTrack
             });
+            if (readyTrack)
+                consumeRivalReadyTrack(rival, husk);
             state.rivalReleaseQueue.push(entry);
             logRivalAutoOpsAction(rival, "Release", {
                 what: `"${entry.title}"`,
@@ -17574,8 +18458,17 @@ function scheduleHuskForRival(rival, husk, options = {}) {
             return;
         }
         if (step.kind === "promo" && step.promoType === "livePerformance") {
-            if (staminaRemaining < ACTIVITY_STAMINA_TOUR_DATE) {
-                recordBlocker("stamina", "stamina capacity reached for tours.");
+            const tourGate = evaluateRivalTourGate({
+                rival,
+                era: autoOpsEra,
+                staminaRemaining,
+                staminaCost: tourStaminaCost,
+                budget: tourBudget,
+                targetWeekNumber: targetWeekIndex + 1
+            });
+            if (!tourGate.ok) {
+                recordBlocker(tourGate.kind || "budget", tourGate.reason || "tour gate blocked.");
+                logSkip(tourGate.reason || "tour gate blocked.");
                 return;
             }
             const tourResult = scheduleRivalTourStep({
@@ -17592,9 +18485,10 @@ function scheduleHuskForRival(rival, husk, options = {}) {
             });
             if (!tourResult.ok) {
                 recordBlocker(tourResult.kind || "venue", tourResult.reason || "tour scheduling blocked.");
+                logSkip(tourResult.reason || "tour scheduling blocked.");
                 return;
             }
-            staminaRemaining = Math.max(0, staminaRemaining - ACTIVITY_STAMINA_TOUR_DATE);
+            staminaRemaining = Math.max(0, staminaRemaining - tourStaminaCost);
             stats.tours += 1;
             logRivalAutoOpsAction(rival, "Tour", {
                 what: `${tourResult.booking?.tourName || "Tour"} @ ${tourResult.booking?.venueLabel || "venue"}`,
@@ -17613,10 +18507,13 @@ function scheduleHuskForRival(rival, husk, options = {}) {
                 recordBlocker("stamina", "promo scheduling disabled by gate.");
                 promoDisabledLogged = true;
             }
+            logSkip(!allowPromo ? "promo scheduling disabled by gate." : "promo budget is 0.");
             return;
         }
-        if (hasRivalQueueEntry(rival.name, "promo", targetWeekIndex))
+        if (hasRivalQueueEntry(rival.name, "promo", targetWeekIndex)) {
+            logSkip("promo already queued.");
             return;
+        }
         const weekStart = weekStartEpochMs(targetWeekIndex + 1);
         let promoAt = weekStart + step.day * DAY_MS + step.hour * HOUR_MS;
         while (promoAt <= now) {
@@ -17624,11 +18521,13 @@ function scheduleHuskForRival(rival, husk, options = {}) {
         }
         if (staminaRemaining < ACTIVITY_STAMINA_PROMO) {
             recordBlocker("stamina", "stamina capacity reached for promos.");
+            logSkip("stamina capacity reached for promos.", promoAt);
             return;
         }
         const promoCheck = canScheduleRivalPromoStep(rival, step.promoType || HUSK_PROMO_DEFAULT_TYPE, promoAt, promoBudgetSlots, promoScheduled);
         if (!promoCheck.ok) {
             recordBlocker(promoCheck.kind || "facility", promoCheck.reason || "promo schedule blocked.");
+            logSkip(promoCheck.reason || "promo schedule blocked.", promoAt);
             return;
         }
         const entry = planRivalPromoEntry({
@@ -17650,6 +18549,80 @@ function scheduleHuskForRival(rival, husk, options = {}) {
             why: planWhy || `plan ${planLabel}`
         });
     });
+    return stats;
+}
+function runRivalAutoCreateWeek(rival, husk, options = {}) {
+    if (!rival || !husk)
+        return { created: 0, spent: 0, blockedReason: "missing rival or plan." };
+    const currentWeek = Number.isFinite(options.weekIndex) ? options.weekIndex : weekIndex();
+    const weekNumber = Math.max(1, currentWeek + 1);
+    const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
+    const reserveFloor = Number.isFinite(options.reserveFloor) ? options.reserveFloor : null;
+    const budget = buildRivalCreateBudget(rival, walletCash, reserveFloor);
+    const pace = options.pace || resolveRivalPace(rival);
+    const paceMultiplier = Number.isFinite(pace?.multiplier) ? pace.multiplier : 1;
+    const baseMaxTracks = budget.maxTracks;
+    const maxTracks = baseMaxTracks > 0
+        ? Math.max(1, paceMultiplier >= 1
+            ? Math.ceil(baseMaxTracks * paceMultiplier)
+            : Math.floor(baseMaxTracks * paceMultiplier))
+        : 0;
+    const stats = { created: 0, spent: 0, blockedReason: "" };
+    if (!maxTracks) {
+        stats.blockedReason = "max tracks is 0.";
+        return stats;
+    }
+    if (walletCash <= budget.reserveFloor) {
+        stats.blockedReason = `reserve floor ${formatMoney(budget.reserveFloor)} exceeds cash ${formatMoney(walletCash)}.`;
+        logRivalAutoOpsBlocker(rival, "reserve", stats.blockedReason, currentWeek);
+        return stats;
+    }
+    if (!budget.budgetCap) {
+        stats.blockedReason = "create budget is 0.";
+        logRivalAutoOpsBlocker(rival, "budget", stats.blockedReason, currentWeek);
+        return stats;
+    }
+    const ready = ensureRivalReadyTracks(rival);
+    const backlogCap = Math.max(2, maxTracks * 2);
+    if (ready.length >= backlogCap) {
+        stats.blockedReason = `ready backlog ${ready.length} >= cap ${backlogCap}.`;
+        logRivalAutoOpsBlocker(rival, "capacity", stats.blockedReason, currentWeek);
+        return stats;
+    }
+    for (let i = 0; i < maxTracks; i += 1) {
+        if (ready.length >= backlogCap)
+            break;
+        const entry = buildRivalReadyTrack({ rival, husk, weekNumber, createIndex: i });
+        if (!entry) {
+            stats.blockedReason = "create draft failed.";
+            break;
+        }
+        if (!entry.creatorIds?.length) {
+            stats.blockedReason = "no creators available for track creation.";
+            logRivalAutoOpsBlocker(rival, "capacity", stats.blockedReason, currentWeek);
+            break;
+        }
+        const cost = estimateRivalCreateCost(entry.quality, entry.creatorIds.length);
+        const spendResult = spendRivalCreateBudget(rival, budget, cost);
+        if (!spendResult.ok) {
+            stats.blockedReason = spendResult.reason || "create budget blocked.";
+            const kind = stats.blockedReason.includes("reserve") ? "reserve" : "budget";
+            logRivalAutoOpsBlocker(rival, kind, stats.blockedReason, currentWeek);
+            break;
+        }
+        ready.push(entry);
+        stats.created += 1;
+        stats.spent += cost;
+        if (options.era && options.era.status === "Active") {
+            recordEraProjectCreateActivity(options.era, state.time.epochMs);
+        }
+        logRivalAutoOpsAction(rival, "Create", {
+            what: `"${entry.title}"`,
+            at: state.time.epochMs,
+            weekNumber,
+            why: options.planWhy || `plan ${husk?.label || husk?.id || "plan"}`
+        });
+    }
     return stats;
 }
 function shouldRivalPursueMonopoly(rival) {
@@ -17756,6 +18729,8 @@ function scheduleRivalDominancePush(rival, husk, options = {}) {
     if (!budget || budget.budgetCap <= 0) {
         return { releases: 0, target, reason: "release budget is 0." };
     }
+    const pace = options.pace || resolveRivalPace(rival);
+    const paceMultiplier = Number.isFinite(pace?.multiplier) ? pace.multiplier : 1;
     const targetWeekIndex = Number.isFinite(options.targetWeekIndex)
         ? options.targetWeekIndex
         : getRivalPlanStartWeekIndex(state.time.epochMs);
@@ -17764,7 +18739,12 @@ function scheduleRivalDominancePush(rival, husk, options = {}) {
     const needed = Math.max(0, target.size - chartCount - queuedCount);
     if (!needed)
         return { releases: 0, target, reason: "chart coverage met." };
-    const crewCap = rivalReleaseCrewCapacity(rival);
+    const baseCrewCap = rivalReleaseCrewCapacity(rival);
+    const crewCap = baseCrewCap > 0
+        ? Math.max(1, paceMultiplier >= 1
+            ? Math.ceil(baseCrewCap * paceMultiplier)
+            : Math.floor(baseCrewCap * paceMultiplier))
+        : 0;
     if (!crewCap)
         return { releases: 0, target, reason: "no release crew capacity." };
     const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
@@ -17812,6 +18792,7 @@ function runRivalAutoOpsWeek(stateRef = state, weekContext = {}) {
     const now = Number.isFinite(weekContext.now) ? weekContext.now : stateRef.time.epochMs;
     let plannedThisWeek = false;
     let eligibleCount = 0;
+    const standings = resolveRivalAchievementStandings();
     stateRef.rivals.forEach((rival) => {
         if (!rival)
             return;
@@ -17828,12 +18809,14 @@ function runRivalAutoOpsWeek(stateRef = state, weekContext = {}) {
                 dominanceScopeType: null,
                 dominanceScopeKey: null,
                 dominanceWeekIndex: null,
+                planWhy: null,
                 competitive: false
             };
         }
         const autoOps = ensureRivalAutoOpsState(rival);
         if (autoOps?.lastPlannedWeek === currentWeek)
             return;
+        const pace = resolveRivalPace(rival, standings);
         plannedThisWeek = true;
         const act = ensureRivalAutoOpsAct(rival);
         let husk = null;
@@ -17858,10 +18841,23 @@ function runRivalAutoOpsWeek(stateRef = state, weekContext = {}) {
             logEvent(`${rival.name} AutoOps idle (why: no eligible plans met gates).`, "warn");
             return;
         }
+        if (rival.aiPlan && !rival.aiPlan.planWhy) {
+            const trendList = Array.isArray(state.trends) ? state.trends : [];
+            const scored = scoreHuskForRival(husk, rival, trendList);
+            if (scored?.why)
+                rival.aiPlan.planWhy = scored.why;
+        }
         applyRivalHuskFocus(rival, husk);
         const era = ensureRivalAutoOpsEra(rival, act, husk.id, currentWeek);
         updateRivalAutoOpsEraProgress(era, currentWeek + 1);
         const planBudget = buildRivalAutoOpsBudget(rival, husk, { releaseCost: RIVAL_COMPETE_DROP_COST });
+        runRivalAutoCreateWeek(rival, husk, {
+            weekIndex: currentWeek,
+            reserveFloor: planBudget.reserveFloor,
+            era,
+            pace,
+            planWhy: huskSelection?.why || rival.aiPlan?.planWhy
+        });
         if (planBudget.walletCash < planBudget.reserveFloor) {
             logRivalAutoOpsBlocker(rival, "reserve", `reserve floor ${formatMoney(planBudget.reserveFloor)} exceeds cash ${formatMoney(planBudget.walletCash)}.`, currentWeek);
         }
@@ -17874,6 +18870,7 @@ function runRivalAutoOpsWeek(stateRef = state, weekContext = {}) {
             rival.aiPlan.huskSource = null;
             rival.aiPlan.windowStartWeekIndex = null;
             rival.aiPlan.windowEndWeekIndex = null;
+            rival.aiPlan.planWhy = null;
             rival.aiPlan.lastPlannedWeek = currentWeek;
             rival.aiPlan.lastHuskId = husk.id;
             rival.aiPlan.lastPlannedAt = stateRef.time.epochMs;
@@ -17895,6 +18892,7 @@ function runRivalAutoOpsWeek(stateRef = state, weekContext = {}) {
             rival.aiPlan.windowStartWeekIndex = planWeekIndex;
             rival.aiPlan.windowEndWeekIndex = planEndWeekIndex;
             const planWhy = huskSelection?.why || `why: selected ${husk.label || husk.id}.`;
+            rival.aiPlan.planWhy = planWhy;
             const budgetNote = `budgets create ${formatMoney(planBudget.createBudget)} | promo ${formatMoney(planBudget.promoBudget || 0)} | release ${formatMoney(planBudget.releaseBudget.budgetCap)} | tour ${formatMoney(planBudget.tourBudgetCap)} | reserve ${formatMoney(planBudget.reserveFloor)}`;
             const stageLabel = Number.isFinite(era?.stageIndex) ? `${ERA_STAGES[era.stageIndex] || "Stage"} ${era.stageWeek + 1}` : "Stage ?";
             logEvent(`${rival.name} AutoOps plan: ${husk.label || husk.id} (${planWhy}) | ${budgetNote} | ${stageLabel}.`);
@@ -17921,7 +18919,8 @@ function runRivalAutoOpsWeek(stateRef = state, weekContext = {}) {
             staminaStats: eligibility.stamina,
             act,
             era,
-            planWhy: huskSelection?.why
+            pace,
+            planWhy: huskSelection?.why || rival.aiPlan?.planWhy
         });
         if (scheduleStats?.blockers?.length) {
             scheduleStats.blockers.forEach((blocker) => {
@@ -17942,7 +18941,8 @@ function runRivalAutoOpsWeek(stateRef = state, weekContext = {}) {
                 targetWeekIndex: startWeekIndex,
                 budget: planBudget.releaseBudget,
                 releaseCost: RIVAL_COMPETE_DROP_COST,
-                stepOffset: scheduleStats?.releases || 0
+                stepOffset: scheduleStats?.releases || 0,
+                pace
             });
             if (dominanceStats?.releases) {
                 const scopeKey = dominanceStats.target?.scopeType === "global"
@@ -18008,11 +19008,21 @@ function pickRivalScheduledReleaseEntry(rival, now = state.time.epochMs) {
             return false;
         if (!Number.isFinite(entry.releaseAt) || entry.releaseAt <= now)
             return false;
+        if ((entry.preReleaseMomentum || 0) > 0)
+            return false;
         return true;
     });
     if (!candidates.length)
         return null;
-    return candidates.slice().sort((a, b) => (a.releaseAt || 0) - (b.releaseAt || 0))[0];
+    return candidates.reduce((best, entry) => {
+        const bestStamp = Number.isFinite(best?.releaseAt) ? best.releaseAt : 0;
+        const entryStamp = Number.isFinite(entry?.releaseAt) ? entry.releaseAt : 0;
+        if (entryStamp !== bestStamp)
+            return entryStamp > bestStamp ? entry : best;
+        const bestKey = `${best?.title || ""}|${best?.id || ""}`;
+        const entryKey = `${entry?.title || ""}|${entry?.id || ""}`;
+        return entryKey >= bestKey ? entry : best;
+    }, candidates[0]);
 }
 function processRivalPromoEntry(entry) {
     const rival = getRivalByName(entry.label);
@@ -18020,9 +19030,10 @@ function processRivalPromoEntry(entry) {
         return false;
     const promoType = entry.promoType || AUTO_PROMO_RIVAL_TYPE;
     const promoDetails = getPromoTypeDetails(promoType);
-    const market = pickRivalAutoPromoTrack(rival);
-    const scheduledRelease = market ? null : pickRivalScheduledReleaseEntry(rival);
+    const { market, scheduledRelease } = pickRivalAutoPromoTarget(rival);
     if (market && (market.promoWeeks || 0) > 0)
+        return false;
+    if (scheduledRelease && (scheduledRelease.preReleaseMomentum || 0) > 0)
         return false;
     if (!market && !scheduledRelease)
         return false;
@@ -18190,7 +19201,13 @@ function advanceEraWeek() {
         era.stageWeek += 1;
         const stageWeeks = era.rolloutWeeks || ROLLOUT_PRESETS[1].weeks;
         if (era.stageWeek >= stageWeeks[era.stageIndex]) {
-            era.stageIndex += 1;
+            const nextIndex = era.stageIndex + 1;
+            const nextStage = ERA_STAGES[nextIndex] || null;
+            if (nextStage === "Legacy" && !isEraLegacyReady(era)) {
+                stillActive.push(era);
+                return;
+            }
+            era.stageIndex = nextIndex;
             era.stageWeek = 0;
             if (era.stageIndex >= ERA_STAGES.length) {
                 era.status = "Complete";
@@ -18207,7 +19224,14 @@ function advanceEraWeek() {
             if (isEraTouring(era)) {
                 openEraTouring(era);
             }
-            logEvent(`Era shift: ${era.name} moved to ${ERA_STAGES[era.stageIndex]}.`);
+            if (nextStage === "Legacy") {
+                const gap = getEraProjectGapWeeks(era);
+                const gapLabel = Number.isFinite(gap) ? ` (inactive ${gap}w)` : "";
+                logEvent(`Era shift: ${era.name} moved to ${ERA_STAGES[era.stageIndex]}${gapLabel}.`);
+            }
+            else {
+                logEvent(`Era shift: ${era.name} moved to ${ERA_STAGES[era.stageIndex]}.`);
+            }
         }
         stillActive.push(era);
     });
@@ -18704,15 +19728,32 @@ function pickRivalAutoPromoTrack(rival) {
         return null;
     const history = getTrendRankHistory();
     return candidates.reduce((best, entry) => {
+        const bestStamp = Number.isFinite(best?.releasedAt) ? best.releasedAt : 0;
+        const entryStamp = Number.isFinite(entry?.releasedAt) ? entry.releasedAt : 0;
+        if (entryStamp !== bestStamp)
+            return entryStamp > bestStamp ? entry : best;
         const bestDisinterest = getTrendPeakingDisinterest(best?.genre, history);
         const entryDisinterest = getTrendPeakingDisinterest(entry?.genre, history);
         if (entryDisinterest !== bestDisinterest) {
             return entryDisinterest < bestDisinterest ? entry : best;
         }
-        const bestStamp = best?.releasedAt || 0;
-        const entryStamp = entry?.releasedAt || 0;
-        return entryStamp >= bestStamp ? entry : best;
+        const bestKey = `${best?.title || ""}|${best?.id || ""}`;
+        const entryKey = `${entry?.title || ""}|${entry?.id || ""}`;
+        return entryKey >= bestKey ? entry : best;
     }, candidates[0]);
+}
+function pickRivalAutoPromoTarget(rival, now = state.time.epochMs) {
+    if (!rival)
+        return { market: null, scheduledRelease: null };
+    const market = pickRivalAutoPromoTrack(rival);
+    const scheduledRelease = pickRivalScheduledReleaseEntry(rival, now);
+    if (!market && !scheduledRelease)
+        return { market: null, scheduledRelease: null };
+    const marketStamp = Number.isFinite(market?.releasedAt) ? market.releasedAt : -Infinity;
+    const scheduledStamp = Number.isFinite(scheduledRelease?.releaseAt) ? scheduledRelease.releaseAt : -Infinity;
+    if (scheduledStamp > marketStamp)
+        return { market: null, scheduledRelease };
+    return { market, scheduledRelease: null };
 }
 function hasScheduledRivalPromo(rival, weeksAhead = 1) {
     if (!rival)
@@ -18738,8 +19779,7 @@ function runAutoPromoForRivals() {
     state.rivals.forEach((rival) => {
         if (hasScheduledRivalPromo(rival, 1))
             return;
-        const market = pickRivalAutoPromoTrack(rival);
-        const scheduledRelease = market ? null : pickRivalScheduledReleaseEntry(rival);
+        const { market, scheduledRelease } = pickRivalAutoPromoTarget(rival);
         if (!market && !scheduledRelease)
             return;
         const walletCash = rival.wallet?.cash ?? rival.cash;
@@ -21779,13 +22819,33 @@ async function maybeSyncPausedLiveChanges(now) {
         return;
     if (now - session.lastLiveSyncAt < LIVE_SYNC_INTERVAL_MS)
         return;
+    if (session.localStorageDisabled || typeof localStorage === "undefined")
+        return;
     session.lastLiveSyncAt = now;
-    const raw = localStorage.getItem(slotKey(session.activeSlot));
+    let raw = null;
+    try {
+        raw = localStorage.getItem(slotKey(session.activeSlot));
+    }
+    catch (error) {
+        markLocalStorageDisabled("unavailable");
+        recordStorageError({
+            scope: "localStorage",
+            message: "Local storage unavailable; live slot sync skipped.",
+            error,
+            notify: "localStorageDisabled"
+        });
+        return;
+    }
     if (!raw || raw === session.lastSlotPayload)
         return;
+    const decoded = decodeSavePayload(raw);
+    if (!decoded.ok || !decoded.payload) {
+        recordStorageError({ scope: "localStorage", message: "Live slot payload could not be decoded." });
+        return;
+    }
     let parsed = null;
     try {
-        parsed = JSON.parse(raw);
+        parsed = JSON.parse(decoded.payload);
     }
     catch {
         return;
@@ -21957,13 +23017,39 @@ function slotKey(index) {
     return `${SLOT_PREFIX}${index}`;
 }
 function getSlotData(index) {
-    const raw = localStorage.getItem(slotKey(index));
-    if (!raw)
+    if (typeof localStorage === "undefined")
         return null;
     try {
-        return JSON.parse(raw);
+        const raw = localStorage.getItem(slotKey(index));
+        if (!raw)
+            return null;
+        const decoded = decodeSavePayload(raw);
+        if (!decoded.ok || !decoded.payload) {
+            recordStorageError({
+                scope: "localStorage",
+                message: "Save payload could not be decoded.",
+                notify: "saveDecode"
+            });
+            return null;
+        }
+        try {
+            return JSON.parse(decoded.payload);
+        }
+        catch {
+            recordStorageError({ scope: "localStorage", message: "Save payload could not be parsed." });
+            return null;
+        }
     }
-    catch {
+    catch (error) {
+        session.localStorageDisabled = true;
+        session.localStorageDisabledReason = "unavailable";
+        recordStorageError({
+            scope: "localStorage",
+            message: "Local storage unavailable; save slots could not be loaded.",
+            error,
+            notify: "localStorageDisabled"
+        });
+        updateStorageHealth({ localStorageAvailable: false, localStorageDisabledReason: session.localStorageDisabledReason });
         return null;
     }
 }
@@ -21976,13 +23062,15 @@ async function getSlotDataWithExternal(index) {
         return null;
     if (typeof localStorage !== "undefined") {
         try {
-            localStorage.setItem(slotKey(index), JSON.stringify(external));
+            const encoded = encodeSavePayload(JSON.stringify(external));
+            localStorage.setItem(slotKey(index), encoded.payload);
         }
         catch (error) {
-            if (isQuotaExceededError(error)) {
-                session.localStorageDisabled = true;
-                warnLocalStorageIssue("Local save storage is full; external save loaded but local cache skipped.", error);
-            }
+            const quota = isQuotaExceededError(error);
+            markLocalStorageDisabled(quota ? "quota" : "error");
+            warnLocalStorageIssue(quota
+                ? "Local save storage is full; external save loaded but local cache skipped."
+                : "Local save cache failed; external save loaded.", error, { reason: quota ? "localStorageQuota" : "localStorageError", skipRecord: true });
             recordStorageError({
                 scope: "localStorage",
                 message: "Failed to cache external save locally.",
@@ -21992,18 +23080,133 @@ async function getSlotDataWithExternal(index) {
     }
     return external;
 }
-function warnLocalStorageIssue(message, error = null) {
+function markLocalStorageEnabled() {
+    session.localStorageDisabled = false;
+    session.localStorageDisabledReason = null;
+    session.localStorageWarned = false;
+    updateStorageHealth({ localStorageAvailable: true, localStorageDisabledReason: null });
+}
+function markLocalStorageDisabled(reason) {
+    session.localStorageDisabled = true;
+    session.localStorageDisabledReason = reason || "error";
+    updateStorageHealth({ localStorageAvailable: false, localStorageDisabledReason: session.localStorageDisabledReason });
+}
+function noteSaveAttempt(at, ok, reason = null) {
+    session.lastSaveAttemptAt = at;
+    if (ok) {
+        session.lastSaveFailedAt = null;
+        session.lastSaveFailureReason = null;
+        session.lastSaveFailureToastReason = null;
+        session.lastSaveFailureToastAt = null;
+        return;
+    }
+    session.lastSaveFailedAt = at;
+    session.lastSaveFailureReason = reason || "localStorageError";
+}
+function shouldToastSaveFailure(reason) {
+    if (!reason)
+        return false;
+    const now = Date.now();
+    if (session.lastSaveFailureToastAt && now - session.lastSaveFailureToastAt < SAVE_FAILURE_TOAST_THROTTLE_MS) {
+        return false;
+    }
+    if (session.lastSaveFailureToastReason === reason)
+        return false;
+    session.lastSaveFailureToastAt = now;
+    session.lastSaveFailureToastReason = reason;
+    return true;
+}
+function getSaveFailureToast(reason, payloadBytes = null) {
+    switch (reason) {
+        case "localStorageQuota": {
+            const sizeDetail = Number.isFinite(payloadBytes) && payloadBytes > 0
+                ? ` (save size ${formatByteSize(payloadBytes)})`
+                : "";
+            return {
+                summary: "Storage full",
+                detail: `Local storage is full${sizeDetail}. Clear old saves or configure External Storage in Internal Log.`
+            };
+        }
+        case "localStorageUnavailable":
+            return {
+                summary: "Storage unavailable",
+                detail: "Local storage is unavailable. Enable browser storage or use External Storage in Internal Log."
+            };
+        case "localStorageDisabled":
+            return {
+                summary: "Saving disabled",
+                detail: "Local storage is disabled. Enable browser storage or use External Storage in Internal Log."
+            };
+        case "serialize":
+            return {
+                summary: "Save failed",
+                detail: "Save data could not be serialized. Reload and try again."
+            };
+        default:
+            return {
+                summary: "Save failed",
+                detail: "Local storage write failed. Check browser settings and retry."
+            };
+    }
+}
+function maybeToastSaveFailure(reason, payloadBytes = null) {
+    if (!uiHooks.showToast)
+        return;
+    if (!shouldToastSaveFailure(reason))
+        return;
+    const { summary, detail } = getSaveFailureToast(reason, payloadBytes);
+    uiHooks.showToast(summary, detail, { tone: "warn" });
+}
+function checkStorageHealth() {
+    if (typeof localStorage === "undefined") {
+        markLocalStorageDisabled("unavailable");
+        recordStorageError({
+            scope: "localStorage",
+            message: "Local storage unavailable; saves disabled.",
+            notify: "localStorageDisabled"
+        });
+        return { ok: false, reason: "unavailable" };
+    }
+    try {
+        localStorage.setItem(LOCAL_STORAGE_PROBE_KEY, "1");
+        localStorage.removeItem(LOCAL_STORAGE_PROBE_KEY);
+        markLocalStorageEnabled();
+        return { ok: true };
+    }
+    catch (error) {
+        const quota = isQuotaExceededError(error);
+        markLocalStorageDisabled(quota ? "quota" : "unavailable");
+        recordStorageError({
+            scope: "localStorage",
+            message: quota ? "Local storage is full; saves disabled." : "Local storage unavailable; saves disabled.",
+            error,
+            notify: quota ? "localStorageQuota" : "localStorageDisabled"
+        });
+        return { ok: false, reason: quota ? "quota" : "unavailable", error };
+    }
+}
+function warnLocalStorageIssue(message, error = null, options = {}) {
     if (!message)
         return;
-    recordStorageError({ scope: "localStorage", message, error });
-    if (session.localStorageWarned)
-        return;
-    session.localStorageWarned = true;
-    logEvent(message, "warn");
+    const { toast = true, reason = null, skipRecord = false, skipLog = false } = options || {};
+    if (!skipRecord) {
+        recordStorageError({ scope: "localStorage", message, error });
+    }
+    if (!session.localStorageWarned && !skipLog) {
+        session.localStorageWarned = true;
+        logEvent(message, "warn");
+    }
+    if (toast && reason) {
+        maybeToastSaveFailure(reason);
+    }
 }
 setStorageWarningHandler(({ message, kind }) => {
     if (kind === "localStorageQuota") {
-        warnLocalStorageIssue(message);
+        warnLocalStorageIssue(message, null, { reason: "localStorageQuota", skipRecord: true });
+        return;
+    }
+    if (kind === "localStorageDisabled") {
+        warnLocalStorageIssue(message, null, { reason: "localStorageUnavailable", skipRecord: true });
         return;
     }
     logEvent(message, "warn");
@@ -22023,52 +23226,137 @@ function estimateLocalStorageFreeBytes(usedBytes) {
         return null;
     return Math.max(0, LOCAL_SAVE_QUOTA_BYTES - usedBytes);
 }
-function saveToSlot(index) {
+function saveToSlot(index, options = {}) {
     if (!index)
-        return;
-    state.meta.savedAt = Date.now();
-    if (state.meta.autoSave)
-        state.meta.autoSave.lastSavedAt = state.meta.savedAt;
-    const payload = JSON.stringify(state);
+        return { ok: false, reason: "no-slot" };
+    const notify = options.notify !== false;
+    const now = Date.now();
+    let payload = null;
+    try {
+        payload = JSON.stringify(state);
+    }
+    catch (error) {
+        recordStorageError({ scope: "localStorage", message: "Save serialization failed.", error, notify: "saveSerialize" });
+        noteSaveAttempt(now, false, "serialize");
+        if (notify)
+            maybeToastSaveFailure("serialize");
+        return { ok: false, reason: "serialize", error };
+    }
+    const encoded = encodeSavePayload(payload);
+    const storedPayload = encoded.payload;
+    const payloadBytes = Number.isFinite(encoded.storedBytes)
+        ? encoded.storedBytes
+        : estimatePayloadBytes(storedPayload);
+    const rawBytes = Number.isFinite(encoded.rawBytes) ? encoded.rawBytes : estimatePayloadBytes(payload);
+    const localStorageAvailable = typeof localStorage !== "undefined";
+    const storageBytes = localStorageAvailable ? estimateLocalStorageBytes() : 0;
+    const freeBytes = localStorageAvailable ? estimateLocalStorageFreeBytes(storageBytes) : null;
+    updateStorageHealth({
+        saveSizeBytes: payloadBytes,
+        saveRawBytes: rawBytes,
+        localStorageUsedBytes: localStorageAvailable ? storageBytes : null,
+        localStorageFreeBytes: freeBytes
+    });
+    let storedLocal = false;
+    let failureReason = null;
+    let localError = null;
+    if (!localStorageAvailable) {
+        markLocalStorageDisabled("unavailable");
+        failureReason = "localStorageUnavailable";
+        warnLocalStorageIssue("Local storage unavailable; saves are disabled. Configure External Storage in Internal Log.", null, { reason: failureReason, toast: notify });
+    }
+    else if (session.localStorageDisabled) {
+        failureReason = "localStorageDisabled";
+        if (notify)
+            maybeToastSaveFailure(failureReason, payloadBytes);
+    }
+    else {
+        const projectedBytes = storageBytes ? storageBytes + payloadBytes : payloadBytes;
+        if (projectedBytes > LOCAL_SAVE_QUOTA_BYTES) {
+            const sizeLabel = encoded.compressed
+                ? `${formatByteSize(rawBytes)} raw, ${formatByteSize(payloadBytes)} stored`
+                : formatByteSize(payloadBytes);
+            warnLocalStorageIssue(`Local save is large (${sizeLabel}). Attempting write; consider External Storage for larger saves.`, null, { toast: false, skipLog: true });
+        }
+        try {
+            localStorage.setItem(slotKey(index), storedPayload);
+            storedLocal = true;
+            markLocalStorageEnabled();
+        }
+        catch (error) {
+            localError = error;
+            const quota = isQuotaExceededError(error);
+            failureReason = quota ? "localStorageQuota" : "localStorageError";
+            markLocalStorageDisabled(quota ? "quota" : "error");
+            console.warn(`[storage] Failed to save slot ${index} to localStorage.`, error);
+            warnLocalStorageIssue(quota
+                ? "Local save storage is full. Configure External Storage in Internal Log to keep saves synced."
+                : "Local save failed. Check browser storage settings.", error, { reason: failureReason, toast: notify });
+        }
+    }
+    if (storedLocal) {
+        state.meta.savedAt = now;
+        if (state.meta.autoSave)
+            state.meta.autoSave.lastSavedAt = state.meta.savedAt;
+    }
+    noteSaveAttempt(now, storedLocal, failureReason);
+    if (storedLocal && session.activeSlot === index) {
+        session.lastSlotPayload = storedPayload;
+    }
+    queueSaveSlotWrite(index, storedPayload);
+    return { ok: storedLocal, storedLocal, reason: failureReason, error: localError, payloadBytes };
+}
+function storeSlotPayload(index, payload, options = {}) {
+    if (!index)
+        return { ok: false, reason: "no-slot" };
+    const notify = options.notify !== false;
     const payloadBytes = estimatePayloadBytes(payload);
     const localStorageAvailable = typeof localStorage !== "undefined";
     const storageBytes = localStorageAvailable ? estimateLocalStorageBytes() : 0;
     const freeBytes = localStorageAvailable ? estimateLocalStorageFreeBytes(storageBytes) : null;
     updateStorageHealth({
         saveSizeBytes: payloadBytes,
+        saveRawBytes: null,
         localStorageUsedBytes: localStorageAvailable ? storageBytes : null,
         localStorageFreeBytes: freeBytes
     });
-    let storedLocal = false;
-    if (localStorageAvailable && !session.localStorageDisabled) {
-        const projectedBytes = storageBytes ? storageBytes + payloadBytes : payloadBytes;
-        if (projectedBytes > LOCAL_SAVE_QUOTA_BYTES) {
-            warnLocalStorageIssue(`Local save is large (${formatByteSize(payloadBytes)}). Attempting write; consider External Storage for larger saves.`);
-        }
-        try {
-            localStorage.setItem(slotKey(index), payload);
-            storedLocal = true;
-            session.localStorageDisabled = false;
-        }
-        catch (error) {
-            console.warn(`[storage] Failed to save slot ${index} to localStorage.`, error);
-            if (isQuotaExceededError(error)) {
-                session.localStorageDisabled = true;
-                warnLocalStorageIssue("Local save storage is full. Configure External Storage in Internal Log to keep saves synced.", error);
-            }
-            else {
-                warnLocalStorageIssue("Local save failed. Check browser storage settings.", error);
-            }
-        }
+    if (!localStorageAvailable) {
+        markLocalStorageDisabled("unavailable");
+        warnLocalStorageIssue("Local storage unavailable; import skipped.", null, { reason: "localStorageUnavailable", toast: notify });
+        return { ok: false, reason: "localStorageUnavailable" };
     }
-    if (storedLocal && session.activeSlot === index) {
-        session.lastSlotPayload = payload;
+    try {
+        localStorage.setItem(slotKey(index), payload);
+        markLocalStorageEnabled();
+        if (session.activeSlot === index) {
+            session.lastSlotPayload = payload;
+        }
+        queueSaveSlotWrite(index, payload);
+        return { ok: true, payloadBytes };
     }
-    queueSaveSlotWrite(index, payload);
+    catch (error) {
+        const quota = isQuotaExceededError(error);
+        markLocalStorageDisabled(quota ? "quota" : "error");
+        warnLocalStorageIssue(quota ? "Local storage is full; import skipped." : "Local storage unavailable; import skipped.", error, { reason: quota ? "localStorageQuota" : "localStorageError", toast: notify });
+        return { ok: false, reason: quota ? "localStorageQuota" : "localStorageError", error };
+    }
 }
-function queueActiveSlotSave() {
+function importSlotData(index, data, options = {}) {
+    let payload = null;
+    try {
+        payload = JSON.stringify(data);
+    }
+    catch (error) {
+        recordStorageError({ scope: "localStorage", message: "Save import serialization failed.", error });
+        return { ok: false, reason: "serialize", error };
+    }
+    const encoded = encodeSavePayload(payload);
+    return storeSlotPayload(index, encoded.payload, options);
+}
+function queueActiveSlotSave(options = {}) {
     if (!session.activeSlot)
         return;
+    const notify = options.notify !== false;
     if (saveDebounceTimer) {
         saveDebounceQueued = true;
         return;
@@ -22077,14 +23365,14 @@ function queueActiveSlotSave() {
     saveDebounceTimer = setTimeout(() => {
         saveDebounceTimer = null;
         if (session.activeSlot)
-            saveToSlot(session.activeSlot);
+            saveToSlot(session.activeSlot, { notify });
         if (saveDebounceQueued) {
             saveDebounceQueued = false;
-            queueActiveSlotSave();
+            queueActiveSlotSave({ notify });
         }
     }, SAVE_DEBOUNCE_MS);
 }
-function flushActiveSlotSave() {
+function flushActiveSlotSave(options = {}) {
     if (saveDebounceTimer) {
         clearTimeout(saveDebounceTimer);
         saveDebounceTimer = null;
@@ -22092,16 +23380,16 @@ function flushActiveSlotSave() {
     }
     if (!session.activeSlot)
         return;
-    saveToSlot(session.activeSlot);
+    return saveToSlot(session.activeSlot, options);
 }
 function saveToActiveSlot(options = {}) {
     if (!session.activeSlot)
-        return;
+        return { ok: false, reason: "no-slot" };
     if (options?.immediate) {
-        flushActiveSlotSave();
-        return;
+        return flushActiveSlotSave({ notify: options.notify });
     }
-    queueActiveSlotSave();
+    queueActiveSlotSave({ notify: options.notify });
+    return { ok: true, queued: true };
 }
 function resetState(nextState) {
     Object.assign(state, makeDefaultState(), nextState || {});
@@ -22121,8 +23409,13 @@ function seedNewGame(options = {}) {
         alignment: state.label.alignment
     };
     const baseCreators = [];
-    ["Songwriter", "Performer", "Producer"].forEach((role) => {
-        baseCreators.push(makeCreator(role, baseCreators.map((creator) => creator.name), null, creatorSeedOptions));
+    const existingNames = () => baseCreators.map((creator) => creator.name);
+    const rosterCounts = STARTING_ROSTER_COUNTS || { Songwriter: 1, Performer: 1, Producer: 1 };
+    Object.entries(rosterCounts).forEach(([role, count]) => {
+        const target = Number.isFinite(count) ? count : 0;
+        for (let i = 0; i < target; i += 1) {
+            baseCreators.push(makeCreator(role, existingNames(), null, creatorSeedOptions));
+        }
     });
     state.creators = baseCreators;
     state.marketCreators = buildMarketCreators(creatorSeedOptions);
@@ -22163,7 +23456,21 @@ async function loadSlot(index, forceNew = false, options = {}) {
             });
         logQualityPotentialDeterminismCheck(state.tracks, data ? "load" : "seed");
         session.activeSlot = index;
-        session.lastSlotPayload = localStorage.getItem(slotKey(index));
+        if (typeof localStorage !== "undefined") {
+            try {
+                session.lastSlotPayload = localStorage.getItem(slotKey(index));
+            }
+            catch (error) {
+                markLocalStorageDisabled("unavailable");
+                recordStorageError({
+                    scope: "localStorage",
+                    message: "Local storage unavailable; slot cache skipped.",
+                    error,
+                    notify: "localStorageDisabled"
+                });
+                session.lastSlotPayload = null;
+            }
+        }
         markUiLogStart();
         sessionStorage.setItem("rls_active_slot", String(index));
         uiHooks.refreshSelectOptions?.();
@@ -22185,7 +23492,20 @@ async function loadSlot(index, forceNew = false, options = {}) {
     }
 }
 function deleteSlot(index) {
-    localStorage.removeItem(slotKey(index));
+    if (typeof localStorage !== "undefined") {
+        try {
+            localStorage.removeItem(slotKey(index));
+        }
+        catch (error) {
+            markLocalStorageDisabled("error");
+            recordStorageError({
+                scope: "localStorage",
+                message: "Local storage unavailable; slot delete skipped.",
+                error,
+                notify: "localStorageDisabled"
+            });
+        }
+    }
     queueSaveSlotDelete(index);
 }
 function normalizeState() {
@@ -22781,6 +24101,18 @@ function normalizeState() {
             rival.eraCompletions = 0;
         if (typeof rival.ambition !== "number")
             rival.ambition = RIVAL_AMBITION_FLOOR;
+        if (typeof rival.aiCreatePct !== "number")
+            rival.aiCreatePct = AI_CREATE_BUDGET_PCT;
+        if (typeof rival.aiCreateMinCash !== "number")
+            rival.aiCreateMinCash = AI_CREATE_MIN_CASH;
+        if (typeof rival.aiReservePct !== "number")
+            rival.aiReservePct = AI_CREATE_RESERVE_PCT;
+        if (typeof rival.aiCreateMaxTracksPerWeek !== "number")
+            rival.aiCreateMaxTracksPerWeek = AUTO_CREATE_MAX_TRACKS;
+        rival.aiCreatePct = clamp(rival.aiCreatePct, 0, 1);
+        rival.aiCreateMinCash = Math.max(0, Math.round(rival.aiCreateMinCash));
+        rival.aiReservePct = clamp(rival.aiReservePct, 0, 0.9);
+        rival.aiCreateMaxTracksPerWeek = clamp(Math.round(rival.aiCreateMaxTracksPerWeek), 0, 5);
         if (!rival.economy || typeof rival.economy !== "object") {
             rival.economy = { lastRevenue: 0, lastUpkeep: 0, lastWeek: 0, lastLeaseFees: 0 };
         }
@@ -22805,6 +24137,7 @@ function normalizeState() {
                 dominanceScopeType: null,
                 dominanceScopeKey: null,
                 dominanceWeekIndex: null,
+                planWhy: null,
                 competitive: false
             };
         }
@@ -22830,10 +24163,20 @@ function normalizeState() {
             rival.aiPlan.dominanceScopeKey = null;
         if (typeof rival.aiPlan.dominanceWeekIndex !== "number")
             rival.aiPlan.dominanceWeekIndex = null;
+        if (typeof rival.aiPlan.planWhy !== "string")
+            rival.aiPlan.planWhy = null;
         if (typeof rival.aiPlan.competitive !== "boolean")
             rival.aiPlan.competitive = false;
         if (!rival.autoOps || typeof rival.autoOps !== "object") {
-            rival.autoOps = { act: null, era: null, eraIndex: 0, lastPlannedWeek: null, blockerCooldowns: {} };
+            rival.autoOps = {
+                act: null,
+                era: null,
+                eraIndex: 0,
+                lastPlannedWeek: null,
+                blockerCooldowns: {},
+                skipCooldowns: {},
+                readyTracks: []
+            };
         }
         if (typeof rival.autoOps.eraIndex !== "number")
             rival.autoOps.eraIndex = 0;
@@ -22842,6 +24185,28 @@ function normalizeState() {
         if (!rival.autoOps.blockerCooldowns || typeof rival.autoOps.blockerCooldowns !== "object") {
             rival.autoOps.blockerCooldowns = {};
         }
+        if (!rival.autoOps.skipCooldowns || typeof rival.autoOps.skipCooldowns !== "object") {
+            rival.autoOps.skipCooldowns = {};
+        }
+        if (!Array.isArray(rival.autoOps.readyTracks))
+            rival.autoOps.readyTracks = [];
+        rival.autoOps.readyTracks = rival.autoOps.readyTracks.filter(Boolean).map((entry) => {
+            if (!entry || typeof entry !== "object")
+                return null;
+            if (!entry.trackId && entry.id)
+                entry.trackId = entry.id;
+            if (typeof entry.status !== "string")
+                entry.status = "unreleased";
+            if (!Array.isArray(entry.creatorIds))
+                entry.creatorIds = [];
+            if (typeof entry.label !== "string")
+                entry.label = rival.name;
+            if (!Number.isFinite(entry.createdWeek))
+                entry.createdWeek = weekIndex() + 1;
+            if (!Number.isFinite(entry.createdAt))
+                entry.createdAt = state.time?.epochMs ?? Date.now();
+            return entry;
+        }).filter(Boolean);
     });
     if (!state.trends)
         state.trends = [];
@@ -23374,6 +24739,8 @@ function normalizeState() {
             era.projectClosedAt = era.projectClosedAt || null;
         if (typeof era.projectClosedReason !== "string")
             era.projectClosedReason = era.projectClosedReason || null;
+        if (typeof era.projectLastCreateAt !== "number")
+            era.projectLastCreateAt = era.projectLastCreateAt || null;
         if (typeof era.projectLastReleaseAt !== "number")
             era.projectLastReleaseAt = era.projectLastReleaseAt || null;
         if (typeof era.projectLastPromoAt !== "number")
@@ -23408,6 +24775,8 @@ function normalizeState() {
             era.projectClosedAt = era.projectClosedAt || null;
         if (typeof era.projectClosedReason !== "string")
             era.projectClosedReason = era.projectClosedReason || null;
+        if (typeof era.projectLastCreateAt !== "number")
+            era.projectLastCreateAt = era.projectLastCreateAt || null;
         if (typeof era.projectLastReleaseAt !== "number")
             era.projectLastReleaseAt = era.projectLastReleaseAt || null;
         if (typeof era.projectLastPromoAt !== "number")
@@ -24891,7 +26260,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_RELEASE_STATUS, TRACK_RELEASE_STATUS_LABELS, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, buildRolloutPlanAdoptionOdds, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, getDistributionSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapAtForDistribution, getReleaseAsapHours, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, syncTrackReleaseStatus, getMarketTrackById, getMarketTrackByTrackId, getArchivedMarketTrackById, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseShelved, isTrackReleaseUnreleased, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, registerAct, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, evaluatePhysicalEligibility, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_RELEASE_STATUS, TRACK_RELEASE_STATUS_LABELS, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, buildRolloutPlanAdoptionOdds, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, getDistributionSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapAtForDistribution, getReleaseAsapHours, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, importSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, syncTrackReleaseStatus, getMarketTrackById, getMarketTrackByTrackId, getArchivedMarketTrackById, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseShelved, isTrackReleaseUnreleased, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, registerAct, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, evaluatePhysicalEligibility, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, checkStorageHealth, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

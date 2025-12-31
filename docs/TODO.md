@@ -1,15 +1,23 @@
 # TODO
 
+- [x] RLS-ACTS-LAYOUT-001: Split the Acts view into Create Acts and Active/Inactive roster panels. (Agent Codex, started 2025-12-31 19:33:22 -04:00, completed 2025-12-31 19:33:22 -04:00)
+- [x] RLS-SAVE-TOOLS-001: Add save compression, main menu export/import buttons, and external-save gating in the save status panel. (Agent Codex, started 2025-12-31 19:28:27 -04:00, completed 2025-12-31 19:28:27 -04:00)
+- [x] RLS-RIVAL-AUTO-PROMO-001: Keep rival auto promo rollout-first, and fall back to the most recent scheduled or released track without active promo weeks while respecting facility limits. (Agent Codex, started 2025-12-31 19:13:21 -04:00, completed 2025-12-31 19:13:21 -04:00)
+- [x] RLS-RIVAL-AUTO-TOUR-001: Enforce rival tour eligibility gates, venue availability/travel buffers, and AutoOps tour logging. (Agent Codex, started 2025-12-31 19:05:21 -04:00, completed 2025-12-31 19:37:03 -04:00)
+- [x] RLS-SAVE-OBS-001: Surface save failure toasts, add local storage health checks, and reflect storage-disabled status in save panels. (Agent Codex, started 2025-12-31 19:01:20 -04:00, completed 2025-12-31 19:01:20 -04:00)
+- [x] RLS-CEO-REQUESTS-RIVAL-AMBIT-001: Rework rival ambition pacing/dampeners for CEO Requests with difficulty scaling and scheduled promo overlap. (Agent Codex, started 2025-12-31 18:50:08 -04:00, completed 2025-12-31 20:05:00 -04:00)
+- [x] RLS-RIVAL-HUSK-OBS-001: Rival rollout husks now log plan reasoning and skipped steps while scheduling template cadence with promo overlap. (Agent Codex, started 2025-12-31 18:40:00 -04:00, completed 2025-12-31 18:50:50 -04:00)
+- [x] RLS-ERA-LEGACY-INACTIVITY-001: Shift touring to the Promotion stage and trigger Legacy after creation/release/promo inactivity. (Agent Codex, started 2025-12-31 18:19:11 -04:00, completed 2025-12-31 18:19:11 -04:00)
 - [x] RLS-ACTS-LIST-001: Add a Current Acts list in the Acts tab with summaries and act selection behavior. (Agent Codex, started 2025-12-31 08:00:00 -04:00, completed 2025-12-31 08:08:00 -04:00)
 - [x] RLS-TRACK-ROLLOUT-GLOBAL-001: Add track rollout strategy templates with a global library, 5-point fingerprint bucketing, and save-if-unique behavior. (Agent Codex, started 2025-12-31 10:40:07 -04:00, completed 2025-12-31 11:00:48 -04:00)
-- [ ] RLS-RIVALS-ROSTER-ROUTE-001: Replace the floating rival roster window with a dedicated route/tab and updated entry points.
-- [ ] RLS-DOC-DRAGGING-001: Update MVP UI copy/docs to use Recommend + dropdowns and defer drag-and-drop.
-- [ ] RLS-FOCUS-ERA-UX-001: Improve Auto Create focus-era blocking guidance with actionable copy and an Eras link.
-- [ ] RLS-ERA-ALBUM-ONRAMP-001: Detect album-ready acts and add a Start Era CTA with preselected act.
-- [ ] RLS-STARTING-ECONOMY-ROSTER-001: Raise starting cash and seed initial creators/acts for new games.
-- [ ] RLS-CREATE-STAGE-HEADER-001: Make the Create stage action row sticky while scrolling.
-- [ ] RLS-MENU-OVERLAY-CLOSE-001: Fix overlay close reliability and log close attempts/success.
-- [ ] RLS-COMMUNITY-LABELS-DOC-UPDATE-001: Update community labels docs for the rival rosters route behavior.
+- [x] RLS-RIVALS-ROSTER-ROUTE-001: Replace the floating rival roster window with a dedicated route/tab and updated entry points. (Agent Codex, started 2025-12-31 17:50:00 -04:00, completed 2025-12-31 18:30:43 -04:00)
+- [x] RLS-DOC-DRAGGING-001: Update MVP UI copy/docs to use Recommend + dropdowns and defer drag-and-drop. (Agent Codex, started 2025-12-31 17:50:00 -04:00, completed 2025-12-31 18:30:43 -04:00)
+- [x] RLS-FOCUS-ERA-UX-001: Improve Auto Create focus-era blocking guidance with actionable copy and an Eras link. (Agent Codex, started 2025-12-31 18:10:00 -04:00, completed 2025-12-31 18:42:51 -04:00)
+- [x] RLS-ERA-ALBUM-ONRAMP-001: Detect album-ready acts and add a Start Era CTA with preselected act. (Agent Codex, started 2025-12-31 18:10:00 -04:00, completed 2025-12-31 18:42:51 -04:00)
+- [x] RLS-STARTING-ECONOMY-ROSTER-001: Raise starting cash and seed initial creators/acts for new games. (Agent Codex, started 2025-12-31 19:30:00 -04:00, completed 2025-12-31 19:55:00 -04:00)
+- [x] RLS-CREATE-STAGE-HEADER-001: Make the Create stage action row sticky while scrolling. (Agent Codex, started 2025-12-31 19:30:00 -04:00, completed 2025-12-31 19:55:00 -04:00)
+- [x] RLS-MENU-OVERLAY-CLOSE-001: Fix overlay close reliability and log close attempts/success. (Agent Codex, started 2025-12-31 19:30:00 -04:00, completed 2025-12-31 19:55:00 -04:00)
+- [x] RLS-COMMUNITY-LABELS-DOC-UPDATE-001: Update community labels docs for the rival rosters route behavior. (Agent Codex, started 2025-12-31 17:50:00 -04:00, completed 2025-12-31 18:30:43 -04:00)
 
 - [x] RLS-PERF-RESILIENCE-001: Diagnose GitHub UI nonresponsiveness, add boot diagnostics, coalesce render hooks, and improve IndexedDB chart indexing for faster lookups. (Agent Codex, started 2025-12-31 06:27:49 -04:00, completed 2025-12-31 06:47:04 -04:00)
 - [x] RLS-CCC-REJECT-SORT-001: Move rejected CCC creators to the bottom of the list within the active sort mode. (Agent Codex, started 2025-12-28 03:25:20 -04:00, completed 2025-12-28 03:25:20 -04:00)

@@ -14,6 +14,11 @@ type UiHookMap = {
   showEndScreen?: (title: string, lines: { title: string; detail?: string }[]) => void;
   openMainMenu?: () => void;
   closeMainMenu?: () => void;
+  showToast?: (
+    summary: string,
+    detail?: string,
+    options?: { tone?: string; actions?: { label: string; handler?: (toast: HTMLElement) => void }[] }
+  ) => void;
 };
 
 const uiHooks: UiHookMap = {};

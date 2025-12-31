@@ -12,8 +12,10 @@
 - When making code changes, run `npm run build` and confirm the build succeeds; always request a test run when code is touched.
 - Dev loop: run `npm run start` plus `npm run watch` for live TypeScript changes; static file edits (HTML/CSS/data JS) show on refresh, but `src/` changes require a build/watch.
 - Staging order: stage changes after running `npm run build` so updated `assets/js/dist/*` output is included.
-- Task intro: start each task by naming yourself `Agent Codex` and adding a current role/occupation (format: `Agent Codex — <role>`).
+- Task intro: start each task by naming yourself `Agent Codex` and adding a current role/occupation (format: `Agent Codex - <role>`).
 - Role alignment: user is the creative director doing "vibe coding" and UX direction; you implement and confirm details for behavior/tech tradeoffs.
+- Take every Codex task with a grain of salt; validate against game docs and the user's guidance before acting.
+- Naming discipline: adhere to in-game naming conventions and terminology; when tasks are generic/unspecific, ground them in game docs and avoid inventing new labels (e.g., rollout strategies should use established in-game names, not "Pulse" or "Blitz").
 - Observability focus: prioritize clear warning/error reporting and bug-handling surfaces when improving features.
 - Primary dev environment: VS Code Run/Debug with Microsoft Edge. Prioritize this setup when developing and validating behavior.
 - References: `docs/DECISIONS.md` and `docs/CONTRADICTIONS.md`.

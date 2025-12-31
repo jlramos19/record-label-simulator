@@ -100,8 +100,11 @@
     </div>
     <div class="actions">
       <button id="menuSaveBtn" type="button">Save Game Slot</button>
+      <button id="menuExportBtn" type="button" class="ghost">Export Save</button>
+      <button id="menuImportBtn" type="button" class="ghost">Import Save</button>
       <button id="resetLayoutSettingsBtn" type="button" class="ghost">Reset UI Layout</button>
     </div>
+    <input id="menuImportInput" type="file" accept=".json,application/json" class="hidden">
     <div class="tiny">Tip: reload the page to switch game slots.</div>
   </div>
 </div>
@@ -177,9 +180,6 @@
             <span class="material-symbols-rounded nav-icon" aria-hidden="true">forum</span>
             <span class="nav-label">Promotions</span>
           </a>
-        </div>
-        <div class="nav-group">
-          <div class="nav-group-title">Legacy</div>
           <a href="#/tour" data-route="tour" class="nav-item" aria-label="Tour" title="Tour">
             <span class="material-symbols-rounded nav-icon" aria-hidden="true">tour</span>
             <span class="nav-label">Tour</span>
@@ -195,10 +195,10 @@
             <span class="material-symbols-rounded nav-icon" aria-hidden="true">public</span>
             <span class="nav-label">Community</span>
           </a>
-          <button id="rivalRosterWindowOpen" type="button" class="nav-item" aria-label="Rival Rosters" title="Rival Rosters">
+          <a href="#/rival-rosters" data-route="rival-rosters" class="nav-item" aria-label="Rival Rosters" title="Rival Rosters">
             <span class="material-symbols-rounded nav-icon" aria-hidden="true">groups</span>
             <span class="nav-label">Rival Rosters</span>
-          </button>
+          </a>
         </div>
         <div class="nav-group">
           <div class="nav-group-title">Outcomes</div>
@@ -328,7 +328,7 @@
           </div>
           <div class="list-item">
             <div class="item-title">Interface tips</div>
-            <div class="muted">Use ID slots or drag-and-drop, Auto Assign/Recommend All to fill quickly, customize panels, and save often.</div>
+            <div class="muted">Select a slot, then use Recommend or the dropdown to assign. Auto Assign/Recommend All fill quickly; drag-and-drop is planned.</div>
           </div>
         </div>
       </div>
@@ -583,21 +583,6 @@
   <div class="card-body">
     <div id="rankingWindowMeta" class="tiny muted"></div>
     <div id="rankingWindowList" class="list"></div>
-  </div>
-</div>
-
-<div id="rivalRosterWindow" class="panel floating-window floating-window--wide hidden" role="dialog" aria-hidden="true">
-  <div id="rivalRosterWindowHead" class="card-head floating-window-head">
-    <h2>Rival Rosters</h2>
-    <button id="rivalRosterWindowClose" type="button" class="ghost mini">Close</button>
-  </div>
-  <div class="card-body">
-    <div id="rivalRosterWindowMeta" class="tiny muted">Select a rival label.</div>
-    <div class="field">
-      <label for="rivalRosterWindowSelect">Rival Label</label>
-      <select id="rivalRosterWindowSelect"></select>
-    </div>
-    <div id="rivalRosterWindowList" class="list"></div>
   </div>
 </div>
 
@@ -990,11 +975,6 @@
                 </div>
                 <div id="genrePreview" class="tiny">Planned Genre: -</div>
               </div>
-              <div class="create-stage-actions">
-                <button type="button" class="ghost stage-recommend-btn" data-track-recommend="sheet">Recommend creator(s)</button>
-                <button id="startSheetBtn" type="button" class="primary stage-start-btn">Create Sheet Music</button>
-                <div id="startSheetReason" class="tiny muted hidden"></div>
-              </div>
             </section>
             <section class="create-stage-column" data-create-column="demo">
               <button type="button" class="create-stage-toggle" data-create-stage="demo" aria-pressed="false">
@@ -1020,11 +1000,6 @@
                   <select id="activeStudiosSelectDemo"></select>
                   <div id="activeStudiosMetaDemo" class="tiny muted">Up to 3 studios can run per stage.</div>
                 </div>
-              </div>
-              <div class="create-stage-actions">
-                <button type="button" class="ghost stage-recommend-btn" data-track-recommend="demo">Recommend creator(s)</button>
-                <button id="startDemoBtn" type="button" class="primary stage-start-btn">Create Demo Recording</button>
-                <div id="startDemoReason" class="tiny muted hidden"></div>
               </div>
             </section>
             <section class="create-stage-column" data-create-column="master">
@@ -1052,12 +1027,24 @@
                   <div id="activeStudiosMetaMaster" class="tiny muted">Up to 3 studios can run per stage.</div>
                 </div>
               </div>
-              <div class="create-stage-actions">
-                <button type="button" class="ghost stage-recommend-btn" data-track-recommend="master">Recommend creator(s)</button>
-                <button id="startMasterBtn" type="button" class="primary stage-start-btn">Create Master Recording</button>
-                <div id="startMasterReason" class="tiny muted hidden"></div>
-              </div>
             </section>
+          </div>
+          <div class="create-stage-action-bar" aria-label="Create stage actions">
+            <div class="create-stage-actions" data-create-actions="sheet">
+              <button type="button" class="ghost stage-recommend-btn" data-track-recommend="sheet">Recommend creator(s)</button>
+              <button id="startSheetBtn" type="button" class="primary stage-start-btn">Create Sheet Music</button>
+              <div id="startSheetReason" class="tiny muted hidden"></div>
+            </div>
+            <div class="create-stage-actions" data-create-actions="demo">
+              <button type="button" class="ghost stage-recommend-btn" data-track-recommend="demo">Recommend creator(s)</button>
+              <button id="startDemoBtn" type="button" class="primary stage-start-btn">Create Demo Recording</button>
+              <div id="startDemoReason" class="tiny muted hidden"></div>
+            </div>
+            <div class="create-stage-actions" data-create-actions="master">
+              <button type="button" class="ghost stage-recommend-btn" data-track-recommend="master">Recommend creator(s)</button>
+              <button id="startMasterBtn" type="button" class="primary stage-start-btn">Create Master Recording</button>
+              <div id="startMasterReason" class="tiny muted hidden"></div>
+            </div>
           </div>
           <div class="subhead">Recommendation</div>
           <div id="trackRecommend" class="callout"></div>
@@ -1129,6 +1116,9 @@
               <div id="autoCreateStatus" class="auto-create-status blocked">Loading...</div>
             </div>
             <div id="autoCreateReasons" class="auto-create-blocked-list hidden"></div>
+            <div id="autoCreateFocusActions" class="actions hidden">
+              <button id="autoCreateGoToEras" type="button" class="ghost mini">Go to Eras</button>
+            </div>
             <div class="auto-create-readiness-grid">
               <div>Mode: <span id="autoCreateModeLabel">-</span></div>
               <div>Enabled: <span id="autoCreateEnabledLabel">-</span></div>
@@ -1428,109 +1418,122 @@
 <template id="view-acts">
   <div class="view view--roster view--single">
     <section class="view-main">
-      <div class="panel card panel--scroll panel-fixed" data-panel="harmony-acts">
-        <div class="card-head">
-          <h2>Harmony Hub - Acts</h2>
+      <div class="acts-layout">
+        <div class="panel card panel--scroll panel-fixed" data-panel="harmony-acts-create">
+          <div class="card-head">
+            <h2>Harmony Hub - Acts</h2>
+          </div>
+          <div class="card-body">
+            <div class="callout">
+              Form and manage Acts by assigning Creator IDs. Track which Eras each Act is participating in.
+            </div>
+            <div class="subhead">Quick Act</div>
+            <div class="actions">
+              <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
+            </div>
+            <div class="subhead">Quick Group Act</div>
+            <div class="slot-grid slot-grid--multi">
+              <div class="field">
+                <label for="quickActGroupSize">Group Size</label>
+                <select id="quickActGroupSize"></select>
+              </div>
+              <div class="field">
+                <label for="quickActGenderFilter">Gender Identity</label>
+                <select id="quickActGenderFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActAgeGroupFilter">Age Group</label>
+                <select id="quickActAgeGroupFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActThemeFilter">Preferred Theme</label>
+                <select id="quickActThemeFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActMoodFilter">Preferred Mood</label>
+                <select id="quickActMoodFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActAlignmentFilter">Act Alignment</label>
+                <select id="quickActAlignmentFilter"></select>
+              </div>
+              <div class="field">
+                <label for="quickActSkillMin">Skill Level Min</label>
+                <select id="quickActSkillMin"></select>
+              </div>
+              <div class="field">
+                <label for="quickActSkillMax">Skill Level Max</label>
+                <select id="quickActSkillMax"></select>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="quickGroupActBtn" type="button" class="ghost">Quick Group Act</button>
+              <button id="quickActResetBtn" type="button" class="ghost mini">Reset Filters</button>
+            </div>
+            <div class="tiny muted">Filters apply to Quick Group Act. Alignment sets the Act alignment (Label default).</div>
+            <div class="subhead">Create Act</div>
+            <div class="slot-grid slot-grid--multi">
+              <div class="field">
+                <label for="actName">Act Name</label>
+                <div class="input-row">
+                  <input id="actName" type="text" placeholder="e.g. Velvet Signal">
+                  <button id="actNameRandom" type="button" class="ghost mini">Rnd</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="actTypeSelect">Act Type</label>
+                <select id="actTypeSelect"></select>
+              </div>
+              <div class="field">
+                <label for="actAlignmentSelect">Act Alignment</label>
+                <select id="actAlignmentSelect"></select>
+              </div>
+            </div>
+            <div class="subhead">Act Slots</div>
+            <div class="slot-grid slot-grid--multi">
+              <div class="id-slot" data-slot-target="act-lead" data-slot-type="creator">
+                <div class="slot-label">Lead Creator ID</div>
+                <div class="slot-id">
+                  <div class="slot-avatar" aria-hidden="true"></div>
+                  <div id="actLeadSlot" class="slot-value">?</div>
+                </div>
+                <button type="button" class="ghost mini" data-slot-clear="act-lead">Clear</button>
+              </div>
+              <div class="id-slot" data-slot-target="act-member2" data-slot-type="creator">
+                <div class="slot-label">Member 2 ID</div>
+                <div class="slot-id">
+                  <div class="slot-avatar" aria-hidden="true"></div>
+                  <div id="actMember2Slot" class="slot-value">?</div>
+                </div>
+                <button type="button" class="ghost mini" data-slot-clear="act-member2">Clear</button>
+              </div>
+              <div class="id-slot" data-slot-target="act-member3" data-slot-type="creator">
+                <div class="slot-label">Member 3 ID</div>
+                <div class="slot-id">
+                  <div class="slot-avatar" aria-hidden="true"></div>
+                  <div id="actMember3Slot" class="slot-value">?</div>
+                </div>
+                <button type="button" class="ghost mini" data-slot-clear="act-member3">Clear</button>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="createActBtn" type="button">Create Act</button>
+            </div>
+          </div>
         </div>
-        <div class="card-body">
-          <div class="callout">
-            Form and manage Acts by assigning Creator IDs. Track which Eras each Act is participating in.
+        <div class="panel card panel--scroll panel-fixed" data-panel="harmony-acts-roster">
+          <div class="card-head">
+            <h2>Act Roster</h2>
           </div>
-          <div class="subhead">Quick Act</div>
-          <div class="actions">
-            <button id="quickActBtn" type="button" class="ghost">Quick Act</button>
-          </div>
-          <div class="subhead">Quick Group Act</div>
-          <div class="slot-grid slot-grid--multi">
-            <div class="field">
-              <label for="quickActGroupSize">Group Size</label>
-              <select id="quickActGroupSize"></select>
-            </div>
-            <div class="field">
-              <label for="quickActGenderFilter">Gender Identity</label>
-              <select id="quickActGenderFilter"></select>
-            </div>
-            <div class="field">
-              <label for="quickActAgeGroupFilter">Age Group</label>
-              <select id="quickActAgeGroupFilter"></select>
-            </div>
-            <div class="field">
-              <label for="quickActThemeFilter">Preferred Theme</label>
-              <select id="quickActThemeFilter"></select>
-            </div>
-            <div class="field">
-              <label for="quickActMoodFilter">Preferred Mood</label>
-              <select id="quickActMoodFilter"></select>
-            </div>
-            <div class="field">
-              <label for="quickActAlignmentFilter">Act Alignment</label>
-              <select id="quickActAlignmentFilter"></select>
-            </div>
-            <div class="field">
-              <label for="quickActSkillMin">Skill Level Min</label>
-              <select id="quickActSkillMin"></select>
-            </div>
-            <div class="field">
-              <label for="quickActSkillMax">Skill Level Max</label>
-              <select id="quickActSkillMax"></select>
+          <div class="card-body">
+            <div id="actList" class="act-list-stack">
+              <div class="subhead">Active Acts</div>
+              <div class="tiny muted">Select an Act to set Create/Release targets.</div>
+              <div id="activeActList" class="list act-grid"></div>
+              <div class="subhead">Inactive Acts</div>
+              <div id="inactiveActList" class="list act-grid"></div>
             </div>
           </div>
-          <div class="actions">
-            <button id="quickGroupActBtn" type="button" class="ghost">Quick Group Act</button>
-            <button id="quickActResetBtn" type="button" class="ghost mini">Reset Filters</button>
-          </div>
-          <div class="tiny muted">Filters apply to Quick Group Act. Alignment sets the Act alignment (Label default).</div>
-          <div class="subhead">Create Act</div>
-          <div class="slot-grid slot-grid--multi">
-            <div class="field">
-              <label for="actName">Act Name</label>
-              <div class="input-row">
-                <input id="actName" type="text" placeholder="e.g. Velvet Signal">
-                <button id="actNameRandom" type="button" class="ghost mini">Rnd</button>
-              </div>
-            </div>
-            <div class="field">
-              <label for="actTypeSelect">Act Type</label>
-              <select id="actTypeSelect"></select>
-            </div>
-            <div class="field">
-              <label for="actAlignmentSelect">Act Alignment</label>
-              <select id="actAlignmentSelect"></select>
-            </div>
-          </div>
-          <div class="subhead">Act Slots</div>
-          <div class="slot-grid slot-grid--multi">
-            <div class="id-slot" data-slot-target="act-lead" data-slot-type="creator">
-              <div class="slot-label">Lead Creator ID</div>
-              <div class="slot-id">
-                <div class="slot-avatar" aria-hidden="true"></div>
-                <div id="actLeadSlot" class="slot-value">?</div>
-              </div>
-              <button type="button" class="ghost mini" data-slot-clear="act-lead">Clear</button>
-            </div>
-            <div class="id-slot" data-slot-target="act-member2" data-slot-type="creator">
-              <div class="slot-label">Member 2 ID</div>
-              <div class="slot-id">
-                <div class="slot-avatar" aria-hidden="true"></div>
-                <div id="actMember2Slot" class="slot-value">?</div>
-              </div>
-              <button type="button" class="ghost mini" data-slot-clear="act-member2">Clear</button>
-            </div>
-            <div class="id-slot" data-slot-target="act-member3" data-slot-type="creator">
-              <div class="slot-label">Member 3 ID</div>
-              <div class="slot-id">
-                <div class="slot-avatar" aria-hidden="true"></div>
-                <div id="actMember3Slot" class="slot-value">?</div>
-              </div>
-              <button type="button" class="ghost mini" data-slot-clear="act-member3">Clear</button>
-            </div>
-          </div>
-          <div class="actions">
-            <button id="createActBtn" type="button">Create Act</button>
-          </div>
-          <div class="subhead">Current Acts</div>
-          <div class="tiny muted">Select an Act to set Create/Release targets.</div>
-          <div id="actList" class="list act-grid"></div>
         </div>
       </div>
     </section>
@@ -1547,7 +1550,7 @@
         <div class="card-body">
           <div class="subhead">Signed Creators</div>
           <div id="creatorList" class="list signed-creator-grid"></div>
-          <div class="tiny">Drag Creator IDs into slots, or tap after selecting a slot.</div>
+          <div class="tiny">Select a slot, then use Recommend or the dropdown to assign. Drag-and-drop is planned.</div>
         </div>
       </div>
     </section>
@@ -1686,6 +1689,29 @@
         </div>
       </div>
     </aside>
+  </div>
+</template>
+
+<template id="view-rival-rosters">
+  <div class="view view--roster view--single">
+    <section class="view-main">
+      <div class="panel card panel--scroll panel-fixed" data-panel="rival-rosters">
+        <div class="card-head">
+          <h2>Rival Rosters</h2>
+          <div id="rivalRosterViewMeta" class="tiny muted">Select a rival label.</div>
+        </div>
+        <div class="card-body">
+          <div class="callout">
+            Review rival creators, acts, and performance snapshots to track the label race.
+          </div>
+          <div class="field">
+            <label for="rivalRosterViewSelect">Rival Label</label>
+            <select id="rivalRosterViewSelect"></select>
+          </div>
+          <div id="rivalRosterViewList" class="list"></div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 

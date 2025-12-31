@@ -1,5 +1,45 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-2354Z)
+- Era stage labels now surface Creation/Promotion/Legacy overlap signals from scheduled promos and physical/tour merch activity, and rival AutoOps logs use the same stage display. [PN-20251231-AC140]
+
+## 2025-12-31 (RLS-PATCH-20251231-2359Z)
+- Rival ambition pacing now uses overall CEO Request progress (including scheduled promo queues) to tune catch-up/cooldown pressure and logging. [PN-20251231-AC138]
+- Rival AutoOps plan selection now adds ambition-weighted action bias and pace-based cadence scaling to slow leaders and speed trailers. [PN-20251231-AC139]
+
+## 2025-12-31 (RLS-PATCH-20251231-2355Z)
+- Medium/Hard starts now grant more cash and seed a 15/10/5 creator roster with starter solo/group acts. [PN-20251231-AC133]
+- Create stage actions now stick in a persistent bar so Recommend/Sheet/Demo/Master buttons stay visible while scrolling. [PN-20251231-AC134]
+- Overlays now close on backdrop click or Escape and log close attempts/success in the UI event log. [PN-20251231-AC135]
+
+## 2025-12-31 (RLS-PATCH-20251231-2312Z)
+- Rival AutoOps touring now gates on active Promotion-stage eras, momentum, stamina, and budget, with venue selection enforcing slot capacity, rest/travel buffers, cooldown spacing, and regional clustering. [PN-20251231-AC128]
+
+## 2025-12-31 (RLS-PATCH-20251231-2335Z)
+- Harmony Hub Acts now splits Create Acts options and the Act roster into side-by-side panels, with Active Acts listed above Inactive Acts. [PN-20251231-AC137]
+
+## 2025-12-31 (RLS-PATCH-20251231-2320Z)
+- Rival auto promo now falls back to the most recent scheduled or released track without active promo weeks when no rollout promo is queued, while honoring facility slot limits and ignoring unscheduled content. [PN-20251231-AC132]
+
+## 2025-12-31 (RLS-PATCH-20251231-2250Z)
+- Rival AutoOps rollout scheduling now logs skipped plan steps with reasons while preserving plan scoring rationale in weekly "why" logs. [PN-20251231-AC124]
+
+## 2025-12-31 (RLS-PATCH-20251231-2330Z)
+- Rival Rosters now live as a dedicated route/tab, and Top Labels pills route there instead of opening a floating window. [PN-20251231-AC121]
+- MVP copy now tells players to use Recommend + dropdowns for slot assignment; drag-and-drop is noted as planned. [PN-20251231-AC122]
+- Save files now support slot export/import from the main menu, save payloads compress when beneficial, and save panels gate when external storage is required. [PN-20251231-AC136]
+- Save failures now surface toasts, boot checks local storage health, and save panels call out storage-disabled states. [PN-20251231-AC127]
+
+## 2025-12-31 (RLS-PATCH-20251231-2235Z)
+- Auto Create now explains focus-era blockers with an Eras shortcut and auto-focuses when only one Era is active. [PN-20251231-AC125]
+- Acts now surface album-ready prompts with a Start Era shortcut once 8 mastered tracks exist in a project. [PN-20251231-AC126]
+
+## 2025-12-31 (RLS-PATCH-20251231-2229Z)
+- Rollout Strategy analytics now use labeled tables for usage, era contribution, preferences, cadence output, and rival adoption odds, and template names follow the "{promo type} focus" standard. [PN-20251231-AC123]
+
+## 2025-12-31 (RLS-PATCH-20251231-2219Z)
+- Touring now opens during the Promotion stage, and Legacy begins after 26 weeks of creation/release/promo inactivity. [PN-20251231-AC120]
+
 ## 2025-12-31 (RLS-PATCH-20251231-1500Z)
 - Track Rollout Strategies now use a global template library with 5-point bucketed uniqueness, per-track details, and Save-as-Global duplicate checks. [PN-20251231-AC119]
 
@@ -870,6 +910,24 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC140 (2025-12-31 23:54Z): Era stage labels now surface Creation/Promotion/Legacy overlap signals from scheduled promos and physical/tour merch activity, and rival AutoOps logs use the same stage display.
+- PN-20251231-AC139 (2025-12-31 23:59Z): Rival AutoOps plan selection now adds ambition-weighted action bias and pace-based cadence scaling to slow leaders and speed trailers.
+- PN-20251231-AC138 (2025-12-31 23:59Z): Rival ambition pacing now uses overall CEO Request progress (including scheduled promo queues) to tune catch-up/cooldown pressure and logging.
+- PN-20251231-AC136 (2025-12-31 23:15Z): Save files now support slot export/import from the main menu, save payloads compress when beneficial, and save panels gate when external storage is required.
+- PN-20251231-AC137 (2025-12-31 23:35Z): Harmony Hub Acts now splits Create Acts options and the Act roster into side-by-side panels, with Active Acts listed above Inactive Acts.
+- PN-20251231-AC133 (2025-12-31 23:55Z): Medium/Hard starts now grant more cash and seed a 15/10/5 creator roster with starter solo/group acts.
+- PN-20251231-AC134 (2025-12-31 23:55Z): Create stage actions now stick in a persistent bar so Recommend/Sheet/Demo/Master buttons stay visible while scrolling.
+- PN-20251231-AC135 (2025-12-31 23:55Z): Overlays now close on backdrop click or Escape and log close attempts/success in the UI event log.
+- PN-20251231-AC132 (2025-12-31 23:20Z): Rival auto promo now falls back to the most recent scheduled or released track without active promo weeks when no rollout promo is queued, honoring facility slot limits and ignoring unscheduled content.
+- PN-20251231-AC128 (2025-12-31 23:12Z): Rival AutoOps touring now gates on active Promotion-stage eras, momentum, stamina, and budget, with venue selection enforcing slot capacity, rest/travel buffers, cooldown spacing, and regional clustering.
+- PN-20251231-AC121 (2025-12-31 23:30Z): Rival Rosters now live as a dedicated route/tab, and Top Labels pills route there instead of opening a floating window.
+- PN-20251231-AC122 (2025-12-31 23:30Z): MVP copy now tells players to use Recommend + dropdowns for slot assignment; drag-and-drop is noted as planned.
+- PN-20251231-AC127 (2025-12-31 23:01Z): Save failures now surface toasts, boot checks local storage health, and save panels call out storage-disabled states.
+- PN-20251231-AC124 (2025-12-31 22:50Z): Rival AutoOps rollout scheduling now logs skipped plan steps with reasons while preserving plan scoring rationale in weekly "why" logs.
+- PN-20251231-AC125 (2025-12-31 22:35Z): Auto Create now explains focus-era blockers with an Eras shortcut and auto-focuses when only one Era is active.
+- PN-20251231-AC126 (2025-12-31 22:35Z): Acts now surface album-ready prompts with a Start Era shortcut once 8 mastered tracks exist in a project.
+- PN-20251231-AC123 (2025-12-31 22:29Z): Rollout Strategy analytics now use labeled tables for usage, era contribution, preferences, cadence output, and rival adoption odds, and template names follow the "{promo type} focus" standard.
+- PN-20251231-AC120 (2025-12-31 22:19Z): Touring now opens during the Promotion stage, and Legacy begins after 26 weeks of creation/release/promo inactivity.
 - PN-20251231-AC119 (2025-12-31 15:00Z): Track Rollout Strategies now use a global template library with 5-point bucketed uniqueness, per-track details, and Save-as-Global duplicate checks.
 - PN-20251231-AC117 (2025-12-31 13:26Z): Charts now include a Rollout Strategies tab with plan usage, outcomes, preference signals, cadence, and rival adoption odds for analytics.
 - PN-20251231-AC118 (2025-12-31 13:26Z): Acts now track Active/Legacy lifecycles with reactivation on releases, CCC retention preserves previously signed creators while disposable unsigneds despawn, and non-charting releases surface as DNC in archives/performance.
