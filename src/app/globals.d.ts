@@ -75,6 +75,8 @@ declare const ROLLOUT_STRATEGY_TEMPLATES: {
   };
 }[];
 declare const CHART_SIZES: { global: number; nation: number; region: number };
+declare const DISPLAY_CHART_SIZES: { global: number; nation: number; region: number };
+declare const EVAL_CHART_SIZES: { global: number; nation: number; region: number };
 declare const CHART_WEIGHTS: { sales: number; streaming: number; airplay: number; social: number };
 declare const REGION_CONSUMPTION_WEIGHTS: Record<string, { sales: number; streaming: number; airplay: number; social: number }>;
 declare const CONSUMPTION_VOLUME_MULTIPLIERS: { sales: number; streaming: number; airplay: number; social: number };

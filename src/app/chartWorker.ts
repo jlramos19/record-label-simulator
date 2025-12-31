@@ -44,6 +44,65 @@ const makeStableSeed = (parts) => hashString(Array.isArray(parts) ? parts.join("
 
 const seededRand = (min, max, rng) => Math.floor(rng() * (max - min + 1)) + min;
 
+const entryOrder = (entry) => Number.isFinite(entry?.order) ? entry.order : 0;
+
+const isBetterScoreEntry = (a, b) => {
+  if (a.score !== b.score) return a.score > b.score;
+  return entryOrder(a) < entryOrder(b);
+};
+
+const compareScoreEntry = (a, b) => {
+  if (a.score !== b.score) return b.score - a.score;
+  return entryOrder(a) - entryOrder(b);
+};
+
+function selectTopK(entries, k) {
+  if (!Array.isArray(entries) || !entries.length) return [];
+  const limit = Math.max(0, Math.round(k || 0));
+  if (!limit) return [];
+  if (limit >= entries.length) return entries.slice().sort(compareScoreEntry);
+  const heap = [];
+  const isWorse = (a, b) => !isBetterScoreEntry(a, b);
+  const siftUp = (index) => {
+    let child = index;
+    while (child > 0) {
+      const parent = Math.floor((child - 1) / 2);
+      if (!isWorse(heap[child], heap[parent])) break;
+      const temp = heap[parent];
+      heap[parent] = heap[child];
+      heap[child] = temp;
+      child = parent;
+    }
+  };
+  const siftDown = (index) => {
+    let parent = index;
+    while (true) {
+      const left = parent * 2 + 1;
+      const right = parent * 2 + 2;
+      let smallest = parent;
+      if (left < heap.length && isWorse(heap[left], heap[smallest])) smallest = left;
+      if (right < heap.length && isWorse(heap[right], heap[smallest])) smallest = right;
+      if (smallest === parent) break;
+      const temp = heap[parent];
+      heap[parent] = heap[smallest];
+      heap[smallest] = temp;
+      parent = smallest;
+    }
+  };
+  entries.forEach((entry) => {
+    if (heap.length < limit) {
+      heap.push(entry);
+      siftUp(heap.length - 1);
+      return;
+    }
+    if (isBetterScoreEntry(entry, heap[0])) {
+      heap[0] = entry;
+      siftDown(0);
+    }
+  });
+  return heap.sort(compareScoreEntry);
+}
+
 function resolveScoreTrackSeedKey(track) {
   if (!track) return "";
   if (track.seedKey) return String(track.seedKey);
@@ -206,7 +265,8 @@ function computeCharts(payload) {
   const nations = Array.isArray(payload?.nations) ? payload.nations : [];
   const regionIds = Array.isArray(payload?.regionIds) ? payload.regionIds : [];
   const regionDefs = Array.isArray(payload?.regionDefs) ? payload.regionDefs : [];
-  const chartSizes = payload?.chartSizes || { global: 0, nation: 0, region: 0 };
+  const displayChartSizes = payload?.displayChartSizes || payload?.chartSizes || { global: 0, nation: 0, region: 0 };
+  const evalChartSizes = payload?.evalChartSizes || payload?.chartEvalSizes || displayChartSizes;
   const weights = payload?.weights || {};
   const defaultWeights = payload?.defaultWeights || FALLBACK_WEIGHTS;
   const volumeMultipliers = payload?.volumeMultipliers || FALLBACK_VOLUME_MULTIPLIERS;
@@ -226,43 +286,47 @@ function computeCharts(payload) {
   });
   const globalScores = [];
 
-  tracks.forEach((track) => {
+  tracks.forEach((track, trackIndex) => {
+    const order = Number.isFinite(track?.order) ? track.order : trackIndex;
     let sum = 0;
     nations.forEach((nation) => {
       const score = scoreTrack(track, nation, profiles, trends, audience, labelCompetition, regionDefs, nations, chartWeekIndex);
       const metrics = buildChartMetrics(score, weights?.nations?.[nation], defaultWeights, volumeMultipliers);
-      nationScores[nation].push({ key: track.key, score, metrics });
+      nationScores[nation].push({ key: track.key, score, metrics, order });
       sum += score;
     });
     const avg = nations.length ? Math.round(sum / nations.length) : 0;
     globalScores.push({
       key: track.key,
       score: avg,
-      metrics: buildChartMetrics(avg, weights?.global, defaultWeights, volumeMultipliers)
+      metrics: buildChartMetrics(avg, weights?.global, defaultWeights, volumeMultipliers),
+      order
     });
     regionIds.forEach((regionId) => {
       const score = scoreTrack(track, regionId, profiles, trends, audience, labelCompetition, regionDefs, nations, chartWeekIndex);
       const metrics = buildChartMetrics(score, weights?.regions?.[regionId], defaultWeights, volumeMultipliers);
-      regionScores[regionId].push({ key: track.key, score, metrics });
+      regionScores[regionId].push({ key: track.key, score, metrics, order });
     });
   });
 
-  globalScores.sort((a, b) => b.score - a.score);
+  const internalCharts = {
+    global: selectTopK(globalScores, evalChartSizes.global),
+    nations: {},
+    regions: {}
+  };
   const charts = {
-    global: globalScores.slice(0, chartSizes.global),
+    global: internalCharts.global.slice(0, displayChartSizes.global),
     nations: {},
     regions: {}
   };
 
   nations.forEach((nation) => {
-    charts.nations[nation] = nationScores[nation]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, chartSizes.nation);
+    internalCharts.nations[nation] = selectTopK(nationScores[nation], evalChartSizes.nation);
+    charts.nations[nation] = internalCharts.nations[nation].slice(0, displayChartSizes.nation);
   });
   regionIds.forEach((regionId) => {
-    charts.regions[regionId] = regionScores[regionId]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, chartSizes.region);
+    internalCharts.regions[regionId] = selectTopK(regionScores[regionId], evalChartSizes.region);
+    charts.regions[regionId] = internalCharts.regions[regionId].slice(0, displayChartSizes.region);
   });
 
   const allScores = { nations: {}, regions: {} };
@@ -273,7 +337,7 @@ function computeCharts(payload) {
     allScores.regions[regionId] = Array.isArray(regionScores[regionId]) ? regionScores[regionId].slice() : [];
   });
 
-  return { charts, globalScores, allScores };
+  return { charts, internalCharts, globalScores, allScores };
 }
 
 async function persistSnapshots(snapshots) {

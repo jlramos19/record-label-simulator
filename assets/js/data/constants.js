@@ -355,7 +355,9 @@ const ROLLOUT_STRATEGY_TEMPLATES = [
   }
 ];
 
-const CHART_SIZES = { global: 100, nation: 40, region: 10 };
+const DISPLAY_CHART_SIZES = { global: 100, nation: 40, region: 10 };
+const EVAL_CHART_SIZES = { global: 1000, nation: 400, region: 100 };
+const CHART_SIZES = DISPLAY_CHART_SIZES;
 const CHART_WEIGHTS = { sales: 0.35, streaming: 0.2, airplay: 0.3, social: 0.15 };
 const NATIONS = ["Annglora", "Bytenza", "Crowlya"];
 const REGION_DEFS = [

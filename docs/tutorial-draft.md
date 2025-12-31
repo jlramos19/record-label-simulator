@@ -19,7 +19,7 @@ Hey, congrats on your new record label. In this game, a "label" is a tiny factor
 - Project: a release bundle (Single, EP, Album). Not a project management tool.
 - Era: a campaign window for one Act. The game groups releases into Eras.
 - CCC: the creator hiring market (Community -> CCC).
-- Harmony Hub: where you form Acts (Signed -> Harmony Hub).
+- Harmony Hub: where you form Acts (Harmony Hub - Acts).
 - Create: the production pipeline (Sheet -> Demo -> Master).
 - Calendar/Release Desk: where releases and promos get scheduled.
 - Promotions/eyeriSocial: the marketing and social feed.
@@ -42,7 +42,7 @@ Hey, congrats on your new record label. In this game, a "label" is a tiny factor
    - Signing is instant: accept or reject right away.
    - Rejections do not take your money, but the Creator locks until the next 12AM CCC refresh.
 
-3) Form an Act (Signed -> Harmony Hub)
+3) Form an Act (Harmony Hub - Acts)
    - Solo = 1 person, Group = 2-3 people.
    - Quick Act is the fast option and avoids duplicate lineups.
 
@@ -127,7 +127,7 @@ Auto mode exists for the players who want an easier, smoother, grindier experien
 - Acceptance depends on label Themes/Moods, creator skill, and market heat (ahem, humans are not vending machines in real life).
 - Rejections do not deduct cash, but that Creator is locked until the next 12AM refresh.
 
-### 4) Form an Act (Signed -> Harmony Hub)
+### 4) Form an Act (Harmony Hub - Acts)
 - A Solo Act uses 1 creator; a Group Act uses 2-3 unique creators.
 - Each creator can be in up to 4 Acts at a time.
 - Quick Act is the fast button when you just need a playable roster.

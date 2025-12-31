@@ -525,6 +525,13 @@ function makeDefaultState() {
             labelShare: {},
             labelCompetition: {},
             labelShareWeek: null,
+            chartEvaluation: {
+                weekIndex: null,
+                tracks: { global: [], nations: {}, regions: {} },
+                promos: { global: [], nations: {}, regions: {} },
+                tours: { global: [], nations: {}, regions: {} },
+                dominance: { global: null, nations: {}, regions: {} }
+            },
             labelMetrics: {
                 updatedWeek: null,
                 updatedAt: null,
@@ -11722,6 +11729,7 @@ function resolveTourBookings(now = state.time.epochMs) {
             return;
         if (!Number.isFinite(booking.scheduledAt) || booking.scheduledAt > now)
             return;
+        const isRival = Boolean(booking.isRival);
         const projection = booking.projection || {};
         const attendance = Number(projection.attendance || 0);
         const revenue = Number(projection.revenue || 0);
@@ -11733,11 +11741,13 @@ function resolveTourBookings(now = state.time.epochMs) {
         booking.profit = profit;
         booking.status = "Completed";
         booking.resolvedAt = now;
-        pending.attendance += attendance;
-        pending.revenue += revenue;
-        pending.costs += costs;
-        pending.profit += profit;
-        pending.count += 1;
+        if (!isRival) {
+            pending.attendance += attendance;
+            pending.revenue += revenue;
+            pending.costs += costs;
+            pending.profit += profit;
+            pending.count += 1;
+        }
         const act = booking.actId ? getAct(booking.actId) : null;
         if (act?.memberIds?.length) {
             const crew = act.memberIds.map((id) => getCreator(id)).filter(Boolean);
@@ -11755,10 +11765,11 @@ function resolveTourBookings(now = state.time.epochMs) {
             });
             act.memberIds.forEach((id) => markCreatorActivityById(id, now));
         }
-        logEvent(`Tour completed: ${booking.actName} at ${booking.venueLabel} (${formatMoney(profit)} net).`);
+        const logLabel = isRival ? "Rival tour completed" : "Tour completed";
+        logEvent(`${logLabel}: ${booking.actName} at ${booking.venueLabel} (${formatMoney(profit)} net).`);
         postTourCompletion(booking);
         resolvedBookings.push(booking);
-        if (balanceEnabled) {
+        if (balanceEnabled && !isRival) {
             const gainRate = TOUR_FAN_GAIN_BALANCED;
             const gain = Math.round(attendance * gainRate);
             pending.fanGain += gain;
@@ -12188,10 +12199,10 @@ function recordPromoContent({ promoType, actId = null, actName = null, actNameKe
     list.push(entry);
     return entry;
 }
-function buildPromoChartList(entries, scopeId, scopeKey, size, prevEntries, currentWeek) {
+function buildPromoChartScores(entries, scopeId, currentWeek) {
     if (!entries.length)
         return [];
-    const scored = entries.map((entry) => {
+    return entries.map((entry, index) => {
         const anchor = buildPromoAnchorTrack(entry, currentWeek);
         const remaining = promoEntryWeeksRemaining(entry, currentWeek);
         const baseScore = scoreTrack(anchor, scopeId);
@@ -12205,9 +12216,17 @@ function buildPromoChartList(entries, scopeId, scopeKey, size, prevEntries, curr
         const metricMeta = resolvePromoMetricMeta(entry.promoType);
         const primary = engagement[metricMeta.key] || 0;
         const metrics = { ...baseMetrics, ...engagement, primary, primaryLabel: metricMeta.label, primaryKey: metricMeta.key };
-        return { entry, anchor, metrics, score: primary };
+        const label = entry.label || anchor?.label || "";
+        return { entry, anchor, metrics, score: primary, order: index, label };
     });
-    const ordered = scored.sort((a, b) => b.score - a.score).slice(0, size);
+}
+function buildPromoChartList(entries, scopeId, scopeKey, size, prevEntries, currentWeek) {
+    if (!entries.length)
+        return [];
+    const scored = buildPromoChartScores(entries, scopeId, currentWeek);
+    const ordered = scored
+        .sort((a, b) => b.score - a.score || a.order - b.order)
+        .slice(0, size);
     return ordered.map((item, index) => {
         const prevEntry = prevEntries.find((prev) => prev.id === item.entry.id);
         const history = updateChartHistory(item.entry, scopeKey, index + 1);
@@ -12223,7 +12242,7 @@ function buildPromoChartList(entries, scopeId, scopeKey, size, prevEntries, curr
             marketId: item.entry.marketId || anchor.marketId || null,
             trackTitle: item.entry.trackTitle || (item.entry.trackId ? anchor.title : "") || "",
             projectName: item.entry.projectName || (item.entry.trackId ? anchor.projectName : "") || "",
-            label: item.entry.label || anchor.label || "",
+            label: item.label || "",
             country: item.entry.country || anchor.country || "Annglora",
             alignment: item.entry.alignment || anchor.alignment || "Neutral",
             theme: item.entry.theme || anchor.theme || "",
@@ -12271,6 +12290,7 @@ function computePromoCharts() {
     REGION_DEFS.forEach((region) => {
         charts.regions[region.id] = buildPromoChartList(activeEntries, region.id, `promo:region:${region.id}`, CHART_SIZES.region, prevRegions[region.id], currentWeek);
     });
+    applyPromoChartEvaluation(activeEntries, resolveEvalChartSizes(), currentWeek);
 }
 function tourActKey(entry) {
     if (entry?.actId)
@@ -12511,7 +12531,7 @@ function listRivalTourChartEntries(weekNumber, now = state.time.epochMs) {
 }
 function listTourChartEntries(weekNumber, now = state.time.epochMs) {
     const targetWeek = Number.isFinite(weekNumber) ? weekNumber : weekIndex() + 1;
-    const labelEntries = listTourBookings().filter((booking) => {
+    const bookings = listTourBookings().filter((booking) => {
         if (!booking || !Number.isFinite(booking.scheduledAt))
             return false;
         const bookingWeek = weekIndexForEpochMs(booking.scheduledAt) + 1;
@@ -12520,75 +12540,16 @@ function listTourChartEntries(weekNumber, now = state.time.epochMs) {
         if (booking.status === "Completed")
             return true;
         return booking.status === "Booked" && booking.scheduledAt <= now;
-    }).map((booking) => buildTourChartEntry(booking, now)).filter(Boolean);
-    const rivalEntries = listRivalTourChartEntries(targetWeek, now);
+    });
+    const labelEntries = bookings.map((booking) => buildTourChartEntry(booking, now)).filter(Boolean);
+    const hasRivalBookings = bookings.some((booking) => booking.isRival);
+    const rivalEntries = hasRivalBookings ? [] : listRivalTourChartEntries(targetWeek, now);
     return labelEntries.concat(rivalEntries).filter(Boolean);
 }
 function buildTourChartList(entries, scopeKey, size, prevEntries) {
     if (!entries.length)
         return [];
-    const grouped = new Map();
-    entries.forEach((entry) => {
-        const track = entry.primaryTrack || entry.track || entry;
-        if (!entry)
-            return;
-        const actId = entry.actId || track?.actId || null;
-        const actName = entry.actName || track?.actName || "Unknown";
-        const actNameKey = entry.actNameKey || track?.actNameKey || null;
-        const label = entry.label || track?.label || "Unknown";
-        const key = tourActKey({ actId, actName, actNameKey, label });
-        const metrics = entry.metrics || {};
-        let score = Number(entry.score || metrics.attendance || 0);
-        const awardBoost = key
-            ? resolveAwardBoostMultiplier(ensureAwardBoostStore().content, `tour:${key}`, state.time.epochMs)
-            : 1;
-        if (awardBoost !== 1)
-            score = Math.round(score * awardBoost);
-        const existing = grouped.get(key) || {
-            actKey: key,
-            actId,
-            actName,
-            actNameKey,
-            label,
-            alignment: entry.alignment || track?.alignment || state.label?.alignment || "Neutral",
-            country: entry.country || track?.country || "Annglora",
-            dateCount: 0,
-            primaryTrack: track || null,
-            primaryScore: score,
-            metrics: { attendance: 0, revenue: 0, costs: 0, profit: 0, grossTicket: 0, merch: 0, sponsorship: 0 },
-            score: 0,
-            primaryTrackId: entry.primaryTrackId || null,
-            marketId: entry.marketId || null
-        };
-        existing.dateCount += 1;
-        if (Number.isFinite(score)) {
-            existing.score += score;
-            if (!existing.primaryTrack || score > existing.primaryScore) {
-                existing.primaryTrack = track;
-                existing.primaryScore = score;
-                existing.primaryTrackId = entry.primaryTrackId || existing.primaryTrackId;
-                existing.marketId = entry.marketId || existing.marketId;
-            }
-        }
-        existing.metrics.attendance += Number(metrics.attendance || 0);
-        existing.metrics.revenue += Number(metrics.revenue || 0);
-        existing.metrics.costs += Number(metrics.costs || 0);
-        existing.metrics.profit += Number(metrics.profit || 0);
-        existing.metrics.grossTicket += Number(metrics.grossTicket || 0);
-        existing.metrics.merch += Number(metrics.merch || 0);
-        existing.metrics.sponsorship += Number(metrics.sponsorship || 0);
-        grouped.set(key, existing);
-    });
-    const aggregated = Array.from(grouped.values()).map((entry) => ({
-        ...entry,
-        metrics: { ...entry.metrics },
-        score: Number(entry.score || 0),
-        primaryTrackTitle: entry.primaryTrack?.title || "",
-        primaryTrackTheme: entry.primaryTrack?.theme || "",
-        primaryTrackMood: entry.primaryTrack?.mood || "",
-        primaryTrackGenre: entry.primaryTrack?.genre || ""
-    }));
-    const ordered = aggregated.sort((a, b) => b.score - a.score).slice(0, size);
+    const ordered = buildTourChartScores(entries).slice(0, size);
     return ordered.map((entry, index) => {
         const prevEntry = prevEntries.find((prev) => prev.actKey === entry.actKey);
         const historyEntry = ensureTourHistoryEntry(entry);
@@ -12626,6 +12587,7 @@ function computeTourCharts() {
         const scoped = entries.filter((entry) => entry.regionId === region.id);
         charts.regions[region.id] = buildTourChartList(scoped, `tour:region:${region.id}`, CHART_SIZES.region, prevRegions[region.id]);
     });
+    applyTourChartEvaluation(entries, resolveEvalChartSizes());
 }
 let chartWorker = null;
 let chartWorkerRequestId = 0;
@@ -12719,13 +12681,14 @@ function buildChartWorkerPayload() {
     const tracks = [];
     const chartWeekIndex = chartScoreWeekIndex();
     ensureAudienceBiasStore();
-    state.marketTracks.forEach((track) => {
+    state.marketTracks.forEach((track, index) => {
         const key = trackKey(track);
         const seedKey = resolveScoreTrackSeedKey(track);
         const originMeta = resolveTrackOriginMeta(track);
         trackMap.set(key, track);
         tracks.push({
             key,
+            order: index,
             seedKey,
             quality: track.quality,
             alignment: track.alignment,
@@ -12759,12 +12722,15 @@ function buildChartWorkerPayload() {
         audience.regions[region.id] = getAudienceProfile(region.id);
     });
     const labelCompetition = ensureLabelCompetitionMap();
+    const displayChartSizes = resolveDisplayChartSizes();
+    const evalChartSizes = resolveEvalChartSizes();
     return {
         payload: {
             tracks,
             nations: NATIONS,
             regionIds: REGION_DEFS.map((region) => region.id),
-            chartSizes: CHART_SIZES,
+            displayChartSizes,
+            evalChartSizes,
             weights: {
                 global: chartWeightsForGlobal(),
                 nations: nationWeights,
@@ -12914,6 +12880,32 @@ function applyChartWorkerResults(result, trackMap) {
             metrics: globalMetricsByKey.get(entry.key) || entry.metrics
         };
     }).filter(Boolean);
+    const internalCharts = result?.internalCharts || {};
+    const evalSizes = resolveEvalChartSizes();
+    const internalTracks = { global: [], nations: {}, regions: {} };
+    internalTracks.global = (internalCharts.global || []).map((entry) => {
+        const track = trackMap.get(entry.key);
+        if (!track)
+            return null;
+        return { key: entry.key, label: track.label, score: entry.score };
+    }).filter(Boolean);
+    NATIONS.forEach((nation) => {
+        internalTracks.nations[nation] = (internalCharts.nations?.[nation] || []).map((entry) => {
+            const track = trackMap.get(entry.key);
+            if (!track)
+                return null;
+            return { key: entry.key, label: track.label, score: entry.score };
+        }).filter(Boolean);
+    });
+    REGION_DEFS.forEach((region) => {
+        internalTracks.regions[region.id] = (internalCharts.regions?.[region.id] || []).map((entry) => {
+            const track = trackMap.get(entry.key);
+            if (!track)
+                return null;
+            return { key: entry.key, label: track.label, score: entry.score };
+        }).filter(Boolean);
+    });
+    const internalTrackCharts = applyTrackChartEvaluation(internalTracks, evalSizes);
     const globalScoresOut = globalScores.map((entry) => ({
         track: entry.track,
         score: entry.score,
@@ -12922,7 +12914,7 @@ function applyChartWorkerResults(result, trackMap) {
     computePromoCharts();
     computeTourCharts();
     persistChartHistorySnapshots();
-    return { globalScores: globalScoresOut };
+    return { globalScores: globalScoresOut, internalTrackCharts };
 }
 function persistChartHistorySnapshots() {
     const week = weekIndex() + 1;
@@ -13029,25 +13021,55 @@ function computeChartsLocal(marketTracks = paginateMarketTracks()) {
     });
     const globalWeights = chartWeightsForGlobal();
     const globalScores = [];
-    marketTracks.forEach((track) => {
+    marketTracks.forEach((track, trackIndex) => {
+        const order = trackIndex;
         let sum = 0;
         NATIONS.forEach((nation) => {
             const score = scoreTrack(track, nation);
             const metrics = buildChartMetrics(score, nationWeights[nation]);
-            nationScores[nation].push({ track, score, metrics });
+            nationScores[nation].push({ track, score, metrics, order });
             sum += score;
         });
         const avg = Math.round(sum / NATIONS.length);
-        globalScores.push({ track, score: avg, metrics: buildChartMetrics(avg, globalWeights) });
+        globalScores.push({ track, score: avg, metrics: buildChartMetrics(avg, globalWeights), order });
         REGION_DEFS.forEach((region) => {
             const score = scoreTrack(track, region.id);
-            regionScores[region.id].push({ track, score, metrics: buildChartMetrics(score, regionWeights[region.id]) });
+            regionScores[region.id].push({ track, score, metrics: buildChartMetrics(score, regionWeights[region.id]), order });
         });
     });
     applyDistributionAdjustments({ globalScores, nationScores, regionScores });
+    const displayChartSizes = resolveDisplayChartSizes();
+    const evalChartSizes = resolveEvalChartSizes();
+    const internalCharts = { global: selectTopKEntries(globalScores, evalChartSizes.global), nations: {}, regions: {} };
+    NATIONS.forEach((nation) => {
+        internalCharts.nations[nation] = selectTopKEntries(nationScores[nation], evalChartSizes.nation);
+    });
+    REGION_DEFS.forEach((region) => {
+        internalCharts.regions[region.id] = selectTopKEntries(regionScores[region.id], evalChartSizes.region);
+    });
+    const internalTracks = {
+        global: internalCharts.global.map((entry) => ({ key: trackKey(entry.track), label: entry.track?.label || "", score: entry.score })),
+        nations: {},
+        regions: {}
+    };
+    NATIONS.forEach((nation) => {
+        internalTracks.nations[nation] = internalCharts.nations[nation].map((entry) => ({
+            key: trackKey(entry.track),
+            label: entry.track?.label || "",
+            score: entry.score
+        }));
+    });
+    REGION_DEFS.forEach((region) => {
+        internalTracks.regions[region.id] = internalCharts.regions[region.id].map((entry) => ({
+            key: trackKey(entry.track),
+            label: entry.track?.label || "",
+            score: entry.score
+        }));
+    });
+    const internalTrackCharts = applyTrackChartEvaluation(internalTracks, evalChartSizes);
     NATIONS.forEach((nation) => {
         const prev = state.charts.nations[nation] || [];
-        const ordered = nationScores[nation].sort((a, b) => b.score - a.score).slice(0, CHART_SIZES.nation);
+        const ordered = internalCharts.nations[nation].slice(0, displayChartSizes.nation);
         state.charts.nations[nation] = ordered.map((entry, index) => {
             const prevEntry = prev.find((p) => trackKey(p.track) === trackKey(entry.track));
             const history = updateChartHistory(entry.track, nation, index + 1);
@@ -13064,7 +13086,7 @@ function computeChartsLocal(marketTracks = paginateMarketTracks()) {
     });
     REGION_DEFS.forEach((region) => {
         const prev = state.charts.regions[region.id] || [];
-        const ordered = regionScores[region.id].sort((a, b) => b.score - a.score).slice(0, CHART_SIZES.region);
+        const ordered = internalCharts.regions[region.id].slice(0, displayChartSizes.region);
         state.charts.regions[region.id] = ordered.map((entry, index) => {
             const prevEntry = prev.find((p) => trackKey(p.track) === trackKey(entry.track));
             const history = updateChartHistory(entry.track, region.id, index + 1);
@@ -13080,7 +13102,7 @@ function computeChartsLocal(marketTracks = paginateMarketTracks()) {
         });
     });
     const prevGlobal = state.charts.global || [];
-    const orderedGlobal = globalScores.sort((a, b) => b.score - a.score).slice(0, CHART_SIZES.global);
+    const orderedGlobal = internalCharts.global.slice(0, displayChartSizes.global);
     state.charts.global = orderedGlobal.map((entry, index) => {
         const prevEntry = prevGlobal.find((p) => trackKey(p.track) === trackKey(entry.track));
         const history = updateChartHistory(entry.track, "global", index + 1);
@@ -13098,7 +13120,7 @@ function computeChartsLocal(marketTracks = paginateMarketTracks()) {
     computeTourCharts();
     persistChartHistorySnapshots();
     logPerfEvent("Chart rebuild (local)", perfStart, PERF_CHART_REBUILD_LOG_MS, `(tracks ${trackCount})`);
-    return { globalScores };
+    return { globalScores, internalTrackCharts };
 }
 function buildProjectedMarketTracks(targetEpochMs) {
     const safeEpoch = Number.isFinite(targetEpochMs) ? targetEpochMs : state.time.epochMs;
@@ -14215,30 +14237,336 @@ function addLabelScores(scores, entries, size, weight) {
         scores[label] = (scores[label] || 0) + points;
     });
 }
-function computeLabelScoresFromCharts() {
+function resolveDisplayChartSizes() {
+    return typeof DISPLAY_CHART_SIZES === "object" && DISPLAY_CHART_SIZES
+        ? DISPLAY_CHART_SIZES
+        : CHART_SIZES;
+}
+function resolveEvalChartSizes() {
+    return typeof EVAL_CHART_SIZES === "object" && EVAL_CHART_SIZES
+        ? EVAL_CHART_SIZES
+        : resolveDisplayChartSizes();
+}
+function resolveInternalTrackCharts() {
+    const tracks = state.meta?.chartEvaluation?.tracks;
+    if (!tracks || typeof tracks !== "object")
+        return null;
+    if (!Array.isArray(tracks.global))
+        return null;
+    return tracks;
+}
+function resolveInternalPromoCharts() {
+    const promos = state.meta?.chartEvaluation?.promos;
+    if (!promos || typeof promos !== "object")
+        return null;
+    if (!Array.isArray(promos.global))
+        return null;
+    return promos;
+}
+function resolveInternalTourCharts() {
+    const tours = state.meta?.chartEvaluation?.tours;
+    if (!tours || typeof tours !== "object")
+        return null;
+    if (!Array.isArray(tours.global))
+        return null;
+    return tours;
+}
+function computeLabelScoresFromCharts(options = {}) {
+    const { trackCharts = null, trackSizes = null, useInternal = true } = options;
+    const internalTracks = useInternal ? resolveInternalTrackCharts() : null;
+    const internalPromos = useInternal ? resolveInternalPromoCharts() : null;
+    const internalTours = useInternal ? resolveInternalTourCharts() : null;
+    const trackSource = trackCharts || internalTracks || state.charts;
+    const resolvedTrackSizes = trackSizes || (trackSource === internalTracks ? resolveEvalChartSizes() : CHART_SIZES);
     const scores = {};
-    addLabelScores(scores, state.charts.global || [], CHART_SIZES.global, LABEL_SCORE_WEIGHTS.tracks.global);
+    addLabelScores(scores, trackSource.global || [], resolvedTrackSizes.global, LABEL_SCORE_WEIGHTS.tracks.global);
     NATIONS.forEach((nation) => {
-        addLabelScores(scores, state.charts.nations?.[nation] || [], CHART_SIZES.nation, LABEL_SCORE_WEIGHTS.tracks.nation);
+        addLabelScores(scores, trackSource.nations?.[nation] || [], resolvedTrackSizes.nation, LABEL_SCORE_WEIGHTS.tracks.nation);
     });
     REGION_DEFS.forEach((region) => {
-        addLabelScores(scores, state.charts.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.tracks.region);
+        addLabelScores(scores, trackSource.regions?.[region.id] || [], resolvedTrackSizes.region, LABEL_SCORE_WEIGHTS.tracks.region);
     });
-    addLabelScores(scores, state.promoCharts?.global || [], CHART_SIZES.global, LABEL_SCORE_WEIGHTS.promos.global);
+    const promoSource = internalPromos || state.promoCharts;
+    const promoSizes = promoSource === internalPromos ? resolveEvalChartSizes() : CHART_SIZES;
+    addLabelScores(scores, promoSource?.global || [], promoSizes.global, LABEL_SCORE_WEIGHTS.promos.global);
     NATIONS.forEach((nation) => {
-        addLabelScores(scores, state.promoCharts?.nations?.[nation] || [], CHART_SIZES.nation, LABEL_SCORE_WEIGHTS.promos.nation);
+        addLabelScores(scores, promoSource?.nations?.[nation] || [], promoSizes.nation, LABEL_SCORE_WEIGHTS.promos.nation);
     });
     REGION_DEFS.forEach((region) => {
-        addLabelScores(scores, state.promoCharts?.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.promos.region);
+        addLabelScores(scores, promoSource?.regions?.[region.id] || [], promoSizes.region, LABEL_SCORE_WEIGHTS.promos.region);
     });
-    addLabelScores(scores, state.tourCharts?.global || [], CHART_SIZES.global, LABEL_SCORE_WEIGHTS.tours.global);
+    const tourSource = internalTours || state.tourCharts;
+    const tourSizes = tourSource === internalTours ? resolveEvalChartSizes() : CHART_SIZES;
+    addLabelScores(scores, tourSource?.global || [], tourSizes.global, LABEL_SCORE_WEIGHTS.tours.global);
     NATIONS.forEach((nation) => {
-        addLabelScores(scores, state.tourCharts?.nations?.[nation] || [], CHART_SIZES.nation, LABEL_SCORE_WEIGHTS.tours.nation);
+        addLabelScores(scores, tourSource?.nations?.[nation] || [], tourSizes.nation, LABEL_SCORE_WEIGHTS.tours.nation);
     });
     REGION_DEFS.forEach((region) => {
-        addLabelScores(scores, state.tourCharts?.regions?.[region.id] || [], CHART_SIZES.region, LABEL_SCORE_WEIGHTS.tours.region);
+        addLabelScores(scores, tourSource?.regions?.[region.id] || [], tourSizes.region, LABEL_SCORE_WEIGHTS.tours.region);
     });
     return scores;
+}
+const scoreEntryOrder = (entry) => Number.isFinite(entry?.order) ? entry.order : 0;
+const isBetterScoreEntry = (a, b) => {
+    if (a.score !== b.score)
+        return a.score > b.score;
+    return scoreEntryOrder(a) < scoreEntryOrder(b);
+};
+const compareScoreEntries = (a, b) => {
+    if (a.score !== b.score)
+        return b.score - a.score;
+    return scoreEntryOrder(a) - scoreEntryOrder(b);
+};
+function selectTopKEntries(entries, k) {
+    if (!Array.isArray(entries) || !entries.length)
+        return [];
+    const limit = Math.max(0, Math.round(k || 0));
+    if (!limit)
+        return [];
+    if (limit >= entries.length)
+        return entries.slice().sort(compareScoreEntries);
+    const heap = [];
+    const isWorse = (a, b) => !isBetterScoreEntry(a, b);
+    const siftUp = (index) => {
+        let child = index;
+        while (child > 0) {
+            const parent = Math.floor((child - 1) / 2);
+            if (!isWorse(heap[child], heap[parent]))
+                break;
+            const temp = heap[parent];
+            heap[parent] = heap[child];
+            heap[child] = temp;
+            child = parent;
+        }
+    };
+    const siftDown = (index) => {
+        let parent = index;
+        while (true) {
+            const left = parent * 2 + 1;
+            const right = parent * 2 + 2;
+            let smallest = parent;
+            if (left < heap.length && isWorse(heap[left], heap[smallest]))
+                smallest = left;
+            if (right < heap.length && isWorse(heap[right], heap[smallest]))
+                smallest = right;
+            if (smallest === parent)
+                break;
+            const temp = heap[parent];
+            heap[parent] = heap[smallest];
+            heap[smallest] = temp;
+            parent = smallest;
+        }
+    };
+    entries.forEach((entry) => {
+        if (heap.length < limit) {
+            heap.push(entry);
+            siftUp(heap.length - 1);
+            return;
+        }
+        if (isBetterScoreEntry(entry, heap[0])) {
+            heap[0] = entry;
+            siftDown(0);
+        }
+    });
+    return heap.sort(compareScoreEntries);
+}
+function ensureChartEvaluationStore() {
+    if (!state.meta)
+        state.meta = makeDefaultState().meta;
+    if (!state.meta.chartEvaluation || typeof state.meta.chartEvaluation !== "object") {
+        state.meta.chartEvaluation = {};
+    }
+    const store = state.meta.chartEvaluation;
+    if (!Number.isFinite(store.weekIndex))
+        store.weekIndex = null;
+    if (!store.tracks || typeof store.tracks !== "object") {
+        store.tracks = { global: [], nations: {}, regions: {} };
+    }
+    if (!store.promos || typeof store.promos !== "object") {
+        store.promos = { global: [], nations: {}, regions: {} };
+    }
+    if (!store.tours || typeof store.tours !== "object") {
+        store.tours = { global: [], nations: {}, regions: {} };
+    }
+    if (!Array.isArray(store.tracks.global))
+        store.tracks.global = [];
+    if (!store.tracks.nations || typeof store.tracks.nations !== "object")
+        store.tracks.nations = {};
+    if (!store.tracks.regions || typeof store.tracks.regions !== "object")
+        store.tracks.regions = {};
+    ensureChartStoreStructure(store.promos);
+    ensureChartStoreStructure(store.tours);
+    if (!store.dominance || typeof store.dominance !== "object") {
+        store.dominance = { global: null, nations: {}, regions: {} };
+    }
+    if (!store.dominance.nations || typeof store.dominance.nations !== "object")
+        store.dominance.nations = {};
+    if (!store.dominance.regions || typeof store.dominance.regions !== "object")
+        store.dominance.regions = {};
+    return store;
+}
+function applyTrackChartEvaluation(internalCharts, evalSizes) {
+    if (!internalCharts || typeof internalCharts !== "object")
+        return null;
+    const store = ensureChartEvaluationStore();
+    const sizes = evalSizes || resolveEvalChartSizes();
+    const makeScope = (entries, size) => {
+        const scopedEntries = [];
+        const counts = {};
+        entries.forEach((entry, index) => {
+            if (!entry)
+                return;
+            const label = entry.label || resolveChartEntryLabel(entry) || "";
+            if (!label)
+                return;
+            const key = entry.key || trackKey(entry.track || entry) || null;
+            scopedEntries.push({ key, label, score: entry.score, rank: index + 1 });
+            counts[label] = (counts[label] || 0) + 1;
+        });
+        const denom = Number.isFinite(size) && size > 0 ? size : scopedEntries.length || 1;
+        const shares = {};
+        Object.entries(counts).forEach(([label, count]) => {
+            shares[label] = count / denom;
+        });
+        return { entries: scopedEntries, counts, shares, size: denom };
+    };
+    store.weekIndex = weekIndex() + 1;
+    const globalScope = makeScope(internalCharts.global || [], sizes.global);
+    store.tracks.global = globalScope.entries;
+    store.dominance.global = { counts: globalScope.counts, shares: globalScope.shares, size: sizes.global };
+    NATIONS.forEach((nation) => {
+        const scope = makeScope(internalCharts.nations?.[nation] || [], sizes.nation);
+        store.tracks.nations[nation] = scope.entries;
+        store.dominance.nations[nation] = { counts: scope.counts, shares: scope.shares, size: sizes.nation };
+    });
+    REGION_DEFS.forEach((region) => {
+        const scope = makeScope(internalCharts.regions?.[region.id] || [], sizes.region);
+        store.tracks.regions[region.id] = scope.entries;
+        store.dominance.regions[region.id] = { counts: scope.counts, shares: scope.shares, size: sizes.region };
+    });
+    return store.tracks;
+}
+function applyPromoChartEvaluation(entries, evalSizes, currentWeek) {
+    if (!Array.isArray(entries))
+        return null;
+    const store = ensureChartEvaluationStore();
+    const sizes = evalSizes || resolveEvalChartSizes();
+    const buildScope = (scopeId, size) => {
+        const scored = buildPromoChartScores(entries, scopeId, currentWeek);
+        const ordered = scored
+            .sort((a, b) => b.score - a.score || a.order - b.order)
+            .slice(0, size);
+        return ordered.map((item, index) => ({
+            key: item.entry.id || `promo-${index + 1}`,
+            label: item.label || "",
+            score: item.score,
+            rank: index + 1
+        }));
+    };
+    store.weekIndex = weekIndex() + 1;
+    store.promos.global = buildScope("global", sizes.global);
+    NATIONS.forEach((nation) => {
+        store.promos.nations[nation] = buildScope(nation, sizes.nation);
+    });
+    REGION_DEFS.forEach((region) => {
+        store.promos.regions[region.id] = buildScope(region.id, sizes.region);
+    });
+    return store.promos;
+}
+function buildTourChartScores(entries) {
+    if (!entries.length)
+        return [];
+    const grouped = new Map();
+    entries.forEach((entry) => {
+        const track = entry.primaryTrack || entry.track || entry;
+        if (!entry)
+            return;
+        const actId = entry.actId || track?.actId || null;
+        const actName = entry.actName || track?.actName || "Unknown";
+        const actNameKey = entry.actNameKey || track?.actNameKey || null;
+        const label = entry.label || track?.label || "Unknown";
+        const key = tourActKey({ actId, actName, actNameKey, label });
+        const metrics = entry.metrics || {};
+        let score = Number(entry.score || metrics.attendance || 0);
+        const awardBoost = key
+            ? resolveAwardBoostMultiplier(ensureAwardBoostStore().content, `tour:${key}`, state.time.epochMs)
+            : 1;
+        if (awardBoost !== 1)
+            score = Math.round(score * awardBoost);
+        const existing = grouped.get(key) || {
+            actKey: key,
+            actId,
+            actName,
+            actNameKey,
+            label,
+            alignment: entry.alignment || track?.alignment || state.label?.alignment || "Neutral",
+            country: entry.country || track?.country || "Annglora",
+            nation: entry.nation || track?.country || entry.country || "Annglora",
+            regionId: entry.regionId || null,
+            dateCount: 0,
+            primaryTrack: track || null,
+            primaryScore: score,
+            metrics: { attendance: 0, revenue: 0, costs: 0, profit: 0, grossTicket: 0, merch: 0, sponsorship: 0 },
+            score: 0,
+            primaryTrackId: entry.primaryTrackId || null,
+            marketId: entry.marketId || null
+        };
+        existing.dateCount += 1;
+        if (Number.isFinite(score)) {
+            existing.score += score;
+            if (!existing.primaryTrack || score > existing.primaryScore) {
+                existing.primaryTrack = track;
+                existing.primaryScore = score;
+                existing.primaryTrackId = entry.primaryTrackId || existing.primaryTrackId;
+                existing.marketId = entry.marketId || existing.marketId;
+            }
+        }
+        existing.metrics.attendance += Number(metrics.attendance || 0);
+        existing.metrics.revenue += Number(metrics.revenue || 0);
+        existing.metrics.costs += Number(metrics.costs || 0);
+        existing.metrics.profit += Number(metrics.profit || 0);
+        existing.metrics.grossTicket += Number(metrics.grossTicket || 0);
+        existing.metrics.merch += Number(metrics.merch || 0);
+        existing.metrics.sponsorship += Number(metrics.sponsorship || 0);
+        grouped.set(key, existing);
+    });
+    return Array.from(grouped.values())
+        .map((entry) => ({
+        ...entry,
+        metrics: { ...entry.metrics },
+        score: Number(entry.score || 0),
+        primaryTrackTitle: entry.primaryTrack?.title || "",
+        primaryTrackTheme: entry.primaryTrack?.theme || "",
+        primaryTrackMood: entry.primaryTrack?.mood || "",
+        primaryTrackGenre: entry.primaryTrack?.genre || ""
+    }))
+        .sort((a, b) => b.score - a.score);
+}
+function applyTourChartEvaluation(entries, evalSizes) {
+    if (!Array.isArray(entries))
+        return null;
+    const store = ensureChartEvaluationStore();
+    const sizes = evalSizes || resolveEvalChartSizes();
+    const buildScope = (scopeEntries, size) => {
+        const ordered = buildTourChartScores(scopeEntries).slice(0, size);
+        return ordered.map((entry, index) => ({
+            key: entry.actKey || `tour-${index + 1}`,
+            label: entry.label || "",
+            score: entry.score,
+            rank: index + 1
+        }));
+    };
+    store.weekIndex = weekIndex() + 1;
+    store.tours.global = buildScope(entries, sizes.global);
+    NATIONS.forEach((nation) => {
+        const scoped = entries.filter((entry) => entry.nation === nation);
+        store.tours.nations[nation] = buildScope(scoped, sizes.nation);
+    });
+    REGION_DEFS.forEach((region) => {
+        const scoped = entries.filter((entry) => entry.regionId === region.id);
+        store.tours.regions[region.id] = buildScope(scoped, sizes.region);
+    });
+    return store.tours;
 }
 function resolveChartEntryAct(entry) {
     if (!entry) {
@@ -14527,35 +14855,49 @@ function detectChartMonopoly(entries, size) {
     }
     return label || null;
 }
-function findChartMonopoly() {
+function buildMonopolyChecks() {
+    const evalSizes = resolveEvalChartSizes();
+    const evaluation = ensureChartEvaluationStore();
     const checks = [];
-    checks.push({ entries: state.charts.global, size: CHART_SIZES.global, scope: "global", type: "tracks" });
+    const push = ({ entries, size, scope, type }) => {
+        if (!Array.isArray(entries) || !Number.isFinite(size) || size <= 0)
+            return;
+        checks.push({ entries, size, scope, type });
+    };
+    push({ entries: evaluation.tracks?.global || [], size: evalSizes.global, scope: "global", type: "tracks" });
     NATIONS.forEach((nation) => {
-        checks.push({ entries: state.charts.nations?.[nation] || [], size: CHART_SIZES.nation, scope: nation, type: "tracks" });
+        push({ entries: evaluation.tracks?.nations?.[nation] || [], size: evalSizes.nation, scope: nation, type: "tracks" });
     });
     REGION_DEFS.forEach((region) => {
-        checks.push({ entries: state.charts.regions?.[region.id] || [], size: CHART_SIZES.region, scope: region.id, type: "tracks" });
+        push({ entries: evaluation.tracks?.regions?.[region.id] || [], size: evalSizes.region, scope: region.id, type: "tracks" });
     });
-    checks.push({ entries: state.promoCharts?.global || [], size: CHART_SIZES.global, scope: "global", type: "promotions" });
+    push({ entries: evaluation.promos?.global || [], size: evalSizes.global, scope: "global", type: "promotions" });
     NATIONS.forEach((nation) => {
-        checks.push({ entries: state.promoCharts?.nations?.[nation] || [], size: CHART_SIZES.nation, scope: nation, type: "promotions" });
+        push({ entries: evaluation.promos?.nations?.[nation] || [], size: evalSizes.nation, scope: nation, type: "promotions" });
     });
     REGION_DEFS.forEach((region) => {
-        checks.push({ entries: state.promoCharts?.regions?.[region.id] || [], size: CHART_SIZES.region, scope: region.id, type: "promotions" });
+        push({ entries: evaluation.promos?.regions?.[region.id] || [], size: evalSizes.region, scope: region.id, type: "promotions" });
     });
-    checks.push({ entries: state.tourCharts?.global || [], size: CHART_SIZES.global, scope: "global", type: "tours" });
+    push({ entries: evaluation.tours?.global || [], size: evalSizes.global, scope: "global", type: "tours" });
     NATIONS.forEach((nation) => {
-        checks.push({ entries: state.tourCharts?.nations?.[nation] || [], size: CHART_SIZES.nation, scope: nation, type: "tours" });
+        push({ entries: evaluation.tours?.nations?.[nation] || [], size: evalSizes.nation, scope: nation, type: "tours" });
     });
     REGION_DEFS.forEach((region) => {
-        checks.push({ entries: state.tourCharts?.regions?.[region.id] || [], size: CHART_SIZES.region, scope: region.id, type: "tours" });
+        push({ entries: evaluation.tours?.regions?.[region.id] || [], size: evalSizes.region, scope: region.id, type: "tours" });
     });
+    return checks;
+}
+function findChartMonopoly() {
+    const checks = buildMonopolyChecks();
     for (let i = 0; i < checks.length; i += 1) {
         const check = checks[i];
         logMonopolyShareCheck(check);
         const label = detectChartMonopoly(check.entries, check.size);
         if (label) {
-            return { label, chart: monopolyChartLabel(check.scope, check.type) };
+            const week = weekIndex() + 1;
+            const stamp = Number.isFinite(state.time?.epochMs) ? state.time.epochMs : Date.now();
+            logEvent(`Monopoly detected: scope=${check.scope} type=${check.type} k=${check.size} labelId=${label} week=${week} ts=${stamp}.`, "warn");
+            return { label, chart: monopolyChartLabel(check.scope, check.type), scope: check.scope, type: check.type, size: check.size };
         }
     }
     return null;
@@ -15696,7 +16038,8 @@ function buildRivalPlanWindowStats(rival, husk, options = {}) {
     const promoBudget = estimateHuskPromoBudget(husk, walletCash);
     const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
     const promoReserve = Number.isFinite(promoBudget) ? promoBudget : 0;
-    const cashReserve = RIVAL_COMPETE_CASH_BUFFER + releaseCost + promoReserve;
+    const tourReserve = estimateRivalTourReserve(husk, walletCash).reserve;
+    const cashReserve = RIVAL_COMPETE_CASH_BUFFER + releaseCost + promoReserve + tourReserve;
     const operatingCost = estimateRivalOperatingCost(rival, cashReserve);
     const availableCash = Math.max(0, projectedCash - operatingCost);
     return {
@@ -15707,6 +16050,7 @@ function buildRivalPlanWindowStats(rival, husk, options = {}) {
         promoBudget,
         releaseCost,
         cashReserve,
+        tourReserve,
         operatingCost,
         availableCash
     };
@@ -15716,6 +16060,333 @@ function summarizeRivalStamina(rival) {
     const totalStamina = creators.reduce((sum, creator) => sum + clampStamina(creator?.stamina ?? 0), 0);
     const avgRatio = creators.length ? totalStamina / (creators.length * STAMINA_MAX) : 0;
     return { totalStamina, avgRatio, count: creators.length };
+}
+function ensureRivalAutoOpsState(rival) {
+    if (!rival)
+        return null;
+    if (!rival.autoOps || typeof rival.autoOps !== "object") {
+        rival.autoOps = { act: null, era: null, eraIndex: 0, lastPlannedWeek: null, blockerCooldowns: {} };
+    }
+    if (!rival.autoOps.blockerCooldowns || typeof rival.autoOps.blockerCooldowns !== "object") {
+        rival.autoOps.blockerCooldowns = {};
+    }
+    if (typeof rival.autoOps.eraIndex !== "number")
+        rival.autoOps.eraIndex = 0;
+    if (typeof rival.autoOps.lastPlannedWeek !== "number")
+        rival.autoOps.lastPlannedWeek = null;
+    return rival.autoOps;
+}
+function ensureRivalAutoOpsAct(rival) {
+    const autoOps = ensureRivalAutoOpsState(rival);
+    if (!autoOps)
+        return null;
+    if (autoOps.act && autoOps.act.id && autoOps.act.name)
+        return autoOps.act;
+    const baseId = rival?.id || rival?.name || "label";
+    const actId = `rival-${baseId}`;
+    const seed = makeStableSeed([actId, "autoOpsAct"]);
+    const rng = makeSeededRng(seed);
+    const actKind = rng() < 0.35 ? "group" : "solo";
+    const actEntry = makeRivalActNameEntry({ rng, nation: rival.country, actKind });
+    autoOps.act = {
+        id: actId,
+        name: actEntry.name,
+        nameKey: actEntry.nameKey || null,
+        kind: actKind,
+        createdWeek: weekIndex() + 1,
+        createdAt: state.time.epochMs
+    };
+    return autoOps.act;
+}
+function selectRivalAutoOpsRolloutPreset(rival, planId, currentWeekIndex) {
+    const presets = Array.isArray(ROLLOUT_PRESETS) ? ROLLOUT_PRESETS : [];
+    if (!presets.length)
+        return null;
+    const seed = makeStableSeed([currentWeekIndex, rival?.id || rival?.name || "", planId || "plan", "rollout"]);
+    const rng = makeSeededRng(seed);
+    return seededPick(presets, rng) || presets[0];
+}
+function updateRivalAutoOpsEraProgress(era, currentWeekNumber) {
+    if (!era || !Number.isFinite(era.startedWeek))
+        return era;
+    const weeksElapsed = Math.max(0, currentWeekNumber - era.startedWeek);
+    era.weeksElapsed = weeksElapsed;
+    const stageWeeks = Array.isArray(era.rolloutWeeks) && era.rolloutWeeks.length
+        ? era.rolloutWeeks
+        : (ROLLOUT_PRESETS[1]?.weeks || [2, 2, 2, 2]);
+    let remaining = weeksElapsed;
+    let stageIndex = 0;
+    let stageWeek = 0;
+    for (let i = 0; i < stageWeeks.length; i += 1) {
+        const span = Math.max(1, stageWeeks[i] || 1);
+        if (remaining < span) {
+            stageIndex = i;
+            stageWeek = remaining;
+            break;
+        }
+        remaining -= span;
+        stageIndex = i + 1;
+        stageWeek = 0;
+    }
+    const totalWeeks = stageWeeks.reduce((sum, value) => sum + Math.max(1, value || 1), 0);
+    if (weeksElapsed >= totalWeeks) {
+        era.status = "Complete";
+        era.completedWeek = era.startedWeek + totalWeeks;
+        era.completedAt = state.time.epochMs;
+        era.stageIndex = Math.max(0, stageWeeks.length - 1);
+        era.stageWeek = Math.max(0, stageWeeks[stageWeeks.length - 1] - 1);
+        return era;
+    }
+    era.status = "Active";
+    era.stageIndex = clamp(stageIndex, 0, Math.max(0, stageWeeks.length - 1));
+    era.stageWeek = Math.max(0, stageWeek);
+    return era;
+}
+function ensureRivalAutoOpsEra(rival, act, planId, currentWeekIndex) {
+    const autoOps = ensureRivalAutoOpsState(rival);
+    if (!autoOps)
+        return null;
+    const weekNumber = Math.max(1, (Number.isFinite(currentWeekIndex) ? currentWeekIndex : weekIndex()) + 1);
+    const existing = autoOps.era;
+    if (existing && existing.status === "Active") {
+        updateRivalAutoOpsEraProgress(existing, weekNumber);
+        if (existing.status === "Active")
+            return existing;
+    }
+    if (existing && existing.status === "Complete") {
+        updateRivalAutoOpsEraProgress(existing, weekNumber);
+    }
+    const preset = selectRivalAutoOpsRolloutPreset(rival, planId, currentWeekIndex);
+    const nextIndex = Math.max(0, Math.round(autoOps.eraIndex || 0)) + 1;
+    autoOps.eraIndex = nextIndex;
+    const eraId = `rival-era-${rival?.id || slugify(rival?.name || "label")}-${nextIndex}`;
+    const eraLabel = preset?.label || `Era ${nextIndex}`;
+    const era = {
+        id: eraId,
+        name: `${act?.name || rival?.name || "Rival"} ${eraLabel}`,
+        status: "Active",
+        actId: act?.id || null,
+        actName: act?.name || null,
+        actNameKey: act?.nameKey || null,
+        rolloutId: preset?.id || null,
+        rolloutWeeks: Array.isArray(preset?.weeks) ? preset.weeks.slice() : (ROLLOUT_PRESETS[1]?.weeks || []).slice(),
+        startedWeek: weekNumber,
+        startedAt: state.time.epochMs,
+        weeksElapsed: 0,
+        stageIndex: 0,
+        stageWeek: 0
+    };
+    autoOps.era = era;
+    return era;
+}
+function estimateRivalTourReserve(husk, walletCash) {
+    const steps = normalizeHuskCadence(husk?.cadence);
+    const tourSteps = steps.filter((step) => step.kind === "promo" && step.promoType === "livePerformance").length;
+    const tier = getTourTierConfig("Club") || TOUR_TIER_DEFAULTS.Club;
+    const baseCost = Math.round(Math.max(0, Number(tier?.venueFee || 0) + Number(tier?.staffingBase || 0) + Number(tier?.travelBase || 0)));
+    const perTour = Math.max(baseCost, Math.round(Math.max(0, walletCash) * 0.04));
+    return { tourSteps, perTour, reserve: perTour * tourSteps };
+}
+function buildRivalAutoOpsBudget(rival, husk, options = {}) {
+    const walletCash = rival?.wallet?.cash ?? rival?.cash ?? 0;
+    const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
+    const releaseBudget = buildRivalReleaseBudget(rival);
+    const cadence = summarizeHuskCadence(husk);
+    const promoBudget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
+    const createBudget = computeAutoCreateBudget(walletCash, rivalCreateBudgetPct(rival), rivalCreateMinCash());
+    const promoReserve = promoBudget ? promoBudget * (cadence.promoSteps || 0) : 0;
+    const tourEstimate = estimateRivalTourReserve(husk, walletCash);
+    const reserveFloor = Math.max(releaseBudget.minCash, Math.round(RIVAL_COMPETE_CASH_BUFFER + releaseCost + promoReserve + tourEstimate.reserve));
+    const tourBudgetCap = Math.max(0, Math.round(walletCash - reserveFloor));
+    return {
+        walletCash,
+        cadence,
+        releaseCost,
+        releaseBudget,
+        promoBudget,
+        createBudget,
+        promoReserve,
+        tourReserve: tourEstimate.reserve,
+        tourPer: tourEstimate.perTour,
+        tourSteps: tourEstimate.tourSteps,
+        tourBudgetCap,
+        tourSpent: 0,
+        reserveFloor
+    };
+}
+function spendRivalTourBudget(budget, cost) {
+    if (!budget)
+        return { ok: false, reason: "tour budget missing." };
+    const safeCost = Number.isFinite(cost) ? Math.max(0, Math.round(cost)) : 0;
+    if (!safeCost)
+        return { ok: false, reason: "tour cost unavailable." };
+    const remaining = budget.tourBudgetCap - (budget.tourSpent || 0);
+    if (safeCost > remaining) {
+        return { ok: false, reason: `tour budget ${formatMoney(remaining)} below cost ${formatMoney(safeCost)}.` };
+    }
+    budget.tourSpent = Math.round((budget.tourSpent || 0) + safeCost);
+    return { ok: true };
+}
+function logRivalAutoOpsBlocker(rival, kind, reason, currentWeekIndex) {
+    const autoOps = ensureRivalAutoOpsState(rival);
+    if (!autoOps)
+        return;
+    const weekNumber = Math.max(1, (Number.isFinite(currentWeekIndex) ? currentWeekIndex : weekIndex()) + 1);
+    const cooldowns = autoOps.blockerCooldowns || {};
+    if (cooldowns[kind] === weekNumber)
+        return;
+    cooldowns[kind] = weekNumber;
+    autoOps.blockerCooldowns = cooldowns;
+    logEvent(`${rival.name} AutoOps blocked (${kind} gate): ${reason}`, "warn");
+}
+function logRivalAutoOpsAction(rival, action, { what, at, weekNumber, why }) {
+    const whenWeek = Number.isFinite(weekNumber) ? `Week ${weekNumber}` : "Week ?";
+    const whenDate = Number.isFinite(at) ? formatDate(at) : null;
+    const whenLabel = whenDate ? `${whenWeek} (${whenDate})` : whenWeek;
+    const whyText = why ? ` | ${why}` : "";
+    logEvent(`${rival.name} AutoOps ${action}: ${what} | When ${whenLabel}${whyText}`);
+}
+function buildRivalTourProjection({ rival, venue, anchor, scheduledAt, seed }) {
+    if (!rival || !venue)
+        return null;
+    const tier = getTourTierConfig(venue?.tier) || TOUR_TIER_DEFAULTS.Club;
+    const capacity = Math.max(1, Number(venue?.capacity || tier.capacityMin || 500));
+    const quality = Number.isFinite(anchor?.qualityFinal)
+        ? anchor.qualityFinal
+        : Number.isFinite(anchor?.quality)
+            ? anchor.quality
+            : 60;
+    const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
+    const momentum = clamp(rival.momentum ?? 0.35, 0.35, 0.95);
+    const baseDemand = Math.max(500, 2500 + quality * 35 + ambition * 900 + momentum * 2200);
+    const regionAffinity = anchor?.country && venue?.nation && anchor.country === venue.nation ? 1.08 : 0.95;
+    const leadWeeks = tourLeadWeeks(scheduledAt);
+    const announceLead = clamp(leadWeeks / TOUR_LEAD_MAX_WEEKS, 0.6, 1.15);
+    const trendFit = anchor?.genre && state.trends.includes(anchor.genre) ? 1.08 : 0.96;
+    const promoWeeks = Math.max(0, anchor?.promoWeeks || 0);
+    const promoLift = 1 + Math.log1p((promoWeeks * (ECONOMY_TUNING?.promoWeekBudgetStep || 1200)) / 5000) * 0.3;
+    const rng = makeSeededRng(seed);
+    const variance = 0.85 + rng() * 0.3;
+    const desiredAttendance = baseDemand
+        * regionAffinity
+        * announceLead
+        * trendFit
+        * promoLift
+        * tier.drawMultiplier
+        * variance;
+    const sellThrough = clamp(desiredAttendance / capacity, 0.2, 1.05);
+    const attendance = Math.min(capacity, roundToAudienceChunk(capacity * sellThrough));
+    const regionPriceIndex = tourRegionPriceIndex(venue);
+    const qualityPremium = tourQualityPremium(quality);
+    const ticketPrice = roundMoney(tier.baseTicketPrice * regionPriceIndex * qualityPremium);
+    const grossTicket = Math.round(attendance * ticketPrice);
+    const merch = Math.round(attendance * tier.merchAttachRate * tier.merchSpendPerFan);
+    const sponsorship = Math.round((tier.sponsorBase || 0) * (0.85 + momentum * 0.3));
+    const revenue = Math.round(grossTicket + merch + sponsorship);
+    const staffing = Math.round(tier.staffingBase + attendance * 0.4);
+    const travel = Math.round(tier.travelBase);
+    const production = Math.round(attendance * 0.5);
+    const marketing = Math.round(grossTicket * 0.03);
+    const costs = Math.round((tier.venueFee || 0) + staffing + travel + production + marketing);
+    const profit = Math.round(revenue - costs);
+    return {
+        attendance,
+        sellThrough,
+        desiredAttendance: Math.round(desiredAttendance),
+        ticketPrice,
+        grossTicket,
+        merch,
+        sponsorship,
+        revenue,
+        costs,
+        profit
+    };
+}
+function scheduleRivalTourStep({ rival, act, era, husk, budget, stepIndex, stepDay, planWeek, targetWeekIndex, now } = {}) {
+    if (!rival || !act || !budget)
+        return { ok: false, kind: "budget", reason: "missing rival tour context." };
+    const anchor = pickRivalTourAnchorRelease(rival, targetWeekIndex + 1);
+    if (!anchor)
+        return { ok: false, kind: "capacity", reason: "no tour anchor release." };
+    const weekStart = weekStartEpochMs(targetWeekIndex + 1);
+    const dayIndex = Number.isFinite(stepDay) ? stepDay : HUSK_PROMO_DAY;
+    const scheduledAt = weekStart + clamp(dayIndex, 0, 6) * DAY_MS;
+    if (scheduledAt <= now)
+        return { ok: false, kind: "venue", reason: "tour window already passed." };
+    const venues = listTourVenues({
+        nation: rival.country || null,
+        regionId: null,
+        tier: null
+    });
+    if (!venues.length)
+        return { ok: false, kind: "venue", reason: "no venues available." };
+    const dayKey = tourDayKey(scheduledAt);
+    const existing = listTourBookings({ actId: act.id });
+    const weekNumber = weekIndexForEpochMs(scheduledAt) + 1;
+    const weekCount = existing.filter((booking) => weekIndexForEpochMs(booking.scheduledAt) + 1 === weekNumber).length;
+    if (weekCount >= TOUR_WEEKLY_MAX_DATES) {
+        return { ok: false, kind: "capacity", reason: `weekly tour cap ${TOUR_WEEKLY_MAX_DATES} reached.` };
+    }
+    const dayConflict = existing.some((booking) => tourDayKey(booking.scheduledAt) === dayKey);
+    if (dayConflict)
+        return { ok: false, kind: "stamina", reason: "tour date conflicts with another booking." };
+    const seed = makeStableSeed([planWeek, rival.id || rival.name || "", husk?.id || "husk", stepIndex, "tour"]);
+    const scored = venues.map((venue, index) => {
+        const availability = getTourVenueAvailability(venue.id, scheduledAt);
+        if (availability.available <= 0)
+            return null;
+        const projection = buildRivalTourProjection({
+            rival,
+            venue,
+            anchor,
+            scheduledAt,
+            seed: makeStableSeed([seed, venue.id || index])
+        });
+        if (!projection)
+            return null;
+        return { venue, projection, score: projection.profit };
+    }).filter(Boolean);
+    if (!scored.length)
+        return { ok: false, kind: "venue", reason: "venue availability blocked." };
+    scored.sort((a, b) => b.score - a.score || (a.venue.capacity || 0) - (b.venue.capacity || 0));
+    const pick = scored[0];
+    const spend = spendRivalTourBudget(budget, pick.projection.costs);
+    if (!spend.ok)
+        return { ok: false, kind: "budget", reason: spend.reason };
+    const tourName = era?.name ? `${era.name} Tour` : `${act.name} Tour`;
+    const booking = {
+        id: uid("TB"),
+        tourId: era?.id || `rival-tour-${rival.id || slugify(rival.name || "label")}`,
+        tourName,
+        actId: act.id,
+        actName: act.name,
+        actNameKey: act.nameKey || null,
+        eraId: era?.id || null,
+        eraName: era?.name || null,
+        goal: TOUR_GOAL_DEFAULT,
+        anchorTrackId: anchor.trackId || anchor.id || null,
+        anchorProjectName: anchor.projectName || null,
+        venueId: pick.venue.id,
+        venueLabel: pick.venue.label,
+        tier: pick.venue.tier,
+        capacity: pick.venue.capacity,
+        regionId: pick.venue.regionId,
+        nation: pick.venue.nation,
+        scheduledAt,
+        weekNumber,
+        dayIndex: clamp(dayIndex, 0, 6),
+        status: "Booked",
+        projection: pick.projection,
+        warnings: [],
+        createdAt: state.time?.epochMs || Date.now(),
+        updatedAt: state.time?.epochMs || Date.now(),
+        label: rival.name,
+        alignment: rival.alignment || "Neutral",
+        country: rival.country || "Annglora",
+        isRival: true
+    };
+    ensureTouringStore().bookings.push(booking);
+    return { ok: true, booking };
 }
 function resolveRivalActionWeights(rival) {
     const focus = rival?.achievementFocus || "";
@@ -16158,16 +16829,21 @@ function scheduleHuskForRival(rival, husk, options = {}) {
     if (!steps.length)
         return null;
     const now = state.time.epochMs;
+    const planLabel = husk?.label || husk?.id || "plan";
+    const planWhy = options.planWhy || "";
     const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
     const promoBudget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
     const promoBudgetSlots = promoBudget ? Math.floor(walletCash / promoBudget) : 0;
     let promoScheduled = 0;
     const budget = options.budget || null;
     const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
-    const stats = { releases: 0, promos: 0, blockedReason: "", blockers: [] };
+    const stats = { releases: 0, promos: 0, tours: 0, blockedReason: "", blockers: [] };
     const crewCap = Number.isFinite(options.crewCap) ? options.crewCap : rivalReleaseCrewCapacity(rival);
     const staminaStats = options.staminaStats || summarizeRivalStamina(rival);
     let staminaRemaining = Math.max(0, staminaStats.totalStamina);
+    const tourBudget = options.tourBudget || null;
+    const autoOpsAct = options.act || null;
+    const autoOpsEra = options.era || null;
     const recordBlocker = (kind, reason) => {
         const note = reason || "blocked.";
         stats.blockers.push({ kind, reason: note });
@@ -16211,15 +16887,53 @@ function scheduleHuskForRival(rival, husk, options = {}) {
                     budget.blockedReason = reason;
                 return;
             }
-            state.rivalReleaseQueue.push(planRivalReleaseEntry({
+            const entry = planRivalReleaseEntry({
                 rival,
                 husk,
                 releaseAt,
                 stepIndex: index,
                 planWeek
-            }));
+            });
+            state.rivalReleaseQueue.push(entry);
+            logRivalAutoOpsAction(rival, "Release", {
+                what: `"${entry.title}"`,
+                at: releaseAt,
+                weekNumber: targetWeekIndex + 1,
+                why: planWhy || `plan ${planLabel}`
+            });
             stats.releases += 1;
             releaseScheduled += 1;
+            return;
+        }
+        if (step.kind === "promo" && step.promoType === "livePerformance") {
+            if (staminaRemaining < ACTIVITY_STAMINA_TOUR_DATE) {
+                recordBlocker("stamina", "stamina capacity reached for tours.");
+                return;
+            }
+            const tourResult = scheduleRivalTourStep({
+                rival,
+                act: autoOpsAct,
+                era: autoOpsEra,
+                husk,
+                budget: tourBudget,
+                stepIndex: index,
+                stepDay: step.day,
+                planWeek,
+                targetWeekIndex,
+                now
+            });
+            if (!tourResult.ok) {
+                recordBlocker(tourResult.kind || "venue", tourResult.reason || "tour scheduling blocked.");
+                return;
+            }
+            staminaRemaining = Math.max(0, staminaRemaining - ACTIVITY_STAMINA_TOUR_DATE);
+            stats.tours += 1;
+            logRivalAutoOpsAction(rival, "Tour", {
+                what: `${tourResult.booking?.tourName || "Tour"} @ ${tourResult.booking?.venueLabel || "venue"}`,
+                at: tourResult.booking?.scheduledAt,
+                weekNumber: targetWeekIndex + 1,
+                why: planWhy || `plan ${planLabel}`
+            });
             return;
         }
         if (!allowPromo || !promoBudget) {
@@ -16249,17 +16963,24 @@ function scheduleHuskForRival(rival, husk, options = {}) {
             recordBlocker(promoCheck.kind || "facility", promoCheck.reason || "promo schedule blocked.");
             return;
         }
-        state.rivalReleaseQueue.push(planRivalPromoEntry({
+        const entry = planRivalPromoEntry({
             rival,
             husk,
             promoAt,
             stepIndex: index,
             planWeek,
             promoType: step.promoType || HUSK_PROMO_DEFAULT_TYPE
-        }));
+        });
+        state.rivalReleaseQueue.push(entry);
         promoScheduled += 1;
         staminaRemaining = Math.max(0, staminaRemaining - ACTIVITY_STAMINA_PROMO);
         stats.promos += 1;
+        logRivalAutoOpsAction(rival, "Promo", {
+            what: `${entry.promoType || HUSK_PROMO_DEFAULT_TYPE} promo`,
+            at: promoAt,
+            weekNumber: targetWeekIndex + 1,
+            why: planWhy || `plan ${planLabel}`
+        });
     });
     return stats;
 }
@@ -16272,7 +16993,22 @@ function shouldRivalPursueMonopoly(rival) {
     const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
     return ambition >= 0.75;
 }
-function chartEntriesForScope(scopeType, scopeKey) {
+function resolveInternalChartEntries(scopeType, scopeKey) {
+    const tracks = resolveInternalTrackCharts();
+    if (!tracks)
+        return null;
+    if (scopeType === "global")
+        return tracks.global || [];
+    if (scopeType === "nation")
+        return tracks.nations?.[scopeKey] || [];
+    if (scopeType === "region")
+        return tracks.regions?.[scopeKey] || [];
+    return null;
+}
+function chartEntriesForScope(scopeType, scopeKey, { useInternal = true } = {}) {
+    const internal = useInternal ? resolveInternalChartEntries(scopeType, scopeKey) : null;
+    if (internal && internal.length)
+        return internal;
     if (!state.charts)
         return [];
     if (scopeType === "global")
@@ -16313,7 +17049,7 @@ function pickRivalDominanceRegion(rival) {
             return existing;
     }
     const scored = regions.map((region) => {
-        const entries = state.charts.regions?.[region.id] || [];
+        const entries = chartEntriesForScope("region", region.id);
         return { region, count: countLabelEntries(entries, rival.name) };
     });
     scored.sort((a, b) => b.count - a.count);
@@ -16322,24 +17058,25 @@ function pickRivalDominanceRegion(rival) {
 function selectRivalDominanceTarget(rival) {
     if (!rival)
         return null;
+    const evalChartSizes = resolveEvalChartSizes();
     const focus = rival.achievementFocus;
     if (focus === "REQ-01") {
-        return { scopeType: "global", scopeKey: "global", size: CHART_SIZES.global };
+        return { scopeType: "global", scopeKey: "global", size: evalChartSizes.global };
     }
     if (focus === "REQ-02") {
         const nation = NATIONS.includes(rival.country) ? rival.country : NATIONS[0];
-        return { scopeType: "nation", scopeKey: nation, size: CHART_SIZES.nation };
+        return { scopeType: "nation", scopeKey: nation, size: evalChartSizes.nation };
     }
     if (focus === "REQ-03") {
         const region = pickRivalDominanceRegion(rival);
         if (region)
-            return { scopeType: "region", scopeKey: region.id, size: CHART_SIZES.region };
+            return { scopeType: "region", scopeKey: region.id, size: evalChartSizes.region };
     }
     const region = pickRivalDominanceRegion(rival);
     if (region)
-        return { scopeType: "region", scopeKey: region.id, size: CHART_SIZES.region };
+        return { scopeType: "region", scopeKey: region.id, size: evalChartSizes.region };
     const nation = NATIONS.includes(rival.country) ? rival.country : NATIONS[0];
-    return { scopeType: "nation", scopeKey: nation, size: CHART_SIZES.nation };
+    return { scopeType: "nation", scopeKey: nation, size: evalChartSizes.nation };
 }
 function scheduleRivalDominancePush(rival, husk, options = {}) {
     if (!rival || !husk)
@@ -16398,15 +17135,16 @@ function scheduleRivalDominancePush(rival, husk, options = {}) {
     }
     return { releases: added, target, reason: blockedReason };
 }
-function generateRivalReleases() {
-    if (!Array.isArray(state.rivals) || !state.rivals.length)
+function runRivalAutoOpsWeek(stateRef = state, weekContext = {}) {
+    if (!Array.isArray(stateRef.rivals) || !stateRef.rivals.length)
         return;
     const huskLibrary = buildHuskLibrary();
     const fallbackHusk = HUSK_STARTERS[0] || null;
-    const currentWeek = weekIndex();
+    const currentWeek = Number.isFinite(weekContext.weekIndex) ? weekContext.weekIndex : weekIndex();
+    const now = Number.isFinite(weekContext.now) ? weekContext.now : stateRef.time.epochMs;
     let plannedThisWeek = false;
     let eligibleCount = 0;
-    state.rivals.forEach((rival) => {
+    stateRef.rivals.forEach((rival) => {
         if (!rival)
             return;
         if (!rival.aiPlan) {
@@ -16425,9 +17163,11 @@ function generateRivalReleases() {
                 competitive: false
             };
         }
-        if (rival.aiPlan.lastPlannedWeek === currentWeek)
+        const autoOps = ensureRivalAutoOpsState(rival);
+        if (autoOps?.lastPlannedWeek === currentWeek)
             return;
         plannedThisWeek = true;
+        const act = ensureRivalAutoOpsAct(rival);
         let husk = null;
         let huskSelection = null;
         let planWeekIndex = null;
@@ -16445,11 +17185,18 @@ function generateRivalReleases() {
         if (!husk) {
             rival.aiPlan.competitive = false;
             rival.aiPlan.lastPlannedWeek = currentWeek;
-            rival.aiPlan.lastPlannedAt = state.time.epochMs;
-            logEvent(`${rival.name} rollout idle (why: no eligible plans met gates).`, "warn");
+            rival.aiPlan.lastPlannedAt = stateRef.time.epochMs;
+            autoOps.lastPlannedWeek = currentWeek;
+            logEvent(`${rival.name} AutoOps idle (why: no eligible plans met gates).`, "warn");
             return;
         }
         applyRivalHuskFocus(rival, husk);
+        const era = ensureRivalAutoOpsEra(rival, act, husk.id, currentWeek);
+        updateRivalAutoOpsEraProgress(era, currentWeek + 1);
+        const planBudget = buildRivalAutoOpsBudget(rival, husk, { releaseCost: RIVAL_COMPETE_DROP_COST });
+        if (planBudget.walletCash < planBudget.reserveFloor) {
+            logRivalAutoOpsBlocker(rival, "reserve", `reserve floor ${formatMoney(planBudget.reserveFloor)} exceeds cash ${formatMoney(planBudget.walletCash)}.`, currentWeek);
+        }
         const eligibility = isRivalCompetitiveEligible(rival, husk, { releaseCost: RIVAL_COMPETE_DROP_COST });
         if (!eligibility.ok) {
             const blockers = formatPlanBlockers(eligibility.blockers);
@@ -16461,13 +17208,17 @@ function generateRivalReleases() {
             rival.aiPlan.windowEndWeekIndex = null;
             rival.aiPlan.lastPlannedWeek = currentWeek;
             rival.aiPlan.lastHuskId = husk.id;
-            rival.aiPlan.lastPlannedAt = state.time.epochMs;
-            logEvent(`${rival.name} rollout blocked (${reason})`, "warn");
+            rival.aiPlan.lastPlannedAt = stateRef.time.epochMs;
+            autoOps.lastPlannedWeek = currentWeek;
+            eligibility.blockers.forEach((blocker) => {
+                logRivalAutoOpsBlocker(rival, blocker.kind || "budget", blocker.reason || "planning gate.", currentWeek);
+            });
+            logEvent(`${rival.name} AutoOps blocked (${reason})`, "warn");
             return;
         }
         eligibleCount += 1;
         if (!activePlan || !activePlan.activeHuskId || activePlan.activeHuskId !== husk.id) {
-            const startWeekIndex = getRivalPlanStartWeekIndex(state.time.epochMs);
+            const startWeekIndex = getRivalPlanStartWeekIndex(stateRef.time.epochMs);
             const windowWeeks = eligibility.cadence?.windowWeeks || huskWindowWeeks(husk);
             planWeekIndex = startWeekIndex;
             planEndWeekIndex = startWeekIndex + windowWeeks - 1;
@@ -16476,32 +17227,43 @@ function generateRivalReleases() {
             rival.aiPlan.windowStartWeekIndex = planWeekIndex;
             rival.aiPlan.windowEndWeekIndex = planEndWeekIndex;
             const planWhy = huskSelection?.why || `why: selected ${husk.label || husk.id}.`;
-            logEvent(`${rival.name} rollout plan: ${husk.label || husk.id} (${planWhy})`);
+            const budgetNote = `budgets create ${formatMoney(planBudget.createBudget)} | promo ${formatMoney(planBudget.promoBudget || 0)} | release ${formatMoney(planBudget.releaseBudget.budgetCap)} | tour ${formatMoney(planBudget.tourBudgetCap)} | reserve ${formatMoney(planBudget.reserveFloor)}`;
+            const stageLabel = Number.isFinite(era?.stageIndex) ? `${ERA_STAGES[era.stageIndex] || "Stage"} ${era.stageWeek + 1}` : "Stage ?";
+            logEvent(`${rival.name} AutoOps plan: ${husk.label || husk.id} (${planWhy}) | ${budgetNote} | ${stageLabel}.`);
         }
         rival.aiPlan.competitive = true;
         rival.aiPlan.lastPlannedWeek = currentWeek;
         rival.aiPlan.lastHuskId = husk.id;
-        rival.aiPlan.lastPlannedAt = state.time.epochMs;
-        const budget = buildRivalReleaseBudget(rival);
+        rival.aiPlan.lastPlannedAt = stateRef.time.epochMs;
+        autoOps.lastPlannedWeek = currentWeek;
         const planWeek = Number.isFinite(planWeekIndex) ? planWeekIndex : currentWeek;
         const startWeekIndex = Number.isFinite(planWeekIndex)
             ? planWeekIndex
-            : getRivalPlanStartWeekIndex(state.time.epochMs);
+            : getRivalPlanStartWeekIndex(stateRef.time.epochMs);
         const scheduleStats = scheduleHuskForRival(rival, husk, {
             planWeek,
             startWeekIndex,
             endWeekIndex: planEndWeekIndex,
             allowPromo: eligibility.promoAllowed,
-            budget,
+            budget: planBudget.releaseBudget,
+            tourBudget: planBudget,
             releaseCost: RIVAL_COMPETE_DROP_COST,
             cadence: eligibility.cadence,
             crewCap: eligibility.crewCap,
-            staminaStats: eligibility.stamina
+            staminaStats: eligibility.stamina,
+            act,
+            era,
+            planWhy: huskSelection?.why
         });
+        if (scheduleStats?.blockers?.length) {
+            scheduleStats.blockers.forEach((blocker) => {
+                logRivalAutoOpsBlocker(rival, blocker.kind || "budget", blocker.reason || "scheduling gate.", currentWeek);
+            });
+        }
         if (scheduleStats?.blockedReason && !scheduleStats.releases && rival.aiPlan.competitive) {
             const blockers = formatPlanBlockers(scheduleStats.blockers);
             const reason = blockers ? `why: ${blockers}` : `why: ${scheduleStats.blockedReason}`;
-            logEvent(`${rival.name} release plan paused (${reason})`, "warn");
+            logEvent(`${rival.name} AutoOps release plan paused (${reason})`, "warn");
         }
         if (shouldRivalPursueMonopoly(rival)) {
             const priorWeek = rival.aiPlan.dominanceWeekIndex;
@@ -16510,7 +17272,7 @@ function generateRivalReleases() {
             const dominanceStats = scheduleRivalDominancePush(rival, husk, {
                 planWeek,
                 targetWeekIndex: startWeekIndex,
-                budget,
+                budget: planBudget.releaseBudget,
                 releaseCost: RIVAL_COMPETE_DROP_COST,
                 stepOffset: scheduleStats?.releases || 0
             });
@@ -16529,8 +17291,11 @@ function generateRivalReleases() {
         }
     });
     if (plannedThisWeek && eligibleCount === 0) {
-        logEvent("Rival rollout skipped (why: no labels passed the budget gate this week).", "warn");
+        logEvent("Rival AutoOps skipped (why: no labels passed the budget gate this week).", "warn");
     }
+}
+function generateRivalReleases() {
+    runRivalAutoOpsWeek(state, { weekIndex: weekIndex(), now: state.time.epochMs });
 }
 function collectRivalProjectMarkets(rival, anchorMarket) {
     if (!rival || !anchorMarket)
@@ -17321,7 +18086,7 @@ async function weeklyUpdate() {
     refreshRivalAmbition();
     ensureRivalCashFloor();
     recruitRivalCreators();
-    generateRivalReleases();
+    runRivalAutoOpsWeek(state, { weekIndex: weekIndex(), now: state.time.epochMs });
     resolveTourBookings();
     const { globalScores } = await computeCharts();
     applyDistributionInventoryForWeek();
@@ -20634,7 +21399,7 @@ function seedNewGame(options = {}) {
     else {
         state.marketTracks = [];
     }
-    generateRivalReleases();
+    runRivalAutoOpsWeek(state, { weekIndex: weekIndex(), now: state.time.epochMs });
     seedActs();
     syncLabelWallets();
     logEvent("Welcome back, CEO. Your label awaits.");
@@ -21275,6 +22040,16 @@ function normalizeState() {
             rival.aiPlan.dominanceWeekIndex = null;
         if (typeof rival.aiPlan.competitive !== "boolean")
             rival.aiPlan.competitive = false;
+        if (!rival.autoOps || typeof rival.autoOps !== "object") {
+            rival.autoOps = { act: null, era: null, eraIndex: 0, lastPlannedWeek: null, blockerCooldowns: {} };
+        }
+        if (typeof rival.autoOps.eraIndex !== "number")
+            rival.autoOps.eraIndex = 0;
+        if (typeof rival.autoOps.lastPlannedWeek !== "number")
+            rival.autoOps.lastPlannedWeek = null;
+        if (!rival.autoOps.blockerCooldowns || typeof rival.autoOps.blockerCooldowns !== "object") {
+            rival.autoOps.blockerCooldowns = {};
+        }
     });
     if (!state.trends)
         state.trends = [];
@@ -21422,6 +22197,7 @@ function normalizeState() {
     }
     if (!Number.isFinite(state.meta.labelShareWeek))
         state.meta.labelShareWeek = null;
+    ensureChartEvaluationStore();
     ensureLabelMetricsStore();
     if (typeof state.meta.winShown !== "boolean")
         state.meta.winShown = false;

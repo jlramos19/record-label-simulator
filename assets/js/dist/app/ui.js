@@ -30,13 +30,30 @@ setUiHooks({
     updateGenrePreview,
     refreshPromoTypes: () => updatePromoTypeHint(document)
 });
-const ROUTES = ["dashboard", "charts", "awards", "achievements", "create", "release", "releases", "eras", "roster", "world", "logs", "tour", "patch-notes"];
+const ROUTES = [
+    "dashboard",
+    "charts",
+    "awards",
+    "achievements",
+    "acts",
+    "creators",
+    "create",
+    "release",
+    "releases",
+    "eras",
+    "world",
+    "logs",
+    "tour",
+    "patch-notes"
+];
 const DEFAULT_ROUTE = "dashboard";
 const ROUTE_ALIASES = {
     promotion: "logs",
     promotions: "logs",
     era: "eras",
     calendar: "releases",
+    roster: "acts",
+    signed: "acts",
     "year-end": "awards",
     yearend: "awards"
 };
@@ -939,8 +956,10 @@ const VIEW_DEFAULTS = {
         "era-desk": VIEW_PANEL_STATES.open,
         "era-performance": VIEW_PANEL_STATES.open
     },
-    roster: {
-        "harmony-acts": VIEW_PANEL_STATES.open,
+    acts: {
+        "harmony-acts": VIEW_PANEL_STATES.open
+    },
+    creators: {
         "harmony-creators": VIEW_PANEL_STATES.open
     },
     world: {

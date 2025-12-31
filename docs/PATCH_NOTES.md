@@ -1,5 +1,20 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-0810Z)
+- Monopoly checks now read internal Top-K evaluation pools (1000/400/100) across track/promo/tour scopes and log dominance detection telemetry so losses only trigger under full-pool control. [PN-20251231-AC101]
+
+## 2025-12-31 (RLS-PATCH-20251231-0752Z)
+- Charts now compute internal Top-K evaluation pools (1000/400/100) to drive dominance telemetry and rival pacing while keeping visible charts at 100/40/10. [PN-20251231-AC100]
+
+## 2025-12-31 (RLS-PATCH-20251231-0749Z)
+- Harmony Hub now splits into Acts and Creators views, and the Menu groups navigation into era stages plus a World bucket for Calendar/Community/Rivals. [PN-20251231-AC99]
+
+## 2025-12-31 (RLS-PATCH-20251231-0745Z)
+- Bytenese and Crowlish branding now tags Hangul/Spanish-accented content names, including creator stage names and track/project titles. [PN-20251231-AC98]
+
+## 2025-12-31 (RLS-PATCH-20251231-0723Z)
+- Bytenese and Crowlish content names now render with language-specific fonts and in-game language branding. [PN-20251231-AC97]
+
 ## 2025-12-31 (RLS-PATCH-20251231-0620Z)
 - Rival Rosters now open in a dedicated floating window from the Menu and label pills, with roster selection synced across the window and Community panel. [PN-20251231-AC95]
 - Guardrails now ignore extension-origin errors, and GitHub Pages loads assets from a base href so the menu layout stays stable. [PN-20251231-AC96]
@@ -815,6 +830,11 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC101 (2025-12-31 08:10Z): Monopoly checks now read internal Top-K evaluation pools (1000/400/100) across track/promo/tour scopes and log dominance detection telemetry so losses only trigger under full-pool control.
+- PN-20251231-AC100 (2025-12-31 07:52Z): Charts now compute internal Top-K evaluation pools (1000/400/100) to drive dominance telemetry and rival pacing while keeping visible charts at 100/40/10.
+- PN-20251231-AC99 (2025-12-31 07:49Z): Harmony Hub now splits into Acts and Creators views, and the Menu groups navigation into era stages plus a World bucket for Calendar/Community/Rivals.
+- PN-20251231-AC98 (2025-12-31 07:45Z): Bytenese and Crowlish branding now tags Hangul/Spanish-accented content names, including creator stage names and track/project titles.
+- PN-20251231-AC97 (2025-12-31 07:23Z): Bytenese and Crowlish content names now render with language-specific fonts and in-game language branding.
 - PN-20251231-AC95 (2025-12-31 06:20Z): Rival Rosters now open in a dedicated floating window from the Menu and label pills, with roster selection synced across the window and Community panel.
 - PN-20251231-AC96 (2025-12-31 06:20Z): Guardrails now ignore extension-origin errors, and GitHub Pages loads assets from a base href so the menu layout stays stable.
 - PN-20251231-AC90 (2025-12-31 05:01Z): Main nav tabs are now housed in a hamburger menu with a floating toggle positioned top-left on desktop and bottom-right on mobile.

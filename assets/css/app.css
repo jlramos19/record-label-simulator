@@ -64,6 +64,7 @@
   --font-heading: "Ubuntu Mono", "Nanum Gothic Coding", monospace;
   --font-social: "Ubuntu", "Nanum Gothic Coding", sans-serif;
   --font-ko: "Nanum Gothic Coding", "Ubuntu", sans-serif;
+  --font-es: "Ubuntu", "Nanum Gothic Coding", sans-serif;
 }
 
 :root[data-ui-theme="light"] {
@@ -240,10 +241,26 @@ body::before {
 .nav-menu-card {
   width: min(520px, 94vw);
 }
-.nav-menu {
-  display: grid;
-  gap: 8px;
-}
+  .nav-menu {
+    display: grid;
+    gap: 8px;
+  }
+  .nav-menu .nav-group {
+    display: grid;
+    gap: 8px;
+  }
+  .nav-menu .nav-group + .nav-group {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: var(--line-width) solid var(--line);
+  }
+  .nav-menu .nav-group-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 2px 4px;
+  }
 .nav-menu .nav-item {
   display: flex;
   align-items: center;
@@ -1304,6 +1321,10 @@ body::before {
 .name-ko,
 [lang="ko"] {
   font-family: var(--font-ko);
+}
+.name-es,
+[lang="es"] {
+  font-family: var(--font-es);
 }
 .name-stack {
   display: inline-flex;

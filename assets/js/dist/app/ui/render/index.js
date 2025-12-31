@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, evaluatePhysicalEligibility, getDistributionSnapshot, getReleaseAsapAtForDistribution, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getMarketTrackByTrackId, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, evaluatePhysicalEligibility, getDistributionSnapshot, getReleaseAsapAtForDistribution, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getMarketTrackByTrackId, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, renderActNameByNation, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -243,11 +243,17 @@ function renderCreatorName(creator, { stacked = true } = {}) {
         return "";
     const romanized = creator.name || "";
     const hangul = getCreatorHangulName(creator);
-    if (!hangul || !stacked)
-        return romanized;
-    return `<span class="name-stack name-stack--inline"><span class="name-ko" lang="ko">${hangul}</span><span class="name-romanized">${romanized}</span></span>`;
+    if (hangul && stacked) {
+        return renderNameStack(hangul, romanized, { lang: "ko", romanized, inline: true });
+    }
+    if (!hangul && creator.country === "Crowlya") {
+        return renderLanguageSpan(romanized, { lang: "es" });
+    }
+    return romanized;
 }
 const HANGUL_REGEX = /[\uAC00-\uD7A3]/;
+const CROWLISH_REGEX = /[\u00f1\u00d1\u00e1\u00c1\u00e9\u00c9\u00ed\u00cd\u00f3\u00d3\u00fa\u00da\u00fc\u00dc\u00bf\u00a1]/;
+const hasCrowlishText = (value) => CROWLISH_REGEX.test(String(value || ""));
 function splitNameSuffix(name) {
     const raw = String(name || "").trim();
     if (!raw)
@@ -277,20 +283,65 @@ function escapeAttribute(value) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 }
+const LANGUAGE_LABELS = {
+    ko: "Bytenese",
+    es: "Crowlish"
+};
+function resolveInGameLanguageLabel(lang) {
+    const key = String(lang || "").trim().toLowerCase();
+    return LANGUAGE_LABELS[key] || "";
+}
+function resolveLanguageClass(lang) {
+    const key = String(lang || "").trim().toLowerCase();
+    return key === "es" ? "name-es" : "name-ko";
+}
+function buildLanguageTitle({ lang = "", romanized = "" } = {}) {
+    const label = resolveInGameLanguageLabel(lang);
+    const parts = [];
+    if (label)
+        parts.push(label);
+    if (romanized)
+        parts.push(romanized);
+    return parts.join(": ");
+}
+function renderLanguageSpan(value, { lang = "", romanized = "" } = {}) {
+    const safeValue = String(value || "");
+    if (!safeValue)
+        return "";
+    const title = buildLanguageTitle({ lang, romanized });
+    const titleAttr = title ? ` title="${escapeAttribute(title)}"` : "";
+    const cls = resolveLanguageClass(lang);
+    return `<span class="${cls}" lang="${lang}"${titleAttr}>${safeValue}</span>`;
+}
+function renderNameStack(primary, secondary, { lang = "ko", romanized = "", inline = false } = {}) {
+    if (!secondary)
+        return renderLanguageSpan(primary, { lang, romanized });
+    const title = buildLanguageTitle({ lang, romanized });
+    const titleAttr = title ? ` title="${escapeAttribute(title)}"` : "";
+    const cls = `name-stack${inline ? " name-stack--inline" : ""}`;
+    const primaryClass = resolveLanguageClass(lang);
+    return `<span class="${cls}"${titleAttr}><span class="${primaryClass}" lang="${lang}">${primary}</span><span class="name-romanized">${secondary}</span></span>`;
+}
 function renderLocalizedName(primary, translation, { lang = "ko", romanized = "" } = {}) {
     if (!translation)
         return primary;
-    const titleAttr = romanized ? ` title="${escapeAttribute(romanized)}"` : "";
-    return `<span class="name-stack"${titleAttr}><span class="name-ko" lang="${lang}">${primary}</span><span class="name-romanized">${translation}</span></span>`;
+    return renderNameStack(primary, translation, { lang, romanized });
 }
 function renderTrackTitle(title) {
     if (!title)
         return "";
     const { base, suffix } = splitNameSuffix(title);
     const translation = lookupTrackTitleTranslation(base);
-    if (!translation)
-        return title;
-    return renderLocalizedName(`${base}${suffix}`, translation);
+    if (translation) {
+        return renderLocalizedName(`${base}${suffix}`, translation);
+    }
+    if (hasHangulText(title)) {
+        return renderLanguageSpan(title, { lang: "ko" });
+    }
+    if (hasCrowlishText(title)) {
+        return renderLanguageSpan(title, { lang: "es" });
+    }
+    return title;
 }
 function renderProjectName(name) {
     const raw = String(name || "").trim();
@@ -306,9 +357,16 @@ function renderProjectName(name) {
     }
     const { base, suffix } = splitNameSuffix(raw);
     const translation = lookupProjectTitleTranslation(base);
-    if (!translation)
-        return raw;
-    return renderLocalizedName(`${base}${suffix}`, translation);
+    if (translation) {
+        return renderLocalizedName(`${base}${suffix}`, translation);
+    }
+    if (hasHangulText(raw)) {
+        return renderLanguageSpan(raw, { lang: "ko" });
+    }
+    if (hasCrowlishText(raw)) {
+        return renderLanguageSpan(raw, { lang: "es" });
+    }
+    return raw;
 }
 function normalizeActKind(value) {
     const raw = String(value || "").trim();
@@ -332,12 +390,23 @@ function resolveActNameParts(act) {
     }
     return { name: String(act || "").trim(), nameKey: null, actKind: null };
 }
+function isCrowlishActName(name, nameKey, actKind) {
+    if (!name || !nameKey)
+        return false;
+    const resolvedKind = normalizeActKind(actKind) || "group";
+    const expected = renderActNameByNation(nameKey, "Crowlya", resolvedKind);
+    return expected && expected === name;
+}
 function renderActName(act) {
     const { name, nameKey, actKind } = resolveActNameParts(act);
     if (!name)
         return "";
-    if (!hasHangulText(name))
+    if (!hasHangulText(name)) {
+        if (isCrowlishActName(name, nameKey, actKind) || hasCrowlishText(name)) {
+            return renderLanguageSpan(name, { lang: "es" });
+        }
         return name;
+    }
     const { translation, romanized } = lookupActNameDetails({ name, nameKey, actKind });
     if (!translation)
         return name;
@@ -368,14 +437,30 @@ function getCreatorStageName(creator) {
     const fallback = String(creator.givenName || creator.name || "").trim();
     return fallback;
 }
+function renderCreatorStageName(creator, stageName) {
+    if (!stageName)
+        return "";
+    if (creator?.country === "Crowlya") {
+        return renderLanguageSpan(stageName, { lang: "es" });
+    }
+    if (hasHangulText(stageName)) {
+        return renderLanguageSpan(stageName, { lang: "ko" });
+    }
+    return stageName;
+}
 function formatCreatorRealNameLine(creator) {
     if (!creator)
         return "";
     const romanized = String(creator.name || "").trim();
     const hangul = getCreatorHangulName(creator);
-    if (hangul && romanized && hangul !== romanized)
-        return `${hangul} / ${romanized}`;
-    return romanized || hangul;
+    if (hangul && romanized && hangul !== romanized) {
+        return renderNameStack(hangul, romanized, { lang: "ko", romanized, inline: true });
+    }
+    if (hangul)
+        return renderLanguageSpan(hangul, { lang: "ko" });
+    if (romanized && creator.country === "Crowlya")
+        return renderLanguageSpan(romanized, { lang: "es" });
+    return romanized;
 }
 function renderCreatorStudioName(creator) {
     if (!creator)
@@ -387,7 +472,8 @@ function renderCreatorStudioName(creator) {
         return renderCreatorName(creator);
     const realName = formatCreatorRealNameLine(creator);
     const realLine = realName ? `<span class="muted">[${realName}]</span>` : "";
-    return `<span class="name-stack"><span class="creator-stage-name">${stageName}</span>${realLine}</span>`;
+    const stageLine = renderCreatorStageName(creator, stageName);
+    return `<span class="name-stack"><span class="creator-stage-name">${stageLine}</span>${realLine}</span>`;
 }
 function listCreatorActs(creatorId) {
     if (!creatorId)
@@ -423,10 +509,11 @@ function buildWorkOrderCrewLabel(crew) {
     if (!isCreatorInAct(lead.id))
         return { primary: lead.name || "Unassigned", secondary: "" };
     const stageName = getCreatorStageName(lead) || lead.name || "Unassigned";
+    const stageLine = renderCreatorStageName(lead, stageName);
     const suffix = crew.length > 1 ? ` +${crew.length - 1}` : "";
     const realName = formatCreatorRealNameLine(lead);
     return {
-        primary: `${stageName}${suffix}`,
+        primary: `${stageLine}${suffix}`,
         secondary: realName ? `[${realName}]` : ""
     };
 }
@@ -6590,7 +6677,7 @@ function renderReleaseDesk() {
             </div>
           </div>
         `
-                : `<div class="muted">No Acts available. Create one in Signed.</div>`;
+                : `<div class="muted">No Acts available. Create one in Harmony Hub - Acts.</div>`;
             const project = track.projectName || `${track.title} - Single`;
             const projectType = normalizeProjectType(track.projectType || "Single");
             const releaseType = resolveTrackReleaseType(track);
@@ -9229,7 +9316,13 @@ function safeRenderCreateView() {
 }
 function renderActiveView(view) {
     const raw = view || state.ui.activeView || "dashboard";
-    const active = raw === "promotion" ? "logs" : raw === "era" ? "eras" : raw;
+    const active = raw === "promotion"
+        ? "logs"
+        : raw === "era"
+            ? "eras"
+            : raw === "roster"
+                ? "acts"
+                : raw;
     if (active === "dashboard") {
         renderDashboard();
     }
@@ -9258,9 +9351,12 @@ function renderActiveView(view) {
         renderSlots();
         renderEraPerformance();
     }
-    else if (active === "roster") {
-        renderCreators();
+    else if (active === "acts") {
         renderActs();
+        renderSlots();
+    }
+    else if (active === "creators") {
+        renderCreators();
         renderSlots();
     }
     else if (active === "world") {
