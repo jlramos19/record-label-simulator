@@ -2,12 +2,13 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2025-12-29 04:37:13 -04:00
+Last updated: 2025-12-31 01:25:58 -04:00
 
 ## Quick start
 
 ### Prereqs
-- Node.js (current LTS recommended)
+- Node.js 24 LTS (npm 11)
+- pnpm 10.26+ (optional; npm is the repo default)
 - Python 3 (static file server for `npm run start`)
 - Microsoft Edge (VS Code Run/Debug target; optional otherwise)
 
@@ -36,14 +37,22 @@ npm run watch
 - Terminal B: `npm run watch`
 - Then launch the `RLS: Edge` Run/Debug config to open the game at `http://localhost:5173`.
 
-### React UI islands (optional)
+### React SPA (optional)
 ```bash
 cd ui-react
 npm install
 npm run build
 npm run dev
 ```
-`npm run dev` serves the React islands preview on `http://localhost:5174`.
+`npm run build` outputs the SPA bundle to `assets/js/ui-react-spa/`, and `/ui-react/` is served from the main static server.
+`npm run dev` serves the React SPA preview on `http://localhost:5174`.
+
+### React UI islands dev (optional)
+```bash
+cd ui-react
+npm run dev:islands
+```
+`npm run dev:islands` serves the React islands preview on `http://localhost:5175`.
 
 ## Project scripts
 
@@ -58,6 +67,7 @@ npm run dev
 
 - `index.html` loads global data from `assets/js/data/*.js` and the app module from `assets/js/dist/main.js`.
 - React UI islands (optional) load from `assets/js/ui-react/ui-react.js` + `assets/js/ui-react/ui-react.css`.
+- React SPA bundle (optional) loads from `assets/js/ui-react-spa/ui-react-spa.js` + `assets/js/ui-react-spa/ui-react-spa.css` via `/ui-react/`.
 - `src/main.ts` calls `initUI()` and registers `service-worker.js`.
 
 ## Gameplay defaults (new game)
@@ -79,6 +89,7 @@ npm run dev
 - Unity to web glossary: `docs/glossary/unity-to-web.md`
 - Awards circuit: `docs/systems/awards/award-shows.md`
 - Annual awards: `docs/systems/endgame/annual-awards.md`
+- IndexedDB schema: `docs/systems/data/indexeddb-schema.md`
 - Rivalry goals + KPIs: `docs/systems/endgame/rivalry-goals-and-metrics.md`
 
 ## Code layout (high level)
@@ -98,11 +109,15 @@ npm run dev
 
 ### IndexedDB
 
-- Database: `rls_mvp_db`
-- Stores: `chart_history`, `file_handles`
-- Indexes: `by_scope`, `by_week`, `by_ts`
+- Database: `record-label-simulator`
+- Stores: `chart_history`, `file_handles`, `event_log`, `release_production_view`, `kpi_snapshot`
+- Indexes:
+  - `chart_history`: `by_scope`, `by_week`, `by_ts`
+  - `event_log`: `by_occurred_at_hour`, `by_entity`, `by_event_type`
+  - `release_production_view`: `by_current_step`, `by_overall_risk`, `by_eta_hour`
+  - `kpi_snapshot`: `by_entity_kpi`, `by_calculated_at_hour`
 
-Used for chart history snapshots.
+Used for chart history snapshots, event logging, and KPI/materialized projections.
 
 ### localStorage
 

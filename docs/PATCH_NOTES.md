@@ -1,5 +1,19 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-0520Z)
+- React SPA now ships as a bundled static entry so `/ui-react/` works off the main server without Vite. [PN-20251231-AC94]
+
+## 2025-12-31 (RLS-PATCH-20251231-0514Z)
+- React SPA dev now runs on port 5174, with the islands preview moved to 5175 so both can be run without collisions. [PN-20251231-AC93]
+
+## 2025-12-31 (RLS-PATCH-20251231-0511Z)
+- Pinned Node 24 LTS + npm 11, added version files, and documented pnpm 10.26+ as an optional toolchain. [PN-20251231-AC92]
+
+## 2025-12-31 (RLS-PATCH-20251231-0501Z)
+- Main navigation tabs now live inside a hamburger menu with a floating toggle that docks top-left on desktop and bottom-right on mobile for cleaner responsive layout. [PN-20251231-AC90]
+- Added optional User Timing profiling for sim ticks with sampling controls plus a DevTools capture checklist for perf audits. [PN-20251231-AC91]
+- IndexedDB now defines event logs, release production views, and KPI snapshots with queryable indexes. [PN-20251231-AC92]
+
 ## 2025-12-29 (RLS-PATCH-20251229-0708Z)
 - Added a dedicated Achievements hub (nav + dashboard card) that lists the 12 CEO Requests with statuses, progress bars, and Go To buttons so the win checklist is one click away. [PN-20251229-AC86]
 - Navigation now forces view renders with a quick "switching view" toast, Save Now toasts show timestamp + location, autosave status appears in the HUD, and settings expose a Save Location change control so saving feels reliable. [PN-20251229-AC87]
@@ -797,6 +811,12 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC90 (2025-12-31 05:01Z): Main nav tabs are now housed in a hamburger menu with a floating toggle positioned top-left on desktop and bottom-right on mobile.
+- PN-20251231-AC91 (2025-12-31 05:09Z): Added optional User Timing profiling for sim ticks with sampling controls plus a DevTools capture checklist for perf audits.
+- PN-20251231-AC92 (2025-12-31 05:13Z): IndexedDB now defines event logs, release production views, and KPI snapshots with queryable indexes.
+- PN-20251231-AC92 (2025-12-31 05:11Z): Pinned Node 24 LTS + npm 11, added version files, and documented pnpm 10.26+ as an optional toolchain.
+- PN-20251231-AC93 (2025-12-31 05:14Z): React SPA dev now runs on port 5174, with the islands preview moved to 5175 so both can be run without collisions.
+- PN-20251231-AC94 (2025-12-31 05:20Z): React SPA now ships as a bundled static entry so /ui-react/ works off the main server without Vite.
 - PN-20251229-AC86 (2025-12-29 07:08Z): Added an Achievements hub with the full CEO Request checklist, progress, and deep-links plus dashboard summary access.
 - PN-20251229-AC87 (2025-12-29 07:08Z): Navigation always renders active views (with a switching toast), Save Now toasts display timestamp/location, autosave HUD badge shows last run/interval, and Save Location can be changed from Settings.
 - PN-20251229-AC88 (2025-12-29 08:37Z): Road to the Top tabs stay pinned with enlarged hit targets, Charts-only sub-controls render only under Charts, and the monopoly/auto-create indicators now list blockers plus upcoming run countdowns.

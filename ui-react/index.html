@@ -3,12 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RLS React Islands</title>
+    <title>Record Label Simulator</title>
+    <script>
+      (function () {
+        var q = window.location.search;
+        if (q && q.startsWith("?/")) {
+          var path = q.slice(2).split("&").join("?");
+          window.history.replaceState(null, "", "/" + path + window.location.hash);
+        }
+      })();
+    </script>
   </head>
   <body>
-    <div id="rls-react-pills-root"></div>
-    <div id="rls-react-calendar-root"></div>
-    <div id="rls-react-trackslots-root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="root"></div>
+    <script type="module">
+      (function () {
+        var isDevServer = window.location.port === "5174";
+        if (isDevServer) {
+          import("/src/spa/main.tsx");
+          return;
+        }
+
+        var link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "/assets/js/ui-react-spa/ui-react-spa.css";
+        document.head.appendChild(link);
+
+        import("/assets/js/ui-react-spa/ui-react-spa.js");
+      })();
+    </script>
   </body>
 </html>

@@ -39,6 +39,61 @@ const LABEL_KPI_PROJECTION_WEEKS = 4;
 let saveDebounceTimer = null;
 let saveDebounceQueued = false;
 const perfLogLast = new Map();
+const perfTiming = {
+    enabled: false,
+    sampleEvery: 10,
+    sampleCounter: 0,
+    lastConfigAt: 0
+};
+function canUseUserTiming() {
+    return typeof performance !== "undefined"
+        && typeof performance.mark === "function"
+        && typeof performance.measure === "function";
+}
+function refreshPerfTimingConfig() {
+    if (typeof window === "undefined")
+        return;
+    const now = nowMs();
+    if (now - perfTiming.lastConfigAt < 1000)
+        return;
+    perfTiming.lastConfigAt = now;
+    let enabled = false;
+    let sampleEvery = perfTiming.sampleEvery;
+    const params = new URLSearchParams(window.location.search);
+    const perfParam = params.get("perf");
+    if (params.has("perf") || perfParam === "1" || perfParam === "true") {
+        enabled = true;
+    }
+    const sampleParam = Number(params.get("perfSample"));
+    if (Number.isFinite(sampleParam) && sampleParam > 0) {
+        sampleEvery = Math.max(1, Math.floor(sampleParam));
+    }
+    const overrides = window.rlsPerf;
+    if (overrides && typeof overrides === "object") {
+        if (typeof overrides.enabled === "boolean")
+            enabled = overrides.enabled;
+        if (Number.isFinite(overrides.sampleEvery) && overrides.sampleEvery > 0) {
+            sampleEvery = Math.max(1, Math.floor(overrides.sampleEvery));
+        }
+    }
+    perfTiming.enabled = enabled;
+    perfTiming.sampleEvery = sampleEvery;
+}
+function shouldSamplePerfTiming() {
+    if (!perfTiming.enabled || !canUseUserTiming())
+        return false;
+    perfTiming.sampleCounter = (perfTiming.sampleCounter + 1) % perfTiming.sampleEvery;
+    return perfTiming.sampleCounter === 0;
+}
+function markPerf(label) {
+    performance.mark(label);
+}
+function measurePerf(name, start, end) {
+    performance.measure(name, start, end);
+    performance.clearMarks(start);
+    performance.clearMarks(end);
+    performance.clearMeasures(name);
+}
 function buildAutoPromoSlotList() {
     return Array.from({ length: AUTO_PROMO_SLOT_LIMIT }, () => null);
 }
@@ -20243,6 +20298,10 @@ async function tick(now) {
         return;
     }
     const frameStart = now;
+    refreshPerfTimingConfig();
+    const samplePerf = shouldSamplePerfTiming();
+    if (samplePerf)
+        markPerf("rls:tick:start");
     const dt = (now - state.time.lastTick) / 1000;
     state.time.lastTick = now;
     let secPerQuarter = Infinity;
@@ -20268,11 +20327,27 @@ async function tick(now) {
             const iterationsThisFrame = Math.min(queuedIterations, QUARTER_TICK_FRAME_LIMIT);
             state.time.acc = Math.max(0, state.time.acc - iterationsThisFrame * secPerQuarter);
             const renderQuarterly = iterationsThisFrame === 1;
+            if (samplePerf)
+                markPerf("rls:tick:sim:start");
             advanceQuarters(iterationsThisFrame, { renderQuarterly });
+            if (samplePerf) {
+                markPerf("rls:tick:sim:end");
+                measurePerf("rls:tick:sim", "rls:tick:sim:start", "rls:tick:sim:end");
+            }
         }
     }
+    if (samplePerf)
+        markPerf("rls:tick:sync:start");
     await maybeSyncPausedLiveChanges(now);
+    if (samplePerf) {
+        markPerf("rls:tick:sync:end");
+        measurePerf("rls:tick:sync", "rls:tick:sync:start", "rls:tick:sync:end");
+    }
     maybeAutoSave();
+    if (samplePerf) {
+        markPerf("rls:tick:end");
+        measurePerf("rls:tick", "rls:tick:start", "rls:tick:end");
+    }
     requestAnimationFrame(tick);
     logDuration("tick", frameStart, TICK_FRAME_WARN_MS);
 }
@@ -20456,23 +20531,21 @@ function saveToSlot(index) {
     if (localStorageAvailable && !session.localStorageDisabled) {
         const projectedBytes = storageBytes ? storageBytes + payloadBytes : payloadBytes;
         if (projectedBytes > LOCAL_SAVE_QUOTA_BYTES) {
-            session.localStorageDisabled = true;
-            warnLocalStorageIssue(`Local save skipped (${formatByteSize(payloadBytes)}). Configure External Storage in Internal Log to keep saves synced.`);
+            warnLocalStorageIssue(`Local save is large (${formatByteSize(payloadBytes)}). Attempting write; consider External Storage for larger saves.`);
         }
-        else {
-            try {
-                localStorage.setItem(slotKey(index), payload);
-                storedLocal = true;
+        try {
+            localStorage.setItem(slotKey(index), payload);
+            storedLocal = true;
+            session.localStorageDisabled = false;
+        }
+        catch (error) {
+            console.warn(`[storage] Failed to save slot ${index} to localStorage.`, error);
+            if (isQuotaExceededError(error)) {
+                session.localStorageDisabled = true;
+                warnLocalStorageIssue("Local save storage is full. Configure External Storage in Internal Log to keep saves synced.", error);
             }
-            catch (error) {
-                console.warn(`[storage] Failed to save slot ${index} to localStorage.`, error);
-                if (isQuotaExceededError(error)) {
-                    session.localStorageDisabled = true;
-                    warnLocalStorageIssue("Local save storage is full. Configure External Storage in Internal Log to keep saves synced.", error);
-                }
-                else {
-                    warnLocalStorageIssue("Local save failed. Check browser storage settings.", error);
-                }
+            else {
+                warnLocalStorageIssue("Local save failed. Check browser storage settings.", error);
             }
         }
     }

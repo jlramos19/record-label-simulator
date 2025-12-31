@@ -1,7 +1,10 @@
-const DB_NAME = "rls_mvp_db";
-const DB_VERSION = 2;
+const DB_NAME = "record-label-simulator";
+const DB_VERSION = 1;
 const STORE_CHART_HISTORY = "chart_history";
 const STORE_FILE_HANDLES = "file_handles";
+const STORE_EVENT_LOG = "event_log";
+const STORE_RELEASE_PRODUCTION_VIEW = "release_production_view";
+const STORE_KPI_SNAPSHOT = "kpi_snapshot";
 let dbPromise = null;
 function openDb() {
     if (dbPromise)
@@ -16,14 +19,145 @@ function openDb() {
                 store.createIndex("by_week", "week");
                 store.createIndex("by_ts", "ts");
             }
+            else {
+                const store = request.transaction.objectStore(STORE_CHART_HISTORY);
+                if (!store.indexNames.contains("by_scope"))
+                    store.createIndex("by_scope", "scope");
+                if (!store.indexNames.contains("by_week"))
+                    store.createIndex("by_week", "week");
+                if (!store.indexNames.contains("by_ts"))
+                    store.createIndex("by_ts", "ts");
+            }
             if (!db.objectStoreNames.contains(STORE_FILE_HANDLES)) {
                 db.createObjectStore(STORE_FILE_HANDLES, { keyPath: "id" });
+            }
+            if (!db.objectStoreNames.contains(STORE_EVENT_LOG)) {
+                const store = db.createObjectStore(STORE_EVENT_LOG, { keyPath: "event_id" });
+                store.createIndex("by_occurred_at_hour", "occurred_at_hour");
+                store.createIndex("by_entity", ["entity_type", "entity_id"]);
+                store.createIndex("by_event_type", "event_type");
+            }
+            else {
+                const store = request.transaction.objectStore(STORE_EVENT_LOG);
+                if (!store.indexNames.contains("by_occurred_at_hour")) {
+                    store.createIndex("by_occurred_at_hour", "occurred_at_hour");
+                }
+                if (!store.indexNames.contains("by_entity")) {
+                    store.createIndex("by_entity", ["entity_type", "entity_id"]);
+                }
+                if (!store.indexNames.contains("by_event_type")) {
+                    store.createIndex("by_event_type", "event_type");
+                }
+            }
+            if (!db.objectStoreNames.contains(STORE_RELEASE_PRODUCTION_VIEW)) {
+                const store = db.createObjectStore(STORE_RELEASE_PRODUCTION_VIEW, { keyPath: "release_id" });
+                store.createIndex("by_current_step", "current_step");
+                store.createIndex("by_overall_risk", "overall_risk");
+                store.createIndex("by_eta_hour", "eta_hour");
+            }
+            else {
+                const store = request.transaction.objectStore(STORE_RELEASE_PRODUCTION_VIEW);
+                if (!store.indexNames.contains("by_current_step")) {
+                    store.createIndex("by_current_step", "current_step");
+                }
+                if (!store.indexNames.contains("by_overall_risk")) {
+                    store.createIndex("by_overall_risk", "overall_risk");
+                }
+                if (!store.indexNames.contains("by_eta_hour")) {
+                    store.createIndex("by_eta_hour", "eta_hour");
+                }
+            }
+            if (!db.objectStoreNames.contains(STORE_KPI_SNAPSHOT)) {
+                const store = db.createObjectStore(STORE_KPI_SNAPSHOT, { keyPath: "snapshot_id" });
+                store.createIndex("by_entity_kpi", ["entity_type", "entity_id", "kpi_type"]);
+                store.createIndex("by_calculated_at_hour", "calculated_at_hour");
+            }
+            else {
+                const store = request.transaction.objectStore(STORE_KPI_SNAPSHOT);
+                if (!store.indexNames.contains("by_entity_kpi")) {
+                    store.createIndex("by_entity_kpi", ["entity_type", "entity_id", "kpi_type"]);
+                }
+                if (!store.indexNames.contains("by_calculated_at_hour")) {
+                    store.createIndex("by_calculated_at_hour", "calculated_at_hour");
+                }
             }
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
     });
     return dbPromise;
+}
+function countIndex(store, indexName) {
+    return new Promise((resolve, reject) => {
+        let index;
+        try {
+            index = store.index(indexName);
+        }
+        catch (error) {
+            reject(error);
+            return;
+        }
+        const request = index.count();
+        request.onsuccess = () => resolve(true);
+        request.onerror = () => reject(request.error);
+    });
+}
+export function verifyIndexedDbSchema() {
+    return openDb().then((db) => {
+        const missingStores = [];
+        const missingIndexes = [];
+        const storeSpecs = [
+            {
+                name: STORE_EVENT_LOG,
+                indexes: ["by_occurred_at_hour", "by_entity", "by_event_type"],
+            },
+            {
+                name: STORE_RELEASE_PRODUCTION_VIEW,
+                indexes: ["by_current_step", "by_overall_risk", "by_eta_hour"],
+            },
+            {
+                name: STORE_KPI_SNAPSHOT,
+                indexes: ["by_entity_kpi", "by_calculated_at_hour"],
+            },
+        ];
+        storeSpecs.forEach((spec) => {
+            if (!db.objectStoreNames.contains(spec.name))
+                missingStores.push(spec.name);
+        });
+        if (missingStores.length) {
+            return {
+                ok: false,
+                missingStores,
+                missingIndexes,
+            };
+        }
+        const checks = storeSpecs.map((spec) => new Promise((resolve, reject) => {
+            const tx = db.transaction(spec.name, "readonly");
+            const store = tx.objectStore(spec.name);
+            const indexChecks = spec.indexes.map((indexName) => {
+                if (!store.indexNames.contains(indexName)) {
+                    missingIndexes.push(`${spec.name}.${indexName}`);
+                    return Promise.resolve(false);
+                }
+                return countIndex(store, indexName);
+            });
+            Promise.all(indexChecks)
+                .then(() => resolve(true))
+                .catch(reject);
+        }));
+        return Promise.all(checks)
+            .then(() => ({
+            ok: missingIndexes.length === 0,
+            missingStores,
+            missingIndexes,
+        }))
+            .catch((error) => ({
+            ok: false,
+            missingStores,
+            missingIndexes,
+            error,
+        }));
+    });
 }
 export function storeChartSnapshot(snapshot) {
     if (!snapshot || !snapshot.id)

@@ -1717,7 +1717,7 @@ function updateRoute(route) {
         requestChartsRender();
     if (next === "world")
         requestWorldRender();
-    document.querySelectorAll(".app-nav a[data-route]").forEach((link) => {
+    document.querySelectorAll(".app-nav a[data-route], .nav-menu a[data-route]").forEach((link) => {
         link.classList.toggle("active", link.dataset.route === next);
     });
     mountView(next);
@@ -3021,6 +3021,12 @@ function bindGlobalHandlers() {
         renderPanelMenu();
         openOverlay("panelMenu");
     });
+    on("navMenuBtn", "click", () => {
+        openOverlay("navMenu");
+        const btn = $("navMenuBtn");
+        if (btn)
+            btn.setAttribute("aria-expanded", "true");
+    });
     on("sidePanelsBtn", "click", () => toggleSidePanels());
     on("notificationsBtn", "click", () => {
         const target = $("notificationsBtn")?.dataset.notificationTarget;
@@ -3035,6 +3041,12 @@ function bindGlobalHandlers() {
         window.location.hash = `#/${target}`;
     });
     on("panelMenuClose", "click", () => closeOverlay("panelMenu"));
+    on("navMenuClose", "click", () => {
+        closeOverlay("navMenu");
+        const btn = $("navMenuBtn");
+        if (btn)
+            btn.setAttribute("aria-expanded", "false");
+    });
     on("resetLayoutBtn", "click", () => {
         resetViewLayout();
         logEvent("Layout reset to default.");
@@ -3090,6 +3102,18 @@ function bindGlobalHandlers() {
                 exportLossArchive(entry);
                 logUiEvent("loss_archive_export", { loss_id: entry.id, label: entry.label });
             }
+        });
+    }
+    const navMenu = $("navMenu");
+    if (navMenu) {
+        navMenu.addEventListener("click", (event) => {
+            const link = event.target.closest(".nav-menu a[data-route]");
+            if (!link)
+                return;
+            closeOverlay("navMenu");
+            const btn = $("navMenuBtn");
+            if (btn)
+                btn.setAttribute("aria-expanded", "false");
         });
     }
     on("skipTimeClose", "click", () => closeOverlay("skipTimeModal"));
@@ -7668,6 +7692,11 @@ function setupOverlayDismissals() {
                 const id = overlay.id;
                 if (id)
                     closeOverlay(id);
+                if (id === "navMenu") {
+                    const btn = $("navMenuBtn");
+                    if (btn)
+                        btn.setAttribute("aria-expanded", "false");
+                }
             }
         });
     });

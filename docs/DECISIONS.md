@@ -18,6 +18,9 @@ Decision IDs follow the format `DEC-YYYYMMDD-###`.
 ## Release policy
 - DEC-20251225-005: Release patch IDs use the timestamped format `RLS-PATCH-YYYYMMDD-HHMMZ` (UTC) and live in `assets/js/data/release.js`; patch notes must include the patch ID, and the service worker cache version must match the release stamp.
 
+## Toolchain
+- DEC-20251231-001: Node.js 24 LTS and npm 11 are the baseline runtime/tooling; pnpm 10.26+ is allowed as an alternative while keeping lockfiles in sync.
+
 ## Architecture
 - DEC-20251225-006: UI render/DOM helpers live under `src/app/ui/`, and game logic triggers UI updates through `uiHooks` instead of calling renderers directly.
 

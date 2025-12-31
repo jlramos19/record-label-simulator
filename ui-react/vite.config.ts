@@ -7,8 +7,13 @@ export default defineConfig({
   define: {
     "process.env.NODE_ENV": "\"production\""
   },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "src")
+    }
+  },
   server: {
-    port: 5174,
+    port: 5175,
     strictPort: true
   },
   build: {

@@ -59,21 +59,21 @@ export const PROJECT_TITLES = [
   "FIRST VOW: PROVOKE",
   "RAGING AT THE MACHINE",
   "HEAT RISES",
-  "유리의 도시",
-  "소음의 아틀라스",
-  "불씨의 정원",
-  "첫 맹세: 도발",
-  "기계를 향한 분노",
-  "열기가 오른다",
+  "∞£áδª¼∞¥ÿ δÅä∞ï£",
+  "∞åî∞¥î∞¥ÿ ∞òäφïÇδ¥╝∞èñ",
+  "δ╢ê∞ö¿∞¥ÿ ∞áò∞¢É",
+  "∞▓½ δº╣∞ä╕: δÅäδ░£",
+  "Ω╕░Ω│äδÑ╝ φûÑφò£ δ╢äδà╕",
+  "∞ù┤Ω╕░Ω░Ç ∞ÿñδÑ╕δïñ",
 ];
 
 export const PROJECT_TITLE_TRANSLATIONS = {
-  "유리의 도시": "City of Glass",
-  "소음의 아틀라스": "Atlas of Noise",
-  "불씨의 정원": "Garden of Ember",
-  "첫 맹세: 도발": "FIRST VOW: PROVOKE",
-  "기계를 향한 분노": "RAGING AT THE MACHINE",
-  "열기가 오른다": "HEAT RISES",
+  "∞£áδª¼∞¥ÿ δÅä∞ï£": "City of Glass",
+  "∞åî∞¥î∞¥ÿ ∞òäφïÇδ¥╝∞èñ": "Atlas of Noise",
+  "δ╢ê∞ö¿∞¥ÿ ∞áò∞¢É": "Garden of Ember",
+  "∞▓½ δº╣∞ä╕: δÅäδ░£": "FIRST VOW: PROVOKE",
+  "Ω╕░Ω│äδÑ╝ φûÑφò£ δ╢äδà╕": "RAGING AT THE MACHINE",
+  "∞ù┤Ω╕░Ω░Ç ∞ÿñδÑ╕δïñ": "HEAT RISES",
 };
 
 export const ERA_NAME_TEMPLATES = [

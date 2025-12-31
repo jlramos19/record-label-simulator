@@ -217,6 +217,49 @@ body::before {
   color: var(--accent);
   background: rgba(var(--accent-rgb), 0.12);
 }
+.nav-menu-toggle {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: var(--line-width) solid var(--line);
+  background: var(--surface-1);
+  color: var(--text);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
+}
+.nav-menu-toggle .nav-menu-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.nav-menu-card {
+  width: min(520px, 94vw);
+}
+.nav-menu {
+  display: grid;
+  gap: 8px;
+}
+.nav-menu .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: var(--line-width) solid var(--line);
+  text-decoration: none;
+  color: var(--text);
+  background: var(--surface-2);
+}
+.nav-menu .nav-item.active {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+}
 .nav-icon {
   font-size: 18px;
 }
@@ -3393,6 +3436,13 @@ select.theme-select {
 @media (max-width: 720px) {
   .form-grid { grid-template-columns: 1fr; }
   .app-header { position: sticky; top: 0; z-index: 5; }
+  .nav-menu-toggle {
+    top: auto;
+    left: auto;
+    right: 14px;
+    bottom: 14px;
+  }
+  .nav-menu-toggle .nav-menu-label { display: none; }
 }
 .menu {
   position: fixed;
