@@ -23804,6 +23804,7 @@ export {
   getActNameTranslation,
   hasHangulText,
   lookupActNameDetails,
+  renderActNameByNation,
   ACT_PROMO_WARNING_WEEKS,
   ACHIEVEMENTS,
   ACHIEVEMENT_TARGET,

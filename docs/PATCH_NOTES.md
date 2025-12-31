@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-1100Z)
+- Exported `renderActNameByNation` from the game module so UI render imports resolve and boot doesn't halt. [PN-20251231-AC114]
+
 ## 2025-12-31 (RLS-PATCH-20251231-1046Z)
 - Chart history queries now cache week lists and reset failed IndexedDB opens to recover faster from blocked upgrades. [PN-20251231-AC113]
 
@@ -854,6 +857,7 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC114 (2025-12-31 11:00Z): Exported `renderActNameByNation` from the game module so UI render imports resolve and boot doesn't halt.
 - PN-20251231-AC109 (2025-12-31 10:20Z): Tour dates now sell DVD merch from released or shelved catalog inventory (scheduled-only blocked), consuming units and logging sale details.
 - PN-20251231-AC108 (2025-12-31 09:40Z): Release Desk now shows a shelved-physical readiness badge next to physical eligibility for faster physical planning.
 - PN-20251231-AC107 (2025-12-31 09:40Z): Shelved releases now represent the physical/legacy lifecycle, generating long-tail catalog sales from tracked inventory and tagging tour merch pulls against shelved stock.
