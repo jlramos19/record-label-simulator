@@ -6,6 +6,7 @@ const SAVE_THROTTLE_MS = 1500;
 const TOAST_LIMIT = 3;
 const TOAST_THROTTLE_MS = 600;
 const TOAST_LIFETIME_MS = 12000;
+const EXTENSION_PROTOCOLS = ["chrome-extension://", "edge-extension://", "ms-browser-extension://", "moz-extension://"];
 let lastSaveAt = 0;
 let lastCriticalToastAt = 0;
 function safeSetStorage(storage, key, value) {
@@ -152,6 +153,24 @@ function showSafeMode(error) {
     if (reloadBtn)
         reloadBtn.addEventListener("click", () => window.location.reload());
 }
+function isExtensionReference(value) {
+    if (!value || typeof value !== "string")
+        return false;
+    return EXTENSION_PROTOCOLS.some((protocol) => value.includes(protocol));
+}
+function isExtensionError(event, reason) {
+    if (isExtensionReference(event?.filename))
+        return true;
+    if (isExtensionReference(event?.message))
+        return true;
+    if (isExtensionReference(event?.error?.stack))
+        return true;
+    if (isExtensionReference(reason?.stack))
+        return true;
+    if (isExtensionReference(reason instanceof Error ? reason.message : String(reason || "")))
+        return true;
+    return false;
+}
 function recordReleaseStamp(release) {
     if (!release?.patchId || typeof localStorage === "undefined")
         return;
@@ -169,6 +188,19 @@ export function installLiveEditGuardrails(release) {
     recordReleaseStamp(release);
     if (typeof window !== "undefined") {
         window.addEventListener("error", (event) => {
+            if (isExtensionError(event, event?.error)) {
+                recordUsageError({
+                    kind: "extension.error",
+                    message: event?.message || "Extension error",
+                    stack: event?.error?.stack,
+                    filename: event?.filename,
+                    lineno: event?.lineno,
+                    colno: event?.colno,
+                    reason: event?.error || null,
+                    reportToConsole: false
+                });
+                return;
+            }
             recordUsageError({
                 kind: "window.error",
                 message: event?.message || "Runtime error",
@@ -183,6 +215,16 @@ export function installLiveEditGuardrails(release) {
         });
         window.addEventListener("unhandledrejection", (event) => {
             const reason = event?.reason;
+            if (isExtensionError(null, reason)) {
+                recordUsageError({
+                    kind: "extension.unhandledrejection",
+                    message: reason instanceof Error ? reason.message : String(reason || "Extension rejection"),
+                    stack: reason instanceof Error ? reason.stack : null,
+                    reason,
+                    reportToConsole: false
+                });
+                return;
+            }
             recordUsageError({
                 kind: "unhandledrejection",
                 message: reason instanceof Error ? reason.message : String(reason || "Unhandled rejection"),

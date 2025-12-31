@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-0620Z)
+- Rival Rosters now open in a dedicated floating window from the Menu and label pills, with roster selection synced across the window and Community panel. [PN-20251231-AC95]
+- Guardrails now ignore extension-origin errors, and GitHub Pages loads assets from a base href so the menu layout stays stable. [PN-20251231-AC96]
+
 ## 2025-12-31 (RLS-PATCH-20251231-0520Z)
 - React SPA now ships as a bundled static entry so `/ui-react/` works off the main server without Vite. [PN-20251231-AC94]
 
@@ -811,6 +815,8 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC95 (2025-12-31 06:20Z): Rival Rosters now open in a dedicated floating window from the Menu and label pills, with roster selection synced across the window and Community panel.
+- PN-20251231-AC96 (2025-12-31 06:20Z): Guardrails now ignore extension-origin errors, and GitHub Pages loads assets from a base href so the menu layout stays stable.
 - PN-20251231-AC90 (2025-12-31 05:01Z): Main nav tabs are now housed in a hamburger menu with a floating toggle positioned top-left on desktop and bottom-right on mobile.
 - PN-20251231-AC91 (2025-12-31 05:09Z): Added optional User Timing profiling for sim ticks with sampling controls plus a DevTools capture checklist for perf audits.
 - PN-20251231-AC92 (2025-12-31 05:13Z): IndexedDB now defines event logs, release production views, and KPI snapshots with queryable indexes.

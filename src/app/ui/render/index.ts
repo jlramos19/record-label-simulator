@@ -5386,38 +5386,59 @@ function renderRivalComparisonStrip(entries) {
 }
 
 function renderRivalRosterPanel() {
-  const listEl = $("rivalRosterList");
-  const selectEl = $("rivalRosterSelect");
-  const metaEl = $("rivalRosterMeta");
-  if (!listEl || !selectEl) return;
+  const targets = [
+    { listEl: $("rivalRosterList"), selectEl: $("rivalRosterSelect"), metaEl: $("rivalRosterMeta") },
+    { listEl: $("rivalRosterWindowList"), selectEl: $("rivalRosterWindowSelect"), metaEl: $("rivalRosterWindowMeta") }
+  ].filter((target) => target.listEl && target.selectEl);
+  if (!targets.length) return;
   const rivals = Array.isArray(state.rivals) ? state.rivals.slice() : [];
   if (!state.ui) state.ui = {};
+
+  const applyTargets = ({ listMarkup = "", selectMarkup = "", selectValue = "", metaText = "" } = {}) => {
+    targets.forEach(({ listEl, selectEl, metaEl }) => {
+      if (selectEl) {
+        selectEl.innerHTML = selectMarkup;
+        selectEl.value = selectValue;
+      }
+      if (listEl) {
+        listEl.innerHTML = listMarkup;
+      }
+      if (metaEl) {
+        metaEl.textContent = metaText;
+      }
+    });
+  };
+
   if (!rivals.length) {
-    selectEl.innerHTML = `<option value="">No rival labels yet</option>`;
-    selectEl.value = "";
-    listEl.innerHTML = `<div class="muted">No rival rosters available yet.</div>`;
-    if (metaEl) metaEl.textContent = "No rivals observed.";
+    applyTargets({
+      selectMarkup: `<option value="">No rival labels yet</option>`,
+      selectValue: "",
+      listMarkup: `<div class="muted">No rival rosters available yet.</div>`,
+      metaText: "No rivals observed."
+    });
     return;
   }
   const selectedId = state.ui.rivalRosterId;
   const selected = rivals.find((rival) => rival.id === selectedId) || rivals[0];
   state.ui.rivalRosterId = selected?.id || null;
-  selectEl.innerHTML = [
+  const selectMarkup = [
     `<option value="">Select a rival label</option>`,
     ...rivals.map((rival) => `<option value="${rival.id}">${rival.name}</option>`)
   ].join("");
-  selectEl.value = selected ? selected.id : "";
+  const selectValue = selected ? selected.id : "";
   if (!selected) {
-    listEl.innerHTML = `<div class="muted">Select a rival label to view their roster.</div>`;
-    if (metaEl) metaEl.textContent = "Select a rival label.";
+    applyTargets({
+      selectMarkup,
+      selectValue: "",
+      listMarkup: `<div class="muted">Select a rival label to view their roster.</div>`,
+      metaText: "Select a rival label."
+    });
     return;
   }
 
   const creators = Array.isArray(selected.creators) ? selected.creators : [];
   const acts = buildRivalActSummary(selected.name);
-  if (metaEl) {
-    metaEl.textContent = `${formatCount(creators.length)} creators | ${formatCount(acts.length)} acts`;
-  }
+  const metaText = `${formatCount(creators.length)} creators | ${formatCount(acts.length)} acts`;
 
   const playerLabel = state.label?.name || "Player";
   const rankMap = buildLabelRankMap();
@@ -5589,13 +5610,19 @@ function renderRivalRosterPanel() {
     ? actItems.join("")
     : `<div class="muted">No rival acts observed yet.</div>`;
 
-  listEl.innerHTML = `
+  const listMarkup = `
     ${rivalrySummaryMarkup}
     <div class="subhead">Creators</div>
     ${creatorSections}
     <div class="subhead">Acts</div>
     <div class="list">${actMarkup}</div>
   `;
+  applyTargets({
+    selectMarkup,
+    selectValue,
+    listMarkup,
+    metaText
+  });
 }
 
 function renderWorkOrders() {

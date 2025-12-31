@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Record Label Simulator - MVP</title>
+<base href="./">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Ubuntu:wght@400;700&family=Ubuntu+Mono:wght@400;700&family=Ubuntu+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -177,6 +178,10 @@
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">public</span>
           <span class="nav-label">Community</span>
         </a>
+        <button id="rivalRosterWindowOpen" type="button" class="nav-item" aria-label="Rival Rosters" title="Rival Rosters">
+          <span class="material-symbols-rounded nav-icon" aria-hidden="true">groups</span>
+          <span class="nav-label">Rival Rosters</span>
+        </button>
         <a href="#/logs" data-route="logs" class="nav-item" aria-label="Promotions" title="Promotions">
           <span class="material-symbols-rounded nav-icon" aria-hidden="true">forum</span>
           <span class="nav-label">Promotions</span>
@@ -550,6 +555,21 @@
   <div class="card-body">
     <div id="rankingWindowMeta" class="tiny muted"></div>
     <div id="rankingWindowList" class="list"></div>
+  </div>
+</div>
+
+<div id="rivalRosterWindow" class="panel floating-window floating-window--wide hidden" role="dialog" aria-hidden="true">
+  <div id="rivalRosterWindowHead" class="card-head floating-window-head">
+    <h2>Rival Rosters</h2>
+    <button id="rivalRosterWindowClose" type="button" class="ghost mini">Close</button>
+  </div>
+  <div class="card-body">
+    <div id="rivalRosterWindowMeta" class="tiny muted">Select a rival label.</div>
+    <div class="field">
+      <label for="rivalRosterWindowSelect">Rival Label</label>
+      <select id="rivalRosterWindowSelect"></select>
+    </div>
+    <div id="rivalRosterWindowList" class="list"></div>
   </div>
 </div>
 

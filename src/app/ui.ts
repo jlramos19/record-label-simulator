@@ -703,6 +703,10 @@ const RANKING_WINDOW_MARGIN = 12;
 const RANKING_WINDOW_OFFSET = 8;
 let rankingWindowDrag = null;
 let rankingWindowDismissalBound = false;
+const RIVAL_ROSTER_WINDOW_MARGIN = 12;
+const RIVAL_ROSTER_WINDOW_OFFSET = 8;
+let rivalRosterWindowDrag = null;
+let rivalRosterWindowDismissalBound = false;
 
 function clampRankingWindowPosition(left, top, width, height) {
   const maxLeft = Math.max(RANKING_WINDOW_MARGIN, window.innerWidth - width - RANKING_WINDOW_MARGIN);
@@ -834,6 +838,148 @@ function setupRankingWindowDismissal() {
     if (windowEl.contains(event.target)) return;
     closeRankingWindow();
   }, { capture: true });
+}
+
+function clampRivalRosterWindowPosition(left, top, width, height) {
+  const maxLeft = Math.max(RIVAL_ROSTER_WINDOW_MARGIN, window.innerWidth - width - RIVAL_ROSTER_WINDOW_MARGIN);
+  const maxTop = Math.max(RIVAL_ROSTER_WINDOW_MARGIN, window.innerHeight - height - RIVAL_ROSTER_WINDOW_MARGIN);
+  return {
+    left: clamp(left, RIVAL_ROSTER_WINDOW_MARGIN, maxLeft),
+    top: clamp(top, RIVAL_ROSTER_WINDOW_MARGIN, maxTop)
+  };
+}
+
+function ensureRivalRosterWindowPosition(windowEl) {
+  if (!windowEl.dataset.positioned) {
+    windowEl.style.top = "140px";
+    windowEl.style.right = "16px";
+    windowEl.style.left = "auto";
+    windowEl.dataset.positioned = "true";
+    return;
+  }
+  const rect = windowEl.getBoundingClientRect();
+  const width = rect.width || windowEl.offsetWidth || 0;
+  const height = rect.height || windowEl.offsetHeight || 0;
+  if (!width || !height) return;
+  const next = clampRivalRosterWindowPosition(rect.left, rect.top, width, height);
+  windowEl.style.left = `${next.left}px`;
+  windowEl.style.top = `${next.top}px`;
+  windowEl.style.right = "auto";
+}
+
+function positionRivalRosterWindow(windowEl, anchorEl = null) {
+  if (!windowEl) return;
+  if (anchorEl && typeof anchorEl.getBoundingClientRect === "function") {
+    const rect = windowEl.getBoundingClientRect();
+    const width = rect.width || windowEl.offsetWidth || 0;
+    const height = rect.height || windowEl.offsetHeight || 0;
+    if (!width || !height) {
+      ensureRivalRosterWindowPosition(windowEl);
+      return;
+    }
+    const anchorRect = anchorEl.getBoundingClientRect();
+    let left = anchorRect.left;
+    let top = anchorRect.bottom + RIVAL_ROSTER_WINDOW_OFFSET;
+    if (left + width + RIVAL_ROSTER_WINDOW_MARGIN > window.innerWidth) {
+      left = anchorRect.right - width;
+    }
+    if (top + height + RIVAL_ROSTER_WINDOW_MARGIN > window.innerHeight) {
+      top = anchorRect.top - height - RIVAL_ROSTER_WINDOW_OFFSET;
+    }
+    const next = clampRivalRosterWindowPosition(left, top, width, height);
+    windowEl.style.left = `${next.left}px`;
+    windowEl.style.top = `${next.top}px`;
+    windowEl.style.right = "auto";
+    windowEl.dataset.positioned = "true";
+    return;
+  }
+  ensureRivalRosterWindowPosition(windowEl);
+}
+
+function openRivalRosterWindow({ anchor = null } = {}) {
+  const windowEl = $("rivalRosterWindow");
+  if (!windowEl) return;
+  windowEl.classList.remove("hidden");
+  windowEl.setAttribute("aria-hidden", "false");
+  renderRivalRosterPanel();
+  positionRivalRosterWindow(windowEl, anchor);
+}
+
+function closeRivalRosterWindow() {
+  const windowEl = $("rivalRosterWindow");
+  if (!windowEl) return;
+  windowEl.classList.add("hidden");
+  windowEl.setAttribute("aria-hidden", "true");
+}
+
+function setupRivalRosterWindowDrag() {
+  const windowEl = $("rivalRosterWindow");
+  const head = $("rivalRosterWindowHead");
+  if (!windowEl || !head || head.dataset.dragBound) return;
+  head.dataset.dragBound = "true";
+  head.addEventListener("pointerdown", (event) => {
+    if (event.button && event.button !== 0) return;
+    if (event.target.closest("button")) return;
+    const rect = windowEl.getBoundingClientRect();
+    rivalRosterWindowDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startLeft: rect.left,
+      startTop: rect.top,
+      width: rect.width,
+      height: rect.height
+    };
+    windowEl.style.left = `${rect.left}px`;
+    windowEl.style.top = `${rect.top}px`;
+    windowEl.style.right = "auto";
+    windowEl.setAttribute("data-dragging", "true");
+    head.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+  head.addEventListener("pointermove", (event) => {
+    if (!rivalRosterWindowDrag || event.pointerId !== rivalRosterWindowDrag.pointerId) return;
+    const dx = event.clientX - rivalRosterWindowDrag.startX;
+    const dy = event.clientY - rivalRosterWindowDrag.startY;
+    const nextLeft = rivalRosterWindowDrag.startLeft + dx;
+    const nextTop = rivalRosterWindowDrag.startTop + dy;
+    const next = clampRivalRosterWindowPosition(nextLeft, nextTop, rivalRosterWindowDrag.width, rivalRosterWindowDrag.height);
+    windowEl.style.left = `${next.left}px`;
+    windowEl.style.top = `${next.top}px`;
+  });
+  const endDrag = (event) => {
+    if (!rivalRosterWindowDrag || event.pointerId !== rivalRosterWindowDrag.pointerId) return;
+    rivalRosterWindowDrag = null;
+    windowEl.removeAttribute("data-dragging");
+    if (typeof head.releasePointerCapture === "function") {
+      head.releasePointerCapture(event.pointerId);
+    }
+  };
+  head.addEventListener("pointerup", endDrag);
+  head.addEventListener("pointercancel", endDrag);
+}
+
+function setupRivalRosterWindowDismissal() {
+  if (rivalRosterWindowDismissalBound || typeof document === "undefined") return;
+  rivalRosterWindowDismissalBound = true;
+  document.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const windowEl = $("rivalRosterWindow");
+    if (!windowEl || windowEl.classList.contains("hidden")) return;
+    if (windowEl.contains(event.target)) return;
+    closeRivalRosterWindow();
+  }, { capture: true });
+}
+
+function bindRivalRosterSelect(selectEl) {
+  if (!selectEl || selectEl.dataset.bound) return;
+  selectEl.dataset.bound = "1";
+  selectEl.addEventListener("change", (event) => {
+    const next = event.target.value || null;
+    state.ui.rivalRosterId = next;
+    renderRivalRosterPanel();
+    saveToActiveSlot();
+  });
 }
 
 function roleLabel(role) {
@@ -3038,25 +3184,18 @@ function bindGlobalHandlers() {
       section.classList.toggle("hidden", section.dataset.tutorialSection !== tabId);
     });
   };
-  const focusRivalRoster = (labelName) => {
+  const focusRivalRoster = (labelName, { anchor = null } = {}) => {
     const label = String(labelName || "").trim();
     if (!label) return;
     const rival = getRivalByName(label);
     if (!rival) return;
     if (!state.ui) state.ui = {};
     state.ui.rivalRosterId = rival.id;
-    const route = state.ui.activeView || activeRoute;
-    if (route !== "world") {
-      state.ui.rivalRosterFocus = true;
-      window.location.hash = "#/world";
-      return;
-    }
     renderRivalRosterPanel();
-    setViewPanelState("world", "community-rivals", VIEW_PANEL_STATES.open);
-    const panel = document.querySelector('[data-panel="community-rivals"]');
-    if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    openRivalRosterWindow({ anchor });
     saveToActiveSlot();
   };
+  bindRivalRosterSelect($("rivalRosterWindowSelect"));
   const toggleHudStatsExpanded = (forceState = null) => {
     if (!state.ui) state.ui = {};
     const next = typeof forceState === "boolean" ? forceState : !state.ui.hudStatsExpanded;
@@ -3098,7 +3237,7 @@ function bindGlobalHandlers() {
   document.addEventListener("click", (event) => {
     const label = event.target.closest("[data-rival-label]");
     if (!label) return;
-    focusRivalRoster(label.dataset.rivalLabel);
+    focusRivalRoster(label.dataset.rivalLabel, { anchor: label });
   });
 
   on("pauseBtn", "click", () => { setTimeSpeed("pause"); });
@@ -3123,6 +3262,13 @@ function bindGlobalHandlers() {
   on("topLabelsMoreBtn", "click", (event) => openRankingWindow("labels", { anchor: event.currentTarget }));
   on("topTrendsMoreBtn", "click", (event) => openRankingWindow("trends", { anchor: event.currentTarget }));
   on("rankingWindowClose", "click", () => closeRankingWindow());
+  on("rivalRosterWindowOpen", "click", (event) => {
+    openRivalRosterWindow({ anchor: event.currentTarget });
+    closeOverlay("navMenu");
+    const btn = $("navMenuBtn");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+  });
+  on("rivalRosterWindowClose", "click", () => closeRivalRosterWindow());
   on("tutorialBtn", "click", () => {
     renderRoleActions();
     renderTutorialEconomy();
@@ -3599,7 +3745,7 @@ function bindGlobalHandlers() {
     const label = active?.closest ? active.closest("[data-rival-label]") : null;
     if (label && (e.code === "Enter" || e.code === "Space")) {
       e.preventDefault();
-      focusRivalRoster(label.dataset.rivalLabel);
+      focusRivalRoster(label.dataset.rivalLabel, { anchor: label });
       return;
     }
     if (active && (active.tagName === "INPUT" || active.isContentEditable)) return;
@@ -3677,22 +3823,12 @@ function bindViewHandlers(route, root) {
   }
 
   if (route === "world") {
-    const rosterSelect = root.querySelector("#rivalRosterSelect");
-    if (rosterSelect && !rosterSelect.dataset.bound) {
-      rosterSelect.dataset.bound = "1";
-      rosterSelect.addEventListener("change", (event) => {
-        const next = event.target.value || null;
-        state.ui.rivalRosterId = next;
-        renderRivalRosterPanel();
-        saveToActiveSlot();
-      });
-    }
+    bindRivalRosterSelect(root.querySelector("#rivalRosterSelect"));
     if (state.ui?.rivalRosterFocus) {
-      setViewPanelState("world", "community-rivals", VIEW_PANEL_STATES.open);
       renderRivalRosterPanel();
-      const panel = root.querySelector('[data-panel="community-rivals"]');
-      if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      openRivalRosterWindow();
       state.ui.rivalRosterFocus = false;
+      saveToActiveSlot();
     }
   }
 
@@ -7370,6 +7506,8 @@ export async function initUI() {
   bindGlobalHandlers();
   setupRankingWindowDrag();
   setupRankingWindowDismissal();
+  setupRivalRosterWindowDrag();
+  setupRivalRosterWindowDismissal();
   updateTimeControlButtons();
   syncTimeControlAria();
   initRouter();
