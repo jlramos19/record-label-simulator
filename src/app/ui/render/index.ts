@@ -6799,6 +6799,13 @@ function renderReleaseDesk() {
         ? `Physical eligible: Quality ${qualityLabel}/${minQualityLabel}, Fans ${fansLabel}/${minFansLabel}`
         : `Physical locked: Quality ${qualityLabel}/${minQualityLabel}, Fans ${fansLabel}/${minFansLabel}`;
       const eligibilityClass = eligibility.ok ? "muted" : "muted warn";
+      const wantsShelvedPhysical = rec.distribution === "Physical"
+        || rec.distribution === "Both"
+        || selectedDistribution === "Physical"
+        || selectedDistribution === "Both";
+      const shelvedBadge = wantsShelvedPhysical
+        ? `<div class="badge${eligibility.ok ? "" : " warn"}">Shelved physical ${eligibility.ok ? "ready" : "locked"}</div>`
+        : "";
       const releaseTypeSelect = `
         <div class="field">
           <label>Release Type</label>
@@ -6823,6 +6830,7 @@ function renderReleaseDesk() {
                 <div class="muted">Modifier: ${modifierName}</div>
                 <div class="muted">Recommended: ${recLabel} - ${rec.reason}</div>
                 <div class="${eligibilityClass}">${eligibilityText}</div>
+                ${shelvedBadge}
                 ${releaseTypeSelect}
                 ${actSelect}
               </div>

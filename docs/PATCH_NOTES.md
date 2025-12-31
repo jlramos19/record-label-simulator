@@ -1,6 +1,7 @@
 # Patch Notes
 
 ## 2025-12-31 (RLS-PATCH-20251231-0940Z)
+- Release Desk now shows a shelved-physical readiness badge next to physical eligibility for faster physical planning. [PN-20251231-AC108]
 - Shelved releases now represent the physical/legacy lifecycle, generating long-tail catalog sales from tracked inventory and tagging tour merch pulls against shelved stock. [PN-20251231-AC107]
 - Release execution now gates scheduled releases by releaseAt, applies banked pre-release momentum on launch week for player + rival queues, clears banked momentum deterministically, and logs the applied momentum to prevent double-release. [PN-20251231-AC106]
 - Track release status is now canonical (unreleased → scheduled → released → shelved) across UI, promos, logs, and release execution for player + rival content, with save migration defaults. [PN-20251231-AC105]
@@ -844,6 +845,7 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC108 (2025-12-31 09:40Z): Release Desk now shows a shelved-physical readiness badge next to physical eligibility for faster physical planning.
 - PN-20251231-AC107 (2025-12-31 09:40Z): Shelved releases now represent the physical/legacy lifecycle, generating long-tail catalog sales from tracked inventory and tagging tour merch pulls against shelved stock.
 - PN-20251231-AC106 (2025-12-31 09:40Z): Release execution now gates scheduled releases by releaseAt, applies banked pre-release momentum on launch week for player + rival queues, clears banked momentum deterministically, and logs the applied momentum to prevent double-release.
 - PN-20251231-AC105 (2025-12-31 09:40Z): Track release status is now canonical (unreleased → scheduled → released → shelved) across UI, promos, logs, and release execution for player + rival content, with save migration defaults.
