@@ -1,9 +1,34 @@
 import initUI from "./app/ui.js";
-import { installLiveEditGuardrails } from "./app/guardrails.js";
+import { installLiveEditGuardrails, showToast } from "./app/guardrails.js";
 import { UI_REACT_ISLANDS_ENABLED } from "./app/game/config.js";
 
 const releaseStamp = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE : null;
 const guardrails = installLiveEditGuardrails(releaseStamp);
+let bootBlocked = false;
+
+if (typeof window !== "undefined") {
+  const missing = [];
+  if (!Array.isArray(THEMES) || !THEMES.length) missing.push("THEMES");
+  if (!Array.isArray(MOODS) || !MOODS.length) missing.push("MOODS");
+  if (!Array.isArray(ALIGNMENTS) || !ALIGNMENTS.length) missing.push("ALIGNMENTS");
+  if (!CHART_SIZES) missing.push("CHART_SIZES");
+  if (!ECONOMY_BASELINES) missing.push("ECONOMY_BASELINES");
+  if (!Number.isFinite(SLOT_COUNT)) missing.push("SLOT_COUNT");
+  const missingRoots = [];
+  if (typeof document !== "undefined") {
+    if (!document.getElementById("app")) missingRoots.push("#app");
+    if (!document.getElementById("mainMenu")) missingRoots.push("#mainMenu");
+  }
+  if (missing.length || missingRoots.length) {
+    const detail = [
+      missing.length ? `Missing data globals: ${missing.join(", ")}` : "",
+      missingRoots.length ? `Missing DOM roots: ${missingRoots.join(", ")}` : ""
+    ].filter(Boolean).join(" | ");
+    console.error("[boot] Missing dependencies detected.", { missing, missingRoots });
+    guardrails.handleFatal(new Error(`Boot dependencies missing. ${detail}`));
+    bootBlocked = true;
+  }
+}
 
 if (typeof document !== "undefined" && releaseStamp?.patchId) {
   document.documentElement.dataset.release = releaseStamp.patchId;
@@ -13,10 +38,23 @@ if (typeof window !== "undefined") {
   root.UI_REACT_ISLANDS_ENABLED = UI_REACT_ISLANDS_ENABLED;
 }
 
-initUI().catch((error) => {
-  console.error("initUI error:", error);
-  guardrails.handleFatal(error);
-});
+if (!bootBlocked) {
+  initUI()
+    .then(() => {
+      if (typeof sessionStorage === "undefined") return;
+      const releaseChanged = sessionStorage.getItem("rls_release_changed");
+      if (!releaseChanged) return;
+      sessionStorage.removeItem("rls_release_changed");
+      showToast("Update available", "A new build is ready. Reload to clear stale cached assets.", {
+        tone: "warn",
+        actions: [{ label: "Reload", handler: () => window.location.reload() }]
+      });
+    })
+    .catch((error) => {
+      console.error("initUI error:", error);
+      guardrails.handleFatal(error);
+    });
+}
 
 if ("serviceWorker" in navigator) {
   const params = new URLSearchParams(window.location.search);

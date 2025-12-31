@@ -12,7 +12,17 @@ import { $, closeOverlay, describeSlot, getSlotElement, openOverlay, shakeElemen
 import { showToast } from "./guardrails.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, updateSaveStatusPanel, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
+import { createRenderScheduler } from "./ui/render-scheduler.js";
 const { state, session, rankCandidates, MARKET_ROLES, logEvent, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, isTrackReleaseReleased, isTrackReleaseScheduled, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
+const renderScheduler = createRenderScheduler({
+    renderAll,
+    renderEventLog,
+    renderLossArchives,
+    renderMarket,
+    renderSlots,
+    renderStats,
+    renderTime
+});
 setUiHooks({
     closeMainMenu,
     openMainMenu,
@@ -20,13 +30,13 @@ setUiHooks({
     closeOverlay,
     showEndScreen,
     refreshSelectOptions,
-    renderAll,
-    renderEventLog,
-    renderLossArchives,
-    renderMarket,
-    renderSlots,
-    renderStats,
-    renderTime,
+    renderAll: renderScheduler.renderAll,
+    renderEventLog: renderScheduler.renderEventLog,
+    renderLossArchives: renderScheduler.renderLossArchives,
+    renderMarket: renderScheduler.renderMarket,
+    renderSlots: renderScheduler.renderSlots,
+    renderStats: renderScheduler.renderStats,
+    renderTime: renderScheduler.renderTime,
     updateGenrePreview,
     refreshPromoTypes: () => updatePromoTypeHint(document)
 });

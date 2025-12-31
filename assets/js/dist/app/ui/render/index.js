@@ -7076,7 +7076,7 @@ function renderTouringDesk() {
                 const catalogMerch = booking.catalogMerch || null;
                 const merchTrack = catalogMerch?.trackId ? getTrack(catalogMerch.trackId) : null;
                 const merchLabel = catalogMerch
-                    ? `<div class="muted">Catalog merch: ${formatCount(catalogMerch.units || 0)} units ${merchTrack ? `(${renderTrackTitle(merchTrack.title)})` : ""}</div>`
+                    ? `<div class="muted">${catalogMerch.kind === "dvd" ? "DVD merch" : "Catalog merch"}: ${formatCount(catalogMerch.units || 0)} units ${merchTrack ? `(${renderTrackTitle(merchTrack.title)})` : ""}</div>`
                     : "";
                 const statusBadge = isCompleted ? "badge" : "badge warn";
                 const canRemove = !isCompleted;

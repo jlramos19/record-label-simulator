@@ -1,6 +1,12 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-1029Z)
+- Boot diagnostics now surface missing global data/DOM roots and prompt a reload when the release stamp changes, preventing stale cached builds from leaving the UI unresponsive. [PN-20251231-AC110]
+- UI render hooks now coalesce into a single animation frame to cut full rerender/save churn during fast sim ticks. [PN-20251231-AC111]
+- IndexedDB chart history now uses compound indexes plus a week metadata store with cached lookups for faster chart-week queries. [PN-20251231-AC112]
+
 ## 2025-12-31 (RLS-PATCH-20251231-0940Z)
+- Tour dates now sell DVD merch from released or shelved catalog inventory (scheduled-only blocked), consuming units and logging sale details. [PN-20251231-AC109]
 - Release Desk now shows a shelved-physical readiness badge next to physical eligibility for faster physical planning. [PN-20251231-AC108]
 - Shelved releases now represent the physical/legacy lifecycle, generating long-tail catalog sales from tracked inventory and tagging tour merch pulls against shelved stock. [PN-20251231-AC107]
 - Release execution now gates scheduled releases by releaseAt, applies banked pre-release momentum on launch week for player + rival queues, clears banked momentum deterministically, and logs the applied momentum to prevent double-release. [PN-20251231-AC106]
@@ -845,6 +851,7 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC109 (2025-12-31 10:20Z): Tour dates now sell DVD merch from released or shelved catalog inventory (scheduled-only blocked), consuming units and logging sale details.
 - PN-20251231-AC108 (2025-12-31 09:40Z): Release Desk now shows a shelved-physical readiness badge next to physical eligibility for faster physical planning.
 - PN-20251231-AC107 (2025-12-31 09:40Z): Shelved releases now represent the physical/legacy lifecycle, generating long-tail catalog sales from tracked inventory and tagging tour merch pulls against shelved stock.
 - PN-20251231-AC106 (2025-12-31 09:40Z): Release execution now gates scheduled releases by releaseAt, applies banked pre-release momentum on launch week for player + rival queues, clears banked momentum deterministically, and logs the applied momentum to prevent double-release.
@@ -961,3 +968,6 @@
 - PN-20251228-AC83 (2025-12-28 11:26Z): Monopoly losses now stay in a soft-loss state (achievements disabled) even after Year 4000 so play can continue.
 - PN-20251228-AC84 (2025-12-28 11:38Z): Chart history panels now cache snapshot entry lookups and archive market-track maps to cut rerender scans.
 - PN-20251228-AC85 (2025-12-28 12:02Z): Release scheduling now enforces distribution lead times, supports digital rush fees, gates physical drops by quality/fan thresholds, and surfaces regional inventory/store capacity on the Release Desk.
+- PN-20251231-AC110 (2025-12-31 10:29Z): Boot diagnostics now surface missing global data/DOM roots and prompt reloads when the release stamp changes.
+- PN-20251231-AC111 (2025-12-31 10:29Z): UI render hooks now coalesce into a single animation frame to cut rerender/save churn during fast sim ticks.
+- PN-20251231-AC112 (2025-12-31 10:29Z): IndexedDB chart history now uses compound indexes plus a week metadata store with cached lookups for faster chart-week queries.

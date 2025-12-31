@@ -73,6 +73,7 @@ import {
   buildThemeOptions,
   setThemeSelectAccent
 } from "./ui/themeMoodOptions.js";
+import { createRenderScheduler } from "./ui/render-scheduler.js";
 
 const {
   state,
@@ -212,6 +213,16 @@ const {
   declineBailout
 } = game;
 
+const renderScheduler = createRenderScheduler({
+  renderAll,
+  renderEventLog,
+  renderLossArchives,
+  renderMarket,
+  renderSlots,
+  renderStats,
+  renderTime
+});
+
 setUiHooks({
   closeMainMenu,
   openMainMenu,
@@ -219,13 +230,13 @@ setUiHooks({
   closeOverlay,
   showEndScreen,
   refreshSelectOptions,
-  renderAll,
-  renderEventLog,
-  renderLossArchives,
-  renderMarket,
-  renderSlots,
-  renderStats,
-  renderTime,
+  renderAll: renderScheduler.renderAll,
+  renderEventLog: renderScheduler.renderEventLog,
+  renderLossArchives: renderScheduler.renderLossArchives,
+  renderMarket: renderScheduler.renderMarket,
+  renderSlots: renderScheduler.renderSlots,
+  renderStats: renderScheduler.renderStats,
+  renderTime: renderScheduler.renderTime,
   updateGenrePreview,
   refreshPromoTypes: () => updatePromoTypeHint(document)
 });

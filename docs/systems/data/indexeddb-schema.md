@@ -5,9 +5,26 @@ Define the IndexedDB physical schema used by the web client for append-only logs
 
 ## Database
 - Name: `record-label-simulator`
-- Version: `1`
+- Version: `2`
 
 ## Stores
+
+### chart_history (snapshots)
+- Key path: `id`
+- Indexes:
+  - `by_scope` -> `scope`
+  - `by_week` -> `week`
+  - `by_ts` -> `ts`
+  - `by_week_scope` -> [`week`, `scope`]
+  - `by_scope_week` -> [`scope`, `week`]
+
+### chart_week_index (metadata)
+- Key path: `week`
+- Indexes:
+  - `by_ts` -> `ts`
+
+### file_handles (external storage)
+- Key path: `id`
 
 ### event_log (append-only)
 - Key path: `event_id`

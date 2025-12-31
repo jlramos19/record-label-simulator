@@ -8495,6 +8495,33 @@ function initShelvedPhysicalInventory(track, { act = null, label = state.label }
     inventory.source = inventory.source || "Shelved";
     return inventory;
 }
+function initTourDvdInventory(track, { act = null, label = state.label } = {}) {
+    if (!track)
+        return null;
+    const status = getTrackReleaseStatus(track);
+    if (status === TRACK_RELEASE_STATUS.shelved) {
+        const shelvedInventory = initShelvedPhysicalInventory(track, { act, label });
+        if (shelvedInventory)
+            return shelvedInventory;
+    }
+    const inventory = ensureTrackPhysicalInventory(track);
+    if (!inventory)
+        return null;
+    if (inventory.unitsProduced > 0)
+        return inventory;
+    const pricingType = resolveTrackPricingType(track);
+    const plan = recommendPhysicalRun(track, { act, label });
+    const units = Math.max(0, Math.round(Number(plan.units || 0)));
+    if (!units)
+        return null;
+    inventory.unitsProduced = units;
+    inventory.unitsAvailable = Math.max(0, inventory.unitsAvailable || units);
+    inventory.unitPrice = roundMoney(Number(plan.unitPrice || estimatePhysicalUnitPrice(pricingType)));
+    inventory.unitCost = roundMoney(Number(plan.unitCost || estimatePhysicalUnitCost(pricingType)));
+    inventory.createdAt = Number.isFinite(inventory.createdAt) ? inventory.createdAt : state.time?.epochMs || Date.now();
+    inventory.source = inventory.source || "Tour DVD";
+    return inventory;
+}
 function estimateShelvedPhysicalDemand(track, inventory) {
     if (!track || !inventory)
         return 0;
@@ -11995,13 +12022,14 @@ function resolveTourBookings(now = state.time.epochMs) {
     const resolveMerchSource = (booking) => {
         if (!booking)
             return null;
+        const isEligible = (track) => isTrackReleaseReleased(track, { includeShelved: true });
         let track = null;
         if (booking.anchorTrackId) {
             track = getTrack(booking.anchorTrackId);
         }
         else if (booking.anchorProjectName) {
             const normalized = normalizeProjectName(booking.anchorProjectName);
-            const candidates = state.tracks.filter((entry) => (isTrackReleaseShelved(entry)
+            const candidates = state.tracks.filter((entry) => (isEligible(entry)
                 && normalizeProjectName(entry.projectName || "") === normalized));
             candidates.sort((a, b) => {
                 const aUnits = Number(a?.physicalInventory?.unitsAvailable || 0);
@@ -12010,12 +12038,10 @@ function resolveTourBookings(now = state.time.epochMs) {
             });
             track = candidates[0] || null;
         }
-        if (!track || !isTrackReleaseShelved(track))
-            return null;
-        if (track.distribution !== "Physical" && track.distribution !== "Both")
+        if (!track || !isEligible(track))
             return null;
         const act = track.actId ? getAct(track.actId) : null;
-        const inventory = initShelvedPhysicalInventory(track, { act, label: state.label });
+        const inventory = initTourDvdInventory(track, { act, label: state.label });
         if (!inventory || inventory.unitsAvailable <= 0)
             return null;
         return { track, inventory };
@@ -12039,14 +12065,17 @@ function resolveTourBookings(now = state.time.epochMs) {
         booking.resolvedAt = now;
         if (!isRival) {
             const merchSource = resolveMerchSource(booking);
-            if (merchSource && Number.isFinite(booking.merch) && booking.merch > 0) {
+            const merchRevenue = Number.isFinite(booking.merch)
+                ? booking.merch
+                : Number(projection.merch || 0);
+            if (merchSource && Number.isFinite(merchRevenue) && merchRevenue > 0) {
                 const unitPrice = merchSource.inventory.unitPrice > 0
                     ? merchSource.inventory.unitPrice
                     : estimatePhysicalUnitPrice(resolveTrackPricingType(merchSource.track));
                 const unitCost = merchSource.inventory.unitCost > 0
                     ? merchSource.inventory.unitCost
                     : estimatePhysicalUnitCost(resolveTrackPricingType(merchSource.track));
-                const desiredUnits = unitPrice > 0 ? roundPhysicalUnits(booking.merch / unitPrice) : 0;
+                const desiredUnits = unitPrice > 0 ? roundPhysicalUnits(merchRevenue / unitPrice) : 0;
                 const units = Math.min(merchSource.inventory.unitsAvailable, Math.max(0, desiredUnits));
                 if (units > 0) {
                     merchSource.inventory.unitsAvailable = Math.max(0, merchSource.inventory.unitsAvailable - units);
@@ -12055,13 +12084,16 @@ function resolveTourBookings(now = state.time.epochMs) {
                     merchSource.inventory.costs = Math.round(merchSource.inventory.costs + units * unitCost);
                     merchSource.inventory.lastWeek = weekIndex() + 1;
                     merchSource.inventory.lastSaleWeek = weekIndex() + 1;
+                    const saleRevenue = Math.round(units * unitPrice);
                     booking.catalogMerch = {
+                        kind: "dvd",
                         trackId: merchSource.track.id,
                         projectName: merchSource.track.projectName || null,
                         units,
                         unitPrice: roundMoney(unitPrice),
                         unitCost: roundMoney(unitCost)
                     };
+                    logEvent(`Tour DVD sale: ${formatCount(units)} ${merchSource.track.id} revenue=${formatMoney(saleRevenue)} remainingInv=${formatCount(merchSource.inventory.unitsAvailable)}.`, "info");
                 }
             }
         }
@@ -22873,6 +22905,8 @@ function normalizeState() {
             next.resolvedAt = null;
         if (next.catalogMerch && typeof next.catalogMerch === "object") {
             const merch = next.catalogMerch;
+            if (typeof merch.kind !== "string")
+                merch.kind = merch.kind || null;
             if (typeof merch.trackId !== "string")
                 merch.trackId = merch.trackId || null;
             if (typeof merch.projectName !== "string")

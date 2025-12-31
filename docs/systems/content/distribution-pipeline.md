@@ -40,7 +40,7 @@ Physical sales are constrained by the physical supply chain:
 ## Shelved physical inventory + long-tail
 - Shelved Physical/Both tracks initialize a legacy inventory run with units produced/available plus unit price/cost.
 - Each week, shelved catalog inventory sells a deterministic long-tail volume, adding revenue and costs to the weekly economy.
-- Touring merch can reference shelved catalog inventory on completed tour dates (tracked on the booking for attribution).
+- Tour DVD merch can reference released or shelved catalog inventory on completed tour dates (scheduled-only content is blocked); sales consume units and record revenue on the booking + inventory.
 
 ## Observability
 - Warnings surface when auto-delay occurs, when physical eligibility fails, and when physical demand exceeds capacity.

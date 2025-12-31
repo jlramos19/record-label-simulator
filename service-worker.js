@@ -1,4 +1,4 @@
-let releaseStamp = { patchId: "RLS-PATCH-20251231-0749Z" };
+let releaseStamp = { patchId: "RLS-PATCH-20251231-1029Z" };
 try {
   importScripts("assets/js/data/release.js");
   if (self.RLS_RELEASE?.patchId) {
@@ -21,6 +21,7 @@ const ASSETS = [
   "assets/js/dist/app/guardrails.js",
   "assets/js/dist/app/game.js",
   "assets/js/dist/app/ui.js",
+  "assets/js/dist/app/ui/render-scheduler.js",
   "assets/js/dist/app/calendar.js",
   "assets/js/dist/app/csv.js",
   "assets/js/dist/app/db.js",
