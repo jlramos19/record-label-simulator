@@ -6030,6 +6030,10 @@ function renderTracks() {
     const releaseStatusLabel = getTrackReleaseStatusLabel(getTrackReleaseStatus(track));
     const genreLabel = renderTrackGenrePills(track, { fallback: "Genre: -" });
     const actLine = `Act: ${renderActName(act || "Unassigned")} | Project: ${renderProjectName(project)} (${projectType})`;
+    const inventory = track.physicalInventory || null;
+    const shelfLine = isTrackReleaseShelved(track) && inventory?.unitsProduced
+      ? `<div class="muted">Shelved stock ${formatCount(inventory.unitsAvailable || 0)} / ${formatCount(inventory.unitsProduced || 0)}</div>`
+      : "";
     return `
       <div class="list-item" data-entity-type="track" data-entity-id="${track.id}" data-entity-name="${track.title}" draggable="true">
         <div class="list-row">
@@ -6040,6 +6044,7 @@ function renderTracks() {
               <div class="muted">ID ${track.id} | ${genreLabel}</div>
               <div class="muted">${actLine}</div>
               <div class="muted">Status: ${releaseStatusLabel} | Released ${releaseDate} | ${track.distribution || "Digital"}</div>
+              ${shelfLine}
             </div>
           </div>
           <div class="badge grade" data-grade="${grade}">${grade}</div>
@@ -6513,6 +6518,10 @@ function renderEraPerformance() {
     const budgetNote = physical.isBudgetCapped && Number.isFinite(physical.budgetCap)
       ? `Budget cap ${formatCount(physical.budgetCap)}`
       : "";
+    const inventory = track.physicalInventory || null;
+    const shelfLine = isTrackReleaseShelved(track) && inventory?.unitsProduced
+      ? `<div class="muted">Shelved stock ${formatCount(inventory.unitsAvailable || 0)} / ${formatCount(inventory.unitsProduced || 0)}</div>`
+      : "";
     const releaseDate = track.releasedAt ? formatShortDate(track.releasedAt) : "TBD";
     const projectType = track.projectType || "Single";
     const distribution = track.distribution || "Digital";
@@ -6546,6 +6555,7 @@ function renderEraPerformance() {
           <div class="muted">${unitPrice} ea | ${unitCost} cost</div>
           <div class="muted">Gross ${vinylGross} | Cost ${vinylCost}</div>
           ${budgetNote ? `<div class="muted">${budgetNote}</div>` : ""}
+          ${shelfLine}
         </td>
       </tr>
     `;
@@ -7087,6 +7097,11 @@ function renderTouringDesk() {
         const warningLine = warnings.length
           ? `<div class="muted tour-warning-line">${warnings.map((warn) => warn.message || warn.code || "Warning").join(" | ")}</div>`
           : "";
+        const catalogMerch = booking.catalogMerch || null;
+        const merchTrack = catalogMerch?.trackId ? getTrack(catalogMerch.trackId) : null;
+        const merchLabel = catalogMerch
+          ? `<div class="muted">Catalog merch: ${formatCount(catalogMerch.units || 0)} units ${merchTrack ? `(${renderTrackTitle(merchTrack.title)})` : ""}</div>`
+          : "";
         const statusBadge = isCompleted ? "badge" : "badge warn";
         const canRemove = !isCompleted;
         return `
@@ -7096,6 +7111,7 @@ function renderTouringDesk() {
                 <div class="item-title">${booking.venueLabel || "Venue"} | ${formatDate(booking.scheduledAt)}</div>
                 <div class="muted">${booking.weekNumber ? formatWeekRangeLabel(booking.weekNumber) : "Date range -"} | ${DAYS?.[booking.dayIndex] || "Day"} | ${booking.regionId || "Region"} (${booking.tier || "Tier"})</div>
                 <div class="muted">${isCompleted ? "Actual" : "Projected"} attendance ${formatCount(attendance)} | Revenue ${formatMoney(revenue)} | Costs ${formatMoney(costs)} | Profit ${formatMoney(profit)}</div>
+                ${merchLabel}
                 ${warningLine}
               </div>
               <div class="${statusBadge}">${isCompleted ? "Completed" : "Booked"}</div>

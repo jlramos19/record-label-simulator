@@ -32,6 +32,16 @@ Physical sales are constrained by the physical supply chain:
 - If physical demand exceeds capacity, the excess is lost (no auto-conversion to digital).
 - Sales metrics are chunked to the audience size granularity.
 
+## Shelved lifecycle
+- Tracks exit the active market after 12 chart weeks and are archived.
+- Archived tracks switch to `Shelved` release status (physical/legacy phase).
+- Digital availability remains on; shelved adds legacy physical behavior without disabling streaming.
+
+## Shelved physical inventory + long-tail
+- Shelved Physical/Both tracks initialize a legacy inventory run with units produced/available plus unit price/cost.
+- Each week, shelved catalog inventory sells a deterministic long-tail volume, adding revenue and costs to the weekly economy.
+- Touring merch can reference shelved catalog inventory on completed tour dates (tracked on the booking for attribution).
+
 ## Observability
 - Warnings surface when auto-delay occurs, when physical eligibility fails, and when physical demand exceeds capacity.
 - A Release panel surface reports inventory and store capacity by region.

@@ -558,7 +558,9 @@ function makeDefaultState() {
             lastWeek: 0,
             leaseFeesWeek: 0,
             pendingTouring: { revenue: 0, costs: 0, profit: 0, attendance: 0, fanGain: 0, count: 0 },
+            pendingPhysical: { revenue: 0, costs: 0, profit: 0, units: 0, count: 0 },
             lastTouring: null,
+            lastPhysical: null,
             creatorMarketHeat: { Songwriter: 0, Performer: 0, Producer: 0 }
         },
         lastWeekIndex: 0,
@@ -7885,6 +7887,7 @@ function createTrack({ title, theme, alignment, songwriterIds, performerIds, pro
         eraId: activeEra ? activeEra.id : null,
         modifier: modifier && modifier.id !== "None" ? modifier : null,
         distribution: "Digital",
+        physicalInventory: null,
         creators: {
             songwriterIds: normalizedSongwriters,
             performerIds: normalizedPerformers,
@@ -8439,6 +8442,138 @@ function recommendPhysicalRun(track, { act = null, label = state.label } = {}) {
         budgetCap: Number.isFinite(budgetCap) ? budgetCap : null,
         isBudgetCapped: Number.isFinite(budgetCap) && demandUnits >= budgetCap
     };
+}
+const SHELVED_LONGTAIL_START_WEEKS = 12;
+const SHELVED_LONGTAIL_DECAY_PER_WEEK = 0.04;
+const SHELVED_LONGTAIL_MIN_DECAY = 0.2;
+function roundPhysicalUnits(value) {
+    const roundTo = Number.isFinite(ECONOMY_BASELINES?.physicalRunRound) ? ECONOMY_BASELINES.physicalRunRound : 50;
+    if (!Number.isFinite(roundTo) || roundTo <= 0)
+        return Math.max(0, Math.round(value));
+    return Math.max(0, Math.round(value / roundTo) * roundTo);
+}
+function ensureTrackPhysicalInventory(track) {
+    if (!track)
+        return null;
+    if (!track.physicalInventory || typeof track.physicalInventory !== "object") {
+        track.physicalInventory = {};
+    }
+    const inventory = track.physicalInventory;
+    inventory.unitsProduced = Math.max(0, Math.round(Number(inventory.unitsProduced || 0)));
+    inventory.unitsAvailable = Math.max(0, Math.round(Number(inventory.unitsAvailable || 0)));
+    inventory.unitPrice = roundMoney(Number(inventory.unitPrice || 0));
+    inventory.unitCost = roundMoney(Number(inventory.unitCost || 0));
+    inventory.revenue = Math.round(Number(inventory.revenue || 0));
+    inventory.costs = Math.round(Number(inventory.costs || 0));
+    inventory.sold = Math.round(Number(inventory.sold || 0));
+    if (!Number.isFinite(inventory.createdAt))
+        inventory.createdAt = null;
+    if (!Number.isFinite(inventory.lastWeek))
+        inventory.lastWeek = null;
+    if (!Number.isFinite(inventory.lastSaleWeek))
+        inventory.lastSaleWeek = null;
+    if (typeof inventory.source !== "string")
+        inventory.source = inventory.source || null;
+    return inventory;
+}
+function initShelvedPhysicalInventory(track, { act = null, label = state.label } = {}) {
+    if (!track || (track.distribution !== "Physical" && track.distribution !== "Both"))
+        return null;
+    const inventory = ensureTrackPhysicalInventory(track);
+    if (!inventory)
+        return null;
+    if (inventory.unitsProduced > 0)
+        return inventory;
+    const pricingType = resolveTrackPricingType(track);
+    const plan = recommendPhysicalRun(track, { act, label });
+    const units = Math.max(0, Math.round(Number(plan.units || 0)));
+    inventory.unitsProduced = units;
+    inventory.unitsAvailable = Math.max(0, inventory.unitsAvailable || units);
+    inventory.unitPrice = roundMoney(Number(plan.unitPrice || estimatePhysicalUnitPrice(pricingType)));
+    inventory.unitCost = roundMoney(Number(plan.unitCost || estimatePhysicalUnitCost(pricingType)));
+    inventory.createdAt = Number.isFinite(inventory.createdAt) ? inventory.createdAt : state.time?.epochMs || Date.now();
+    inventory.source = inventory.source || "Shelved";
+    return inventory;
+}
+function estimateShelvedPhysicalDemand(track, inventory) {
+    if (!track || !inventory)
+        return 0;
+    const quality = resolveTrackQualityScore(track) ?? 60;
+    const fans = Math.max(0, Number(state.label?.fans || 0));
+    const weeksSinceRelease = Number.isFinite(track.releasedAt)
+        ? Math.max(1, weekIndexForEpochMs(state.time.epochMs) - weekIndexForEpochMs(track.releasedAt) + 1)
+        : 1;
+    const shelfWeeks = Math.max(0, weeksSinceRelease - SHELVED_LONGTAIL_START_WEEKS);
+    const decay = clamp(1 - shelfWeeks * SHELVED_LONGTAIL_DECAY_PER_WEEK, SHELVED_LONGTAIL_MIN_DECAY, 1);
+    const base = Math.pow(Math.max(1, fans), 0.45) * (quality / 100) * 1.4;
+    return roundPhysicalUnits(base * decay);
+}
+function applyShelvedPhysicalSales() {
+    const pending = {
+        revenue: 0,
+        costs: 0,
+        profit: 0,
+        units: 0,
+        count: 0
+    };
+    const week = weekIndex() + 1;
+    state.tracks.forEach((track) => {
+        if (!isTrackReleaseShelved(track))
+            return;
+        const act = track.actId ? getAct(track.actId) : null;
+        const inventory = initShelvedPhysicalInventory(track, { act, label: state.label });
+        if (!inventory || inventory.unitsAvailable <= 0)
+            return;
+        const demand = estimateShelvedPhysicalDemand(track, inventory);
+        if (!demand)
+            return;
+        const unitsSold = Math.min(inventory.unitsAvailable, demand);
+        if (unitsSold <= 0)
+            return;
+        const unitPrice = Number.isFinite(inventory.unitPrice) && inventory.unitPrice > 0
+            ? inventory.unitPrice
+            : estimatePhysicalUnitPrice(resolveTrackPricingType(track));
+        const unitCost = Number.isFinite(inventory.unitCost) && inventory.unitCost > 0
+            ? inventory.unitCost
+            : estimatePhysicalUnitCost(resolveTrackPricingType(track));
+        const revenue = Math.round(unitsSold * unitPrice);
+        const costs = Math.round(unitsSold * unitCost);
+        inventory.unitsAvailable = Math.max(0, Math.round(inventory.unitsAvailable - unitsSold));
+        inventory.sold = Math.round(inventory.sold + unitsSold);
+        inventory.revenue = Math.round(inventory.revenue + revenue);
+        inventory.costs = Math.round(inventory.costs + costs);
+        inventory.lastWeek = week;
+        inventory.lastSaleWeek = week;
+        const economy = ensureTrackEconomy(track);
+        if (economy) {
+            economy.sales = Math.round(economy.sales + unitsSold);
+            economy.revenue = Math.round(economy.revenue + revenue);
+            economy.lastRevenue = Math.round(revenue);
+            economy.lastWeek = week;
+        }
+        pending.units += unitsSold;
+        pending.revenue += revenue;
+        pending.costs += costs;
+        pending.profit += revenue - costs;
+        pending.count += 1;
+    });
+    if (!pending.count)
+        return pending;
+    if (!state.economy)
+        state.economy = {};
+    if (!state.economy.pendingPhysical || typeof state.economy.pendingPhysical !== "object") {
+        state.economy.pendingPhysical = { revenue: 0, costs: 0, profit: 0, units: 0, count: 0 };
+    }
+    state.economy.pendingPhysical.revenue += pending.revenue;
+    state.economy.pendingPhysical.costs += pending.costs;
+    state.economy.pendingPhysical.profit += pending.profit;
+    state.economy.pendingPhysical.units += pending.units;
+    state.economy.pendingPhysical.count += pending.count;
+    state.economy.lastPhysical = { ...pending, week };
+    if (pending.units > 0) {
+        logEvent(`Shelved catalog sold ${formatCount(pending.units)} physical unit${pending.units === 1 ? "" : "s"} (net ${formatMoney(pending.profit)}).`, "info");
+    }
+    return pending;
 }
 function currentTrendRanking() {
     const ranking = Array.isArray(state.trendRanking) ? state.trendRanking.filter(Boolean) : [];
@@ -11857,6 +11992,34 @@ function resolveTourBookings(now = state.time.epochMs) {
         count: 0
     };
     const resolvedBookings = [];
+    const resolveMerchSource = (booking) => {
+        if (!booking)
+            return null;
+        let track = null;
+        if (booking.anchorTrackId) {
+            track = getTrack(booking.anchorTrackId);
+        }
+        else if (booking.anchorProjectName) {
+            const normalized = normalizeProjectName(booking.anchorProjectName);
+            const candidates = state.tracks.filter((entry) => (isTrackReleaseShelved(entry)
+                && normalizeProjectName(entry.projectName || "") === normalized));
+            candidates.sort((a, b) => {
+                const aUnits = Number(a?.physicalInventory?.unitsAvailable || 0);
+                const bUnits = Number(b?.physicalInventory?.unitsAvailable || 0);
+                return bUnits - aUnits;
+            });
+            track = candidates[0] || null;
+        }
+        if (!track || !isTrackReleaseShelved(track))
+            return null;
+        if (track.distribution !== "Physical" && track.distribution !== "Both")
+            return null;
+        const act = track.actId ? getAct(track.actId) : null;
+        const inventory = initShelvedPhysicalInventory(track, { act, label: state.label });
+        if (!inventory || inventory.unitsAvailable <= 0)
+            return null;
+        return { track, inventory };
+    };
     touring.bookings.forEach((booking) => {
         if (!booking || booking.status !== "Booked")
             return;
@@ -11874,6 +12037,34 @@ function resolveTourBookings(now = state.time.epochMs) {
         booking.profit = profit;
         booking.status = "Completed";
         booking.resolvedAt = now;
+        if (!isRival) {
+            const merchSource = resolveMerchSource(booking);
+            if (merchSource && Number.isFinite(booking.merch) && booking.merch > 0) {
+                const unitPrice = merchSource.inventory.unitPrice > 0
+                    ? merchSource.inventory.unitPrice
+                    : estimatePhysicalUnitPrice(resolveTrackPricingType(merchSource.track));
+                const unitCost = merchSource.inventory.unitCost > 0
+                    ? merchSource.inventory.unitCost
+                    : estimatePhysicalUnitCost(resolveTrackPricingType(merchSource.track));
+                const desiredUnits = unitPrice > 0 ? roundPhysicalUnits(booking.merch / unitPrice) : 0;
+                const units = Math.min(merchSource.inventory.unitsAvailable, Math.max(0, desiredUnits));
+                if (units > 0) {
+                    merchSource.inventory.unitsAvailable = Math.max(0, merchSource.inventory.unitsAvailable - units);
+                    merchSource.inventory.sold = Math.round(merchSource.inventory.sold + units);
+                    merchSource.inventory.revenue = Math.round(merchSource.inventory.revenue + units * unitPrice);
+                    merchSource.inventory.costs = Math.round(merchSource.inventory.costs + units * unitCost);
+                    merchSource.inventory.lastWeek = weekIndex() + 1;
+                    merchSource.inventory.lastSaleWeek = weekIndex() + 1;
+                    booking.catalogMerch = {
+                        trackId: merchSource.track.id,
+                        projectName: merchSource.track.projectName || null,
+                        units,
+                        unitPrice: roundMoney(unitPrice),
+                        unitCost: roundMoney(unitCost)
+                    };
+                }
+            }
+        }
         if (!isRival) {
             pending.attendance += attendance;
             pending.revenue += revenue;
@@ -13125,6 +13316,9 @@ function archiveMarketTracks(entries) {
         if (!track)
             return;
         track.releaseStatus = TRACK_RELEASE_STATUS.shelved;
+        if (track.distribution === "Physical" || track.distribution === "Both") {
+            initShelvedPhysicalInventory(track, { act: track.actId ? getAct(track.actId) : null, label: state.label });
+        }
     });
     state.meta.marketTrackArchive = state.meta.marketTrackArchive.concat(archived).slice(-MARKET_TRACK_ARCHIVE_LIMIT);
 }
@@ -14261,8 +14455,14 @@ function updateEconomy(globalScores) {
     const touringProfit = Math.round(Number(touringPending.profit || touringRevenue - touringCosts));
     const touringCount = Math.max(0, Math.round(Number(touringPending.count || 0)));
     const applyTouring = touringBalanceEnabled() && touringCount > 0;
-    const totalRevenue = revenue + (applyTouring ? touringRevenue : 0);
-    const totalUpkeep = upkeep + (applyTouring ? touringCosts : 0);
+    const physicalPending = state.economy?.pendingPhysical || {};
+    const physicalRevenue = Math.round(Number(physicalPending.revenue || 0));
+    const physicalCosts = Math.round(Number(physicalPending.costs || 0));
+    const physicalProfit = Math.round(Number(physicalPending.profit || physicalRevenue - physicalCosts));
+    const physicalUnits = Math.max(0, Math.round(Number(physicalPending.units || 0)));
+    const physicalCount = Math.max(0, Math.round(Number(physicalPending.count || 0)));
+    const totalRevenue = revenue + (applyTouring ? touringRevenue : 0) + physicalRevenue;
+    const totalUpkeep = upkeep + (applyTouring ? touringCosts : 0) + physicalCosts;
     state.label.cash = Math.round(state.label.cash + totalRevenue - totalUpkeep);
     state.economy.lastRevenue = revenue;
     state.economy.lastUpkeep = upkeep;
@@ -14279,11 +14479,24 @@ function updateEconomy(globalScores) {
         state.economy.pendingTouring.fanGain = 0;
         state.economy.pendingTouring.count = 0;
     }
+    if (!state.economy.pendingPhysical || typeof state.economy.pendingPhysical !== "object") {
+        state.economy.pendingPhysical = { revenue: 0, costs: 0, profit: 0, units: 0, count: 0 };
+    }
+    else {
+        state.economy.pendingPhysical.revenue = 0;
+        state.economy.pendingPhysical.costs = 0;
+        state.economy.pendingPhysical.profit = 0;
+        state.economy.pendingPhysical.units = 0;
+        state.economy.pendingPhysical.count = 0;
+    }
     let report = `Week ${weekIndex() + 1} report: +${formatMoney(revenue)} revenue, -${formatMoney(upkeep)} upkeep.`;
     if (touringCount) {
         report += applyTouring
             ? ` Touring net ${formatMoney(touringProfit)} from ${touringCount} date${touringCount === 1 ? "" : "s"}.`
             : ` Touring balance disabled; ${touringCount} date${touringCount === 1 ? "" : "s"} netted ${formatMoney(touringProfit)} (no wallet impact).`;
+    }
+    if (physicalCount) {
+        report += ` Shelved physical net ${formatMoney(physicalProfit)} from ${formatCount(physicalUnits)} unit${physicalUnits === 1 ? "" : "s"}.`;
     }
     logEvent(report);
     const reportLines = [
@@ -14294,6 +14507,9 @@ function updateEconomy(globalScores) {
         reportLines.push(applyTouring
             ? `Touring ${formatMoney(touringRevenue)} | Costs ${formatMoney(touringCosts)} | Net ${formatMoney(touringProfit)}`
             : `Touring net ${formatMoney(touringProfit)} (balance off)`);
+    }
+    if (physicalCount) {
+        reportLines.push(`Shelved physical ${formatMoney(physicalRevenue)} | Costs ${formatMoney(physicalCosts)} | Net ${formatMoney(physicalProfit)}`);
     }
     postSocial({
         handle: "@eyeriStats",
@@ -18301,6 +18517,7 @@ async function weeklyUpdate() {
     applyRivalStudioLeaseCosts();
     updateRivalEconomy(globalScores);
     recordTrendLedgerSnapshot(globalScores);
+    applyShelvedPhysicalSales();
     updateEconomy(globalScores);
     refreshLabelMetrics({ labelScores });
     updateActPopularityLedger();
@@ -22654,6 +22871,23 @@ function normalizeState() {
             next.country = next.country || "";
         if (!Number.isFinite(next.resolvedAt))
             next.resolvedAt = null;
+        if (next.catalogMerch && typeof next.catalogMerch === "object") {
+            const merch = next.catalogMerch;
+            if (typeof merch.trackId !== "string")
+                merch.trackId = merch.trackId || null;
+            if (typeof merch.projectName !== "string")
+                merch.projectName = merch.projectName || null;
+            if (!Number.isFinite(merch.units))
+                merch.units = Math.round(Number(merch.units || 0));
+            if (!Number.isFinite(merch.unitPrice))
+                merch.unitPrice = Math.round(Number(merch.unitPrice || 0) * 100) / 100;
+            if (!Number.isFinite(merch.unitCost))
+                merch.unitCost = Math.round(Number(merch.unitCost || 0) * 100) / 100;
+            next.catalogMerch = merch;
+        }
+        else {
+            next.catalogMerch = next.catalogMerch || null;
+        }
         return next;
     });
     state.promoCharts = ensureChartStoreStructure(state.promoCharts);
@@ -22692,6 +22926,20 @@ function normalizeState() {
         pending.attendance = Math.round(Number(pending.attendance || 0));
         pending.fanGain = Math.round(Number(pending.fanGain || 0));
         pending.count = Math.max(0, Math.round(Number(pending.count || 0)));
+    }
+    if (!state.economy.pendingPhysical || typeof state.economy.pendingPhysical !== "object") {
+        state.economy.pendingPhysical = { revenue: 0, costs: 0, profit: 0, units: 0, count: 0 };
+    }
+    else {
+        const pending = state.economy.pendingPhysical;
+        pending.revenue = Math.round(Number(pending.revenue || 0));
+        pending.costs = Math.round(Number(pending.costs || 0));
+        pending.profit = Math.round(Number(pending.profit || 0));
+        pending.units = Math.max(0, Math.round(Number(pending.units || 0)));
+        pending.count = Math.max(0, Math.round(Number(pending.count || 0)));
+    }
+    if (state.economy.lastPhysical && typeof state.economy.lastPhysical !== "object") {
+        state.economy.lastPhysical = null;
     }
     if (state.economy.lastTouring && typeof state.economy.lastTouring !== "object") {
         state.economy.lastTouring = null;
@@ -23078,6 +23326,15 @@ function normalizeState() {
                 track.promo.typesLastAt = {};
             if (track.promo.musicVideoUsed && !Number.isFinite(track.promo.typesUsed.musicVideo)) {
                 track.promo.typesUsed.musicVideo = 1;
+            }
+            if (track.physicalInventory && typeof track.physicalInventory === "object") {
+                ensureTrackPhysicalInventory(track);
+            }
+            else {
+                track.physicalInventory = track.physicalInventory || null;
+            }
+            if (isTrackReleaseShelved(track) && (track.distribution === "Physical" || track.distribution === "Both")) {
+                initShelvedPhysicalInventory(track, { act: track.actId ? getAct(track.actId) : null, label: state.label });
             }
             const normalizedReleaseStatus = normalizeTrackReleaseStatus(track.releaseStatus)
                 || normalizeTrackReleaseStatus(track.status);
