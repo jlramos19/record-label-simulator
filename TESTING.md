@@ -61,5 +61,24 @@ runPopulationABTest({ startYear: 2025, endYear: 2075, runs: 10 })
 - Run `npm run build`.
 - Run `node scripts/test-act-name-generator.mjs` and confirm all checks pass.
 
+11) Promo overlap + banked momentum
+- Create a track, master it, assign an Act, and schedule the release for next Friday.
+- Run a promo on the scheduled track (manual or scheduled promo event).
+- Confirm the event log shows a "Banked pre-release momentum" entry.
+- Advance to release time and confirm the log shows `Released: ... (bankedMomentumApplied=...)`.
+- Export the Debug Bundle and inspect `promo_overlap_snapshot.json` for the banked momentum entry.
+
+12) Touring DVD gating (released/shelved only)
+- Schedule a tour date while the catalog is only Scheduled (not released).
+- Resolve the tour date and confirm the log does not show DVD sales for scheduled-only content.
+- Release or shelve a track, resolve another tour date, and confirm a DVD sale log appears.
+
+13) Rival AutoOps cadence
+- Run a multi-week sim (Skip Time several weeks) and confirm logs show rival AutoOps plans plus release/promo/tour scheduling when solvent.
+
+14) Monopoly rarity + chart sizes
+- Run a longer sim window and confirm monopoly logs are rare or absent under normal conditions.
+- Open Charts and confirm display sizes remain Global 100 / Nation 40 / Region 10.
+
 Notes:
 - Population constants live in `assets/js/data/constants.js`, app logic in `src/app/game.ts`.

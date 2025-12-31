@@ -1,5 +1,11 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-1208Z)
+- Debug bundle exports now include a promo overlap snapshot (scheduled promos + banked momentum), and pre-release momentum banking logs are emitted for player + rivals. [PN-20251231-AC116]
+
+## 2025-12-31 (RLS-PATCH-20251231-1205Z)
+- Harmony Hub Acts now shows a Current Acts roster with selection that sets Create/Release targets, plus act summaries and inline rename. [PN-20251231-AC115]
+
 ## 2025-12-31 (RLS-PATCH-20251231-1100Z)
 - Exported `renderActNameByNation` from the game module so UI render imports resolve and boot doesn't halt. [PN-20251231-AC114]
 
@@ -857,6 +863,8 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20251231-AC116 (2025-12-31 12:08Z): Debug bundle exports now include a promo overlap snapshot (scheduled promos + banked momentum), and pre-release momentum banking logs are emitted for player + rivals.
+- PN-20251231-AC115 (2025-12-31 12:05Z): Harmony Hub Acts now shows a Current Acts roster with selection that sets Create/Release targets, plus act summaries and inline rename.
 - PN-20251231-AC114 (2025-12-31 11:00Z): Exported `renderActNameByNation` from the game module so UI render imports resolve and boot doesn't halt.
 - PN-20251231-AC109 (2025-12-31 10:20Z): Tour dates now sell DVD merch from released or shelved catalog inventory (scheduled-only blocked), consuming units and logging sale details.
 - PN-20251231-AC108 (2025-12-31 09:40Z): Release Desk now shows a shelved-physical readiness badge next to physical eligibility for faster physical planning.

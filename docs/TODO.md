@@ -1,5 +1,15 @@
 # TODO
 
+- [x] RLS-ACTS-LIST-001: Add a Current Acts list in the Acts tab with summaries and act selection behavior. (Agent Codex, started 2025-12-31 08:00:00 -04:00, completed 2025-12-31 08:08:00 -04:00)
+- [ ] RLS-RIVALS-ROSTER-ROUTE-001: Replace the floating rival roster window with a dedicated route/tab and updated entry points.
+- [ ] RLS-DOC-DRAGGING-001: Update MVP UI copy/docs to use Recommend + dropdowns and defer drag-and-drop.
+- [ ] RLS-FOCUS-ERA-UX-001: Improve Auto Create focus-era blocking guidance with actionable copy and an Eras link.
+- [ ] RLS-ERA-ALBUM-ONRAMP-001: Detect album-ready acts and add a Start Era CTA with preselected act.
+- [ ] RLS-STARTING-ECONOMY-ROSTER-001: Raise starting cash and seed initial creators/acts for new games.
+- [ ] RLS-CREATE-STAGE-HEADER-001: Make the Create stage action row sticky while scrolling.
+- [ ] RLS-MENU-OVERLAY-CLOSE-001: Fix overlay close reliability and log close attempts/success.
+- [ ] RLS-COMMUNITY-LABELS-DOC-UPDATE-001: Update community labels docs for the rival rosters route behavior.
+
 - [x] RLS-PERF-RESILIENCE-001: Diagnose GitHub UI nonresponsiveness, add boot diagnostics, coalesce render hooks, and improve IndexedDB chart indexing for faster lookups. (Agent Codex, started 2025-12-31 06:27:49 -04:00, completed 2025-12-31 06:47:04 -04:00)
 - [x] RLS-CCC-REJECT-SORT-001: Move rejected CCC creators to the bottom of the list within the active sort mode. (Agent Codex, started 2025-12-28 03:25:20 -04:00, completed 2025-12-28 03:25:20 -04:00)
 - [x] RLS-TRACK-SCRAP-001: Allow scrapping mastered tracks from the Release Desk. (Agent Codex, started 2025-12-28 03:25:20 -04:00, completed 2025-12-28 03:25:20 -04:00)

@@ -4560,46 +4560,65 @@ function renderCalendarDayDetail(dayStartTs) {
     }).join("");
 }
 function renderActs() {
+    const actList = $("actList");
+    if (!actList)
+        return;
     if (!state.acts.length) {
-        $("actList").innerHTML = `<div class="muted">No acts yet.</div>`;
+        actList.innerHTML = `<div class="muted">No acts yet.</div>`;
         return;
     }
+    const selectedActId = state.ui?.trackSlots?.actId || null;
     const list = state.acts.map((act) => {
         const activeEras = getActiveEras().filter((era) => era.actId === act.id && era.status === "Active");
         const historyCount = state.era.history.filter((era) => era.actId === act.id).length;
         const eraLabel = activeEras.length
             ? activeEras.map((era) => `${era.name} (${ERA_STAGES[era.stageIndex] || "Active"})`).join(", ")
-            : "None active";
+            : "None";
+        const eraLine = historyCount ? `${eraLabel} | Past ${historyCount}` : eraLabel;
         const members = act.memberIds
-            .map((id) => {
-            const creator = getCreator(id);
-            return creator ? creator.name : "Unknown";
-        })
+            .map((id) => getCreator(id))
+            .filter(Boolean)
+            .map((creator) => renderCreatorName(creator))
+            .filter(Boolean)
             .join(", ");
         const inputId = `act-rename-${act.id}`;
+        const actKind = normalizeActKind(act.actKind || act.actType || act.type);
+        const typeLabel = actKind === "group" ? "Group" : actKind === "solo" ? "Solo" : (act.type || "Act");
+        const plainName = formatActNamePlain(act) || act.name || "Act";
+        const selectLabel = escapeAttribute(`Select act ${plainName}`);
+        const renameLabel = escapeAttribute(`Rename act ${plainName}`);
+        const selected = selectedActId === act.id;
         return `
-      <div class="list-item" data-entity-type="act" data-entity-id="${act.id}" data-entity-name="${act.name}" draggable="true">
-          <div class="list-row">
-            <div>
-              <div class="item-title">${renderActName(act)}</div>
-              <div class="muted">ID ${act.id} | ${act.type}</div>
-              <div class="muted">${renderAlignmentTag(act.alignment)}</div>
+      <div class="list-item act-list-item ${selected ? "is-selected" : ""}" data-entity-type="act" data-entity-id="${act.id}" data-entity-name="${act.name}" draggable="true">
+        <div class="list-row">
+          <div>
+            <button type="button" class="act-select" data-act-select="${act.id}" aria-label="${selectLabel}">
+              <span class="item-title">${renderActName(act)}</span>
+            </button>
+            <div class="act-meta">
+              <span class="act-meta-item">Type: ${typeLabel}</span>
+              <span class="act-meta-item">ID ${act.id}</span>
+              <span class="act-meta-item">${renderAlignmentTag(act.alignment)}</span>
+              ${selected ? `<span class="act-meta-item act-selected-label">Selected</span>` : ""}
             </div>
-            <button type="button" class="ghost" data-act-set="${act.id}">Assign</button>
+            <div class="muted">Members: ${members || "None"}</div>
+            <div class="muted">Active Era: ${eraLine}</div>
           </div>
-        <div class="muted">Members: ${members || "None"}</div>
-        <div class="muted">Eras: ${eraLabel}${historyCount ? ` | Past ${historyCount}` : ""}</div>
+          <div class="act-actions">
+            <button type="button" class="ghost mini" data-act-set="${act.id}">Assign Slot</button>
+          </div>
+        </div>
         <div class="field">
           <label for="${inputId}">Rename Act</label>
-          <input id="${inputId}" type="text" value="${act.name}" data-act-input="${act.id}" aria-label="Rename act ${act.name}">
-        </div>
-        <div class="actions">
-          <button type="button" class="ghost" data-act-rename="${act.id}">Save Name</button>
+          <div class="input-row">
+            <input id="${inputId}" type="text" value="${escapeAttribute(act.name)}" data-act-input="${act.id}" aria-label="${renameLabel}">
+            <button type="button" class="ghost mini" data-act-rename="${act.id}">Save</button>
+          </div>
         </div>
       </div>
     `;
     });
-    $("actList").innerHTML = list.join("");
+    actList.innerHTML = list.join("");
 }
 function renderCreatorFallbackSymbols({ unassigned = false } = {}) {
     const emoji = unassigned ? UNASSIGNED_CREATOR_EMOJI : CREATOR_FALLBACK_EMOJI;

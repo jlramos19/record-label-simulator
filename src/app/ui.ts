@@ -4963,6 +4963,26 @@ function bindViewHandlers(route, root) {
   const actList = root.querySelector("#actList");
   if (actList) {
     actList.addEventListener("click", (e) => {
+      const selectBtn = e.target.closest("[data-act-select]");
+      if (selectBtn) {
+        const act = getAct(selectBtn.dataset.actSelect);
+        if (!act) return;
+        if (!state.ui) state.ui = {};
+        if (!state.ui.trackSlots) {
+          state.ui.trackSlots = {
+            actId: null,
+            songwriterIds: Array.from({ length: TRACK_ROLE_LIMITS?.Songwriter || 1 }, () => null),
+            performerIds: Array.from({ length: TRACK_ROLE_LIMITS?.Performer || 1 }, () => null),
+            producerIds: Array.from({ length: TRACK_ROLE_LIMITS?.Producer || 1 }, () => null)
+          };
+        }
+        state.ui.trackSlots.actId = act.id;
+        logEvent(`Selected "${act.name}" for Create/Release.`);
+        renderSlots();
+        renderActs();
+        saveToActiveSlot();
+        return;
+      }
       const useBtn = e.target.closest("button[data-act-set]");
       if (useBtn) {
         const act = getAct(useBtn.dataset.actSet);
@@ -5216,6 +5236,179 @@ function bindViewHandlers(route, root) {
   on("exportDebugBtn", "click", exportDebugBundle);
 }
 
+function buildPromoOverlapDebugSnapshot() {
+  const releaseAtByTrackId = new Map();
+  (state.releaseQueue || []).forEach((entry) => {
+    if (!entry?.trackId || !Number.isFinite(entry.releaseAt)) return;
+    releaseAtByTrackId.set(entry.trackId, entry.releaseAt);
+  });
+
+  const resolveBankedMomentum = (track) => {
+    if (!track) return 0;
+    return Math.max(0, track.promo?.preReleaseMomentum || track.promo?.preReleaseWeeks || 0);
+  };
+
+  const findProjectTracks = (projectSpec) => {
+    if (!projectSpec?.projectName) return [];
+    const projectName = normalizeProjectName(projectSpec.projectName);
+    const projectType = normalizeProjectType(projectSpec.projectType || "Single");
+    return state.tracks.filter((track) => {
+      if (!track) return false;
+      if (projectSpec.actId && track.actId !== projectSpec.actId) return false;
+      if (projectSpec.eraId && track.eraId !== projectSpec.eraId) return false;
+      const trackProject = track.projectName || `${track.title} - Single`;
+      if (normalizeProjectName(trackProject) !== projectName) return false;
+      if (normalizeProjectType(track.projectType || "Single") !== projectType) return false;
+      return true;
+    });
+  };
+
+  const bankedTracks = [];
+  state.tracks.forEach((track) => {
+    const bankedMomentum = resolveBankedMomentum(track);
+    if (bankedMomentum <= 0) return;
+    const status = getTrackReleaseStatus(track);
+    const releaseAt = releaseAtByTrackId.get(track.id) || null;
+    const act = track.actId ? getAct(track.actId) : null;
+    bankedTracks.push({
+      trackId: track.id,
+      title: track.title || "Unknown Track",
+      actId: track.actId || null,
+      actName: act?.name || null,
+      projectName: track.projectName || `${track.title} - Single`,
+      projectType: normalizeProjectType(track.projectType || "Single"),
+      status,
+      statusLabel: getTrackReleaseStatusLabel(status),
+      releaseAt,
+      bankedMomentum
+    });
+  });
+
+  const projectTotals = new Map();
+  bankedTracks.forEach((entry) => {
+    const projectName = entry.projectName || "Unknown Project";
+    const projectType = normalizeProjectType(entry.projectType || "Single");
+    const projectKey = `${normalizeProjectName(projectName)}::${projectType}::${entry.actId || ""}`;
+    const current = projectTotals.get(projectKey) || {
+      projectName,
+      projectType,
+      actId: entry.actId || null,
+      actName: entry.actName || null,
+      bankedMomentum: 0,
+      trackCount: 0,
+      scheduledCount: 0,
+      releasedCount: 0
+    };
+    current.bankedMomentum += entry.bankedMomentum;
+    current.trackCount += 1;
+    if (entry.status === "scheduled") current.scheduledCount += 1;
+    if (entry.status === "released" || entry.status === "shelved") current.releasedCount += 1;
+    projectTotals.set(projectKey, current);
+  });
+
+  const scheduledPromos = [];
+  const isPromoAction = (actionType) => Boolean(actionType && PROMO_TYPE_DETAILS[actionType]);
+  const resolveTargetType = (entry) => {
+    if (entry?.targetType) return entry.targetType;
+    if (entry?.contentId && parsePromoProjectKey(entry.contentId)) return "project";
+    if (entry?.contentId) return "track";
+    return "act";
+  };
+
+  (state.scheduledEvents || []).forEach((entry) => {
+    if (!entry || entry.status === "Cancelled") return;
+    const actionType = entry.actionType || DEFAULT_PROMO_TYPE;
+    if (!isPromoAction(actionType)) return;
+    const targetType = resolveTargetType(entry);
+    const eventAt = Number.isFinite(entry.eventAt) ? entry.eventAt : entry.scheduledAt;
+    const base = {
+      id: entry.id,
+      source: entry.source || "scheduledEvent",
+      actionType,
+      scheduledAt: eventAt,
+      targetType,
+      actId: entry.actId || null,
+      label: entry.label || state.label?.name || ""
+    };
+    if (targetType === "track") {
+      const track = entry.contentId ? getTrack(entry.contentId) : null;
+      const status = track ? getTrackReleaseStatus(track) : null;
+      scheduledPromos.push({
+        ...base,
+        trackId: track?.id || entry.contentId || null,
+        trackTitle: track?.title || "Unknown Track",
+        trackStatus: status,
+        trackStatusLabel: status ? getTrackReleaseStatusLabel(status) : null,
+        releaseAt: track ? (releaseAtByTrackId.get(track.id) || null) : null,
+        bankedMomentum: track ? resolveBankedMomentum(track) : 0,
+        scheduledTarget: status === "scheduled"
+      });
+      return;
+    }
+    if (targetType === "project") {
+      const projectSpec = entry.contentId ? parsePromoProjectKey(entry.contentId) : null;
+      const projectName = projectSpec?.projectName || entry.projectName || "Unknown Project";
+      const projectType = normalizeProjectType(projectSpec?.projectType || "Single");
+      const projectTracks = projectSpec ? findProjectTracks(projectSpec) : [];
+      const scheduledCount = projectTracks.filter((track) => getTrackReleaseStatus(track) === "scheduled").length;
+      const releasedCount = projectTracks.filter((track) => isTrackReleaseReleased(track, { includeShelved: true })).length;
+      const bankedMomentum = projectTracks.reduce((sum, track) => sum + resolveBankedMomentum(track), 0);
+      scheduledPromos.push({
+        ...base,
+        projectName,
+        projectType,
+        projectTrackCount: projectTracks.length,
+        scheduledCount,
+        releasedCount,
+        bankedMomentum,
+        scheduledTarget: scheduledCount > 0
+      });
+      return;
+    }
+    scheduledPromos.push({ ...base, scheduledTarget: false });
+  });
+
+  const now = state.time?.epochMs || Date.now();
+  state.rivalReleaseQueue.forEach((entry) => {
+    if (!entry || (entry.queueType || "release") !== "promo") return;
+    const hasUpcomingRelease = state.rivalReleaseQueue.some((releaseEntry) => {
+      if (!releaseEntry || (releaseEntry.queueType || "release") !== "release") return false;
+      if (releaseEntry.label !== entry.label) return false;
+      return Number.isFinite(releaseEntry.releaseAt) && releaseEntry.releaseAt > now;
+    });
+    scheduledPromos.push({
+      id: entry.id,
+      source: "rivalQueue",
+      actionType: entry.promoType || DEFAULT_PROMO_TYPE,
+      scheduledAt: entry.releaseAt,
+      targetType: "track",
+      label: entry.label || "",
+      trackTitle: entry.title || "Rival promo",
+      scheduledTarget: hasUpcomingRelease
+    });
+  });
+
+  const rivalBanked = state.rivalReleaseQueue
+    .filter((entry) => (entry.queueType || "release") === "release" && Math.max(0, entry.preReleaseMomentum || 0) > 0)
+    .map((entry) => ({
+      id: entry.id,
+      label: entry.label || "",
+      title: entry.title || "Scheduled release",
+      releaseAt: entry.releaseAt || null,
+      bankedMomentum: Math.max(0, entry.preReleaseMomentum || 0)
+    }));
+
+  return {
+    generatedAt: new Date().toISOString(),
+    scheduledPromos,
+    bankedMomentum: {
+      tracks: bankedTracks,
+      projects: Array.from(projectTotals.values()),
+      rivals: rivalBanked
+    }
+  };
+}
+
 function exportDebugBundle() {
   flushUsageSession();
   const log = loadUiEventLog();
@@ -5261,6 +5454,11 @@ function exportDebugBundle() {
   downloadFile("simulation_event_log.json", JSON.stringify(eventLog, null, 2), "application/json");
   downloadFile("usage_session_summary.md", summary, "text/markdown");
   downloadFile("state_snapshot.json", JSON.stringify(snapshot, null, 2), "application/json");
+  downloadFile(
+    "promo_overlap_snapshot.json",
+    JSON.stringify(buildPromoOverlapDebugSnapshot(), null, 2),
+    "application/json"
+  );
   downloadFile("storage_health.json", JSON.stringify(storageHealth, null, 2), "application/json");
   if (usageSession?.id) {
     downloadFile(`usage_session_${usageSession.id}.json`, JSON.stringify(usageSession, null, 2), "application/json");

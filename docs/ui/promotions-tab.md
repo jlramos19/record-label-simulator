@@ -40,3 +40,6 @@ This doc defines the Promotions view (route `logs`) for the web MVP.
 - `docs/systems/awards/award-shows.md`
 - `docs/ui/touring-tab.md`
 - `docs/systems/touring/venues.md`
+
+## FAQ
+- Can I promote before release? Yes, once the track is Scheduled.

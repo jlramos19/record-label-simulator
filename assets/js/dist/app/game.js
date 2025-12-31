@@ -9214,15 +9214,27 @@ function isTrackPromoEligible(track) {
         return true;
     return state.releaseQueue.some((entry) => entry.trackId === track.id);
 }
-function bankPreReleaseMomentum(track, boostWeeks) {
+function bankPreReleaseMomentum(track, boostWeeks, options = {}) {
     if (!track)
-        return;
+        return { ok: false, banked: 0 };
     const promo = track.promo && typeof track.promo === "object" ? track.promo : {};
+    const safeBoost = Math.max(0, Math.round(Number(boostWeeks) || 0));
     const current = Math.max(0, Number(promo.preReleaseMomentum || 0));
-    const next = Math.max(current, boostWeeks);
+    const next = Math.max(current, safeBoost);
     promo.preReleaseMomentum = next;
     promo.preReleaseWeeks = Math.max(Number(promo.preReleaseWeeks) || 0, next);
     track.promo = promo;
+    const shouldLog = options?.log !== false && next > current && safeBoost > 0;
+    if (shouldLog) {
+        const source = options?.source ? ` (${options.source})` : "";
+        const releaseStatus = getTrackReleaseStatus(track);
+        const releaseLabel = getTrackReleaseStatusLabel(releaseStatus);
+        const queued = state.releaseQueue.find((entry) => entry.trackId === track.id);
+        const releaseAt = queued?.releaseAt;
+        const releaseNote = Number.isFinite(releaseAt) ? ` | Release ${formatDate(releaseAt)}` : "";
+        logEvent(`Banked pre-release momentum${source}: "${track.title}" +${safeBoost}w -> ${next}w (${releaseLabel}${releaseNote}).`);
+    }
+    return { ok: true, prior: current, next, banked: next };
 }
 function applyScheduledPromoEntry(entry, now) {
     if (!entry)
@@ -9265,7 +9277,7 @@ function applyScheduledPromoEntry(entry, now) {
             market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
         }
         else {
-            bankPreReleaseMomentum(track, boostWeeks);
+            bankPreReleaseMomentum(track, boostWeeks, { source: "scheduled promo" });
         }
         if (promoType === "musicVideo") {
             if (!track.promo || typeof track.promo !== "object")
@@ -9283,7 +9295,7 @@ function applyScheduledPromoEntry(entry, now) {
                     marketEntry.promoWeeks = Math.max(marketEntry.promoWeeks || 0, boostWeeks);
                 return;
             }
-            bankPreReleaseMomentum(entryTrack, boostWeeks);
+            bankPreReleaseMomentum(entryTrack, boostWeeks, { source: "scheduled promo" });
             if (promoType === "musicVideo") {
                 if (!entryTrack.promo || typeof entryTrack.promo !== "object")
                     entryTrack.promo = {};
@@ -17775,7 +17787,15 @@ function processRivalPromoEntry(entry) {
         });
     }
     else if (scheduledRelease) {
-        scheduledRelease.preReleaseMomentum = Math.max(0, scheduledRelease.preReleaseMomentum || 0, boostWeeks);
+        const current = Math.max(0, scheduledRelease.preReleaseMomentum || 0);
+        const next = Math.max(current, boostWeeks);
+        scheduledRelease.preReleaseMomentum = next;
+        if (next > current && boostWeeks > 0) {
+            const releaseLabel = Number.isFinite(scheduledRelease.releaseAt)
+                ? formatDate(scheduledRelease.releaseAt)
+                : "TBD";
+            logEvent(`${rival.name} banked pre-release momentum: "${scheduledRelease.title || "Scheduled release"}" +${boostWeeks}w -> ${next}w (Release ${releaseLabel}).`);
+        }
     }
     recordPromoContent({
         promoType,
@@ -18308,7 +18328,7 @@ function runAutoPromoForPlayer() {
             market.promoWeeks = Math.max(market.promoWeeks || 0, boostWeeks);
         }
         else if (track) {
-            bankPreReleaseMomentum(track, boostWeeks);
+            bankPreReleaseMomentum(track, boostWeeks, { source: "auto promo" });
         }
         else if (projectTargets.length) {
             projectTargets.forEach((entry) => {
@@ -18318,7 +18338,7 @@ function runAutoPromoForPlayer() {
                         entryMarket.promoWeeks = Math.max(entryMarket.promoWeeks || 0, boostWeeks);
                     return;
                 }
-                bankPreReleaseMomentum(entry, boostWeeks);
+                bankPreReleaseMomentum(entry, boostWeeks, { source: "auto promo" });
             });
         }
         if (act)
@@ -18485,7 +18505,15 @@ function runAutoPromoForRivals() {
             });
         }
         else if (scheduledRelease) {
-            scheduledRelease.preReleaseMomentum = Math.max(0, scheduledRelease.preReleaseMomentum || 0, boostWeeks);
+            const current = Math.max(0, scheduledRelease.preReleaseMomentum || 0);
+            const next = Math.max(current, boostWeeks);
+            scheduledRelease.preReleaseMomentum = next;
+            if (next > current && boostWeeks > 0) {
+                const releaseLabel = Number.isFinite(scheduledRelease.releaseAt)
+                    ? formatDate(scheduledRelease.releaseAt)
+                    : "TBD";
+                logEvent(`${rival.name} banked pre-release momentum: "${scheduledRelease.title || "Scheduled release"}" +${boostWeeks}w -> ${next}w (Release ${releaseLabel}).`);
+            }
         }
         recordPromoContent({
             promoType,

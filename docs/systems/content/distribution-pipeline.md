@@ -13,6 +13,17 @@ Defines how release distribution timing, physical eligibility, inventory, and st
 - Digital rush: optional manual override that reduces the digital lead time to 0 at a rush fee.
 - Scheduling auto-delays to the earliest eligible Friday window when a requested time is too soon; a warning is logged.
 
+## Track lifecycle status
+- unreleased: track exists but is not scheduled for release.
+- scheduled: releaseAt is set in the release queue; eligible for promos.
+- released: active on the market; promo weeks apply directly.
+- shelved: archived catalog entry after the market window closes (physical/legacy phase).
+- Transitions: unreleased -> scheduled when releaseAt is set; scheduled -> released at releaseAt; released -> shelved when archived.
+
+## Promo overlap
+- Promotions are allowed once a track is Scheduled.
+- Scheduled promos bank pre-release momentum and convert to launch-week boost on release.
+
 ## Physical eligibility
 Physical/Both releases require minimum quality and minimum label fan thresholds.
 - If a release is not eligible, it auto-falls back to Digital and logs a warning.

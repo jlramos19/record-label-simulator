@@ -55,6 +55,12 @@ Rivals are eligible to compete when they can cover:
 - Each scheduled release spends a fixed drop cost; scheduling stops when the budget cap or reserve is hit.
 - Release volume is capped by signed Creator IDs (per-role capacity) before budget is applied.
 
+## AutoOps budget envelope
+- Create budget: wallet percent with a minimum cash floor.
+- Promo budget: wallet percent multiplied by planned promo steps.
+- Tour reserve: estimated per-tour cost multiplied by planned tour steps.
+- Reserve floor: cash buffer + drop cost + promo reserve + tour reserve before scheduling proceeds.
+
 ## Roster Targets + Signing
 - Roster targets scale with rollout cadence and stamina capacity (more steps = higher target per role).
 - Negative projected net halts new signing until the net turns positive again.

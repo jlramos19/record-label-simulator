@@ -1521,6 +1521,52 @@ body::before {
   padding-right: 4px;
 }
 .act-grid .list-item { min-width: 0; }
+.act-list-item.is-selected {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.12);
+}
+.act-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+.act-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.act-selected-label {
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+}
+.act-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.act-select {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.act-select:hover {
+  color: var(--accent);
+}
+.act-select:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 .ccc-market-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
