@@ -9,6 +9,8 @@ const STORE_KPI_SNAPSHOT = "kpi_snapshot";
 let dbPromise = null;
 const chartSnapshotCache = new Map();
 const chartWeekCache = new Map();
+const chartWeekListCache = { data: null, updatedAt: 0 };
+const CHART_WEEK_LIST_TTL_MS = 30000;
 function chartSnapshotKey(scope, week) {
     return `${scope || "global"}|${String(week)}`;
 }
@@ -26,6 +28,28 @@ function cacheChartSnapshot(snapshot) {
         next.push(snapshot);
         chartWeekCache.set(week, next);
     }
+    if (Array.isArray(chartWeekListCache.data)) {
+        const ts = Number.isFinite(snapshot.ts) ? snapshot.ts : Date.now();
+        const list = chartWeekListCache.data.slice();
+        const index = list.findIndex((entry) => entry?.week === week);
+        if (index >= 0) {
+            const currentTs = Number(list[index]?.ts || 0);
+            list[index] = { week, ts: Math.max(currentTs, ts) };
+        }
+        else {
+            list.push({ week, ts });
+        }
+        list.sort((a, b) => b.week - a.week);
+        chartWeekListCache.data = list;
+        chartWeekListCache.updatedAt = Date.now();
+    }
+}
+function getCachedChartWeekList() {
+    if (!Array.isArray(chartWeekListCache.data))
+        return null;
+    if (Date.now() - chartWeekListCache.updatedAt > CHART_WEEK_LIST_TTL_MS)
+        return null;
+    return chartWeekListCache.data;
 }
 function openDb() {
     if (dbPromise)
@@ -129,7 +153,10 @@ function openDb() {
             };
             resolve(db);
         };
-        request.onerror = () => reject(request.error);
+        request.onerror = () => {
+            dbPromise = null;
+            reject(request.error);
+        };
     });
     return dbPromise;
 }
@@ -312,6 +339,8 @@ function listChartWeeksFromIndex(db) {
                 cursor.continue();
             }
             else {
+                chartWeekListCache.data = results;
+                chartWeekListCache.updatedAt = Date.now();
                 resolve(results);
             }
         };
@@ -339,6 +368,8 @@ function listChartWeeksFromHistory(db) {
                 const list = Array.from(weeks.entries())
                     .map(([week, ts]) => ({ week: Number(week), ts }))
                     .sort((a, b) => b.week - a.week);
+                chartWeekListCache.data = list;
+                chartWeekListCache.updatedAt = Date.now();
                 resolve(list);
             }
         };
@@ -346,6 +377,9 @@ function listChartWeeksFromHistory(db) {
     });
 }
 export function listChartWeeks() {
+    const cached = getCachedChartWeekList();
+    if (cached)
+        return Promise.resolve(cached);
     return openDb()
         .then((db) => {
         if (db.objectStoreNames.contains(STORE_CHART_WEEK_INDEX)) {

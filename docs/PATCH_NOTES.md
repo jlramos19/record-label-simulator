@@ -1,5 +1,8 @@
 # Patch Notes
 
+## 2025-12-31 (RLS-PATCH-20251231-1046Z)
+- Chart history queries now cache week lists and reset failed IndexedDB opens to recover faster from blocked upgrades. [PN-20251231-AC113]
+
 ## 2025-12-31 (RLS-PATCH-20251231-1029Z)
 - Boot diagnostics now surface missing global data/DOM roots and prompt a reload when the release stamp changes, preventing stale cached builds from leaving the UI unresponsive. [PN-20251231-AC110]
 - UI render hooks now coalesce into a single animation frame to cut full rerender/save churn during fast sim ticks. [PN-20251231-AC111]
@@ -971,3 +974,4 @@
 - PN-20251231-AC110 (2025-12-31 10:29Z): Boot diagnostics now surface missing global data/DOM roots and prompt reloads when the release stamp changes.
 - PN-20251231-AC111 (2025-12-31 10:29Z): UI render hooks now coalesce into a single animation frame to cut rerender/save churn during fast sim ticks.
 - PN-20251231-AC112 (2025-12-31 10:29Z): IndexedDB chart history now uses compound indexes plus a week metadata store with cached lookups for faster chart-week queries.
+- PN-20251231-AC113 (2025-12-31 10:46Z): Chart history queries now cache week lists and reset failed IndexedDB opens to recover faster from blocked upgrades.

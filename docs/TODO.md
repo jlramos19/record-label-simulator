@@ -1,6 +1,6 @@
 # TODO
 
-- [x] RLS-PERF-RESILIENCE-001: Diagnose GitHub UI nonresponsiveness, add boot diagnostics, coalesce render hooks, and improve IndexedDB chart indexing for faster lookups. (Agent Codex, started 2025-12-31 06:27:49 -04:00, completed 2025-12-31 06:36:28 -04:00)
+- [x] RLS-PERF-RESILIENCE-001: Diagnose GitHub UI nonresponsiveness, add boot diagnostics, coalesce render hooks, and improve IndexedDB chart indexing for faster lookups. (Agent Codex, started 2025-12-31 06:27:49 -04:00, completed 2025-12-31 06:47:04 -04:00)
 - [x] RLS-CCC-REJECT-SORT-001: Move rejected CCC creators to the bottom of the list within the active sort mode. (Agent Codex, started 2025-12-28 03:25:20 -04:00, completed 2025-12-28 03:25:20 -04:00)
 - [x] RLS-TRACK-SCRAP-001: Allow scrapping mastered tracks from the Release Desk. (Agent Codex, started 2025-12-28 03:25:20 -04:00, completed 2025-12-28 03:25:20 -04:00)
 - [x] RLS-DATA-INDEX-001: Add cached lookup indexes for acts/creators/tracks/rivals to speed cross-view data references. (Agent Codex, started 2025-12-27 23:33:40 -04:00, completed 2025-12-27 23:33:40 -04:00)
