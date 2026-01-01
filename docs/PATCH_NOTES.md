@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2026-01-01 (RLS-PATCH-20260101-1038Z)
+- Boot watchdog now shows a fallback overlay when core scripts/styles fail to load or boot stalls, with reload + `?sw=off` guidance. [PN-20260101-AC149]
+- Boot dependency checks now use safe global lookups and validate more data globals to fail fast without silent stalls. [PN-20260101-AC150]
+
 ## 2026-01-01 (RLS-PATCH-20260101-0207Z)
 - Track rollout focus panels now respect pinned template focuses, and CEO Request promo progress counts scheduled promo events for players alongside executed promos. [PN-20260101-AC147]
 - Promo facility and tour venue booking fees now scale with slot availability, discounting down to free when capacity is open and adding scarcity premiums as slots fill. [PN-20260101-AC148]
@@ -926,6 +930,8 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20260101-AC150 (2026-01-01 10:38Z): Boot dependency checks now use safe global lookups and validate more data globals to fail fast without silent stalls.
+- PN-20260101-AC149 (2026-01-01 10:38Z): Boot watchdog now shows a fallback overlay when core scripts/styles fail to load or boot stalls, with reload + `?sw=off` guidance.
 - PN-20260101-AC148 (2026-01-01 03:54Z): Promo facility and tour venue booking fees now scale with slot availability, discounting down to free when capacity is open and adding scarcity premiums as slots fill.
 - PN-20260101-AC147 (2026-01-01 02:07Z): Track rollout focus panels now respect pinned template focuses, and CEO Request promo progress counts scheduled promo events for players alongside executed promos.
 - PN-20260101-AC146 (2026-01-01 01:41Z): Touring concert-interest now weights rotating age-group segments using population snapshot concert baselines to stabilize demand shifts.

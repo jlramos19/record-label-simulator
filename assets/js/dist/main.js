@@ -3,21 +3,54 @@ import { installLiveEditGuardrails, showToast } from "./app/guardrails.js";
 import { UI_REACT_ISLANDS_ENABLED } from "./app/game/config.js";
 const releaseStamp = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE : null;
 const guardrails = installLiveEditGuardrails(releaseStamp);
+const bootGuard = typeof window !== "undefined"
+    ? window.__RLS_BOOT_GUARD__
+    : null;
+const markBootReady = () => {
+    if (bootGuard?.markReady)
+        bootGuard.markReady();
+};
 let bootBlocked = false;
 if (typeof window !== "undefined") {
+    const globals = window;
     const missing = [];
-    if (!Array.isArray(THEMES) || !THEMES.length)
-        missing.push("THEMES");
-    if (!Array.isArray(MOODS) || !MOODS.length)
-        missing.push("MOODS");
-    if (!Array.isArray(ALIGNMENTS) || !ALIGNMENTS.length)
-        missing.push("ALIGNMENTS");
-    if (!CHART_SIZES)
-        missing.push("CHART_SIZES");
-    if (!ECONOMY_BASELINES)
-        missing.push("ECONOMY_BASELINES");
-    if (!Number.isFinite(SLOT_COUNT))
-        missing.push("SLOT_COUNT");
+    const hasArray = (value) => Array.isArray(value) && value.length > 0;
+    const hasNumber = (value) => Number.isFinite(value);
+    const hasChartSizes = (value) => {
+        if (!value || typeof value !== "object")
+            return false;
+        const sizes = value;
+        return hasNumber(sizes.global) && hasNumber(sizes.nation) && hasNumber(sizes.region);
+    };
+    const hasEconomyBaselines = (value) => {
+        if (!value || typeof value !== "object")
+            return false;
+        const baselines = value;
+        return hasNumber(baselines.digitalSingle) && hasNumber(baselines.physicalSingle);
+    };
+    const hasPortraitManifest = (value) => {
+        if (!value || typeof value !== "object")
+            return false;
+        const manifest = value;
+        return typeof manifest.root === "string" && !!manifest.entries;
+    };
+    const requireGlobal = (name, predicate) => {
+        const value = globals[name];
+        if (!predicate(value))
+            missing.push(name);
+    };
+    requireGlobal("THEMES", hasArray);
+    requireGlobal("MOODS", hasArray);
+    requireGlobal("ALIGNMENTS", hasArray);
+    requireGlobal("CHART_SIZES", hasChartSizes);
+    requireGlobal("ECONOMY_BASELINES", hasEconomyBaselines);
+    requireGlobal("SLOT_COUNT", hasNumber);
+    requireGlobal("NATIONS", hasArray);
+    requireGlobal("REGION_DEFS", hasArray);
+    requireGlobal("TRACKLIST", hasArray);
+    requireGlobal("AI_LABELS", hasArray);
+    requireGlobal("SOCIAL_TEMPLATES", (value) => !!value && typeof value === "object");
+    requireGlobal("CREATOR_PORTRAIT_MANIFEST", hasPortraitManifest);
     const missingRoots = [];
     if (typeof document !== "undefined") {
         if (!document.getElementById("app"))
@@ -32,6 +65,7 @@ if (typeof window !== "undefined") {
         ].filter(Boolean).join(" | ");
         console.error("[boot] Missing dependencies detected.", { missing, missingRoots });
         guardrails.handleFatal(new Error(`Boot dependencies missing. ${detail}`));
+        markBootReady();
         bootBlocked = true;
     }
 }
@@ -45,6 +79,7 @@ if (typeof window !== "undefined") {
 if (!bootBlocked) {
     initUI()
         .then(() => {
+        markBootReady();
         if (typeof sessionStorage === "undefined")
             return;
         const releaseChanged = sessionStorage.getItem("rls_release_changed");
@@ -58,8 +93,12 @@ if (!bootBlocked) {
     })
         .catch((error) => {
         console.error("initUI error:", error);
+        markBootReady();
         guardrails.handleFatal(error);
     });
+}
+else {
+    markBootReady();
 }
 if ("serviceWorker" in navigator) {
     const params = new URLSearchParams(window.location.search);

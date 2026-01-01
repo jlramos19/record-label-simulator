@@ -1,5 +1,6 @@
 # TODO
 
+- [x] RLS-OPS-BOOT-GUARD-001: Add a boot watchdog + asset-load fallback to surface nonresponsive loads and make boot dependency checks resilient. (Agent Codex, started 2026-01-01 06:36:17 -04:00, completed 2026-01-01 06:36:17 -04:00)
 - [x] RLS-TRACK-ROLLOUT-FOCUS-COUNT-001: Respect pinned track rollout focuses in the picker details and count scheduled promo events toward CEO Request progress. (Agent Codex, started 2025-12-31 22:06:22 -04:00, completed 2025-12-31 22:06:22 -04:00)
 - [x] RLS-ACTS-LAYOUT-001: Split the Acts view into Create Acts and Active/Inactive roster panels. (Agent Codex, started 2025-12-31 19:33:22 -04:00, completed 2025-12-31 19:33:22 -04:00)
 - [x] RLS-SAVE-TOOLS-001: Add save compression, main menu export/import buttons, and external-save gating in the save status panel. (Agent Codex, started 2025-12-31 19:28:27 -04:00, completed 2025-12-31 19:28:27 -04:00)
