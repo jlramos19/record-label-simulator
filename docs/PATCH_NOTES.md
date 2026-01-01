@@ -1,5 +1,9 @@
 # Patch Notes
 
+## 2026-01-01 (RLS-PATCH-20260101-1103Z)
+- Track title data now exports `TRACKLIST` so boot dependency checks no longer block initialization. [PN-20260101-AC153]
+- Boot dependency checks now use safe global lookups to avoid false missing globals for `const` data scripts. [PN-20260101-AC154]
+
 ## 2026-01-01 (RLS-PATCH-20260101-1042Z)
 - Boot fallback now includes a one-click reload that appends `?sw=off` to bypass stale service worker caches. [PN-20260101-AC151]
 - Safe-mode fatal error screen now includes a reload-with-`?sw=off` button for quick recovery. [PN-20260101-AC152]
@@ -934,6 +938,8 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20260101-AC154 (2026-01-01 11:03Z): Boot dependency checks now use safe global lookups to avoid false missing globals for `const` data scripts.
+- PN-20260101-AC153 (2026-01-01 11:03Z): Track title data now exports `TRACKLIST` so boot dependency checks no longer block initialization.
 - PN-20260101-AC152 (2026-01-01 10:42Z): Safe-mode fatal error screen now includes a reload-with-`?sw=off` button for quick recovery.
 - PN-20260101-AC151 (2026-01-01 10:42Z): Boot fallback now includes a one-click reload that appends `?sw=off` to bypass stale service worker caches.
 - PN-20260101-AC150 (2026-01-01 10:38Z): Boot dependency checks now use safe global lookups and validate more data globals to fail fast without silent stalls.

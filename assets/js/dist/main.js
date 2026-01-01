@@ -12,7 +12,6 @@ const markBootReady = () => {
 };
 let bootBlocked = false;
 if (typeof window !== "undefined") {
-    const globals = window;
     const missing = [];
     const hasArray = (value) => Array.isArray(value) && value.length > 0;
     const hasNumber = (value) => Number.isFinite(value);
@@ -34,23 +33,22 @@ if (typeof window !== "undefined") {
         const manifest = value;
         return typeof manifest.root === "string" && !!manifest.entries;
     };
-    const requireGlobal = (name, predicate) => {
-        const value = globals[name];
-        if (!predicate(value))
+    const requireGlobal = (name, ok) => {
+        if (!ok)
             missing.push(name);
     };
-    requireGlobal("THEMES", hasArray);
-    requireGlobal("MOODS", hasArray);
-    requireGlobal("ALIGNMENTS", hasArray);
-    requireGlobal("CHART_SIZES", hasChartSizes);
-    requireGlobal("ECONOMY_BASELINES", hasEconomyBaselines);
-    requireGlobal("SLOT_COUNT", hasNumber);
-    requireGlobal("NATIONS", hasArray);
-    requireGlobal("REGION_DEFS", hasArray);
-    requireGlobal("TRACKLIST", hasArray);
-    requireGlobal("AI_LABELS", hasArray);
-    requireGlobal("SOCIAL_TEMPLATES", (value) => !!value && typeof value === "object");
-    requireGlobal("CREATOR_PORTRAIT_MANIFEST", hasPortraitManifest);
+    requireGlobal("THEMES", typeof THEMES !== "undefined" && hasArray(THEMES));
+    requireGlobal("MOODS", typeof MOODS !== "undefined" && hasArray(MOODS));
+    requireGlobal("ALIGNMENTS", typeof ALIGNMENTS !== "undefined" && hasArray(ALIGNMENTS));
+    requireGlobal("CHART_SIZES", typeof CHART_SIZES !== "undefined" && hasChartSizes(CHART_SIZES));
+    requireGlobal("ECONOMY_BASELINES", typeof ECONOMY_BASELINES !== "undefined" && hasEconomyBaselines(ECONOMY_BASELINES));
+    requireGlobal("SLOT_COUNT", typeof SLOT_COUNT !== "undefined" && hasNumber(SLOT_COUNT));
+    requireGlobal("NATIONS", typeof NATIONS !== "undefined" && hasArray(NATIONS));
+    requireGlobal("REGION_DEFS", typeof REGION_DEFS !== "undefined" && hasArray(REGION_DEFS));
+    requireGlobal("TRACKLIST", typeof TRACKLIST !== "undefined" && hasArray(TRACKLIST));
+    requireGlobal("AI_LABELS", typeof AI_LABELS !== "undefined" && hasArray(AI_LABELS));
+    requireGlobal("SOCIAL_TEMPLATES", typeof SOCIAL_TEMPLATES !== "undefined" && !!SOCIAL_TEMPLATES && typeof SOCIAL_TEMPLATES === "object");
+    requireGlobal("CREATOR_PORTRAIT_MANIFEST", typeof CREATOR_PORTRAIT_MANIFEST !== "undefined" && hasPortraitManifest(CREATOR_PORTRAIT_MANIFEST));
     const missingRoots = [];
     if (typeof document !== "undefined") {
         if (!document.getElementById("app"))

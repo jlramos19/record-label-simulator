@@ -8,9 +8,7 @@
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}",
       "userDataDir": "${env:TEMP}\\vscode-edge-profile",
-      "args": [
-        "--inprivate"
-      ]
+      
     }
   ]
 }
