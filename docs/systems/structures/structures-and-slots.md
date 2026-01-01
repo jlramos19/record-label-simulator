@@ -8,7 +8,7 @@ This document defines the structure and slot model for the web MVP and near-term
 - Structures can be owned, leased, or public (booked on demand).
 
 ## Slot taxonomy
-- ID slots: assign Creator IDs to run work orders (songwriter/recorder/producer, etc).
+- ID slots: assign Creator IDs to run work orders (songwriter/vocalist/producer, etc).
 - Input slots: attach required content items (sheet, demo, track) to start a work order.
 - Facility booking slots: reserve a facility for a date window (broadcast slot, filming slot, venue booking).
 - Queue slots: optional "next up" staging for IDs or content in the same structure.

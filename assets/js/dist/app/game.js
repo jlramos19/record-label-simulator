@@ -7897,6 +7897,121 @@ function isEraLegacyReady(era, now = state.time.epochMs) {
     const gap = getEraProjectGapWeeks(era, now);
     return Number.isFinite(gap) && gap >= ERA_PROJECT_GAP_WEEKS;
 }
+function isPromoActionType(actionType) {
+    if (!actionType)
+        return false;
+    return Boolean(PROMO_TYPE_DETAILS[actionType]);
+}
+function hasTrackPhysicalInventory(track) {
+    if (!track?.physicalInventory || typeof track.physicalInventory !== "object")
+        return false;
+    const inventory = track.physicalInventory;
+    const produced = Number(inventory.unitsProduced || 0);
+    const available = Number(inventory.unitsAvailable || 0);
+    return produced > 0 || available > 0;
+}
+function hasEraPromoScheduledEvent(entry, era) {
+    if (!entry || !era)
+        return false;
+    if (entry.status === "Cancelled")
+        return false;
+    if (!isPromoActionType(entry.actionType))
+        return false;
+    if (entry.eraId && entry.eraId === era.id)
+        return true;
+    if (entry.actId && entry.actId === era.actId)
+        return true;
+    if (entry.contentId) {
+        const track = getTrack(entry.contentId);
+        if (track && track.eraId === era.id)
+            return true;
+        const project = parsePromoProjectKey(entry.contentId);
+        if (project) {
+            if (project.eraId && project.eraId === era.id)
+                return true;
+            if (!project.eraId && project.actId && project.actId === era.actId)
+                return true;
+        }
+    }
+    return false;
+}
+function resolveEraStageSignals(era, { rival = null } = {}) {
+    const signals = { creation: false, promotion: false, legacy: false };
+    if (!era)
+        return signals;
+    if (rival) {
+        const labelName = rival?.name || rival?.label || null;
+        const autoOps = ensureRivalAutoOpsState(rival);
+        signals.creation = Array.isArray(autoOps?.readyTracks) && autoOps.readyTracks.length > 0;
+        if (labelName) {
+            const rivalQueue = Array.isArray(state.rivalReleaseQueue) ? state.rivalReleaseQueue : [];
+            const queued = rivalQueue.filter((entry) => entry?.label === labelName);
+            signals.promotion = queued.some((entry) => (entry.queueType || "release") === "promo"
+                || (entry.preReleaseMomentum || 0) > 0);
+            const market = Array.isArray(state.marketTracks) ? state.marketTracks : [];
+            if (market.some((entry) => !entry.isPlayer && entry.label === labelName && (entry.promoWeeks || 0) > 0)) {
+                signals.promotion = true;
+            }
+            const archived = Array.isArray(state.meta?.marketTrackArchive) ? state.meta.marketTrackArchive : [];
+            signals.legacy = archived.some((entry) => !entry.isPlayer && entry.label === labelName);
+        }
+        return signals;
+    }
+    const eraTracks = Array.isArray(state.tracks)
+        ? state.tracks.filter((track) => track?.eraId === era.id)
+        : [];
+    signals.creation = eraTracks.some((track) => isTrackReleaseUnreleased(track));
+    const promoTrackSignal = eraTracks.some((track) => {
+        const promo = track?.promo || {};
+        return (Number(track?.promoWeeks || 0) > 0)
+            || (Number(promo.preReleaseMomentum || 0) > 0)
+            || (Number(promo.preReleaseWeeks || 0) > 0);
+    });
+    const marketEntries = Array.isArray(state.marketTracks)
+        ? state.marketTracks.filter((entry) => entry?.isPlayer && entry?.eraId === era.id)
+        : [];
+    const marketPromoSignal = marketEntries.some((entry) => (entry?.promoWeeks || 0) > 0);
+    const act = era.actId ? getAct(era.actId) : null;
+    const actPromoSignal = act && (act.promoWeeks || 0) > 0;
+    const scheduledEvents = Array.isArray(state.scheduledEvents) ? state.scheduledEvents : [];
+    const scheduledPromoSignal = scheduledEvents.some((entry) => hasEraPromoScheduledEvent(entry, era));
+    signals.promotion = promoTrackSignal || marketPromoSignal || actPromoSignal || scheduledPromoSignal;
+    signals.legacy = eraTracks.some((track) => isTrackReleaseShelved(track) || hasTrackPhysicalInventory(track));
+    if (!signals.legacy && era.actId) {
+        const bookings = listTourBookings({ actId: era.actId });
+        signals.legacy = bookings.some((booking) => booking?.eraId === era.id && booking?.catalogMerch?.kind === "dvd");
+    }
+    return signals;
+}
+function resolveEraStageDisplay(era, options = {}) {
+    const empty = { base: "", display: "", signals: { creation: false, promotion: false, legacy: false }, signalLabel: "", signalLabels: [] };
+    if (!era)
+        return empty;
+    const base = ERA_STAGES[era.stageIndex] || "Active";
+    const signals = resolveEraStageSignals(era, options);
+    const signalLabels = [];
+    if (signals.creation)
+        signalLabels.push("Creation");
+    if (signals.promotion)
+        signalLabels.push("Promotion");
+    if (signals.legacy)
+        signalLabels.push("Legacy");
+    let display = base;
+    const extras = signalLabels.filter((label) => label && label !== base);
+    if (base === "Active" && signalLabels.length) {
+        display = signalLabels.join(" + ");
+    }
+    else if (extras.length) {
+        display = `${base} + ${extras.join(" + ")}`;
+    }
+    return {
+        base,
+        display,
+        signals,
+        signalLabel: signalLabels.join(", "),
+        signalLabels
+    };
+}
 function closeEraProject(era, reason, { log = true } = {}) {
     if (!era)
         return false;
@@ -18894,7 +19009,11 @@ function runRivalAutoOpsWeek(stateRef = state, weekContext = {}) {
             const planWhy = huskSelection?.why || `why: selected ${husk.label || husk.id}.`;
             rival.aiPlan.planWhy = planWhy;
             const budgetNote = `budgets create ${formatMoney(planBudget.createBudget)} | promo ${formatMoney(planBudget.promoBudget || 0)} | release ${formatMoney(planBudget.releaseBudget.budgetCap)} | tour ${formatMoney(planBudget.tourBudgetCap)} | reserve ${formatMoney(planBudget.reserveFloor)}`;
-            const stageLabel = Number.isFinite(era?.stageIndex) ? `${ERA_STAGES[era.stageIndex] || "Stage"} ${era.stageWeek + 1}` : "Stage ?";
+            const stageMeta = resolveEraStageDisplay(era, { rival });
+            const stageName = stageMeta.display
+                || (Number.isFinite(era?.stageIndex) ? (ERA_STAGES[era.stageIndex] || "Stage") : "Stage");
+            const stageWeek = Number.isFinite(era?.stageWeek) ? era.stageWeek + 1 : null;
+            const stageLabel = stageWeek ? `${stageName} ${stageWeek}` : stageName;
             logEvent(`${rival.name} AutoOps plan: ${husk.label || husk.id} (${planWhy}) | ${budgetNote} | ${stageLabel}.`);
         }
         rival.aiPlan.competitive = true;
@@ -26088,7 +26207,8 @@ function buildCalendarSources() {
         .filter((entry) => entry.status === "Active")
         .map((era) => {
         const act = getAct(era.actId);
-        const stageName = ERA_STAGES[era.stageIndex] || "Active";
+        const stageMeta = resolveEraStageDisplay(era);
+        const stageName = stageMeta.display || (ERA_STAGES[era.stageIndex] || "Active");
         const content = era.contentTypes?.length ? era.contentTypes.join(", ") : "Unassigned";
         return {
             id: era.id,
@@ -26260,7 +26380,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_RELEASE_STATUS, TRACK_RELEASE_STATUS_LABELS, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, buildRolloutPlanAdoptionOdds, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, getDistributionSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapAtForDistribution, getReleaseAsapHours, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, importSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, syncTrackReleaseStatus, getMarketTrackById, getMarketTrackByTrackId, getArchivedMarketTrackById, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseShelved, isTrackReleaseUnreleased, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, registerAct, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, evaluatePhysicalEligibility, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, checkStorageHealth, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_RELEASE_STATUS, TRACK_RELEASE_STATUS_LABELS, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, buildRolloutPlanAdoptionOdds, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, getDistributionSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, resolveEraStageDisplay, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapAtForDistribution, getReleaseAsapHours, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, importSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, syncTrackReleaseStatus, getMarketTrackById, getMarketTrackByTrackId, getArchivedMarketTrackById, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseShelved, isTrackReleaseUnreleased, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, registerAct, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, evaluatePhysicalEligibility, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, checkStorageHealth, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

@@ -11,6 +11,7 @@ Defines the Road to the Top tab that surfaces active tasks aligned to CEO Reques
 - Summary line: active vs completed count, plus cheater-mode note when paused.
 - Task list: ID, objective text, story, status badge, progress detail, reward line.
 - Alignment line: linked CEO Request IDs per task (supports list).
+- Task actions: Auto Fulfill button per task, enabled only when criteria are met and showing a short block reason when disabled.
 
 ## Observability
 - Empty state when no tasks are active.

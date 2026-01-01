@@ -15,6 +15,7 @@
 - When clicked, the system performs the minimal automated actions needed to satisfy or advance the task.
 - If criteria are not met, disable the button and show a short block reason.
 - Do not gray out when criteria are met; avoid false-negative gating.
+- Current auto-fulfill supports release, promo, and tour tasks; chart, awards, and cash tasks still require manual progress.
 
 ## Alignment rules
 - Task templates should map to CEO Requests categories (chart wins, sales/streams, promos, tours).

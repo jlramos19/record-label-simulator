@@ -8927,7 +8927,7 @@ function startDemoStage(track, mood, performerIds) {
     : getTrackRoleIds(track, "Performer");
   if (!assignedPerformers.length) {
     shakeSlot(`${TRACK_ROLE_TARGETS.Performer}-1`);
-    logEvent("Assign a Recorder ID to create the demo recording.", "warn");
+    logEvent("Assign a Vocalist ID to create the demo recording.", "warn");
     return false;
   }
   const availableStudios = getStudioAvailableSlots();

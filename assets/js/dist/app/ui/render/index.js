@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildRolloutPlanAdoptionOdds, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, evaluatePhysicalEligibility, getDistributionSnapshot, getReleaseAsapAtForDistribution, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, getMarketTrackByTrackId, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseUnreleased, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, renderActNameByNation, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
+import { ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, alignmentClass, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, buildCalendarProjection, buildLabelAchievementProgress, buildRolloutPlanAdoptionOdds, buildPromoProjectKeyFromTrack, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, clamp, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeChartProjectionForScope, computeCreatorCatharsisScore, getCreatorCatharsisInactivityStatus, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, creatorInitials, currentYear, ensureMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, formatCompactDateRange, formatCount, formatDate, formatHourCountdown, formatGenreKeyLabel, formatMoney, formatShortDate, formatWeekRangeLabel, getAct, hasHangulText, lookupActNameDetails, getActPopularityLeaderboard, getActiveEras, getAudienceChunksSnapshot, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getEraById, getFocusedEra, resolveEraStageDisplay, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getModifier, getModifierInventoryCount, getProjectTrackLimits, getTourVenueAvailability, getOwnedStudioSlots, evaluatePhysicalEligibility, getDistributionSnapshot, getReleaseAsapAtForDistribution, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanningEra, getRolloutStrategiesForEra, getSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, getMarketTrackByTrackId, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getWorkOrderCreatorIds, weekStartEpochMs, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseUnreleased, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, loadLossArchives, logEvent, makeGenre, moodFromGenre, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, normalizeProjectName, normalizeProjectType, normalizeRoleIds, parseTrackRoleTarget, parsePromoProjectKey, pruneCreatorSignLockouts, PROJECT_TITLE_TRANSLATIONS, qualityGrade, rankCandidates, recommendPhysicalRun, recommendReleasePlan, renderActNameByNation, resolveLabelAcronym, resolveTrackReleaseType, resolveTourAnchor, roleLabel, safeAvatarUrl, saveToActiveSlot, scoreGrade, session, setSelectedRolloutStrategyId, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, state, selectTourDraft, syncLabelWallets, themeFromGenre, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, weekIndex, weekNumberFromEpochMs, validateTourBooking, } from "../../game.js";
 import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
 import { CalendarView } from "../../calendar.js";
 import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
@@ -1493,7 +1493,8 @@ function renderFocusEraStatus() {
     const act = displayEra ? getAct(displayEra.actId) : null;
     const actName = act ? act.name : null;
     const actLabel = act ? renderActName(act) : "";
-    const stageName = displayEra ? ERA_STAGES[displayEra.stageIndex] || "Active" : "";
+    const stageMeta = displayEra ? resolveEraStageDisplay(displayEra) : null;
+    const stageName = stageMeta?.display || "";
     const baseLabel = displayEra
         ? `${displayEra.name}${actLabel ? ` (${actLabel})` : ""}${stageName ? ` | ${stageName}` : ""}`
         : "";
@@ -1522,9 +1523,11 @@ function renderFocusEraStatus() {
     if (headerEl) {
         headerEl.innerHTML = headerLabel;
         if (displayEra) {
-            const stageName = ERA_STAGES[displayEra.stageIndex] || "Active";
             const actTitle = act ? formatActNamePlain(act) : "Unknown";
-            headerEl.title = `Act: ${actTitle} | Stage: ${stageName}`;
+            const stageTitle = stageMeta?.display || "Active";
+            const extraSignals = stageMeta?.signalLabels?.filter((label) => label !== stageMeta.base) || [];
+            const signalNote = extraSignals.length ? ` | Signals: ${extraSignals.join(", ")}` : "";
+            headerEl.title = `Act: ${actTitle} | Stage: ${stageTitle}${signalNote}`;
         }
         else {
             headerEl.title = "";
@@ -2483,7 +2486,8 @@ function renderDashboard() {
         }
         else {
             eraList.innerHTML = activeEras.map((era) => {
-                const stageName = ERA_STAGES[era.stageIndex] || "Active";
+                const stageMeta = resolveEraStageDisplay(era);
+                const stageName = stageMeta.display || (ERA_STAGES[era.stageIndex] || "Active");
                 const stageWeeks = era.rolloutWeeks || ROLLOUT_PRESETS[1].weeks;
                 const stageTotal = stageWeeks[era.stageIndex] || 0;
                 const weeksElapsed = Number.isFinite(era.weeksElapsed) ? era.weeksElapsed : 0;
@@ -2982,7 +2986,8 @@ function renderPromoAlerts() {
     }
     const act = getAct(displayEra.actId);
     const actLabel = act ? renderActName(act) : "";
-    const stageName = ERA_STAGES[displayEra.stageIndex] || "Active";
+    const stageMeta = resolveEraStageDisplay(displayEra);
+    const stageName = stageMeta.display || (ERA_STAGES[displayEra.stageIndex] || "Active");
     const eraLabel = `${displayEra.name}${actLabel ? ` (${actLabel})` : ""} | ${stageName}`;
     const now = state.time.epochMs;
     const tracks = state.tracks.filter((track) => track.eraId === displayEra.id)
@@ -4141,7 +4146,9 @@ function renderActiveArea() {
     let era = "No active eras";
     if (activeEras.length === 1) {
         const active = activeEras[0];
-        era = `${active.name} (${ERA_STAGES[active.stageIndex] || "Active"})`;
+        const stageMeta = resolveEraStageDisplay(active);
+        const stageName = stageMeta.display || (ERA_STAGES[active.stageIndex] || "Active");
+        era = `${active.name} (${stageName})`;
     }
     else if (activeEras.length > 1) {
         const names = activeEras.slice(0, 2).map((entry) => entry.name).join(", ");
@@ -4897,7 +4904,11 @@ function renderActs() {
         const activeEras = getActiveEras().filter((era) => era.actId === act.id && era.status === "Active");
         const historyCount = state.era.history.filter((era) => era.actId === act.id).length;
         const eraLabel = activeEras.length
-            ? activeEras.map((era) => `${era.name} (${ERA_STAGES[era.stageIndex] || "Active"})`).join(", ")
+            ? activeEras.map((era) => {
+                const stageMeta = resolveEraStageDisplay(era);
+                const stageName = stageMeta.display || (ERA_STAGES[era.stageIndex] || "Active");
+                return `${era.name} (${stageName})`;
+            }).join(", ")
             : "None";
         const eraLine = historyCount ? `${eraLabel} | Past ${historyCount}` : eraLabel;
         const members = act.memberIds
@@ -6775,7 +6786,8 @@ function renderEraStatus() {
     }
     eraBox.innerHTML = activeEras.map((era) => {
         const act = getAct(era.actId);
-        const stageName = ERA_STAGES[era.stageIndex] || "Complete";
+        const stageMeta = resolveEraStageDisplay(era);
+        const stageName = stageMeta.display || (ERA_STAGES[era.stageIndex] || "Complete");
         const stageWeeks = era.rolloutWeeks || ROLLOUT_PRESETS[1].weeks;
         const stageTotal = stageWeeks[era.stageIndex] || 0;
         const stageProgress = `${era.stageWeek}/${stageTotal} weeks`;

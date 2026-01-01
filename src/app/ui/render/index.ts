@@ -4222,7 +4222,7 @@ function renderQuickRecipes() {
   if (!$("quickRecipesList")) return;
   const recipes = [
     { title: "Songwriting", detail: "Assign Songwriter ID + Theme to draft the sheet music." },
-    { title: "Recording", detail: "Assign Recorder ID + Mood to craft the demo tone." },
+    { title: "Recording", detail: "Assign Vocalist ID + Mood to craft the demo tone." },
     { title: "Production", detail: "Assign Producer ID to master the track quality." },
     { title: "Release", detail: "Move Ready tracks into Release Desk for scheduling." },
     { title: "Promo Pushes", detail: "Assign a Scheduled or Released Track ID to the Promo Push Slot." }
@@ -9634,7 +9634,7 @@ function getCreateStageAvailability() {
     if (!demoReady) return "Track is not ready for demo recording.";
     if (!mood) return "Select a Mood to create the demo recording.";
     if (!moodValid) return "Select a valid Mood to create the demo recording.";
-    if (!demoAssigned.length) return "Assign a Recorder ID to create the demo recording.";
+    if (!demoAssigned.length) return "Assign a Vocalist ID to create the demo recording.";
     if (studioSlotsAvailable <= 0) return "No studio slots available. Finish a production or expand capacity first.";
     if (demoStageSlots <= 0) return "No studio slots available for demo recording. Wait for a studio to free up.";
     if (state.label.cash < demoCost) return "Not enough cash to create the demo recording.";

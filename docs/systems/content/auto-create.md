@@ -19,8 +19,8 @@ Auto Create lets the player schedule automatic sheet music creation on a weekly 
 - Uses the top trend theme and mood recommendation for new sheet music and demo mood selection.
 - Uses overuse-safe creator picks (stamina ready, below daily limit, and not busy).
 - Mode:
-- Solo: assign Songwriter only; Recorder/Producer remain unassigned.
-- Collab: fills recommended Recorder/Producer when available.
+- Solo: assign Songwriter only; Vocalist/Producer remain unassigned.
+- Collab: fills recommended Vocalist/Producer when available.
 - Acts are auto-assigned using the recommendation engine when possible.
 - Act recommendations favor theme/mood preference matches, then alignment fit, and filter for catharsis grades within +/-1 letter of the content quality grade when available (stamina-adjusted skill on a 0-100 scale).
 - Project type and modifier follow the recommendation engine; titles auto-generate when empty.

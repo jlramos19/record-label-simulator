@@ -335,8 +335,9 @@ const TRACK_ROLE_TARGETS = {
 };
 const ROLE_LABELS = {
   Songwriter: "Songwriter",
-  Performer: "Recorder",
-  Recorder: "Recorder",
+  Performer: "Vocalist",
+  Recorder: "Vocalist",
+  Vocalist: "Vocalist",
   Producer: "Producer"
 };
 const STATE_EVENT = "rls:state-changed";
@@ -5810,7 +5811,7 @@ function updateTrackRecommendation() {
       ? `<div class="muted">Crew: ${stageCount} assigned | ${crewStats.minutesPerPiece}m per piece x${crewStats.pieces} | ${stageInfo.stamina * stageCount} stamina total</div>`
       : `<div class="muted">Crew: 0 assigned</div>`
     : "";
-  const crewSummaryLine = `<div class="muted">Selected crew: ${songwriterCount} songwriter(s) | ${performerCount} recorder(s) | ${producerCount} producer(s)</div>`;
+  const crewSummaryLine = `<div class="muted">Selected crew: ${songwriterCount} songwriter(s) | ${performerCount} vocalist(s) | ${producerCount} producer(s)</div>`;
   const stageLine = stageInfo
     ? `Stage: ${stageLabel} | ${formatHours(adjustedStageHours)}h${stageDeltaLabel} | ${stageInfo.stamina} stamina each`
     : `Stage: ${stageLabel}`;
@@ -5842,7 +5843,7 @@ function updateTrackRecommendation() {
     ${totalLine}
     ${crewSummaryLine}
     <div class="muted">Recommended: ${rec.theme} / ${rec.mood} | Modifier ${recModifier?.label || "None"} | Project ${rec.projectType}</div>
-    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} | Recorder ${performer ? performer.name : "Unassigned"} | Producer ${producer ? producer.name : "Unassigned"}</div>
+    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} | Vocalist ${performer ? performer.name : "Unassigned"} | Producer ${producer ? producer.name : "Unassigned"}</div>
     <div class="muted">Act assignment happens at release.</div>
     ${warningHtml}
     <div class="tiny">${rec.reasons}</div>

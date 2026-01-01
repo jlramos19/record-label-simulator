@@ -179,8 +179,9 @@ export const TRACK_CREW_RULES = {
 };
 export const ROLE_LABELS = {
   Songwriter: "Songwriter",
-  Performer: "Recorder",
-  Recorder: "Recorder",
+  Performer: "Vocalist",
+  Recorder: "Vocalist",
+  Vocalist: "Vocalist",
   Producer: "Producer"
 };
 export const CCC_SORT_OPTIONS = [
@@ -233,7 +234,7 @@ export const ROLE_ACTIONS = [
     role: "Creator",
     occupations: [
       { name: "Songwriter", actions: [{ verb: "write", detail: "Draft sheet music from Themes in Create view.", status: "live" }] },
-      { name: "Recorder", actions: [{ verb: "record", detail: "Record demos that set the track Mood.", status: "live" }] },
+      { name: "Vocalist", actions: [{ verb: "record", detail: "Record demos that set the track Mood.", status: "live" }] },
       { name: "Producer", actions: [{ verb: "produce", detail: "Master recordings to lock Genre and base Quality.", status: "live" }] }
     ]
   },

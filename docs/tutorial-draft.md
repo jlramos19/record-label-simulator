@@ -38,7 +38,7 @@ Hey, congrats on your new record label. In this game, a "label" is a tiny factor
    - Defaults: Modern Mode (2400), Medium difficulty, Fast time, auto-save every 2 minutes.
 
 2) Sign Creator IDs (Community -> CCC)
-   - Hire at least one Songwriter, Recorder, and Producer.
+   - Hire at least one Songwriter, Vocalist, and Producer.
    - Signing is instant: accept or reject right away.
    - Rejections do not take your money, but the Creator locks until the next 12AM CCC refresh.
 
@@ -122,7 +122,7 @@ Auto mode exists for the players who want an easier, smoother, grindier experien
 - Cheater Mode unlocks economy tuning in the Tutorial, but disables achievements and tasks while active.
 
 ### 3) Sign Creator IDs (Community -> CCC)
-- Use filters to find roles (Songwriter, Recorder, Producer).
+- Use filters to find roles (Songwriter, Vocalist, Producer).
 - Signing cost pulls from your Wallet.
 - Acceptance depends on label Themes/Moods, creator skill, and market heat (ahem, humans are not vending machines in real life).
 - Rejections do not deduct cash, but that Creator is locked until the next 12AM refresh.
@@ -136,7 +136,7 @@ Auto mode exists for the players who want an easier, smoother, grindier experien
 You build tracks in three stages:
 - Sheet: assign a Songwriter, pick Theme and Mood.
   - Modifiers are consumable and apply here.
-- Demo: assign a Recorder; Mood must be set by now.
+- Demo: assign a Vocalist; Mood must be set by now.
 - Master: assign a Producer and set Alignment.
 If you exceed owned studio slots, the game auto-leases extra capacity and adds lease fees to weekly upkeep.
 

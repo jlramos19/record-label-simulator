@@ -36,8 +36,8 @@
 - [x] RLS-CCC-CATHARSIS-001: Add catharsis score (skill + stamina) to creator cards and cap CCC skill levels at 5 with weighted distribution. (Agent Codex, started 2025-12-26 20:27:58 -04:00, completed 2025-12-26 20:27:58 -04:00)
 - [x] RLS-UI-DASHBOARD-LAYOUT-001: Rename Dashboard Focus to Road to the Top and move the overview + pipeline into a footer layout. (Agent Codex, started 2025-12-26 20:02:57 -04:00, completed 2025-12-26 20:02:57 -04:00)
 - [x] RLS-ENDGAME-RIVAL-WIN-001: Track rival CEO Request victory as a loss condition (AI wins the race) and document win/loss tracking. (Agent Codex, started 2025-12-26 19:06:57 -04:00, completed 2025-12-26 19:06:57 -04:00)
-- [ ] RLS-TASKS-AUTO-001: Repurpose quests into Tasks with an auto-fulfill button, enable it when criteria are met, and align task templates to CEO Requests/milestones.
-- [ ] RLS-LEADERBOARD-ENDGAME-001: Add a post-win leaderboard that records chart points, award points, and in-game time to win; flag bailout wins for exclusion.
+- [ ] RLS-TASKS-AUTO-001: Repurpose quests into Tasks with an auto-fulfill button, enable it when criteria are met, and align task templates to CEO Requests/milestones. (Agent Codex, started 2025-12-31 20:12:53 -04:00)
+- [ ] RLS-LEADERBOARD-ENDGAME-001: Add a post-win leaderboard that records chart points, award points, and in-game time to win; flag bailout wins for exclusion. (Agent Codex, started 2025-12-31 20:12:53 -04:00)
 - [ ] RLS-REFACTOR-MODULES-001: Split remaining large modules (`src/app/game.ts`, `src/app/ui.ts`, `src/app/ui/render/index.ts`) into feature-focused files; keep `src/app/game/config.ts` + `src/app/game/names/` as the pattern.
 - [x] RLS-ERA-PERF-001: Replace the Eras side panel with a performance table + chart history, including per-track costs, earnings, and recommended physical runs.
 - [x] RLS-ECONOMY-PHYSICAL-RUN-001: Define and implement the vinyl run estimator (fan/quality/trend/project-type factors, unit cost conversion) plus surfaced recommendations.
@@ -52,7 +52,7 @@
 - [x] RLS-REQ-RACE-002: Expand CEO Requests label race with per-label progress drilldowns and rival tour chart support for annual awards. (Agent Codex, started 2025-12-27 18:45:00 -04:00, completed 2025-12-27 18:45:00 -04:00)
 - [x] RLS-PROMO-AUTO-001: Define auto promo wallet-percentage budgeting for player + rivals and document the rule. (Agent Codex, started 2025-12-26 16:19:17 -04:00, completed 2025-12-26 16:20:34 -04:00)
 - [x] RLS-AUTO-CREATE-001: Add auto-create rules (cash reserve + budget percent, weekly cadence, max tracks, solo/collab) with Create view controls and status disclosure.
-- [ ] RLS-ROLE-RECORDER-001: Replace Performer naming with Recorder across UI copy + docs, keeping role labels consistent in gameplay surfaces.
+- [ ] RLS-ROLE-RECORDER-001: Replace Performer naming with Vocalist across UI copy + docs, keeping role labels consistent in gameplay surfaces. (Agent Codex, started 2025-12-31 20:12:53 -04:00)
 - [x] RLS-PROMO-ACT-001: Add Act promo targeting (act-only or act+content) with visible active act promo tracking.
 - [x] RLS-PROMO-GAPS-001: Surface promo-gap alerts per type for active-era content, plus stale-act warnings tied to popularity/drop risk.
 - [x] RLS-PROMO-BROADCAST-001: Define EyeriS broadcast studio profiles + program tiers (scope, age, theme, mood, alignment) with high-stakes eligibility criteria.
