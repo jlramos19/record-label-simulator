@@ -43,6 +43,9 @@
 - [x] RLS-TASKS-AUTO-001: Repurpose quests into Tasks with an auto-fulfill button, enable it when criteria are met, and align task templates to CEO Requests/milestones. (Agent Codex, started 2025-12-31 20:12:53 -04:00, completed 2025-12-31 21:22:40 -04:00)
 - [x] RLS-LEADERBOARD-ENDGAME-001: Add a post-win leaderboard that records chart points, award points, and in-game time to win; flag bailout wins for exclusion. (Agent Codex, started 2025-12-31 20:12:53 -04:00, completed 2025-12-31 21:22:40 -04:00)
 - [ ] RLS-REFACTOR-MODULES-001: Split remaining large modules (`src/app/game.ts`, `src/app/ui.ts`, `src/app/ui/render/index.ts`) into feature-focused files; keep `src/app/game/config.ts` + `src/app/game/names/` as the pattern.
+- [ ] RLS-REFACTOR-TYPES-001: Replace `// @ts-nocheck` in `src/app/game.ts` + `src/app/ui.ts` by introducing typed boundaries and core state/interfaces.
+- [ ] RLS-OPS-SAVE-MIGRATIONS-001: Formalize save/version migrations with a schema registry tied to `state.meta.version`, including forward/backward compatibility notes.
+- [ ] RLS-OPS-SW-CACHE-BUMP-001: Automate service worker cache versioning (hash or build stamp) to prevent stale asset loads.
 - [x] RLS-ERA-PERF-001: Replace the Eras side panel with a performance table + chart history, including per-track costs, earnings, and recommended physical runs.
 - [x] RLS-ECONOMY-PHYSICAL-RUN-001: Define and implement the vinyl run estimator (fan/quality/trend/project-type factors, unit cost conversion) plus surfaced recommendations.
 - [x] RLS-DASH-QUESTS-001: Align quests with CEO Requests and add Dashboard focus tabs for charts, quests, requests, and eras. (Agent Codex, started 2025-12-26 19:18:43 -04:00, completed 2025-12-26 19:18:43 -04:00)

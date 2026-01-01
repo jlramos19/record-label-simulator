@@ -42,6 +42,7 @@ import {
   showEndScreen
 } from "./ui/dom.js";
 import { showToast } from "./guardrails.js";
+import { getBootStatus } from "./boot-status.js";
 import {
   closeMainMenu,
   openMainMenu,
@@ -1700,7 +1701,12 @@ async function handleExternalStorageClear(root) {
   await refreshExternalStorageStatus(root);
 }
 
-function resolveExternalStoragePrompt() {
+function resolveExternalStoragePrompt(detail = "") {
+  const bootStatus = getBootStatus();
+  if (bootStatus) {
+    const summary = detail || (externalStoragePromptResolve ? "External storage prompt resolved." : "External storage prompt closed.");
+    bootStatus.updateStep("external", { status: "done", detail: summary });
+  }
   if (!externalStoragePromptResolve) return;
   externalStoragePromptResolve();
   externalStoragePromptResolve = null;
@@ -1746,15 +1752,27 @@ async function refreshExternalStoragePromptStatus() {
 }
 
 async function maybePromptExternalStorageOnStart() {
-  if (!isExternalStorageSupported()) return null;
-  if (!$("externalStoragePrompt")) return null;
-  if (isExternalStoragePromptDismissed()) return null;
+  const bootStatus = getBootStatus();
+  if (!isExternalStorageSupported()) {
+    bootStatus?.updateStep("external", { status: "done", detail: "External storage unsupported." });
+    return null;
+  }
+  if (!$("externalStoragePrompt")) {
+    bootStatus?.updateStep("external", { status: "done", detail: "External storage prompt unavailable." });
+    return null;
+  }
+  if (isExternalStoragePromptDismissed()) {
+    bootStatus?.updateStep("external", { status: "done", detail: "External storage skipped." });
+    return null;
+  }
   const status = await refreshExternalStoragePromptStatus();
   if (status?.status === "ready") {
     clearExternalStoragePromptDismissed();
+    bootStatus?.updateStep("external", { status: "done", detail: "External storage ready." });
     return null;
   }
   if (externalStoragePromptPromise) return externalStoragePromptPromise;
+  bootStatus?.updateStep("external", { status: "active", detail: "Choose a folder or skip." });
   openOverlay("externalStoragePrompt");
   externalStoragePromptPromise = new Promise((resolve) => {
     externalStoragePromptResolve = resolve;
@@ -3494,14 +3512,14 @@ function bindGlobalHandlers() {
     const status = await refreshExternalStoragePromptStatus();
     if (status?.status === "ready") {
       closeOverlay("externalStoragePrompt");
-      resolveExternalStoragePrompt();
+      resolveExternalStoragePrompt("External storage ready.");
     }
   });
   on("externalStoragePromptSkipBtn", "click", () => {
     closeOverlay("externalStoragePrompt");
     setExternalStoragePromptDismissed("skipped");
     logEvent("External storage setup skipped. Saves will remain local.", "warn");
-    resolveExternalStoragePrompt();
+    resolveExternalStoragePrompt("External storage skipped; local saves only.");
   });
   on("uiThemeSelect", "change", (e) => {
     applyUiTheme(e.target.value, { persist: true });
@@ -8186,6 +8204,9 @@ function signCreatorById(id) {
 }
 
 export async function initUI() {
+  const bootStatus = getBootStatus();
+  bootStatus?.updateStep("ui", { status: "active", detail: "Wiring UI controls." });
+  bootStatus?.setSummary("Wiring UI...");
   applyUiTheme(getStoredUiTheme());
   checkStorageHealth();
   try {
@@ -8208,6 +8229,9 @@ export async function initUI() {
   updateTimeControlButtons();
   syncTimeControlAria();
   initRouter();
+  bootStatus?.updateStep("ui", { status: "done", detail: "UI wiring complete." });
+  bootStatus?.updateStep("slot", { status: "active", detail: "Checking active slot." });
+  bootStatus?.setSummary("Loading save slot...");
   const stored = Number(sessionStorage.getItem("rls_active_slot"));
   if (stored && stored >= 1 && stored <= SLOT_COUNT) {
     session.activeSlot = stored;
@@ -8218,22 +8242,35 @@ export async function initUI() {
       lastLoggedLabelAlignment = state.label?.alignment || null;
       setLabelAlignmentStatus(state.label?.alignment ? `Current alignment: ${state.label.alignment}.` : "");
       refreshSelectOptions();
+      bootStatus?.updateStep("slot", { status: "done", detail: `Slot ${stored} loaded.` });
+      bootStatus?.updateStep("charts", { status: "active", detail: "Computing charts." });
+      bootStatus?.setSummary("Computing charts...");
       await computeCharts();
+      bootStatus?.updateStep("charts", { status: "done", detail: "Charts ready." });
+      bootStatus?.updateStep("render", { status: "active", detail: "Rendering game UI." });
+      bootStatus?.setSummary("Rendering UI...");
       renderAll();
+      bootStatus?.updateStep("render", { status: "done", detail: "Game UI ready." });
       closeMainMenu();
       recordSessionReady("slot-load");
-      await maybePromptExternalStorageOnStart();
       startGameLoop();
+      void maybePromptExternalStorageOnStart();
       return;
     }
+    bootStatus?.updateStep("slot", { status: "done", detail: "Active slot unavailable; showing menu." });
   }
+  bootStatus?.updateStep("slot", { status: "done", detail: "No active slot; showing menu." });
+  bootStatus?.updateStep("charts", { status: "done", detail: "Skipped (no active slot)." });
+  bootStatus?.updateStep("render", { status: "active", detail: "Rendering main menu." });
+  bootStatus?.setSummary("Preparing main menu...");
   openMainMenu();
   syncGameModeSelect();
   syncDifficultySelect();
   syncStartPreferenceSelects();
   syncUiThemeSelect();
+  bootStatus?.updateStep("render", { status: "done", detail: "Main menu ready." });
   recordSessionReady("main-menu");
-  await maybePromptExternalStorageOnStart();
+  void maybePromptExternalStorageOnStart();
 }
 
 function setupPanelControls() {

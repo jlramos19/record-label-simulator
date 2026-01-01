@@ -1,8 +1,10 @@
 import initUI from "./app/ui.js";
 import { installLiveEditGuardrails, showToast } from "./app/guardrails.js";
 import { UI_REACT_ISLANDS_ENABLED } from "./app/game/config.js";
+import { initBootStatus } from "./app/boot-status.js";
 const releaseStamp = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE : null;
 const guardrails = installLiveEditGuardrails(releaseStamp);
+const bootStatus = initBootStatus();
 const bootGuard = typeof window !== "undefined"
     ? window.__RLS_BOOT_GUARD__
     : null;
@@ -12,6 +14,8 @@ const markBootReady = () => {
 };
 let bootBlocked = false;
 if (typeof window !== "undefined") {
+    bootStatus?.setSummary("Checking boot essentials...");
+    bootStatus?.updateStep("boot", { status: "active", detail: "Checking data globals and DOM roots." });
     const missing = [];
     const hasArray = (value) => Array.isArray(value) && value.length > 0;
     const hasNumber = (value) => Number.isFinite(value);
@@ -62,9 +66,14 @@ if (typeof window !== "undefined") {
             missingRoots.length ? `Missing DOM roots: ${missingRoots.join(", ")}` : ""
         ].filter(Boolean).join(" | ");
         console.error("[boot] Missing dependencies detected.", { missing, missingRoots });
+        bootStatus?.updateStep("boot", { status: "error", detail: detail || "Missing boot dependencies." });
+        bootStatus?.setSummary("Boot dependencies missing.");
         guardrails.handleFatal(new Error(`Boot dependencies missing. ${detail}`));
         markBootReady();
         bootBlocked = true;
+    }
+    else {
+        bootStatus?.updateStep("boot", { status: "done", detail: "Boot checks complete." });
     }
 }
 if (typeof document !== "undefined" && releaseStamp?.patchId) {
@@ -75,9 +84,12 @@ if (typeof window !== "undefined") {
     root.UI_REACT_ISLANDS_ENABLED = UI_REACT_ISLANDS_ENABLED;
 }
 if (!bootBlocked) {
+    bootStatus?.updateStep("ui", { status: "active", detail: "Starting UI." });
+    bootStatus?.setSummary("Starting UI...");
     initUI()
         .then(() => {
         markBootReady();
+        bootStatus?.markReady();
         if (typeof sessionStorage === "undefined")
             return;
         const releaseChanged = sessionStorage.getItem("rls_release_changed");
@@ -91,12 +103,15 @@ if (!bootBlocked) {
     })
         .catch((error) => {
         console.error("initUI error:", error);
+        bootStatus?.updateStep("ui", { status: "error", detail: error?.message || "UI failed to load." });
+        bootStatus?.setSummary("UI failed to load.");
         markBootReady();
         guardrails.handleFatal(error);
     });
 }
 else {
     markBootReady();
+    bootStatus?.markReady();
 }
 if ("serviceWorker" in navigator) {
     const params = new URLSearchParams(window.location.search);
