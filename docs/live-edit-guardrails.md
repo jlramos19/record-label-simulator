@@ -25,6 +25,7 @@ These rules keep the hosted web build runnable while the team iterates quickly.
 - Critical runtime errors surface a console error plus an in-app toast (non-blocking, auto-dismiss) for visibility.
 - If initialization fails, the app surfaces a safe-mode message to avoid silent blank screens.
 - `index.html` includes a boot fallback overlay that triggers on script/style load failures or slow boots; `src/main.ts` marks boot readiness via `window.__RLS_BOOT_GUARD__.markReady()`.
+- Boot fallback + safe-mode screens include a reload option that appends `?sw=off` to bypass service worker cache.
 - Usage sessions now track session IDs, action trails, and captured errors; debug exports include the active session log.
 - Usage sessions flush on pagehide/visibilitychange and when exporting the debug bundle; external mirrors only write on session end/errors.
 - Internal Log includes an Export Debug Bundle button to download usage sessions plus UI/system logs for sharing.

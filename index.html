@@ -2317,6 +2317,11 @@
           + detail
           + "</div>"
         : "";
+      var actions = ""
+        + "<div style=\"display:flex;gap:8px;flex-wrap:wrap;\">"
+        + "<button id=\"rlsBootReload\" style=\"background:#f4f1ea;color:#10151c;border:none;border-radius:999px;padding:8px 16px;cursor:pointer;\">Reload</button>"
+        + "<button id=\"rlsBootReloadNoSw\" style=\"background:#232b35;color:#f4f1ea;border:1px solid #3b444f;border-radius:999px;padding:8px 16px;cursor:pointer;\">Reload (SW off)</button>"
+        + "</div>";
       wrap.innerHTML = ""
         + "<div style=\"max-width:640px;\">"
         + "<h1 style=\"margin:0 0 12px;font-size:22px;\">Loading stalled</h1>"
@@ -2327,11 +2332,19 @@
         + "<li>Try disabling the service worker with <a href=\"?sw=off\" style=\"color:#f4f1ea;\">?sw=off</a>.</li>"
         + "<li>If it keeps happening, clear site data and reload.</li>"
         + "</ul>"
-        + "<button id=\"rlsBootReload\" style=\"background:#f4f1ea;color:#10151c;border:none;border-radius:999px;padding:8px 16px;cursor:pointer;\">Reload</button>"
+        + actions
         + "</div>";
       host.appendChild(wrap);
       var reloadBtn = document.getElementById("rlsBootReload");
       if (reloadBtn) reloadBtn.addEventListener("click", function () { window.location.reload(); });
+      var reloadNoSwBtn = document.getElementById("rlsBootReloadNoSw");
+      if (reloadNoSwBtn) {
+        reloadNoSwBtn.addEventListener("click", function () {
+          var url = new URL(window.location.href);
+          url.searchParams.set("sw", "off");
+          window.location.replace(url.toString());
+        });
+      }
     }
 
     function markReady() {

@@ -1,5 +1,6 @@
 # TODO
 
+- [x] RLS-OPS-SW-OFF-CTA-001: Add reload-with-`?sw=off` actions to boot fallback + safe mode to recover from stale service worker caches. (Agent Codex, started 2026-01-01 06:42:08 -04:00, completed 2026-01-01 06:42:08 -04:00)
 - [x] RLS-OPS-BOOT-GUARD-001: Add a boot watchdog + asset-load fallback to surface nonresponsive loads and make boot dependency checks resilient. (Agent Codex, started 2026-01-01 06:36:17 -04:00, completed 2026-01-01 06:36:17 -04:00)
 - [x] RLS-TRACK-ROLLOUT-FOCUS-COUNT-001: Respect pinned track rollout focuses in the picker details and count scheduled promo events toward CEO Request progress. (Agent Codex, started 2025-12-31 22:06:22 -04:00, completed 2025-12-31 22:06:22 -04:00)
 - [x] RLS-ACTS-LAYOUT-001: Split the Acts view into Create Acts and Active/Inactive roster panels. (Agent Codex, started 2025-12-31 19:33:22 -04:00, completed 2025-12-31 19:33:22 -04:00)

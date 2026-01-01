@@ -145,13 +145,24 @@ function showSafeMode(error) {
       <h1 style="margin:0 0 12px;font-size:22px;">Safe Mode: UI failed to load</h1>
       <div style="margin-bottom:12px;opacity:0.8;">The game state was preserved. Fix the error, then reload.</div>
       <div style="margin-bottom:16px;white-space:pre-wrap;opacity:0.7;">${message}</div>
-      <button id="guardrailReloadBtn" style="background:#f4f1ea;color:#10151c;border:none;border-radius:999px;padding:8px 16px;cursor:pointer;">Reload</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="guardrailReloadBtn" style="background:#f4f1ea;color:#10151c;border:none;border-radius:999px;padding:8px 16px;cursor:pointer;">Reload</button>
+        <button id="guardrailReloadNoSwBtn" style="background:#232b35;color:#f4f1ea;border:1px solid #3b444f;border-radius:999px;padding:8px 16px;cursor:pointer;">Reload (SW off)</button>
+      </div>
     </div>
   `;
     document.body.appendChild(container);
     const reloadBtn = document.getElementById("guardrailReloadBtn");
     if (reloadBtn)
         reloadBtn.addEventListener("click", () => window.location.reload());
+    const reloadNoSwBtn = document.getElementById("guardrailReloadNoSwBtn");
+    if (reloadNoSwBtn) {
+        reloadNoSwBtn.addEventListener("click", () => {
+            const url = new URL(window.location.href);
+            url.searchParams.set("sw", "off");
+            window.location.replace(url.toString());
+        });
+    }
 }
 function isExtensionReference(value) {
     if (!value || typeof value !== "string")
