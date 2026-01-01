@@ -11,6 +11,10 @@ Filming studios are production facilities required for multimedia promo types.
 - Timeframes: Morning 06:00-12:00 (2 slots), Afternoon 12:00-18:00 (1 slot), Night 18:00-24:00 (2 slots).
 - Slots are booked for the current timeframe window and free at the next window boundary.
 
+## Pricing
+- Filming booking fees scale with slot availability for the target timeframe.
+- High availability discounts fees down to free; scarcity adds a premium as slots fill.
+
 ## Filming studio catalog (MVP)
 - EyeriS Filming Studio: Bloomville
   - Coverage: Annglora (Bloomville Capital)

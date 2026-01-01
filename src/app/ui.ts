@@ -221,6 +221,7 @@ const {
   recordTrackPromoCost,
   getPromoFacilityForType,
   getPromoFacilityAvailability,
+  getPromoFacilityPriceMultiplier,
   reservePromoFacilitySlot,
   scheduleManualPromoEvent,
   ensureMarketCreators,
@@ -2472,16 +2473,27 @@ function setPromoBudgetForType(typeId, value, inflationMultiplier) {
   return normalized;
 }
 
-function getPromoBudgetsForTypes(typeIds, inflationMultiplier) {
+function getPromoBudgetsForTypes(typeIds, inflationMultiplier, options = {}) {
   const list = Array.isArray(typeIds) ? typeIds : [typeIds];
   const budgets = {};
+  const adjusted = {};
+  const multipliers = {};
+  let baseTotal = 0;
   let total = 0;
+  const epochMs = Number.isFinite(options.epochMs) ? options.epochMs : state.time?.epochMs;
   list.filter(Boolean).forEach((typeId) => {
     const budget = getPromoBudgetForType(typeId, inflationMultiplier);
+    const facilityId = getPromoFacilityForType(typeId);
+    const rawMultiplier = facilityId ? getPromoFacilityPriceMultiplier(facilityId, epochMs).multiplier : 1;
+    const multiplier = Number.isFinite(rawMultiplier) ? rawMultiplier : 1;
+    const adjustedCost = Math.round(budget * multiplier);
     budgets[typeId] = budget;
-    total += budget;
+    adjusted[typeId] = adjustedCost;
+    multipliers[typeId] = multiplier;
+    baseTotal += budget;
+    total += adjustedCost;
   });
-  return { budgets, total };
+  return { budgets, baseTotal, total, adjusted, multipliers };
 }
 
 function resolvePromoProjectFromTrack(track) {
@@ -2744,14 +2756,43 @@ function formatPromoFacilityWindowLabel(availability) {
   return `${prefix}${availability.timeframeLabel}`;
 }
 
+function formatPromoFacilityPricing(multiplier) {
+  if (!Number.isFinite(multiplier) || multiplier === 1) return "";
+  if (multiplier <= 0) return "pricing free";
+  return `pricing x${multiplier.toFixed(2)}`;
+}
+
+function buildPromoPricingNote(typeIds, multipliers = {}) {
+  const list = Array.isArray(typeIds) ? typeIds : [typeIds];
+  const byFacility = new Map();
+  list.filter(Boolean).forEach((typeId) => {
+    const facilityId = getPromoFacilityForType(typeId);
+    if (!facilityId) return;
+    const multiplier = Number.isFinite(multipliers?.[typeId]) ? multipliers[typeId] : 1;
+    if (multiplier === 1) return;
+    if (!byFacility.has(facilityId)) byFacility.set(facilityId, multiplier);
+  });
+  if (!byFacility.size) return "";
+  return Array.from(byFacility.entries())
+    .map(([facilityId, multiplier]) => {
+      const label = facilityId === "broadcast" ? "Broadcast pricing" : "Filming pricing";
+      if (multiplier <= 0) return `${label} free`;
+      return `${label} x${multiplier.toFixed(2)}`;
+    })
+    .join(" | ");
+}
+
 function buildPromoFacilityHint(typeId) {
   const facility = getPromoFacilityForType(typeId);
   if (!facility) return "";
   const scheduleState = getPromoScheduleState();
   const availability = getPromoFacilityAvailability(facility, scheduleState.complete ? scheduleState.epochMs : undefined);
+  const pricing = getPromoFacilityPriceMultiplier(facility, scheduleState.complete ? scheduleState.epochMs : undefined);
+  const priceLabel = formatPromoFacilityPricing(pricing?.multiplier);
   const label = facility === "broadcast" ? "Broadcast slots" : "Filming slots";
   const windowLabel = formatPromoFacilityWindowLabel(availability);
-  return ` | ${label} (${windowLabel}): ${availability.available}/${availability.capacity}`;
+  const priceSuffix = priceLabel ? ` | ${priceLabel}` : "";
+  return ` | ${label} (${windowLabel}): ${availability.available}/${availability.capacity}${priceSuffix}`;
 }
 
 function getPromoFacilityNeeds(typeIds) {
@@ -2773,10 +2814,13 @@ function buildPromoFacilityHints(typeIds) {
   const availabilityEpoch = scheduleState.complete ? scheduleState.epochMs : undefined;
   return entries.map(([facilityId, count]) => {
     const availability = getPromoFacilityAvailability(facilityId, availabilityEpoch);
+    const pricing = getPromoFacilityPriceMultiplier(facilityId, availabilityEpoch);
+    const priceLabel = formatPromoFacilityPricing(pricing?.multiplier);
     const label = facilityId === "broadcast" ? "Broadcast slots" : "Filming slots";
     const neededLabel = count > 1 ? ` (need ${count})` : "";
     const windowLabel = formatPromoFacilityWindowLabel(availability);
-    return `${label} (${windowLabel}): ${availability.available}/${availability.capacity}${neededLabel}`;
+    const priceSuffix = priceLabel ? ` | ${priceLabel}` : "";
+    return `${label} (${windowLabel}): ${availability.available}/${availability.capacity}${neededLabel}${priceSuffix}`;
   }).join(" | ");
 }
 
@@ -2930,7 +2974,9 @@ function updatePromoTypeHint(root) {
   syncPromoTypeCards(scope, selectedTypes, lockouts);
   syncPromoBudgetCards(scope, { trackContext, lockouts, inflationMultiplier });
   const effectiveTypes = derivePromoTypesForRun(selectedTypes);
-  const { budgets, total } = getPromoBudgetsForTypes(effectiveTypes, inflationMultiplier);
+  const scheduleState = getPromoScheduleState();
+  const pricingEpoch = scheduleState.complete ? scheduleState.epochMs : undefined;
+  const { budgets, total } = getPromoBudgetsForTypes(effectiveTypes, inflationMultiplier, { epochMs: pricingEpoch });
   const totalSpend = formatMoney(total);
   const perTypeSpend = selectedTypes.length === 1 ? formatMoney(budgets[effectiveTypes[0]]) : null;
   if (hint) {
@@ -7645,8 +7691,14 @@ function runPromotion() {
       return;
     }
   }
-  const { budgets, total: totalCost } = getPromoBudgetsForTypes(effectiveTypes, inflationMultiplier);
-  if (!totalCost || Number.isNaN(totalCost)) {
+  const scheduleState = getPromoScheduleState();
+  const pricingEpoch = scheduleState.complete ? scheduleState.epochMs : undefined;
+  const { budgets, baseTotal, total: totalCost, multipliers } = getPromoBudgetsForTypes(
+    effectiveTypes,
+    inflationMultiplier,
+    { epochMs: pricingEpoch }
+  );
+  if (!baseTotal || Number.isNaN(baseTotal)) {
     logEvent("Promo budget total must be greater than 0.", "warn");
     return;
   }
@@ -7681,7 +7733,6 @@ function runPromotion() {
     logEvent("Track is not active on the market.", "warn");
     return;
   }
-  const scheduleState = getPromoScheduleState();
   if (scheduleState.wantsSchedule && !scheduleState.complete) {
     logEvent("Select a schedule week, day, and timeframe or clear them to run now.", "warn");
     return;
@@ -7896,13 +7947,15 @@ function runPromotion() {
   const promoLabels = effectiveTypes.map((promoType) => getPromoTypeDetails(promoType).label).join(", ");
   const verb = effectiveTypes.length > 1 ? "Promo pushes funded" : "Promo push funded";
   const spendNote = effectiveTypes.length > 1 ? ` Total spend: ${formatMoney(totalCost)}.` : "";
+  const pricingNote = buildPromoPricingNote(effectiveTypes, multipliers);
+  const pricingSuffix = pricingNote ? ` ${pricingNote}.` : "";
   const releaseNote = trackContext.isScheduled ? ` Release on ${releaseDate}.` : "";
   const targetLabel = trackContext.track
     ? `"${trackContext.track.title}"`
     : project
       ? `Project "${project.projectName}"`
       : `Act "${act.name}"`;
-  logEvent(`${verb} for ${targetLabel} (${promoLabels}) (+${boostWeeks} weeks).${spendNote}${releaseNote}`);
+  logEvent(`${verb} for ${targetLabel} (${promoLabels}) (+${boostWeeks} weeks).${spendNote}${pricingSuffix}${releaseNote}`);
   renderAll();
 }
 

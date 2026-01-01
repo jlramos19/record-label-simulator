@@ -4639,6 +4639,36 @@ function getPromoFacilityAvailability(facilityId, epochMs = state.time.epochMs) 
         isUpcoming: Boolean(window && window.startsAt > epochMs)
     };
 }
+const SLOT_PRICE_MIN_MULTIPLIER = 0;
+const SLOT_PRICE_MAX_MULTIPLIER = 2;
+function resolveSlotAvailabilityPricing(availability, options = {}) {
+    const minMultiplier = Number.isFinite(options.minMultiplier) ? options.minMultiplier : SLOT_PRICE_MIN_MULTIPLIER;
+    const maxMultiplier = Number.isFinite(options.maxMultiplier) ? options.maxMultiplier : SLOT_PRICE_MAX_MULTIPLIER;
+    const capacity = Math.max(0, Math.floor(Number(availability?.capacity || 0)));
+    if (!capacity) {
+        return { multiplier: 1, availabilityRatio: 0, scarcity: 0, capacity, available: 0 };
+    }
+    const available = clamp(Math.floor(Number(availability?.available || 0)), 0, capacity);
+    const availabilityRatio = clamp(available / capacity, 0, 1);
+    const scarcity = clamp(1 - availabilityRatio, 0, 1);
+    const range = maxMultiplier - minMultiplier;
+    const multiplier = clamp(minMultiplier + scarcity * range, minMultiplier, maxMultiplier);
+    return { multiplier, availabilityRatio, scarcity, capacity, available };
+}
+function getPromoFacilityPriceMultiplier(facilityId, epochMs = state.time.epochMs) {
+    if (!facilityId) {
+        return { multiplier: 1, availabilityRatio: 0, scarcity: 0, capacity: 0, available: 0, availability: null };
+    }
+    const availability = getPromoFacilityAvailability(facilityId, epochMs);
+    const pricing = resolveSlotAvailabilityPricing(availability);
+    return { ...pricing, availability, facilityId };
+}
+function resolvePromoFacilityBudgetCost(promoType, budget, epochMs = state.time.epochMs) {
+    const facilityId = getPromoFacilityForType(promoType);
+    const multiplier = facilityId ? getPromoFacilityPriceMultiplier(facilityId, epochMs).multiplier : 1;
+    const cost = Math.round(Math.max(0, Number(budget || 0)) * multiplier);
+    return { promoType, facilityId, multiplier, cost };
+}
 function reservePromoFacilitySlot(facilityId, promoType, trackId, options = {}) {
     if (!facilityId)
         return { ok: true, booking: null };
@@ -12663,7 +12693,11 @@ function computeTourProjection({ draft, act, era, venue, scheduledAt, anchor }) 
     const travel = Math.round(tier.travelBase);
     const production = Math.round(attendance * 0.5);
     const marketing = Math.round(grossTicket * 0.03);
-    const costs = Math.round((tier.venueFee || 0) + staffing + travel + production + marketing);
+    const venueFeeBase = Math.round(Number(tier.venueFee || 0));
+    const venuePricing = getTourVenuePriceMultiplier(venue?.id || null, scheduledAt);
+    const venueFeeMultiplier = Number.isFinite(venuePricing.multiplier) ? venuePricing.multiplier : 1;
+    const venueFee = Math.round(venueFeeBase * venueFeeMultiplier);
+    const costs = Math.round(venueFee + staffing + travel + production + marketing);
     const profit = Math.round(revenue - costs);
     return {
         attendance,
@@ -12674,6 +12708,9 @@ function computeTourProjection({ draft, act, era, venue, scheduledAt, anchor }) 
         merch,
         sponsorship,
         revenue,
+        venueFee,
+        venueFeeBase,
+        venueFeeMultiplier,
         costs,
         profit
     };
@@ -13048,7 +13085,13 @@ function bookTourDate({ draftId, venueId, weekNumber, dayIndex }) {
     ensureTouringStore().bookings.push(booking);
     draft.status = "Booked";
     refreshTourLegs(draft.id);
-    logEvent(`Tour booked (${draft.id}): ${act.name} at ${venue.label} (Week ${week}, ${DAYS[day]}).`);
+    const venueFeeMultiplier = Number.isFinite(projection?.venueFeeMultiplier) ? projection.venueFeeMultiplier : 1;
+    const feeNote = venueFeeMultiplier !== 1
+        ? venueFeeMultiplier <= 0
+            ? " Venue fee waived (open slots)."
+            : ` Venue fee x${venueFeeMultiplier.toFixed(2)} (slot demand).`
+        : "";
+    logEvent(`Tour booked (${draft.id}): ${act.name} at ${venue.label} (Week ${week}, ${DAYS[day]}).${feeNote}`);
     return { ok: true, booking };
 }
 function removeTourBooking(bookingId) {
@@ -13496,6 +13539,14 @@ function getTourVenueAvailability(venueId, epochMs) {
     const used = bookings.filter((booking) => booking?.venueId === venueId && tourDayKey(booking?.scheduledAt) === dayKey).length;
     const capacity = tourVenueSlotsPerDay(venue);
     return { capacity, used, available: Math.max(0, capacity - used), dayKey };
+}
+function getTourVenuePriceMultiplier(venueId, epochMs = state.time.epochMs) {
+    if (!venueId) {
+        return { multiplier: 1, availabilityRatio: 0, scarcity: 0, capacity: 0, available: 0, availability: null };
+    }
+    const availability = getTourVenueAvailability(venueId, epochMs);
+    const pricing = resolveSlotAvailabilityPricing(availability);
+    return { ...pricing, availability, venueId };
 }
 function resolveTourStaffingBoost(crew) {
     const list = Array.isArray(crew) ? crew.filter(Boolean) : [];
@@ -17416,9 +17467,11 @@ function resolveQuestAutoFulfillState(quest) {
         const details = getPromoTypeDetails(promoType);
         if (details?.requiresTrack)
             return { ok: false, reason: "No act-ready promo type available." };
-        const cost = Math.max(0, Math.round(details?.cost || 0));
-        if (cost > 0 && state.label.cash < cost) {
-            return { ok: false, reason: `Need ${formatMoney(cost)} for promo.` };
+        const budget = Math.max(0, Math.round(details?.cost || 0));
+        const pricing = resolvePromoFacilityBudgetCost(promoType, budget);
+        const totalCost = pricing.cost;
+        if (totalCost > 0 && state.label.cash < totalCost) {
+            return { ok: false, reason: `Need ${formatMoney(totalCost)} for promo.` };
         }
         return { ok: true, reason: "" };
     }
@@ -17501,8 +17554,10 @@ function autoFulfillQuest(questId) {
             return { ok: false, reason };
         }
         const budget = Math.max(0, Math.round(details?.cost || 0));
-        if (budget > 0 && state.label.cash < budget) {
-            const reason = `Need ${formatMoney(budget)} for promo.`;
+        const pricing = resolvePromoFacilityBudgetCost(promoType, budget);
+        const totalCost = pricing.cost;
+        if (totalCost > 0 && state.label.cash < totalCost) {
+            const reason = `Need ${formatMoney(totalCost)} for promo.`;
             logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
             return { ok: false, reason };
         }
@@ -17520,8 +17575,8 @@ function autoFulfillQuest(questId) {
                 return { ok: false, reason };
             }
         }
-        if (budget > 0) {
-            state.label.cash -= budget;
+        if (totalCost > 0) {
+            state.label.cash -= totalCost;
             if (state.label.wallet)
                 state.label.wallet.cash = state.label.cash;
         }
@@ -18541,7 +18596,11 @@ function buildRivalTourProjection({ rival, venue, anchor, scheduledAt, seed }) {
     const travel = Math.round(tier.travelBase);
     const production = Math.round(attendance * 0.5);
     const marketing = Math.round(grossTicket * 0.03);
-    const costs = Math.round((tier.venueFee || 0) + staffing + travel + production + marketing);
+    const venueFeeBase = Math.round(Number(tier.venueFee || 0));
+    const venuePricing = getTourVenuePriceMultiplier(venue?.id || null, scheduledAt);
+    const venueFeeMultiplier = Number.isFinite(venuePricing.multiplier) ? venuePricing.multiplier : 1;
+    const venueFee = Math.round(venueFeeBase * venueFeeMultiplier);
+    const costs = Math.round(venueFee + staffing + travel + production + marketing);
     const profit = Math.round(revenue - costs);
     return {
         attendance,
@@ -18552,6 +18611,9 @@ function buildRivalTourProjection({ rival, venue, anchor, scheduledAt, seed }) {
         merch,
         sponsorship,
         revenue,
+        venueFee,
+        venueFeeBase,
+        venueFeeMultiplier,
         costs,
         profit
     };
@@ -19970,7 +20032,9 @@ function processRivalPromoEntry(entry) {
     const isProjectPromo = Boolean(market && projectMarkets.length > 1 && market.projectName);
     const walletCash = rival.wallet?.cash ?? rival.cash;
     const budget = computeAutoPromoBudget(walletCash, AI_PROMO_BUDGET_PCT);
-    if (!budget || walletCash < budget || rival.cash < budget)
+    const pricing = resolvePromoFacilityBudgetCost(promoType, budget);
+    const totalCost = pricing.cost;
+    if (!budget || walletCash < totalCost || rival.cash < totalCost)
         return false;
     const facilityId = getPromoFacilityForType(promoType);
     if (facilityId) {
@@ -19978,7 +20042,7 @@ function processRivalPromoEntry(entry) {
         if (!reservation.ok)
             return false;
     }
-    rival.cash -= budget;
+    rival.cash -= totalCost;
     if (!rival.wallet)
         rival.wallet = { cash: rival.cash };
     rival.wallet.cash = rival.cash;
@@ -20509,7 +20573,8 @@ function runAutoPromoForPlayer() {
         if (!resolvedTypes.length)
             return;
         const budget = computeAutoPromoBudget(walletCash, pct);
-        const totalCost = budget * resolvedTypes.length;
+        const pricing = resolvedTypes.map((promoType) => resolvePromoFacilityBudgetCost(promoType, budget));
+        const totalCost = pricing.reduce((sum, entry) => sum + entry.cost, 0);
         if (!budget || remainingCash < totalCost || state.label.cash < totalCost)
             return;
         const facilityNeeds = promoFacilityNeeds(resolvedTypes);
@@ -20634,6 +20699,23 @@ function runAutoPromoForPlayer() {
         });
         const spendEach = formatMoney(budget);
         const totalSpend = formatMoney(totalCost);
+        const pricingByFacility = pricing.reduce((acc, entry) => {
+            if (!entry?.facilityId || !Number.isFinite(entry.multiplier) || entry.multiplier === 1)
+                return acc;
+            if (!acc.has(entry.facilityId))
+                acc.set(entry.facilityId, entry.multiplier);
+            return acc;
+        }, new Map());
+        const pricingNote = pricingByFacility.size
+            ? Array.from(pricingByFacility.entries())
+                .map(([facilityId, multiplier]) => {
+                const label = promoFacilityLabel(facilityId);
+                if (multiplier <= 0)
+                    return `${label} pricing free`;
+                return `${label} pricing x${multiplier.toFixed(2)}`;
+            })
+                .join(" | ")
+            : "";
         const scheduleLabel = reservations.find((booking) => booking?.windowLabel)?.windowLabel
             || formatDate(state.time.epochMs);
         const bookingLine = bookingNotes.length ? ` Booked ${bookingNotes.join(" | ")}.` : "";
@@ -20643,7 +20725,8 @@ function runAutoPromoForPlayer() {
                 ? `Project "${projectSpec.projectName}"`
                 : `Act "${act?.name || "Unknown"}"`;
         const slotLabel = `Slot ${target.index + 1}`;
-        logEvent(`Auto promo scheduled (${slotLabel}): ${promoLabels} for ${targetLabel} on ${scheduleLabel}. Budget ${spendEach} each (${totalSpend} total).${bookingLine} +${boostWeeks} weeks.`);
+        const pricingSuffix = pricingNote ? ` ${pricingNote}.` : "";
+        logEvent(`Auto promo scheduled (${slotLabel}): ${promoLabels} for ${targetLabel} on ${scheduleLabel}. Budget ${spendEach} each (${totalSpend} total).${pricingSuffix}${bookingLine} +${boostWeeks} weeks.`);
     });
 }
 function pickRivalAutoPromoTrack(rival) {
@@ -20712,9 +20795,11 @@ function runAutoPromoForRivals() {
             return;
         const walletCash = rival.wallet?.cash ?? rival.cash;
         const budget = computeAutoPromoBudget(walletCash, pct);
-        if (!budget || walletCash < budget || rival.cash < budget)
-            return;
         const promoType = AUTO_PROMO_RIVAL_TYPE;
+        const pricing = resolvePromoFacilityBudgetCost(promoType, budget);
+        const totalCost = pricing.cost;
+        if (!budget || walletCash < totalCost || rival.cash < totalCost)
+            return;
         const promoDetails = getPromoTypeDetails(promoType);
         if (scheduledRelease && promoType === "musicVideo")
             return;
@@ -20726,7 +20811,7 @@ function runAutoPromoForRivals() {
             if (!reservation.ok)
                 return;
         }
-        rival.cash -= budget;
+        rival.cash -= totalCost;
         if (!rival.wallet)
             rival.wallet = { cash: rival.cash };
         rival.wallet.cash = rival.cash;
@@ -27294,7 +27379,7 @@ function startGameLoop() {
     gameLoopStarted = true;
     requestAnimationFrame(tick);
 }
-export { getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_RELEASE_STATUS, TRACK_RELEASE_STATUS_LABELS, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, advanceWeeksFast, autoFulfillQuest, resolveQuestAutoFulfillState, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, buildRolloutPlanAdoptionOdds, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, getDistributionSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, resolveEraStageDisplay, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getWinLeaderboard, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapAtForDistribution, getReleaseAsapHours, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, importSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, syncTrackReleaseStatus, getMarketTrackById, getMarketTrackByTrackId, getArchivedMarketTrackById, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseShelved, isTrackReleaseUnreleased, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, logTimeJumpSummary, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, registerAct, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, evaluatePhysicalEligibility, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, checkStorageHealth, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, startTimeJumpSummary, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
+export { getActNameTranslation, hasHangulText, lookupActNameDetails, renderActNameByNation, ACT_PROMO_WARNING_WEEKS, ACHIEVEMENTS, ACHIEVEMENT_TARGET, CREATOR_FALLBACK_EMOJI, CREATOR_FALLBACK_ICON, DAY_MS, DEFAULT_GAME_DIFFICULTY, DEFAULT_GAME_MODE, DEFAULT_TRACK_SLOT_VISIBLE, MARKET_ROLES, QUARTERS_PER_HOUR, RESOURCE_TICK_LEDGER_LIMIT, ROLE_ACTIONS, ROLE_ACTION_STATUS, STAGE_STUDIO_LIMIT, STAMINA_OVERUSE_LIMIT, STUDIO_COLUMN_SLOT_COUNT, TRACK_RELEASE_STATUS, TRACK_RELEASE_STATUS_LABELS, TRACK_ROLE_KEYS, TRACK_ROLE_TARGETS, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, UNASSIGNED_CREATOR_EMOJI, UNASSIGNED_CREATOR_LABEL, UNASSIGNED_SLOT_LABEL, WEEKLY_SCHEDULE, acceptBailout, addRolloutStrategyDrop, addRolloutStrategyEvent, advanceHours, advanceWeeksFast, autoFulfillQuest, resolveQuestAutoFulfillState, autoGenerateTourDates, alignmentClass, assignToSlot, assignTrackAct, attemptSignCreator, buildCalendarProjection, buildLabelAchievementProgress, buildRolloutPlanAdoptionOdds, bookTourDate, buildPromoProjectKey, buildPromoProjectKeyFromTrack, buildMarketCreators, buildStudioEntries, buildTrackHistoryScopes, chartScopeLabel, chartWeightsForScope, checkPrimeShowcaseEligibility, clamp, clearSlot, collectTrendRanking, commitSlotChange, computeAudienceEngagementRate, computeAudienceWeeklyBudget, computeAudienceWeeklyHours, computeAutoCreateBudget, computeAutoPromoBudget, computeCreatorCatharsisScore, computeEraProfitabilitySummaries, computeLabelConsumptionShares, computeLabelKpiSnapshot, computeLabelProjectionSummary, computePlayerLabelNetSummary, computeProjectProfitabilitySummaries, refreshLabelMetrics, getCreatorCatharsisInactivityStatus, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeChartProjectionForScope, computeCharts, getAudienceChunksSnapshot, getDistributionSnapshot, computePopulationSnapshot, computeTourDraftSummary, computeTourProjection, estimateCreatorMaxConsecutiveTourDates, estimateTourDateStaminaShare, resolveTourDateStaminaCost, resolveTourStaffingBoost, countryColor, countryDemonym, resolveLabelAcronym, createRolloutStrategyFromTemplate, createRolloutStrategyForEra, createTrack, createTourDraft, evaluateProjectTrackConstraints, creatorInitials, currentYear, declineBailout, deleteSlot, deleteTourDraft, endEraById, ensureMarketCreators, injectCheaterMarketCreators, ensureTrackSlotArrays, ensureTrackSlotVisibility, expandRolloutStrategy, formatCount, formatDate, formatGenreKeyLabel, formatGenreLabel, formatHourCountdown, formatMoney, formatCompactDate, formatCompactDateRange, formatShortDate, formatWeekRangeLabel, getAct, getActPopularityLeaderboard, getActiveEras, getAdjustedStageHours, getAdjustedTotalStageHours, getBusyCreatorIds, getCommunityLabelRankingLimit, getCommunityTrendRankingLimit, getCreator, getCreatorPortraitUrl, getCreatorSignLockout, getCreatorStaminaSpentToday, getCrewStageStats, getEraById, getFocusedEra, resolveEraStageDisplay, getGameDifficulty, getGameMode, getLabelRanking, getLatestActiveEraForAct, getLossArchives, getWinLeaderboard, getModifier, getModifierInventoryCount, getOwnedStudioSlots, getPromoFacilityAvailability, getPromoFacilityPriceMultiplier, getPromoFacilityForType, getProjectTrackLimits, getReleaseAsapAt, getReleaseAsapAtForDistribution, getReleaseAsapHours, getReleaseDistributionFee, getReleaseRushFee, getRivalByName, getRolloutPlanById, getRolloutPlanningEra, getRolloutStrategiesForEra, getRolloutStrategyById, getSlotData, importSlotData, getSlotGameMode, getSlotValue, getStageCost, getStageStudioAvailable, getStudioAvailableSlots, getStudioMarketSnapshot, getStudioUsageCounts, getTopActSnapshot, getTopTrendGenre, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, syncTrackReleaseStatus, getMarketTrackById, getMarketTrackByTrackId, getArchivedMarketTrackById, getArchivedMarketTrackByTrackId, getTrackRoleIds, getTrackRoleIdsFromSlots, getSelectedTourDraft, getTourDraftById, getTourTierConfig, getTourVenueAvailability, getTourVenueById, getWorkOrderCreatorIds, handleFromName, hoursUntilNextScheduledTime, isAwardPerformanceBidWindowOpen, isMasteringTrack, isTrackReleaseReleased, isTrackReleaseScheduled, isTrackReleaseShelved, isTrackReleaseUnreleased, annualAwardNomineeRevealAt, buildAnnualAwardNomineesFromLedger, listAnnualAwardDefinitions, listAwardShows, listFromIds, listRolloutPlanLibrary, listTourBookings, listTourDrafts, listTourTiers, listTourVenues, listGameDifficulties, listGameModes, loadLossArchives, loadSlot, logEvent, logTimeJumpSummary, makeAct, makeActName, makeActNameEntry, makeEraName, makeGenre, makeLabelName, makeProjectTitle, makeTrackTitle, markCreatorPromo, registerAct, recordPromoUsage, recordTrackPromoCost, recordPromoContent, markUiLogStart, moodFromGenre, normalizeCreator, normalizeProjectName, normalizeProjectType, normalizeRoleIds, PROJECT_TITLE_TRANSLATIONS, parseAutoPromoSlotTarget, parsePromoProjectKey, parseTrackRoleTarget, pickDistinct, postCreatorSigned, placeAwardPerformanceBid, purchaseModifier, pruneCreatorSignLockouts, qualityGrade, rankCandidates, evaluatePhysicalEligibility, recommendActForTrack, recommendPhysicalRun, recommendReleasePlan, recommendTrackPlan, releaseTrack, releasedTracks, resolveAwardShowPerformanceBidWindow, resolveAwardShowPerformanceQuality, resolveTrackReleaseType, resolveTourAnchor, removeTourBooking, reservePromoFacilitySlot, scheduleManualPromoEvent, resetState, roleLabel, safeAvatarUrl, checkStorageHealth, saveToActiveSlot, scheduleRelease, scrapTrack, scoreGrade, session, setCheaterEconomyOverride, setCheaterMode, setFocusEraById, setSelectedRolloutStrategyId, selectTourDraft, setSlotTarget, setTouringBalanceEnabled, setTimeSpeed, shortGameModeLabel, slugify, staminaRequirement, startDemoStage, startEraForAct, startGameLoop, startMasterStage, startTimeJumpSummary, state, syncLabelWallets, themeFromGenre, trackKey, trackRoleLimit, touringBalanceEnabled, trendAlignmentLeader, updateTourDraft, uid, validateTourBooking, weekStartEpochMs, weekIndex, weekNumberFromEpochMs, };
 if (typeof window !== "undefined") {
     window.rlsState = state;
     window.rlsBuildCalendarProjection = buildCalendarProjection;

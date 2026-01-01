@@ -2,6 +2,7 @@
 
 ## 2026-01-01 (RLS-PATCH-20260101-0207Z)
 - Track rollout focus panels now respect pinned template focuses, and CEO Request promo progress counts scheduled promo events for players alongside executed promos. [PN-20260101-AC147]
+- Promo facility and tour venue booking fees now scale with slot availability, discounting down to free when capacity is open and adding scarcity premiums as slots fill. [PN-20260101-AC148]
 
 ## 2026-01-01 (RLS-PATCH-20260101-0141Z)
 - Touring concert-interest now weights rotating age-group segments using population snapshot concert baselines to stabilize demand shifts. [PN-20260101-AC146]
@@ -925,6 +926,7 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20260101-AC148 (2026-01-01 03:54Z): Promo facility and tour venue booking fees now scale with slot availability, discounting down to free when capacity is open and adding scarcity premiums as slots fill.
 - PN-20260101-AC147 (2026-01-01 02:07Z): Track rollout focus panels now respect pinned template focuses, and CEO Request promo progress counts scheduled promo events for players alongside executed promos.
 - PN-20260101-AC146 (2026-01-01 01:41Z): Touring concert-interest now weights rotating age-group segments using population snapshot concert baselines to stabilize demand shifts.
 - PN-20251231-AC145 (2025-12-31 23:59Z): Founding vs Modern now apply mode-specific difficulty tuning (cash/bailouts, rival pace/ambition/cash floors) and roster seeding (1/1/1 vs 15/10/5) while keeping the same easy/medium/hard IDs.

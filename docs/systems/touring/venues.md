@@ -33,6 +33,10 @@ Venue records live in `assets/js/data/constants.js` and expose:
 - Revenue is derived from attendance, ticket price bands, and merch attach rates.
 - Under-booking and over-booking both show warnings with projected impact.
 
+## Booking fee pricing
+- Venue booking fees scale with slot availability on the target date.
+- High availability discounts fees down to free; scarcity adds a premium as slots fill.
+
 ## Pacing rules (draft)
 - Lead time target: 2-6 weeks before the first date (warning if outside).
 - Cadence target: max 2 dates per week; minimum 1 rest day between dates (warning if outside).
@@ -87,6 +91,7 @@ gross_ticket = attendance * ticket_price
 merch = attendance * merch_attach_rate * merch_spend_per_fan
 sponsorship = tier_sponsor_base[tier] * era_momentum
 
+venue_fee = tier_venue_fee * availability_multiplier
 revenue = gross_ticket + merch + sponsorship
 costs = venue_fee + staffing + travel + production + marketing
 profit = revenue - costs

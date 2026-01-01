@@ -11,6 +11,7 @@ Provide a quick, in-world balance check using the live MVP formulas and default 
 - Stage multipliers: crew +10% per extra creator; skill multiplier range 0.85 to 1.45.
 - Promo budget: `promoWeekBudgetStep = 1200`, `promoWeekBase = 1`, `promoWeeksMin = 1`, `promoWeeksMax = 4`.
 - Promo costs (per promo type): eyeriSocial post 600, interview 1200, live performance 3000, music video 7500, prime showcase 15000.
+- Promo booking fees scale with broadcast/filming slot availability (vacancy discounts down to free, scarcity premiums).
 - Physical fees: `physicalReleaseFee = 500`, `physicalSingle = 4.99`, `physicalUnitCostRatio = 0.35`, `physicalUnitCostMin = 0.5`.
 
 ## Baseline assumptions

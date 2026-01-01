@@ -6,6 +6,7 @@ This document defines the structure and slot model for the web MVP and near-term
 - Structures are facilities with owners, tiers, and slot capacity that gate production, promotion, and touring.
 - Structure records include: `structure_id`, `structure_type`, `owner_id`, `scope` (global/nation/region), `tier`, `slot_capacity`, `upkeep`, and `availability`.
 - Structures can be owned, leased, or public (booked on demand).
+- Public facilities apply dynamic booking fees that react to slot availability (vacancy discounts down to free, scarcity premiums).
 
 ## Slot taxonomy
 - ID slots: assign Creator IDs to run work orders (songwriter/vocalist/producer, etc).
@@ -24,7 +25,7 @@ This document defines the structure and slot model for the web MVP and near-term
 - Recording studios: create sheet, demo, and master stages; use ID + input slots.
 - Broadcast studios: host interviews/live performances; use day-based booking slots.
 - Filming studios: required for music videos and multimedia promos; use day-based booking slots.
-- Studio access can be owned or leased; public studios use booking fees and availability checks.
+- Studio access can be owned or leased; public studios use booking fees that scale with slot availability plus availability checks.
 
 ## Venues (touring roadmap)
 - Venues are structures used for live events and touring.
