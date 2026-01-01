@@ -1,22 +1,22 @@
 `### Complete Demo Recording Creation Process in "Record Label Simulator"`
 
 `#### Overview:`  
-`The Recorder Creator ID creates demo recordings in a recording studio structure. The Executive Producer (player) places the Recorder ID into a slot in the recording studio to start the creation process.`
+`The Vocalist Creator ID creates demo recordings in a recording studio structure. The Executive Producer (player) places the Vocalist ID into a slot in the recording studio to start the creation process.`
 
 `### Step-by-Step Process:`
 
-`1. **Placing the Recorder ID**:`  
-   `- The Executive Producer (player) selects a Recorder Creator ID.`  
-   `- The Recorder ID is placed into an available slot in the recording studio structure.`
+`1. **Placing the Vocalist ID**:`  
+   `- The Executive Producer (player) selects a Vocalist Creator ID.`  
+   `- The Vocalist ID is placed into an available slot in the recording studio structure.`
 
 `2. **Starting the Creation Process**:`  
-   `- Once placed in the slot, the Recorder begins working on demo recordings.`  
+   `- Once placed in the slot, the Vocalist begins working on demo recordings.`  
    `- The creation process is divided into intervals to ensure consistent progress.`
 
 `3. **Intervals and Stamina Usage**:`  
    `- The total time to create one demo recording is divided into **10 intervals**.`  
    `- Each interval represents **12 in-game minutes** and **0.5 real-life seconds**.`  
-   `- Each interval consumes 5 stamina units from the Recorder’s total stamina.`
+   `- Each interval consumes 5 stamina units from the Vocalist’s total stamina.`
 
 `4. **Ticks and Time Equivalents**:`  
    `- **Total Ticks per Demo Recording**: 50,000,000 ticks`  
@@ -49,10 +49,10 @@
 `| 10       | 50,000,000  | 120                   | 5.0                     | 100%                  | 50                        |`
 
 `### Summary:`  
-`- **Recorder Creator ID** is placed in the **recording studio** by the Executive Producer (player).`  
+`- **Vocalist Creator ID** is placed in the **recording studio** by the Executive Producer (player).`  
 `- **Creation Process**: Divided into 10 intervals of 12 in-game minutes each.`  
 `- **Real-Life vs. In-Game Time**: Each interval is 0.5 real-life seconds.`  
 `- **Cumulative Stamina Consumption**: Cumulative stamina consumed increases by 5 units each interval, totaling 50 units for full creation.`  
 `- **Completion**: Each interval progresses the demo recording creation by 10%, completing it in 10 intervals.`
 
-`This detailed explanation provides a clear understanding of how the Recorder Creator ID creates demo recordings within the game's mechanics, highlighting the cumulative time intervals, cumulative stamina management, and overall progress.`  
+`This detailed explanation provides a clear understanding of how the Vocalist Creator ID creates demo recordings within the game's mechanics, highlighting the cumulative time intervals, cumulative stamina management, and overall progress.`  

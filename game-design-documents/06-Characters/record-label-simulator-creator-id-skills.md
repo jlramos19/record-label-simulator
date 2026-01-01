@@ -2,7 +2,7 @@
 
 # **`PRODUCER SKILLS`**
 
-`Producers turn Demo Recordings from Recorders into Tracks that can subsequently be turned into Singles or left as Tracks for an album.`
+`Producers turn Demo Recordings from Vocalists into Tracks that can subsequently be turned into Singles or left as Tracks for an album.`
 
 # **`PRODUCER (CREATOR ID):`**
 

@@ -45,8 +45,8 @@
 - `UI uses routed views so only one view is mounted at a time.`
 - `Default view: Charts.`
 - `Views: Dashboard, Charts, Create, Release, Calendar, Eras, Roster, Community (CCC), Promotions, Tour.`
-- `Create view uses stage buttons (Sheet/Demo/Master) with studio slot columns (5 slots per column; 3/2/1 for Songwriter/Recorder/Producer).`
-- `Roster view groups Creator IDs into Songwriter/Recorder/Producer columns, mirroring the CCC layout.`
+- `Create view uses stage buttons (Sheet/Demo/Master) with studio slot columns (5 slots per column; 3/2/1 for Songwriter/Vocalist/Producer).`
+- `Roster view groups Creator IDs into Songwriter/Vocalist/Producer columns, mirroring the CCC layout.`
 - `Release view hosts Release Desk scheduling + project planning; Calendar reads the same queues for projections.`
 - `Community view houses CCC signing alongside community ranking surfaces.`
 - `Promotions view houses promo pushes and the eyeriSocial feed; Touring is its own route to the right of Promotions.`

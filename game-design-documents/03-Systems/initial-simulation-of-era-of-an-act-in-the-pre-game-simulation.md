@@ -1,5 +1,5 @@
-The Act is formed by a Recorder Creator ID.  
-The Recorder creates Live Performances (later on, the ID can create Demo Recordings too)  
+The Act is formed by a Vocalist Creator ID.  
+The Vocalist creates Live Performances (later on, the ID can create Demo Recordings too)  
 The Act performs the Content (the Live Performance) at a Location which is in an Area, designated as a Building of type “Venue”  
 The Community Members from the Community that prefers the Mood of the Live Performance are interested in that Content.  
 Let’s say that the mood is “Calming” for the sake of this example.  

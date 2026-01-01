@@ -43,7 +43,7 @@
 ### Create Content
 - Stage controls show Sheet, Demo, and Master as side-by-side columns.
 - Studios panel includes filters for owned/unowned, owner entity, and occupied slots.
-- Creator slots are arranged as studio columns (5 slots each; 3 Songwriter, 2 Recorder, 1 Producer).
+- Creator slots are arranged as studio columns (5 slots each; 3 Songwriter, 2 Vocalist, 1 Producer).
 
 ### Release
 - Release Desk schedules drops (Digital, Physical, Both) and sets project metadata.

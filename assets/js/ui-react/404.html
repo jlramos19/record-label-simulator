@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <script>
+      (function (l) {
+        var path = l.pathname + l.search;
+        var normalized = path.replace(/\/+/g, "/").replace(/^\//, "").replace("?", "&");
+        l.replace(
+          l.protocol + "//" + l.hostname + (l.port ? ":" + l.port : "") + "/?/" + normalized + l.hash
+        );
+      })(window.location);
+    </script>
+  </head>
+  <body>
+    Redirecting…
+  </body>
+</html>

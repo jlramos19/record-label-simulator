@@ -75,6 +75,7 @@ Weights use the bucketed/renormalized values.
 - Strategy Picker lists all templates by name with toggle tags only.
 - Details panel shows:
   - Focuses (primary/secondary)
+  - Focuses use the template's stored primary/secondary when selected; otherwise derived from weights
   - Weight sliders (0..100) with live sum preview
   - Toggle checkboxes
   - Apply to Track

@@ -1,4 +1,4 @@
-Certainly, here's the final list of 20 last names for the Recorders in your in-game world:
+Certainly, here's the final list of 20 last names for the Vocalists in your in-game world:
 
 1\. Beat  
 2\. Beats  
@@ -21,4 +21,4 @@ Certainly, here's the final list of 20 last names for the Recorders in your in-g
 19\. Tones  
 20\. Tunes
 
-These unique last names should add depth and personality to the Recorders in your game. If you need any more assistance or have further requests, please feel free to let me know\! 💃🕺🎵👍
+These unique last names should add depth and personality to the Vocalists in your game. If you need any more assistance or have further requests, please feel free to let me know\! 💃🕺🎵👍

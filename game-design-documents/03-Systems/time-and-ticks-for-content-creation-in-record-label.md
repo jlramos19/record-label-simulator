@@ -13,7 +13,7 @@
 `- **Stamina**: 25`  
 `#### Demo Recording Creation`
 
-`- **ID Required**: Recorder Creator ID`  
+`- **ID Required**: Vocalist Creator ID`  
 `- **Structure**: Recording Studio`  
 `- **Real-Life Time**: 5 seconds at Play speed (2 seconds at Fast).`  
 `- **In-Game Time**: 2 hours`  

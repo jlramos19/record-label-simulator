@@ -15,7 +15,7 @@
 
 `**Select Recording Studio Structure**:`  
    `- **Place Items in Slots**:`   
-     `- **ID Slot**: Place the **Recorder Creator ID**.`  
+     `- **ID Slot**: Place the **Vocalist Creator ID**.`  
      `- **Content Slot**: Place the *Sheet Music*.`  
      `- **Modifier Slot**: Place any desired *modifier* (*Sensory Sage* or *Dispatch Dust*).`
 

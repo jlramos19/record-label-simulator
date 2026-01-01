@@ -4,7 +4,7 @@ This document defines how recording studios gate the sheet -> demo -> master pip
 
 ## Roles and slot types
 - Songwriter slots: assign songwriter IDs to create sheet music.
-- Recorder slots: assign recorder IDs to create demo recordings.
+- Vocalist slots: assign vocalist IDs to create demo recordings.
 - Producer slot: assign the producer (player or producer ID) to finalize masters.
 - Input slots: attach sheet or demo items required for the next stage.
 

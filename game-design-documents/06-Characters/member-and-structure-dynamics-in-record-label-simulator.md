@@ -22,7 +22,7 @@
 `4. **ID Reassignment**:`  
    `- **Unassigned IDs Tab**: When a structure's lease expires, the IDs of members associated with that structure are moved to an unassigned IDs tab.`  
    `- **New Structures**: As new structures are built based on city demand, these unassigned IDs are reassigned to the new structures.`  
-   `- **Example**: If a recording studio's lease is not renewed, the studio despawns, and all associated IDs (e.g., songwriters, recorders) are moved to the unassigned IDs tab. When a new studio is built, these IDs are reassigned to it.`
+   `- **Example**: If a recording studio's lease is not renewed, the studio despawns, and all associated IDs (e.g., songwriters, vocalists) are moved to the unassigned IDs tab. When a new studio is built, these IDs are reassigned to it.`
 
 `### Example Scenario`
 

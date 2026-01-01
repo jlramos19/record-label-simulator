@@ -19,7 +19,7 @@
 `#### **1. Creator Recruitment and Management**`  
 `- **Objective**: Recruit and manage Creators to produce *Sheet Music*, *Demo Recordings*, and *Tracks*.`  
 `- **Actions**:`  
-  `- Sign **Songwriters**, **Recorders**, and **Producers**.`  
+  `- Sign **Songwriters**, **Vocalists**, and **Producers**.`  
   `- Place Creator IDs into slots within Structures to perform specific tasks.`  
   `- Monitor **Catharsis Levels** (Active and Passive).`  
 `- **Outputs**:`  
@@ -67,7 +67,7 @@
 `- **Player**: Music Executive managing the Hann Record Label.`  
 `- **Creators**:`  
   `- **Songwriter**: Creates *Sheet Music* with specific *Themes*.`  
-  `- **Recorder**: Records *Demo Recordings* with emotional expression.`  
+  `- **Vocalist**: Records *Demo Recordings* with emotional expression.`  
   `- **Producer**: Finalizes *Tracks*, defining their *content Genre* and *Mood*【116†source】.`  
 `- **Community Members**: Consumers with preferences for specific *Moods* and *Themes*.`  
 `- **Critics**: Assess *Content* for quality, influencing chart performance【116†source】.`

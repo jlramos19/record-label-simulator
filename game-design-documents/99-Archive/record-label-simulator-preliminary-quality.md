@@ -10,7 +10,7 @@ Preliminary Quality is assigned during the **Content Creation Phase** by combini
 
 1. **Songwriters** (Weight: 0.5x)  
    * Define **Theme** (e.g., Freedom, Power).  
-2. **Recorders** (Weight: 0.5x)  
+2. **Vocalists** (Weight: 0.5x)  
    * Define **Mood** (e.g., Daring, Calming).  
 3. **Producers** (Weight: 1.0x)  
    * Synthesize Theme \+ Mood → Assign content **Genre** and **Preliminary Quality**.  
@@ -23,17 +23,17 @@ Preliminary Quality is assigned during the **Content Creation Phase** by combini
 
 Preliminary Quality is a **weighted average** of contributor scores:
 
-Preliminary Quality=(Songwriter×0.5)+(Recorder×0.5)+Producer+Player3.0
+Preliminary Quality=(Songwriter×0.5)+(Vocalist×0.5)+Producer+Player3.0
 
 Preliminary Quality=
 
 3.0
 
-(Songwriter×0.5)+(Recorder×0.5)+Producer+Player
+(Songwriter×0.5)+(Vocalist×0.5)+Producer+Player
 
 ​
 
-* **Total Weights**: 0.5 (Songwriter) \+ 0.5 (Recorder) \+ 1.0 (Producer) \+ 1.0 (Player) \= **3.0**  
+* **Total Weights**: 0.5 (Songwriter) \+ 0.5 (Vocalist) \+ 1.0 (Producer) \+ 1.0 (Player) \= **3.0**  
 * **Scores**: Contributor inputs are rated 0–100.  
 * **Output**: Rounded to the nearest integer (0–100).
 
@@ -46,7 +46,7 @@ Preliminary Quality=
 | Contributor | Raw Score | Weighted Score |
 | :---- | :---- | :---- |
 | Songwriter (Theme) | 80 | `80 × 0.5 = 40` |
-| Recorder (Mood) | 70 | `70 × 0.5 = 35` |
+| Vocalist (Mood) | 70 | `70 × 0.5 = 35` |
 | Producer (content Genre) | 90 | `90 × 1.0 = 90` |
 | Player (Executive) | 85 | `85 × 1.0 = 85` |
 
@@ -83,7 +83,7 @@ Preliminary Quality=
 
 The Producer’s **1.0x weight** reflects their critical role in:
 
-* Combining **Theme** (Songwriter) \+ **Mood** (Recorder) → content **Genre**.  
+* Combining **Theme** (Songwriter) \+ **Mood** (Vocalist) → content **Genre**.  
 * Setting the initial Quality floor (e.g., a Producer with low skill caps maximum Quality).  
 * Finalizing technical polish (mixing/mastering) for the Track.
 
@@ -93,7 +93,7 @@ The Producer’s **1.0x weight** reflects their critical role in:
 
 The Player’s **1.0x weight** represents strategic decisions, such as:
 
-* Hiring high-skill Producers to offset weaker Songwriters/Recorders.  
+* Hiring high-skill Producers to offset weaker Songwriters/Vocalists.  
 * Allocating budget for better studio equipment (boosts Producer score).  
 * Aligning Content with **Trending Genres** (improves Audience engagement).
 
@@ -109,7 +109,7 @@ The Player’s **1.0x weight** represents strategic decisions, such as:
 
 ## **7\. Strategic Implications**
 
-* **High Producer/Player Scores**: Compensate for mediocre Songwriters/Recorders.  
+* **High Producer/Player Scores**: Compensate for mediocre Songwriters/Vocalists.  
 * **Low Preliminary Quality (F Grade)**:  
   * Fails to generate Trends (e.g., "Boring" Mood).  
   * Risks Critic backlash and Audience disengagement.  

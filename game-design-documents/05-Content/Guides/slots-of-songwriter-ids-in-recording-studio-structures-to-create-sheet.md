@@ -18,20 +18,20 @@
 
 `This way, the calculation properly loops back to 60 minutes after reducing to 0, and the number of sheet music pieces produced increases accordingly.`
 
-`Here are the calculations for the time per demo recording and the number of demo recordings produced based on the number of Recorder IDs, with the time decreasing by 24 minutes for each additional ID and capping at 10 slots:`
+`Here are the calculations for the time per demo recording and the number of demo recordings produced based on the number of Vocalist IDs, with the time decreasing by 24 minutes for each additional ID and capping at 10 slots:`
 
-`- 1 Recorder ID: 120 mins / demo recording (1 piece)`  
-`- 2 Recorder IDs: 96 mins / demo recording (1 piece)`  
-`- 3 Recorder IDs: 72 mins / demo recording (1 piece)`  
-`- 4 Recorder IDs: 48 mins / demo recording (1 piece)`  
-`- 5 Recorder IDs: 24 mins / demo recording (1 piece)`  
-`- 6 Recorder IDs: 120 mins / demo recording (2 pieces)`  
-`- 7 Recorder IDs: 96 mins / demo recording (2 pieces)`  
-`- 8 Recorder IDs: 72 mins / demo recording (2 pieces)`  
-`- 9 Recorder IDs: 48 mins / demo recording (2 pieces)`  
-`- 10 Recorder IDs: 24 mins / demo recording (2 pieces)`
+`- 1 Vocalist ID: 120 mins / demo recording (1 piece)`  
+`- 2 Vocalist IDs: 96 mins / demo recording (1 piece)`  
+`- 3 Vocalist IDs: 72 mins / demo recording (1 piece)`  
+`- 4 Vocalist IDs: 48 mins / demo recording (1 piece)`  
+`- 5 Vocalist IDs: 24 mins / demo recording (1 piece)`  
+`- 6 Vocalist IDs: 120 mins / demo recording (2 pieces)`  
+`- 7 Vocalist IDs: 96 mins / demo recording (2 pieces)`  
+`- 8 Vocalist IDs: 72 mins / demo recording (2 pieces)`  
+`- 9 Vocalist IDs: 48 mins / demo recording (2 pieces)`  
+`- 10 Vocalist IDs: 24 mins / demo recording (2 pieces)`
 
-`This ensures that the demo recordings are produced efficiently based on the number of Recorder IDs with a 24-minute reduction per additional ID. Let me know if you need similar calculations for Producers or any other adjustments.`
+`This ensures that the demo recordings are produced efficiently based on the number of Vocalist IDs with a 24-minute reduction per additional ID. Let me know if you need similar calculations for Producers or any other adjustments.`
 
 `Here are the calculations for the time per track and the number of tracks produced based on the number of Producer IDs, with the time decreasing by 36 minutes for each additional ID and capping at 5 slots:`
 

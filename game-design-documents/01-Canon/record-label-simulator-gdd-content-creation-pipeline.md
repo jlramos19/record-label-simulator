@@ -16,7 +16,7 @@
    `Tick Cost: 25,000,000 ticks (1 hour in-game, ~2.5 seconds real-time).`
 
 * **`Demo Recordings (Mood):`**  
-   `Produced by Recorders, assigns the Track's emotional tone.`  
+   `Produced by Vocalists, assigns the Track's emotional tone.`  
    `Tick Cost: 50,000,000 ticks (2 hours in-game, ~5 seconds real-time).`
 
 * **`Masters (content Genre & Quality):`**  
@@ -49,8 +49,8 @@
 * **`Songwriters (Sheet Music):`**  
    `Add Themes using their SkillComponent, influencing the narrative focus and aligning with desired Alignments and regional preferences.`
 
-* **`Recorders (Demo Recordings):`**  
-   `Integrate Moods, shaping emotional tone. Recorder skills can enhance Quality increments at this stage.`
+* **`Vocalists (Demo Recordings):`**  
+   `Integrate Moods, shaping emotional tone. Vocalist skills can enhance Quality increments at this stage.`
 
 * **`Producers (Mastering):`**  
    `Finalize Masters, determining Quality and merging Theme and Mood to form the content Genre. High Producer skill and resource investment can yield top-tier A-quality content, crucial for Iconic aspirations.`
@@ -127,7 +127,7 @@
 
 **`Example Workflow:`**
 
-* `A skilled Songwriter sets a Freedom Theme (Sheet Music), a top-tier Recorder adds an Energizing Mood (Demo Recording), and a high-skill Producer ensures A-quality final content (Masters), resulting in a track that resonates perfectly with an Anngloran audience.`
+* `A skilled Songwriter sets a Freedom Theme (Sheet Music), a top-tier Vocalist adds an Energizing Mood (Demo Recording), and a high-skill Producer ensures A-quality final content (Masters), resulting in a track that resonates perfectly with an Anngloran audience.`
 
 **`Scalability:`**
 

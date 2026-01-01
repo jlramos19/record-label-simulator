@@ -27,11 +27,11 @@
 `6. **How is the revenue of content sold to consumer members split between the Record Label, the shopping center, and the government?**`  
    `- **Total Revenue Split**:`  
      `- **Record Label**: 70%`  
-       `- **Breakdown within Record Label**: 3 (songwriter) : 2 (recorder) : 1 (producer)`  
+       `- **Breakdown within Record Label**: 3 (songwriter) : 2 (vocalist) : 1 (producer)`  
      `- **Shopping Center**: 25%`  
      `- **Government**: 5%`  
    `- **Revenue Split Details**:`  
-     `- **Record Label**: 70% (split among songwriter, recorder, and producer)`  
+     `- **Record Label**: 70% (split among songwriter, vocalist, and producer)`  
      `- **Shopping Center**: 25%`  
      `- **Government**: 5%`
 

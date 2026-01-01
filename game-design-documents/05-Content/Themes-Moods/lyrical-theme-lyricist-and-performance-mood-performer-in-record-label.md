@@ -1,3 +1,3 @@
 Role: creator  
 Occupation: lyricist  
-Occupation: recorder
+Occupation: vocalist

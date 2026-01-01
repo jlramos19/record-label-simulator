@@ -63,7 +63,7 @@
 `### Complete Demo Recording Creation Process`
 
 `#### Demo Recording Creation`  
-`- **Creator ID**: Recorder`  
+`- **Creator ID**: Vocalist`  
 `- **Content**: Demo Recordings`  
 `- **Time Frame**:`  
   `- **Total Ticks**: 8 quarter-hour ticks`  

@@ -6,7 +6,7 @@
 
 ## **`Core Gameplay Concepts`**
 
-* `Content Creation: refine Tracks and Projects through Themes and Moods, coordinated by Creator occupations such as Songwriter, Recorder, and Producer.`
+* `Content Creation: refine Tracks and Projects through Themes and Moods, coordinated by Creator occupations such as Songwriter, Vocalist, and Producer.`
 
 * `Promotion: leverage Promoter occupation actions, live shows, eyeriSocial, and promotional campaigns.`
 

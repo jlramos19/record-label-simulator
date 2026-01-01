@@ -34,7 +34,7 @@ This file tracks known mismatches between the current web MVP implementation and
 
 ### 2025-12-25-ui-structure-02 - Left/right panel architecture
 - ID: 2025-12-25-ui-structure-02
-- Description: UI Design System expects persistent left-side panels (Areas/Creators/Acts/Inventory/Items/Modifiers/Collabs) and right-side Calendar/Quests panels; current web router uses route-specific panels instead of fixed columns. Spec: `game-design-documents/02-UI/record-label-simulator-ui-and-ux-design-system.md`.
+- Description: UI Design System expects persistent left-side panels (Areas/Creators/Acts/Inventory/Items/Modifiers/Collabs) and right-side Calendar/Tasks panels; current web router uses route-specific panels instead of fixed columns. Spec: `game-design-documents/02-UI/record-label-simulator-ui-and-ux-design-system.md`.
 - Status: OPEN
 - Decision ID: TBD
 - TODO notes: Decide whether to align the web layout with persistent columns or update docs to reflect the route-based layout.

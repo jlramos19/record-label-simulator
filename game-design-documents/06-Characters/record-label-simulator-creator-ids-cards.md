@@ -17,7 +17,7 @@
 - **`Action:`** `write`  
 - **`Output:`** `creates Sheet Music (selecting Themes)`
 
-#### `Recorder (Occupation)`
+#### `Vocalist (Occupation)`
 
 - **`Action:`** `perform`  
 - **`Output:`** `creates Demo Recordings (defining Moods)`

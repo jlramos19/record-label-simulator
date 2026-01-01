@@ -14,8 +14,8 @@ const ROLE_CONFIG = [
   {
     role: "Performer",
     key: "performerIds",
-    label: "Recorder",
-    slotLabel: "Recorder Slot",
+    label: "Vocalist",
+    slotLabel: "Vocalist Slot",
     targetBase: "track-performer"
   },
   {

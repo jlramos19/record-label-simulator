@@ -1,11 +1,26 @@
 # Patch Notes
 
+## 2026-01-01 (RLS-PATCH-20260101-0207Z)
+- Track rollout focus panels now respect pinned template focuses, and CEO Request promo progress counts scheduled promo events for players alongside executed promos. [PN-20260101-AC147]
+
+## 2026-01-01 (RLS-PATCH-20260101-0141Z)
+- Touring concert-interest now weights rotating age-group segments using population snapshot concert baselines to stabilize demand shifts. [PN-20260101-AC146]
+
+## 2026-01-01 (RLS-PATCH-20260101-0205Z)
+- Tasks now include Auto Fulfill actions for release, promo, and tour objectives, with blocked reasons shown in the task list. [PN-20260101-AC142]
+- Wins now record leaderboard entries with chart points, award points, and time-to-win, while bailout wins are stored but excluded from ranking. [PN-20260101-AC143]
+- Creator role copy now labels Performers and Recorders as Vocalists across UI and docs. [PN-20260101-AC144]
+
+## 2026-01-01 (RLS-PATCH-20260101-0047Z)
+- Skip Time now logs a completion summary with rival AutoOps blockers and release counts, and long skips soften rival budget reserve floors to keep AutoOps scheduling active. [PN-20260101-AC141]
+
 ## 2025-12-31 (RLS-PATCH-20251231-2354Z)
 - Era stage labels now surface Creation/Promotion/Legacy overlap signals from scheduled promos and physical/tour merch activity, and rival AutoOps logs use the same stage display. [PN-20251231-AC140]
 
 ## 2025-12-31 (RLS-PATCH-20251231-2359Z)
 - Rival ambition pacing now uses overall CEO Request progress (including scheduled promo queues) to tune catch-up/cooldown pressure and logging. [PN-20251231-AC138]
 - Rival AutoOps plan selection now adds ambition-weighted action bias and pace-based cadence scaling to slow leaders and speed trailers. [PN-20251231-AC139]
+- Founding vs Modern now apply mode-specific difficulty tuning (cash/bailouts, rival pace/ambition/cash floors) and roster seeding (1/1/1 vs 15/10/5) while keeping the same easy/medium/hard IDs. [PN-20251231-AC145]
 
 ## 2025-12-31 (RLS-PATCH-20251231-2355Z)
 - Medium/Hard starts now grant more cash and seed a 15/10/5 creator roster with starter solo/group acts. [PN-20251231-AC133]
@@ -231,7 +246,7 @@
 ## 2025-12-28 (RLS-PATCH-20251228-0057Z)
 - Harmony Hub now splits Acts and Creators into resizable panels. [PN-20251228-AC27]
 - Calendar now splits Calendar and Structures & Slots into a resizable split view. [PN-20251228-AC28]
-- Create Advanced now expands studio slots to full role limits (15 Songwriters, 10 Recorders, 5 Producers). [PN-20251228-AC29]
+- Create Advanced now expands studio slots to full role limits (15 Songwriters, 10 Vocalists, 5 Producers). [PN-20251228-AC29]
 - Release project drafting now ignores unmastered tracks and waits for Act assignments before summarizing projects. [PN-20251228-AC30]
 - Dark mode palette now anchors on `#0a0703`, with retuned panels, lines, text, and surfaces for deeper contrast. [PN-20251228-AC31]
 
@@ -706,7 +721,7 @@
 ## 2025-12-26 (RLS-PATCH-20251226-0518Z)
 - Promotions now target Acts directly (act-only or act+track) with a dedicated Act slot and focus-era picker; active promos list includes act pushes.
 - Broadcast facilities now use EyeriS studio profiles + program tiers, including Prime Time Showcase eligibility checks (quality + charting).
-- Creator role copy now labels Performers as Recorders across UI and GDD docs.
+- Creator role copy now labels Performers as Vocalists across UI and GDD docs.
 
 ## 2025-12-26 (RLS-PATCH-20251226-0517Z)
 - Audience preferences now drift from base regional profiles using recent releases + chart mix, with iconic Risky eras boosting risk appetite.
@@ -910,6 +925,13 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20260101-AC147 (2026-01-01 02:07Z): Track rollout focus panels now respect pinned template focuses, and CEO Request promo progress counts scheduled promo events for players alongside executed promos.
+- PN-20260101-AC146 (2026-01-01 01:41Z): Touring concert-interest now weights rotating age-group segments using population snapshot concert baselines to stabilize demand shifts.
+- PN-20251231-AC145 (2025-12-31 23:59Z): Founding vs Modern now apply mode-specific difficulty tuning (cash/bailouts, rival pace/ambition/cash floors) and roster seeding (1/1/1 vs 15/10/5) while keeping the same easy/medium/hard IDs.
+- PN-20260101-AC142 (2026-01-01 02:05Z): Tasks now include Auto Fulfill actions for release, promo, and tour objectives, with blocked reasons shown in the task list.
+- PN-20260101-AC143 (2026-01-01 02:05Z): Wins now record leaderboard entries with chart points, award points, and time-to-win, while bailout wins are stored but excluded from ranking.
+- PN-20260101-AC144 (2026-01-01 02:05Z): Creator role copy now labels Performers and Recorders as Vocalists across UI and docs.
+- PN-20260101-AC141 (2026-01-01 00:47Z): Skip Time now logs a completion summary with rival AutoOps blockers and release counts, and long skips soften rival budget reserve floors to keep AutoOps scheduling active.
 - PN-20251231-AC140 (2025-12-31 23:54Z): Era stage labels now surface Creation/Promotion/Legacy overlap signals from scheduled promos and physical/tour merch activity, and rival AutoOps logs use the same stage display.
 - PN-20251231-AC139 (2025-12-31 23:59Z): Rival AutoOps plan selection now adds ambition-weighted action bias and pace-based cadence scaling to slow leaders and speed trailers.
 - PN-20251231-AC138 (2025-12-31 23:59Z): Rival ambition pacing now uses overall CEO Request progress (including scheduled promo queues) to tune catch-up/cooldown pressure and logging.
@@ -991,7 +1013,7 @@
 - PN-20251228-AC27 (2025-12-28 01:16Z): Year-end awards now reveal nominees on the scheduled reveal date, cap nominee lists to 3-12 per category, and keep award show nomination counts hidden until reveal.
 - PN-20251228-AC27 (2025-12-28 00:57Z): Harmony Hub now splits Acts and Creators into resizable panels.
 - PN-20251228-AC28 (2025-12-28 00:57Z): Calendar now splits Calendar and Structures & Slots into a resizable split view.
-- PN-20251228-AC29 (2025-12-28 00:57Z): Create Advanced now expands studio slots to full role limits (15 Songwriters, 10 Recorders, 5 Producers).
+- PN-20251228-AC29 (2025-12-28 00:57Z): Create Advanced now expands studio slots to full role limits (15 Songwriters, 10 Vocalists, 5 Producers).
 - PN-20251228-AC30 (2025-12-28 00:57Z): Release project drafting now ignores unmastered tracks and waits for Act assignments before summarizing projects.
 - PN-20251228-AC31 (2025-12-28 01:55Z): Save writes now guard against local storage quota errors, warning to configure External Storage instead of crashing.
 - PN-20251228-AC32 (2025-12-28 02:10Z): On startup, the game now prompts to pick a save folder so save slots can sync to external storage.

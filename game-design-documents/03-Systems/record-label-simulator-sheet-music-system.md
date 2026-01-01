@@ -2,7 +2,7 @@
 
 ## **Purpose**
 
-Define Sheet Music as a core system in Record Label Simulator, aligned with current canon: Creator occupations (Songwriter, Recorder, Producer), Alignment (Safe/Neutral/Risky), Preferred Theme (5), and Preferred Mood (9). This document replaces legacy Record Label Simulator devlog framing.
+Define Sheet Music as a core system in Record Label Simulator, aligned with current canon: Creator occupations (Songwriter, Vocalist, Producer), Alignment (Safe/Neutral/Risky), Preferred Theme (5), and Preferred Mood (9). This document replaces legacy Record Label Simulator devlog framing.
 
 ## **Infobox — Systems**
 
@@ -11,7 +11,7 @@ Define Sheet Music as a core system in Record Label Simulator, aligned with curr
 | Name | Sheet Music |
 | Type | System |
 | Phase | Content Creation |
-| Owner Roles | Songwriter (primary), Recorder (downstream), Producer (downstream) |
+| Owner Roles | Songwriter (primary), Vocalist (downstream), Producer (downstream) |
 | Structures | Recording Studio |
 | Inputs | Songwriter time & stamina; Preferred Theme |
 | Outputs | Sheet Music asset; feeds Demo Recording and Track Finalization |
@@ -25,7 +25,7 @@ Sheet Music is the conceptual and structural blueprint of a Track, authored by a
 
 **Songwriter —** Creates Sheet Music: lyrics and composition; sets Preferred Theme.
 
-**Recorder (Creator ID) —** Consumes Sheet Music to record Demo Recordings; expresses Preferred Mood.
+**Vocalist (Creator ID) —** Consumes Sheet Music to record Demo Recordings; expresses Preferred Mood.
 
 **Producer —** Merges Sheet Music and Demo Recordings to finalize Tracks (content genre & quality).
 
@@ -33,7 +33,7 @@ Sheet Music is the conceptual and structural blueprint of a Track, authored by a
 
 1. Assign a Songwriter to a Recording Studio slot.  
 2. Songwriter spends time and stamina to produce a Sheet Music asset.  
-3. Recorder optionally converts the Sheet Music into a Demo Recording.  
+3. Vocalist optionally converts the Sheet Music into a Demo Recording.  
 4. Producer merges Sheet Music \+ Demo Recording to finalize a Track.
 
 ## **Time & Ticks**
@@ -41,12 +41,12 @@ Sheet Music is the conceptual and structural blueprint of a Track, authored by a
 | Stage | Real-Life Time | In-Game Time | Ticks | Stamina (typical) |
 | :---- | :---- | :---- | :---- | :---- |
 | Sheet Music (Songwriter) | ≈2.5 seconds | ≈1 hour | 25,000,000 | 25 (Mental) |
-| Demo Recording (Recorder) | ≈5 seconds | ≈2 hours | 50,000,000 | 50 (Physical) |
+| Demo Recording (Vocalist) | ≈5 seconds | ≈2 hours | 50,000,000 | 50 (Physical) |
 | Track Finalization (Producer) | ≈7.5 seconds | ≈3 hours | 75,000,000 | 150 (75 Mental \+ 75 Physical) |
 
 ## **Quality & Alignment**
 
-Sheet Music quality results from a Songwriter’s skill, stamina state, and Theme fit. Downstream, Demo Recording applies the Recorder’s Mood expression; Track Finalization sets content Genre & overall quality. Strong Theme/Mood alignment improves Audience and Critics response and influences Charts velocity.
+Sheet Music quality results from a Songwriter’s skill, stamina state, and Theme fit. Downstream, Demo Recording applies the Vocalist’s Mood expression; Track Finalization sets content Genre & overall quality. Strong Theme/Mood alignment improves Audience and Critics response and influences Charts velocity.
 
 ## **Data & Telemetry**
 

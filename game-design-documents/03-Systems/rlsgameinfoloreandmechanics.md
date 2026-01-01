@@ -29,8 +29,8 @@ Creators are represented in-game by IDs that the Player will have in the Creator
 **CREATORS (Roles)**
 
 * A Creator is the role of a musician who creates "Content."  
-* A Creator can have up to three Professions: Songwriter, Recorder, and Producer.  
-* When equipped to a Studio building: Songwriter creates Sheet Music, Recorder creates Demo Recordings, Producer creates Masters.
+* A Creator can have up to three Professions: Songwriter, Vocalist, and Producer.  
+* When equipped to a Studio building: Songwriter creates Sheet Music, Vocalist creates Demo Recordings, Producer creates Masters.
 
 **SONGWRITER**
 
@@ -38,7 +38,7 @@ Creators are represented in-game by IDs that the Player will have in the Creator
 
 **RECORDER**
 
-* A Recorder can have up to 2 preferred Moods to create Demo Recordings.
+* A Vocalist can have up to 2 preferred Moods to create Demo Recordings.
 
 **PRODUCER**
 
@@ -94,11 +94,11 @@ Creators are represented in-game by IDs that the Player will have in the Creator
 **TYPES OF STUDIOS**
 
 * A Recording Studio is an in-game building with slots that can have Creator IDs equipped to create Content like Sheet Music, Demo Recordings, and Masters.  
-* A Broadcast Studio is an in-game building with slots that can have Recorder IDs to create Content like Performance Tape.
+* A Broadcast Studio is an in-game building with slots that can have Vocalist IDs to create Content like Performance Tape.
 
 **TYPES OF VENUES**
 
-* A Live Venue is a type of venue that requires the Act to show up and perform live. The Player schedules the Recorder ID to do so in the Calendar.  
+* A Live Venue is a type of venue that requires the Act to show up and perform live. The Player schedules the Vocalist ID to do so in the Calendar.  
 * A Holographic Venue.
 
 **IN-GAME ITEMS (CONTENT)**
@@ -166,7 +166,7 @@ Creators are represented in-game by IDs that the Player will have in the Creator
 **PROMOTION FOR TRACK ONLY**
 
 * A Music Video is Promotional Content for Tracks.  
-* It can be created by a Recorder in a Studio building.  
+* It can be created by a Vocalist in a Studio building.  
 * The higher the match between the Track and Music Video Genres, the more successful and engaging it will be.
 
 **IN-GAME QUESTS**

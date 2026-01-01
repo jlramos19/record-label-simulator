@@ -63,6 +63,7 @@ Rivals are eligible to compete when they can cover:
 
 ## Roster Targets + Signing
 - Roster targets scale with rollout cadence and stamina capacity (more steps = higher target per role).
+- Base roster targets start from mode defaults (Founding: 1/1/1, Modern: 15/10/5) before cadence/ambition/stamina boosts.
 - Negative projected net halts new signing until the net turns positive again.
 
 ## Chart Dominance Push

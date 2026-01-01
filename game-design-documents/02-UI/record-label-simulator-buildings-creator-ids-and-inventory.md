@@ -29,10 +29,10 @@
 
 * **`Functionality`**`: Each Inventory Item has specific requirements that must be met in order to be produced:`  
   * **`Sheet Music`**`: Created in a Songwriting Studio; requires the input of a Songwriter Creator ID.`  
-  * **`Demo Recording`**`: Created in a Recording Studio; requires a Recorder Creator ID and previously created Sheet Music.`  
+  * **`Demo Recording`**`: Created in a Recording Studio; requires a Vocalist Creator ID and previously created Sheet Music.`  
   * **`Track`**`: Created in a Recording Studio; requires a Producer Creator ID and an existing Demo Recording.`  
-  * **`Music Video`**`: Created in a Film Studio; requires a Recorder Creator ID and a Track.`  
-  * **`Photoshoot`**`: Created on a Photographic Studio; requires a Recorder Creator ID and potentially thematic elements related to the Track.`
+  * **`Music Video`**`: Created in a Film Studio; requires a Vocalist Creator ID and a Track.`  
+  * **`Photoshoot`**`: Created on a Photographic Studio; requires a Vocalist Creator ID and potentially thematic elements related to the Track.`
 
 
 * **`Web Implementation`**`: Inventory Items are JSON templates that define item type, required Creator IDs, precursor items, and production costs. Instances are tracked by count and ownership.`  

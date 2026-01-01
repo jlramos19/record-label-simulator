@@ -20,7 +20,7 @@
   * Morality  
   * Loyalty
 
-##### **Recorder: Fatima Berry**
+##### **Vocalist: Fatima Berry**
 
 * Role: Vocal and performance expression based on preferred Moods.  
 * Preferred Moods:  

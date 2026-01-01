@@ -27,7 +27,7 @@
 
 ---
 
-### **`2. Creators (Songwriters, Recorders, Producers)`**
+### **`2. Creators (Songwriters, Vocalists, Producers)`**
 
 **`Definition:`**  
  `Creators are Entities representing the talent that fuels content production. Each Creator type specializes in a stage of the pipeline, contributing specific attributes and skills.`
@@ -36,12 +36,12 @@
 
 * **`SkillComponent:`** `Tracks Creator expertise in certain Themes or Moods, influencing Track Quality.`  
 * **`StaminaComponent:`** `Limits content production before requiring Creator rest or skill enhancement.`  
-* **`RoleComponents:`** `Differentiate Songwriters, Recorders, and Producers.`
+* **`RoleComponents:`** `Differentiate Songwriters, Vocalists, and Producers.`
 
 **`Functions:`**
 
 * **`Songwriters:`** `Create Sheet Music (Themes), defining a Track’s narrative focus.`  
-* **`Recorders:`** `Produce Demo Recordings (Moods), shaping the emotional tone.`  
+* **`Vocalists:`** `Produce Demo Recordings (Moods), shaping the emotional tone.`  
 * **`Producers:`** `Finalize Masters, determining Quality and ensuring cohesive content Genre formation.`
 
 **`Training and Skill Development:`**

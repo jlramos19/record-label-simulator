@@ -2,7 +2,7 @@
 
 ### **`Overview`**
 
-`This document provides a comprehensive breakdown of the stamina mechanics for the three main occupations in Record Label Simulator: Songwriters, Recorders, and Producers. It details how each occupation contributes to content creation, the ticks required, the in-game and real-life time equivalents, and stamina consumption.`
+`This document provides a comprehensive breakdown of the stamina mechanics for the three main occupations in Record Label Simulator: Songwriters, Vocalists, and Producers. It details how each occupation contributes to content creation, the ticks required, the in-game and real-life time equivalents, and stamina consumption.`
 
 ## **`Occupation Breakdown`**
 
@@ -28,9 +28,9 @@
 
 	`•	After completing 16 tasks, the stamina is fully consumed and requires rest to recharge.`
 
-`2. Recorders`
+`2. Vocalists`
 
-	`•	Role: Recorders produce Demo Recordings, establishing the emotional tone of a track.`
+	`•	Role: Vocalists produce Demo Recordings, establishing the emotional tone of a track.`
 
 	`•	Ticks per Creation: 50,000,000 ticks`
 
@@ -44,7 +44,7 @@
 
 `Example:`
 
-	`•	A Recorder with 400 stamina can produce:`
+	`•	A Vocalist with 400 stamina can produce:`
 
 	`•	 Demo Recordings.`
 
@@ -78,7 +78,7 @@
 
 `Songwriter	Sheet Music	25,000,000	1 hour	2.5 seconds	25 (Mental)	16`
 
-`Recorder	Demo Recordings	50,000,000	2 hours	5 seconds	50 (Physical)	8`
+`Vocalist	Demo Recordings	50,000,000	2 hours	5 seconds	50 (Physical)	8`
 
 `Producer	Finalized Tracks	75,000,000	3 hours	7.5 seconds	150 (75 Physical + 75 Mental)	2`
 
@@ -102,9 +102,9 @@
 
 	`•	Recharge: stamina regained, fully restoring their stamina.`
 
-	`•	Recorder:`
+	`•	Vocalist:`
 
-	`•	After using all 400 stamina, the Recorder rests for 8 in-game hours.`
+	`•	After using all 400 stamina, the Vocalist rests for 8 in-game hours.`
 
 	`•	Recharge: , fully restored.`
 

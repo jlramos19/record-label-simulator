@@ -3,7 +3,7 @@
 `In Record Label Simulator, Creators are the core personnel responsible for creating music. A Creator can occupy one of these roles:`
 
 * **`Songwriter:`** `Creates Sheet Music in a Studio. Sheet Music has one Theme.`  
-* **`Recorder:`** `Creates Demo Recordings from Sheet Music. Demo Recordings have a Theme and a Mood. The Mood depends on the preferences of the Recorder ID.`  
+* **`Vocalist:`** `Creates Demo Recordings from Sheet Music. Demo Recordings have a Theme and a Mood. The Mood depends on the preferences of the Vocalist ID.`  
 * **`Producer:`** `Creates Tracks from Demo Recordings. Tracks are assigned Music Genres and carry forward the Demo Recording’s Theme and Mood.`
 
 `Creators also age and gain experience as they contribute to the Record Label. Their age progression is divided into the following stages:`

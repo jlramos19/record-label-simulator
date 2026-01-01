@@ -37,7 +37,7 @@
 
 `3. **Creator Role**`  
    `- **Songwriter Occupation**`  
-   `- **Recorder Occupation**`
+   `- **Vocalist Occupation**`
 
 `4. **Act Role**`  
    `- **Promoter Occupation**`  

@@ -11,6 +11,8 @@ export const UI_REACT_ISLANDS_ENABLED = true;
 export const UI_EVENT_LOG_KEY = "rls_ui_event_log_v1";
 export const LOSS_ARCHIVE_KEY = "rls_loss_archive_v1";
 export const LOSS_ARCHIVE_LIMIT = 3;
+export const WIN_LEADERBOARD_KEY = "rls_win_leaderboard_v1";
+export const WIN_LEADERBOARD_LIMIT = 20;
 export const SEED_CALIBRATION_KEY = "rls_seed_calibration_v1";
 
 export const QUARTER_TICK_FRAME_LIMIT = 48 * QUARTERS_PER_HOUR;
@@ -26,6 +28,30 @@ export const STARTING_ROSTER_COUNTS = {
   Songwriter: 15,
   Performer: 10,
   Producer: 5
+};
+export const GAME_MODE_STARTING_ROSTER_COUNTS = {
+  founding: {
+    Songwriter: 1,
+    Performer: 1,
+    Producer: 1
+  },
+  modern: {
+    Songwriter: 15,
+    Performer: 10,
+    Producer: 5
+  }
+};
+export const GAME_MODE_RIVAL_ROSTER_TARGETS = {
+  founding: {
+    Songwriter: 1,
+    Performer: 1,
+    Producer: 1
+  },
+  modern: {
+    Songwriter: 15,
+    Performer: 10,
+    Producer: 5
+  }
 };
 export const STAGE_STUDIO_LIMIT = 3;
 export const STUDIO_COLUMN_SLOT_COUNT = 5;
@@ -133,6 +159,78 @@ export const GAME_DIFFICULTIES = {
     revenueMult: 1,
     upkeepMult: 1,
     bailoutAmount: 10000000
+  }
+};
+export const GAME_MODE_DIFFICULTY_OVERRIDES = {
+  founding: {
+    easy: {
+      startingCash: 65000,
+      bailoutAmount: 9000000,
+      rivalStartingCash: 50000,
+      rivalAmbitionScale: 0.8,
+      rivalPaceScale: 0.85,
+      rivalCompeteBufferPct: 0.08,
+      rivalCashFloorBasePct: 0.35,
+      rivalCashFloorAmbitionPct: 0.5,
+      rivalCashFloorYearPct: 0.1
+    },
+    medium: {
+      startingCash: 55000,
+      bailoutAmount: 8000000,
+      rivalStartingCash: 45000,
+      rivalAmbitionScale: 0.9,
+      rivalPaceScale: 0.95,
+      rivalCompeteBufferPct: 0.08,
+      rivalCashFloorBasePct: 0.35,
+      rivalCashFloorAmbitionPct: 0.5,
+      rivalCashFloorYearPct: 0.1
+    },
+    hard: {
+      startingCash: 45000,
+      bailoutAmount: 7000000,
+      rivalStartingCash: 40000,
+      rivalAmbitionScale: 1.05,
+      rivalPaceScale: 1.05,
+      rivalCompeteBufferPct: 0.08,
+      rivalCashFloorBasePct: 0.38,
+      rivalCashFloorAmbitionPct: 0.5,
+      rivalCashFloorYearPct: 0.1
+    }
+  },
+  modern: {
+    easy: {
+      startingCash: 150000,
+      bailoutAmount: 18000000,
+      rivalStartingCash: 120000,
+      rivalAmbitionScale: 0.9,
+      rivalPaceScale: 0.9,
+      rivalCompeteBufferPct: 0.1,
+      rivalCashFloorBasePct: 0.4,
+      rivalCashFloorAmbitionPct: 0.5,
+      rivalCashFloorYearPct: 0.1
+    },
+    medium: {
+      startingCash: 120000,
+      bailoutAmount: 15000000,
+      rivalStartingCash: 100000,
+      rivalAmbitionScale: 1,
+      rivalPaceScale: 1,
+      rivalCompeteBufferPct: 0.1,
+      rivalCashFloorBasePct: 0.4,
+      rivalCashFloorAmbitionPct: 0.5,
+      rivalCashFloorYearPct: 0.1
+    },
+    hard: {
+      startingCash: 100000,
+      bailoutAmount: 12000000,
+      rivalStartingCash: 85000,
+      rivalAmbitionScale: 1.12,
+      rivalPaceScale: 1.12,
+      rivalCompeteBufferPct: 0.1,
+      rivalCashFloorBasePct: 0.42,
+      rivalCashFloorAmbitionPct: 0.5,
+      rivalCashFloorYearPct: 0.1
+    }
   }
 };
 export const DEFAULT_GAME_DIFFICULTY = "medium";

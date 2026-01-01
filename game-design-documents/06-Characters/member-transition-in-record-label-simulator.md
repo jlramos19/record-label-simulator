@@ -23,7 +23,7 @@
 * **`Songwriter`**  
   * **`Verb:`** `Write`  
   * **`Function:`** `Produces lead sheets / sheet music (inventory items).`  
-* **`Recorder`**  
+* **`Vocalist`**  
   * **`Verb:`** `Perform`  
   * **`Function:`** `Uses sheet music to produce recordings (for example: demo recordings).`
 

@@ -60,7 +60,10 @@ import {
   DEFAULT_GAME_MODE,
   DEFAULT_TRACK_SLOT_VISIBLE,
   GAME_DIFFICULTIES,
+  GAME_MODE_DIFFICULTY_OVERRIDES,
   GAME_MODES,
+  GAME_MODE_RIVAL_ROSTER_TARGETS,
+  GAME_MODE_STARTING_ROSTER_COUNTS,
   HUSK_MAX_RELEASE_STEPS,
   HUSK_PROMO_DAY,
   HUSK_PROMO_DEFAULT_TYPE,
@@ -101,6 +104,8 @@ import {
   STAMINA_OVERUSE_LIMIT,
   STAMINA_OVERUSE_STRIKES,
   STAMINA_REGEN_PER_HOUR,
+  WIN_LEADERBOARD_KEY,
+  WIN_LEADERBOARD_LIMIT,
   ACTIVITY_STAMINA_PROMO,
   ACTIVITY_STAMINA_TOUR_DATE,
   TOUR_STAFFING_STAMINA_BOOST_MAX,
@@ -181,8 +186,119 @@ const session = {
   lastSaveFailureToastReason: null,
   lastSaveFailureToastAt: null,
   suppressWeeklyRender: false,
-  timeJumpActive: false
+  timeJumpActive: false,
+  timeJumpSummary: null,
+  fastSim: null
 };
+
+let stateReady = false;
+
+const TIME_JUMP_BUDGET_RELIEF_STEPS = [
+  { weeks: 4, multiplier: 0.85 },
+  { weeks: 12, multiplier: 0.75 },
+  { weeks: 24, multiplier: 0.65 }
+];
+
+function resolveTimeJumpBudgetRelief() {
+  if (!session.timeJumpActive || !session.timeJumpSummary) return 1;
+  const summary = session.timeJumpSummary;
+  const weeks = Number.isFinite(summary.totalWeeks)
+    ? summary.totalWeeks
+    : Number.isFinite(summary.totalHours)
+      ? summary.totalHours / (24 * 7)
+      : 0;
+  if (!Number.isFinite(weeks) || weeks < TIME_JUMP_BUDGET_RELIEF_STEPS[0].weeks) return 1;
+  let multiplier = 1;
+  TIME_JUMP_BUDGET_RELIEF_STEPS.forEach((step) => {
+    if (weeks >= step.weeks) multiplier = step.multiplier;
+  });
+  return multiplier;
+}
+
+function applyTimeJumpBudgetRelief(value, { min = 0 } = {}) {
+  if (!Number.isFinite(value)) return value;
+  const multiplier = resolveTimeJumpBudgetRelief();
+  if (!Number.isFinite(multiplier) || multiplier >= 1) return value;
+  const scaled = Math.round(value * multiplier);
+  return Math.max(Number.isFinite(min) ? min : 0, scaled);
+}
+
+function startTimeJumpSummary(totalHours) {
+  const safeHours = Number.isFinite(totalHours) ? Math.max(0, Math.round(totalHours)) : 0;
+  session.timeJumpSummary = {
+    totalHours: safeHours,
+    totalWeeks: safeHours / (24 * 7),
+    startEpochMs: state.time.epochMs,
+    rivals: {}
+  };
+  return session.timeJumpSummary;
+}
+
+function ensureTimeJumpRivalSummary(label) {
+  const summary = session.timeJumpSummary;
+  if (!summary) return null;
+  const safeLabel = label && typeof label === "string" ? label : "Unknown Rival";
+  if (!summary.rivals[safeLabel]) {
+    summary.rivals[safeLabel] = { releases: 0, blockers: {} };
+  }
+  return summary.rivals[safeLabel];
+}
+
+function recordTimeJumpRivalBlocker(rival, kind) {
+  if (!session.timeJumpActive || !session.timeJumpSummary) return;
+  const label = rival?.name || rival?.label || null;
+  const entry = ensureTimeJumpRivalSummary(label);
+  if (!entry) return;
+  const key = kind && typeof kind === "string" ? kind : "unknown";
+  entry.blockers[key] = (entry.blockers[key] || 0) + 1;
+}
+
+function recordTimeJumpRivalRelease(labelName) {
+  if (!session.timeJumpActive || !session.timeJumpSummary) return;
+  const entry = ensureTimeJumpRivalSummary(labelName);
+  if (!entry) return;
+  entry.releases += 1;
+}
+
+function formatTimeJumpBlockerSummary(blockers) {
+  const entries = Object.entries(blockers || {})
+    .filter(([, count]) => Number.isFinite(count) && count > 0)
+    .map(([kind, count]) => `${kind} x${formatCount(count)}`);
+  return entries.length ? entries.join(", ") : "none";
+}
+
+function logTimeJumpSummary({ status } = {}) {
+  const summary = session.timeJumpSummary;
+  if (!summary) return;
+  const rivals = Object.entries(summary.rivals || {})
+    .map(([label, data]) => {
+      const releaseCount = Number.isFinite(data?.releases) ? data.releases : 0;
+      const blockerCount = Object.values(data?.blockers || {})
+        .reduce((sum, count) => sum + (Number.isFinite(count) ? count : 0), 0);
+      return { label, releaseCount, blockerCount, blockers: data?.blockers || {} };
+    })
+    .filter((entry) => entry.releaseCount > 0 || entry.blockerCount > 0)
+    .sort((a, b) => {
+      if (b.releaseCount !== a.releaseCount) return b.releaseCount - a.releaseCount;
+      if (b.blockerCount !== a.blockerCount) return b.blockerCount - a.blockerCount;
+      return a.label.localeCompare(b.label);
+    });
+  const totalReleases = rivals.reduce((sum, entry) => sum + entry.releaseCount, 0);
+  const statusLabel = status ? ` (${status})` : "";
+  const hoursLabel = formatCount(summary.totalHours || 0);
+  const weeksLabel = Number.isFinite(summary.totalWeeks) ? summary.totalWeeks.toFixed(1) : "0.0";
+  if (!rivals.length) {
+    logEvent(`Skip Time summary${statusLabel}: ${hoursLabel}h (~${weeksLabel}w). No rival AutoOps activity logged.`);
+    session.timeJumpSummary = null;
+    return;
+  }
+  logEvent(`Skip Time summary${statusLabel}: ${hoursLabel}h (~${weeksLabel}w), rival releases ${formatCount(totalReleases)}.`);
+  rivals.forEach((entry) => {
+    const blockers = formatTimeJumpBlockerSummary(entry.blockers);
+    logEvent(`${entry.label}: releases ${formatCount(entry.releaseCount)} | blockers ${blockers}.`);
+  });
+  session.timeJumpSummary = null;
+}
 
 const AUTO_PROMO_SLOT_LIMIT = 4;
 const PERF_THROTTLE_LOG_COOLDOWN_MS = 30000;
@@ -495,8 +611,24 @@ function listGameModes() {
   return Object.values(GAME_MODES);
 }
 
-function getGameDifficulty(difficultyId) {
-  return GAME_DIFFICULTIES[difficultyId] || GAME_DIFFICULTIES[DEFAULT_GAME_DIFFICULTY];
+function resolveActiveGameModeId() {
+  if (!stateReady) return DEFAULT_GAME_MODE;
+  const modeId = typeof state?.meta?.gameMode === "string" ? state.meta.gameMode : DEFAULT_GAME_MODE;
+  return GAME_MODES[modeId] ? modeId : DEFAULT_GAME_MODE;
+}
+
+function getGameDifficulty(difficultyId, options = {}) {
+  const base = GAME_DIFFICULTIES[difficultyId] || GAME_DIFFICULTIES[DEFAULT_GAME_DIFFICULTY];
+  const modeId = typeof options.modeId === "string" ? options.modeId : resolveActiveGameModeId();
+  const overrides = GAME_MODE_DIFFICULTY_OVERRIDES?.[modeId]?.[base.id] || null;
+  if (!overrides) return base;
+  return {
+    ...base,
+    ...overrides,
+    id: base.id,
+    label: base.label,
+    description: base.description
+  };
 }
 
 function listGameDifficulties() {
@@ -530,6 +662,74 @@ function getSlotGameMode(data) {
         ? new Date(data.time.epochMs).getUTCFullYear()
         : null;
   return getGameModeFromStartYear(startYear);
+}
+
+function normalizeRosterCounts(counts, fallback = null) {
+  const base = fallback || { Songwriter: 1, Performer: 1, Producer: 1 };
+  const source = counts || {};
+  const normalize = (value, defaultValue) => {
+    if (Number.isFinite(value)) return Math.max(0, Math.round(value));
+    return Math.max(0, Math.round(defaultValue || 0));
+  };
+  return {
+    Songwriter: normalize(source.Songwriter, base.Songwriter),
+    Performer: normalize(source.Performer, base.Performer),
+    Producer: normalize(source.Producer, base.Producer)
+  };
+}
+
+function resolveStartingRosterCounts(modeId = null) {
+  const fallback = STARTING_ROSTER_COUNTS || { Songwriter: 1, Performer: 1, Producer: 1 };
+  const activeMode = typeof modeId === "string" ? modeId : resolveActiveGameModeId();
+  const modeCounts = GAME_MODE_STARTING_ROSTER_COUNTS?.[activeMode] || null;
+  return normalizeRosterCounts(modeCounts, fallback);
+}
+
+function resolveRivalRosterTargets(modeId = null) {
+  const fallback = resolveStartingRosterCounts(modeId);
+  const activeMode = typeof modeId === "string" ? modeId : resolveActiveGameModeId();
+  const modeCounts = GAME_MODE_RIVAL_ROSTER_TARGETS?.[activeMode] || null;
+  return normalizeRosterCounts(modeCounts, fallback);
+}
+
+function resolveRivalStartingCash(difficulty = null) {
+  const resolvedDifficulty = difficulty || getGameDifficulty(state?.meta?.difficulty);
+  const raw = Number.isFinite(resolvedDifficulty?.rivalStartingCash)
+    ? resolvedDifficulty.rivalStartingCash
+    : resolvedDifficulty?.startingCash;
+  if (Number.isFinite(raw)) return Math.max(0, Math.round(raw));
+  return Math.max(0, Math.round(STARTING_CASH || 0));
+}
+
+function resolveRivalCompeteBuffer(rival, difficulty = null) {
+  const resolvedDifficulty = difficulty || getGameDifficulty(state?.meta?.difficulty);
+  const pctRaw = Number.isFinite(resolvedDifficulty?.rivalCompeteBufferPct)
+    ? resolvedDifficulty.rivalCompeteBufferPct
+    : RIVAL_COMPETE_BUFFER_PCT;
+  const pct = clamp(pctRaw, 0, 1);
+  const baseCash = resolveRivalStartingCash(resolvedDifficulty);
+  if (Number.isFinite(baseCash) && baseCash > 0) {
+    return Math.max(0, Math.round(baseCash * pct));
+  }
+  return Math.max(0, Math.round(RIVAL_COMPETE_CASH_BUFFER || 0));
+}
+
+function resolveRivalCashFloorTuning(difficulty = null) {
+  const resolvedDifficulty = difficulty || getGameDifficulty(state?.meta?.difficulty);
+  const basePctRaw = Number.isFinite(resolvedDifficulty?.rivalCashFloorBasePct)
+    ? resolvedDifficulty.rivalCashFloorBasePct
+    : RIVAL_CASH_FLOOR_BASE_PCT;
+  const ambitionPctRaw = Number.isFinite(resolvedDifficulty?.rivalCashFloorAmbitionPct)
+    ? resolvedDifficulty.rivalCashFloorAmbitionPct
+    : RIVAL_CASH_FLOOR_AMBITION_PCT;
+  const yearPctRaw = Number.isFinite(resolvedDifficulty?.rivalCashFloorYearPct)
+    ? resolvedDifficulty.rivalCashFloorYearPct
+    : RIVAL_CASH_FLOOR_YEAR_PCT;
+  return {
+    basePct: clamp(basePctRaw, 0, 1),
+    ambitionPct: clamp(ambitionPctRaw, 0, 1),
+    yearPct: clamp(yearPctRaw, 0, 1)
+  };
 }
 
 function makeDefaultState() {
@@ -805,6 +1005,7 @@ function makeDefaultState() {
       seedCalibration: null,
       gameOver: null,
       winState: null,
+      winLeaderboardRecorded: false,
       winShown: false,
       endShown: false,
       cheaterMode: false,
@@ -832,6 +1033,7 @@ function makeDefaultState() {
 }
 
 const state = makeDefaultState();
+stateReady = true;
 
 function ensureCheaterEconomyOverrides() {
   if (!state.meta) state.meta = makeDefaultState().meta;
@@ -1173,7 +1375,6 @@ const STAGE_COST_CREW_STEP = 0.1;
 const STAGE_COST_SKILL_MIN = 0.85;
 const STAGE_COST_SKILL_MAX = 1.45;
 const MARKET_MIN_PER_ROLE = 10;
-const RIVAL_MIN_PER_ROLE = 10;
 const MARKET_ROLES = ["Songwriter", "Performer", "Producer"];
 const SKILL_LEVEL_COUNT = 10;
 const MARKET_SKILL_LEVEL_CAP = 5;
@@ -1198,9 +1399,10 @@ const RIVAL_AMBITION_BEHIND_BOOST = 0.2;
 const RIVAL_AMBITION_AHEAD_DAMPENER = 0.22;
 const RIVAL_AMBITION_TIME_BOOST_MAX = 0.12;
 const RIVAL_AMBITION_LOG_DELTA = 0.04;
-const RIVAL_CASH_BASE = Math.round(STARTING_CASH * 0.4);
-const RIVAL_CASH_AMBITION_BOOST = Math.round(STARTING_CASH * 0.5);
-const RIVAL_CASH_YEAR_BOOST = Math.round(STARTING_CASH * 0.1);
+const RIVAL_CASH_FLOOR_BASE_PCT = 0.4;
+const RIVAL_CASH_FLOOR_AMBITION_PCT = 0.5;
+const RIVAL_CASH_FLOOR_YEAR_PCT = 0.1;
+const RIVAL_COMPETE_BUFFER_PCT = 0.1;
 const RIVAL_PACE_MIN = 0.7;
 const RIVAL_PACE_MAX = 1.25;
 const RIVAL_PACE_DELTA_SCALE = 0.35;
@@ -1442,9 +1644,21 @@ function achievementProgressRatio(definition, value) {
 function resolveRivalDifficultyTuning() {
   const difficulty = getGameDifficulty(state.meta?.difficulty);
   const id = difficulty?.id || DEFAULT_GAME_DIFFICULTY;
-  if (id === "easy") return { ambitionScale: 0.9, paceScale: 0.9 };
-  if (id === "hard") return { ambitionScale: 1.1, paceScale: 1.1 };
-  return { ambitionScale: 1, paceScale: 1 };
+  const fallback = id === "easy"
+    ? { ambitionScale: 0.9, paceScale: 0.9 }
+    : id === "hard"
+      ? { ambitionScale: 1.1, paceScale: 1.1 }
+      : { ambitionScale: 1, paceScale: 1 };
+  const ambitionScale = Number.isFinite(difficulty?.rivalAmbitionScale)
+    ? difficulty.rivalAmbitionScale
+    : fallback.ambitionScale;
+  const paceScale = Number.isFinite(difficulty?.rivalPaceScale)
+    ? difficulty.rivalPaceScale
+    : fallback.paceScale;
+  return {
+    ambitionScale: Math.max(0, ambitionScale),
+    paceScale: Math.max(0, paceScale)
+  };
 }
 
 function resolveAchievementGroupById(requestId) {
@@ -1481,6 +1695,11 @@ function countLabelProjectsInWindow(labelName, window) {
   return keys.size;
 }
 
+function isPromoActionType(actionType) {
+  if (!actionType) return false;
+  return Boolean(PROMO_TYPE_DETAILS[actionType]);
+}
+
 function countLabelPromoActivityInWindow(labelName, window, { includeScheduled = false } = {}) {
   if (!labelName || !window) return 0;
   const promos = ensurePromoContentStore();
@@ -1488,13 +1707,29 @@ function countLabelPromoActivityInWindow(labelName, window, { includeScheduled =
     entry?.label === labelName && isEpochInWindow(entry?.createdAt, window)
   )).length;
   if (!includeScheduled) return executed;
-  const scheduled = state.rivalReleaseQueue.filter((entry) => {
+  const rivalQueue = Array.isArray(state.rivalReleaseQueue) ? state.rivalReleaseQueue : [];
+  const scheduledRivals = rivalQueue.filter((entry) => {
     if (!entry || entry.label !== labelName) return false;
     const kind = entry.queueType || "release";
     if (kind !== "promo") return false;
     return isEpochInWindow(entry.releaseAt, window);
   }).length;
-  return executed + scheduled;
+  let scheduledPlayer = 0;
+  if (labelName === state.label?.name) {
+    const scheduledEvents = Array.isArray(state.scheduledEvents) ? state.scheduledEvents : [];
+    scheduledPlayer = scheduledEvents.filter((entry) => {
+      if (!entry || entry.status !== "Scheduled") return false;
+      if (!isPromoActionType(entry.actionType)) return false;
+      const stamp = Number.isFinite(entry?.scheduledAt)
+        ? entry.scheduledAt
+        : Number.isFinite(entry?.eventAt)
+          ? entry.eventAt
+          : null;
+      if (!Number.isFinite(stamp)) return false;
+      return isEpochInWindow(stamp, window);
+    }).length;
+  }
+  return executed + scheduledRivals + scheduledPlayer;
 }
 
 function countLabelTourBookingsInWindow(labelName, window) {
@@ -1535,7 +1770,9 @@ function resolvePlayerRequestProgressRatio(definition) {
   let count = 0;
   if (group === "tracks") count = countLabelReleasesInWindow(labelName, window);
   if (group === "projects") count = countLabelProjectsInWindow(labelName, window);
-  if (group === "promos") count = countLabelPromoActivityInWindow(labelName, window);
+  if (group === "promos") {
+    count = countLabelPromoActivityInWindow(labelName, window, { includeScheduled: true });
+  }
   if (group === "tours") count = countLabelTourBookingsInWindow(labelName, window);
   const target = RIVAL_REQUEST_ACTIVITY_TARGETS[group] || 1;
   return clamp(count / target, 0, 1);
@@ -1819,12 +2056,15 @@ function refreshRivalAmbition() {
 
 function ensureRivalCashFloor() {
   if (!Array.isArray(state.rivals)) return;
-  const yearBoost = currentYear() < 3000 ? RIVAL_CASH_YEAR_BOOST : 0;
+  const difficulty = getGameDifficulty(state.meta?.difficulty);
+  const baseCash = resolveRivalStartingCash(difficulty);
+  const tuning = resolveRivalCashFloorTuning(difficulty);
+  const yearBoost = currentYear() < 3000 ? Math.round(baseCash * tuning.yearPct) : 0;
   state.rivals.forEach((rival) => {
     ensureRivalAchievementState(rival);
     const ambition = clamp(rival.ambition ?? RIVAL_AMBITION_FLOOR, 0, 1);
-    const floor = Math.round(RIVAL_CASH_BASE + RIVAL_CASH_AMBITION_BOOST * ambition + yearBoost);
-    if (!Number.isFinite(rival.cash)) rival.cash = STARTING_CASH;
+    const floor = Math.round(baseCash * tuning.basePct + baseCash * tuning.ambitionPct * ambition + yearBoost);
+    if (!Number.isFinite(rival.cash)) rival.cash = baseCash;
     if (rival.cash < floor) {
       rival.cash = floor;
       if (!rival.wallet) rival.wallet = { cash: rival.cash };
@@ -2667,8 +2907,9 @@ function syncLabelWallets() {
     state.label.wallet.cash = state.label.cash;
   }
   if (Array.isArray(state.rivals)) {
+    const cashFallback = resolveRivalStartingCash();
     state.rivals.forEach((rival) => {
-      if (typeof rival.cash !== "number") rival.cash = STARTING_CASH;
+      if (typeof rival.cash !== "number") rival.cash = cashFallback;
       if (!rival.wallet) rival.wallet = { cash: rival.cash };
       rival.wallet.cash = rival.cash;
       if (!rival.studio) rival.studio = { slots: STARTING_STUDIO_SLOTS };
@@ -2789,11 +3030,24 @@ function weekStartEpochMs(weekNumber) {
 
 const AUDIENCE_AGE_GROUP_SPAN = 4;
 const AUDIENCE_AGE_GROUP_COUNT = 30;
+const AUDIENCE_CONCERT_BASELINE_MIN = 0.85;
+const AUDIENCE_CONCERT_BASELINE_MAX = 1.15;
+const AUDIENCE_CONCERT_BASELINE_PEAK = 26;
+const AUDIENCE_CONCERT_BASELINE_SPREAD = 18;
+
+function computeAudienceConcertBaseline(age) {
+  const safeAge = Number.isFinite(age) ? age : 0;
+  const curve = Math.exp(-Math.pow((safeAge - AUDIENCE_CONCERT_BASELINE_PEAK) / AUDIENCE_CONCERT_BASELINE_SPREAD, 2));
+  const baseline = AUDIENCE_CONCERT_BASELINE_MIN
+    + curve * (AUDIENCE_CONCERT_BASELINE_MAX - AUDIENCE_CONCERT_BASELINE_MIN);
+  return clamp(Number(baseline.toFixed(3)), AUDIENCE_CONCERT_BASELINE_MIN, AUDIENCE_CONCERT_BASELINE_MAX);
+}
 
 function buildAudienceAgeGroupDefinitions() {
   return Array.from({ length: AUDIENCE_AGE_GROUP_COUNT }, (_, index) => {
     const minAge = index * AUDIENCE_AGE_GROUP_SPAN;
     const maxAge = minAge + AUDIENCE_AGE_GROUP_SPAN - 1;
+    const midpoint = (minAge + maxAge) / 2;
     const generationIndex = Math.floor(minAge / 16);
     const generationStart = generationIndex * 16;
     const generationLabel = `${generationStart}-${generationStart + 15}`;
@@ -2803,7 +3057,8 @@ function buildAudienceAgeGroupDefinitions() {
       maxAge,
       label: `${minAge}-${maxAge}`,
       generationIndex,
-      generationLabel
+      generationLabel,
+      concertBaseline: computeAudienceConcertBaseline(midpoint)
     };
   });
 }
@@ -2924,6 +3179,28 @@ function mergeAgeGroupDistributions(total, nationEntries) {
     share: shares[index] || 0,
     count: counts[index] || 0
   }));
+}
+
+function ageGroupsNeedConcertBaseline(ageGroups) {
+  return Array.isArray(ageGroups) && ageGroups.some((group) => !Number.isFinite(group?.concertBaseline));
+}
+
+function ensureConcertBaselinesForAgeGroups(ageGroups) {
+  if (!Array.isArray(ageGroups)) return ageGroups;
+  return ageGroups.map((group, index) => {
+    if (!group || typeof group !== "object") return group;
+    if (Number.isFinite(group.concertBaseline)) return group;
+    const fallback = AUDIENCE_AGE_GROUPS[index] || {};
+    const minAge = Number.isFinite(group.minAge) ? group.minAge : fallback.minAge;
+    const maxAge = Number.isFinite(group.maxAge) ? group.maxAge : fallback.maxAge;
+    if (!Number.isFinite(minAge) || !Number.isFinite(maxAge)) return group;
+    return {
+      ...group,
+      minAge,
+      maxAge,
+      concertBaseline: computeAudienceConcertBaseline((minAge + maxAge) / 2)
+    };
+  });
 }
 
 const AUDIENCE_CHUNK_SIZE = 1000;
@@ -4660,7 +4937,7 @@ function rivalCreateBudgetPct(rival) {
 
 function rivalCreateMinCash(rival) {
   const raw = rival?.aiCreateMinCash;
-  const base = Number.isFinite(raw) ? raw : (Number.isFinite(AI_CREATE_MIN_CASH) ? AI_CREATE_MIN_CASH : 0);
+  const base = Number.isFinite(raw) ? raw : resolveRivalCompeteBuffer(rival);
   return Math.max(0, Math.round(base));
 }
 
@@ -4679,16 +4956,17 @@ function resolveRivalCreateSettings(rival) {
   };
 }
 
-function buildRivalCreateBudget(rival, walletCash, reserveFloorOverride = null) {
+function buildRivalCreateBudget(rival, walletCash, reserveFloorOverride = null, options = {}) {
   const settings = resolveRivalCreateSettings(rival);
-  const reserveFloor = Math.max(
-    settings.minCash,
-    Math.round(Math.max(0, walletCash) * settings.reservePct),
-    Number.isFinite(reserveFloorOverride) ? Math.max(0, reserveFloorOverride) : 0
-  );
+  const minCash = applyTimeJumpBudgetRelief(settings.minCash);
+  const reservePctFloor = applyTimeJumpBudgetRelief(Math.round(Math.max(0, walletCash) * settings.reservePct));
+  const overrideFloor = Number.isFinite(reserveFloorOverride) ? Math.max(0, reserveFloorOverride) : 0;
+  const softenedOverride = options.skipOverrideRelief ? overrideFloor : applyTimeJumpBudgetRelief(overrideFloor);
+  const reserveFloor = Math.max(minCash, reservePctFloor, softenedOverride);
   const budgetCap = computeAutoCreateBudget(walletCash, settings.pct, reserveFloor);
   return {
     ...settings,
+    minCash,
     reserveFloor,
     budgetCap,
     spent: 0,
@@ -4890,6 +5168,96 @@ function saveLossArchives(entries) {
 
 function getLossArchives() {
   return loadLossArchives();
+}
+
+function normalizeWinLeaderboardEntry(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const next = { ...entry };
+  if (!next.id) next.id = `win-${Date.now()}`;
+  if (!Number.isFinite(next.createdAt)) next.createdAt = Date.now();
+  next.label = String(next.label || "Unknown Label");
+  next.difficulty = next.difficulty || DEFAULT_GAME_DIFFICULTY;
+  next.reason = typeof next.reason === "string" ? next.reason : null;
+  next.chartPoints = Number.isFinite(next.chartPoints) ? next.chartPoints : 0;
+  next.awardPoints = Number.isFinite(next.awardPoints) ? next.awardPoints : 0;
+  if (!next.awards || typeof next.awards !== "object") {
+    next.awards = { annualWins: 0, annualNoms: 0, showWins: 0, showNoms: 0, awardPoints: next.awardPoints };
+  }
+  next.awards.annualWins = Number.isFinite(next.awards.annualWins) ? next.awards.annualWins : 0;
+  next.awards.annualNoms = Number.isFinite(next.awards.annualNoms) ? next.awards.annualNoms : 0;
+  next.awards.showWins = Number.isFinite(next.awards.showWins) ? next.awards.showWins : 0;
+  next.awards.showNoms = Number.isFinite(next.awards.showNoms) ? next.awards.showNoms : 0;
+  next.awards.awardPoints = Number.isFinite(next.awards.awardPoints) ? next.awards.awardPoints : next.awardPoints;
+  next.timeToWinHours = Number.isFinite(next.timeToWinHours) ? next.timeToWinHours : null;
+  next.timeToWinDays = Number.isFinite(next.timeToWinDays) ? next.timeToWinDays : null;
+  next.timeToWinWeeks = Number.isFinite(next.timeToWinWeeks) ? next.timeToWinWeeks : null;
+  next.bailoutUsed = Boolean(next.bailoutUsed);
+  next.excluded = Boolean(typeof next.excluded === "boolean" ? next.excluded : next.bailoutUsed);
+  next.year = Number.isFinite(next.year) ? next.year : null;
+  next.week = Number.isFinite(next.week) ? next.week : null;
+  return next;
+}
+
+function normalizeWinLeaderboardEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+  return entries.map((entry) => normalizeWinLeaderboardEntry(entry)).filter(Boolean);
+}
+
+function loadWinLeaderboard() {
+  const raw = localStorage.getItem(WIN_LEADERBOARD_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return normalizeWinLeaderboardEntries(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function saveWinLeaderboard(entries) {
+  try {
+    localStorage.setItem(WIN_LEADERBOARD_KEY, JSON.stringify(entries));
+  } catch (error) {
+    if (isQuotaExceededError(error)) {
+      warnLocalStorageIssue("Local storage is full; win leaderboard updates were skipped.", error);
+    }
+    recordStorageError({ scope: "localStorage", message: "Win leaderboard save failed.", error });
+  }
+}
+
+function compareWinLeaderboardEntries(a, b) {
+  const aExcluded = Boolean(a?.excluded);
+  const bExcluded = Boolean(b?.excluded);
+  if (aExcluded !== bExcluded) return aExcluded ? 1 : -1;
+  const chartDelta = Number(b?.chartPoints || 0) - Number(a?.chartPoints || 0);
+  if (chartDelta !== 0) return chartDelta;
+  const awardDelta = Number(b?.awardPoints || 0) - Number(a?.awardPoints || 0);
+  if (awardDelta !== 0) return awardDelta;
+  const aHours = Number.isFinite(a?.timeToWinHours) ? a.timeToWinHours : Number.POSITIVE_INFINITY;
+  const bHours = Number.isFinite(b?.timeToWinHours) ? b.timeToWinHours : Number.POSITIVE_INFINITY;
+  if (aHours !== bHours) return aHours - bHours;
+  const createdDelta = Number(a?.createdAt || 0) - Number(b?.createdAt || 0);
+  if (createdDelta !== 0) return createdDelta;
+  return String(a?.label || "").localeCompare(String(b?.label || ""));
+}
+
+function getWinLeaderboard({ includeExcluded = true } = {}) {
+  const entries = loadWinLeaderboard();
+  const filtered = includeExcluded ? entries : entries.filter((entry) => !entry.excluded);
+  return filtered.slice().sort(compareWinLeaderboardEntries);
+}
+
+function recordWinLeaderboardEntry(entry) {
+  const normalized = normalizeWinLeaderboardEntry(entry);
+  if (!normalized) return null;
+  const entries = loadWinLeaderboard();
+  if (entries.some((existing) => existing.id === normalized.id)) return normalized;
+  entries.push(normalized);
+  entries.sort((a, b) => Number(a?.createdAt || 0) - Number(b?.createdAt || 0));
+  const limit = Math.max(1, Math.round(Number(WIN_LEADERBOARD_LIMIT) || 20));
+  const pruned = entries.slice(-limit);
+  saveWinLeaderboard(pruned);
+  return normalized;
 }
 
 function handleFromName(name, fallback) {
@@ -6859,6 +7227,9 @@ function injectCheaterMarketCreators({
 }
 
 function buildRivals() {
+  const difficulty = getGameDifficulty(state.meta?.difficulty);
+  const startingCash = resolveRivalStartingCash(difficulty);
+  const createMinCash = resolveRivalCompeteBuffer(null, difficulty);
   return AI_LABELS.map((label) => ({
     id: label.id,
     name: label.name,
@@ -6868,8 +7239,8 @@ function buildRivals() {
     focusMoods: label.focusMoods,
     momentum: 0.5,
     seedBonus: 0,
-    cash: STARTING_CASH,
-    wallet: { cash: STARTING_CASH },
+    cash: startingCash,
+    wallet: { cash: startingCash },
     studio: { slots: STARTING_STUDIO_SLOTS },
     creators: [],
     achievementsUnlocked: [],
@@ -6880,7 +7251,7 @@ function buildRivals() {
     ambition: RIVAL_AMBITION_FLOOR,
     eraCompletions: 0,
     aiCreatePct: AI_CREATE_BUDGET_PCT,
-    aiCreateMinCash: AI_CREATE_MIN_CASH,
+    aiCreateMinCash: createMinCash,
     aiReservePct: AI_CREATE_RESERVE_PCT,
     aiCreateMaxTracksPerWeek: AUTO_CREATE_MAX_TRACKS,
     aiPlan: {
@@ -8651,13 +9022,17 @@ function recruitRivalCreators() {
     const promoStaminaNeed = cadence.promoSteps * ACTIVITY_STAMINA_PROMO;
     const staminaShortfall = Math.max(0, promoStaminaNeed - staminaStats.totalStamina);
     const staminaBoost = staminaShortfall > 0 ? Math.ceil(staminaShortfall / STAMINA_MAX) : 0;
-    const targetPerRole = RIVAL_MIN_PER_ROLE + rosterBoost + cadenceBoost + staminaBoost;
+    const baseTargets = resolveRivalRosterTargets();
+    const targetByRole = MARKET_ROLES.reduce((acc, role) => {
+      acc[role] = (baseTargets?.[role] || 0) + rosterBoost + cadenceBoost + staminaBoost;
+      return acc;
+    }, {});
     const counts = MARKET_ROLES.reduce((acc, role) => {
       acc[role] = rival.creators.filter((creator) => creator.role === role).length;
       return acc;
     }, {});
     const projectedNet = projectRivalNet(rival, cadence.windowWeeks || 1);
-    const needsSignings = MARKET_ROLES.some((role) => (counts[role] || 0) < targetPerRole);
+    const needsSignings = MARKET_ROLES.some((role) => (counts[role] || 0) < (targetByRole[role] || 0));
     if (projectedNet < 0 && needsSignings) {
       logEvent(`${rival.name} roster hold (why: projected net ${formatMoney(projectedNet)} < 0).`, "warn");
       return;
@@ -8673,7 +9048,7 @@ function recruitRivalCreators() {
       counts[role] = (counts[role] || 0) + 1;
     };
     MARKET_ROLES.forEach((role) => {
-      let missing = Math.max(0, targetPerRole - counts[role]);
+      let missing = Math.max(0, (targetByRole[role] || 0) - counts[role]);
       while (missing > 0 && rival.creators.length < CREATOR_ROSTER_CAP) {
         const { theme, mood } = pickTrendTarget(trends);
         addRecruit(role, theme, mood);
@@ -12211,7 +12586,12 @@ function resolveConcertInterestMultiplier(scopeId, epochMs) {
   groups.forEach((group, index) => {
     if (!picks.has(index)) return;
     const share = Number.isFinite(group.share) ? group.share : Math.max(0, Number(group.count || 0) / total);
-    activeShare += share;
+    const baseline = Number.isFinite(group.concertBaseline)
+      ? group.concertBaseline
+      : Number.isFinite(group.minAge) && Number.isFinite(group.maxAge)
+        ? computeAudienceConcertBaseline((group.minAge + group.maxAge) / 2)
+        : 1;
+    activeShare += share * baseline;
   });
   const base = TOUR_CONCERT_INTEREST_BASE;
   const max = TOUR_CONCERT_INTEREST_MAX;
@@ -15390,6 +15770,7 @@ function updateEconomy(globalScores) {
 
 function updateRivalEconomy(globalScores) {
   if (!Array.isArray(state.rivals)) return;
+  const cashFallback = resolveRivalStartingCash();
   const scores = Array.isArray(globalScores) ? globalScores : [];
   const revenueRate = Number.isFinite(ECONOMY_TUNING?.revenuePerChartPoint)
     ? ECONOMY_TUNING.revenuePerChartPoint
@@ -15412,7 +15793,7 @@ function updateRivalEconomy(globalScores) {
     const ownedSlots = clamp(Math.round(rival.studio?.slots || STARTING_STUDIO_SLOTS), 0, STUDIO_CAP_PER_LABEL);
     const upkeepBase = (rival.creators?.length || 0) * upkeepPerCreator + ownedSlots * upkeepPerStudio;
     const upkeep = Math.round(upkeepBase * RIVAL_UPKEEP_MULT);
-    rival.cash = Math.round((rival.cash ?? STARTING_CASH) + revenue - upkeep);
+    rival.cash = Math.round((rival.cash ?? cashFallback) + revenue - upkeep);
     if (!rival.wallet) rival.wallet = { cash: rival.cash };
     rival.wallet.cash = rival.cash;
     const leaseFees = Math.max(0, Math.round(rival.economy.lastLeaseFees || 0));
@@ -16021,10 +16402,11 @@ function applyRivalStudioLeaseCosts() {
     const ownedSlots = clamp(Math.round(rival.studio?.slots || STARTING_STUDIO_SLOTS), 0, cap);
     const momentum = typeof rival.momentum === "number" ? rival.momentum : 0.35;
     const used = clamp(Math.round(cap * momentum), 0, cap);
-    const cash = typeof rival.cash === "number" ? rival.cash : STARTING_CASH;
+    const cashFallback = resolveRivalStartingCash();
+    const cash = typeof rival.cash === "number" ? rival.cash : cashFallback;
     const leased = Math.max(0, used - ownedSlots);
     if (!leased) return;
-    const reserve = RIVAL_COMPETE_CASH_BUFFER;
+    const reserve = resolveRivalCompeteBuffer(rival);
     const reservable = Math.max(0, cash - reserve);
     const maxLeased = costPerSlotWeek > 0 ? Math.floor(reservable / costPerSlotWeek) : leased;
     const affordableLeased = Math.min(leased, Math.max(0, maxLeased));
@@ -16148,11 +16530,112 @@ function findChartMonopoly() {
   return null;
 }
 
+function roundLeaderboardScore(value, decimals = 1) {
+  const safe = Number.isFinite(value) ? value : 0;
+  const factor = 10 ** Math.max(0, Math.round(decimals));
+  return Math.round(safe * factor) / factor;
+}
+
+function resolveWinLeaderboardChartPoints(labelName) {
+  if (!labelName) return 0;
+  const cumulative = state.meta?.cumulativeLabelPoints || {};
+  const points = Number.isFinite(cumulative[labelName]) ? cumulative[labelName] : null;
+  if (Number.isFinite(points)) return roundLeaderboardScore(points);
+  const scores = computeLabelScoresFromCharts();
+  return roundLeaderboardScore(scores[labelName] || 0);
+}
+
+function resolveWinLeaderboardAwardStats(labelName) {
+  if (!labelName) {
+    return { annualWins: 0, annualNoms: 0, showWins: 0, showNoms: 0, awardPoints: 0 };
+  }
+  const definitions = listAnnualAwardDefinitions();
+  const annualWins = definitions.reduce((sum, definition) => {
+    return sum + countAnnualAwardWins(definition.id, labelName);
+  }, 0);
+  const ledger = ensureAnnualAwardLedger();
+  let annualNoms = 0;
+  Object.values(ledger.years || {}).forEach((entry) => {
+    definitions.forEach((definition) => {
+      const nominees = buildAnnualAwardNomineesFromLedger(definition, entry);
+      nominees.forEach((nominee) => {
+        if (nominee?.candidate?.label === labelName) annualNoms += 1;
+      });
+    });
+  });
+  const awardStore = ensureAwardShowStore();
+  let showWins = 0;
+  let showNoms = 0;
+  (awardStore.shows || []).forEach((show) => {
+    (show?.categories || []).forEach((category) => {
+      if (category?.winner?.label === labelName) showWins += 1;
+      (category?.nominees || []).forEach((nominee) => {
+        if (nominee?.label === labelName) showNoms += 1;
+      });
+    });
+  });
+  const awardPoints = roundLeaderboardScore(annualWins * 5 + annualNoms * 2 + showWins + showNoms * 0.5);
+  return { annualWins, annualNoms, showWins, showNoms, awardPoints };
+}
+
+function resolveWinLeaderboardTimeToWin() {
+  const totalHours = Number.isFinite(state.time?.totalHours) ? state.time.totalHours : null;
+  let hours = totalHours;
+  if (!Number.isFinite(hours)) {
+    const start = Number.isFinite(state.time?.startEpochMs) ? state.time.startEpochMs : null;
+    const now = Number.isFinite(state.time?.epochMs) ? state.time.epochMs : null;
+    if (Number.isFinite(start) && Number.isFinite(now)) {
+      hours = Math.max(0, (now - start) / HOUR_MS);
+    }
+  }
+  if (!Number.isFinite(hours)) return { hours: null, days: null, weeks: null };
+  const safeHours = Math.max(0, hours);
+  const roundedHours = Math.round(safeHours);
+  const days = Math.max(0, Math.round(safeHours / 24));
+  const weeks = Math.max(0, Math.round((safeHours / WEEK_HOURS) * 10) / 10);
+  return { hours: roundedHours, days, weeks };
+}
+
+function buildWinLeaderboardEntry(reason) {
+  const now = Date.now();
+  const labelName = state.label?.name || "Unknown Label";
+  const awards = resolveWinLeaderboardAwardStats(labelName);
+  const timeToWin = resolveWinLeaderboardTimeToWin();
+  const bailoutUsed = Boolean(state.meta?.bailoutUsed);
+  return {
+    id: `win-${now}`,
+    createdAt: now,
+    label: labelName,
+    difficulty: state.meta?.difficulty || DEFAULT_GAME_DIFFICULTY,
+    year: currentYear(),
+    week: weekIndex() + 1,
+    reason: typeof reason === "string" ? reason : null,
+    chartPoints: resolveWinLeaderboardChartPoints(labelName),
+    awardPoints: awards.awardPoints,
+    awards,
+    timeToWinHours: timeToWin.hours,
+    timeToWinDays: timeToWin.days,
+    timeToWinWeeks: timeToWin.weeks,
+    bailoutUsed,
+    excluded: bailoutUsed
+  };
+}
+
+function recordWinLeaderboardFromState(reason) {
+  if (!state.meta) state.meta = makeDefaultState().meta;
+  if (state.meta.winLeaderboardRecorded) return null;
+  const entry = buildWinLeaderboardEntry(reason);
+  const stored = recordWinLeaderboardEntry(entry);
+  if (stored) state.meta.winLeaderboardRecorded = true;
+  return stored;
+}
+
 function announceWin(reason) {
   if (state.meta.winState) return;
   const bailoutUsed = Boolean(state.meta?.bailoutUsed);
   state.meta.winState = { reason, year: currentYear(), exp: state.meta.exp, bailoutUsed };
   logEvent(`Victory secured: ${reason}.`);
+  recordWinLeaderboardFromState(reason);
   if (bailoutUsed) {
     logEvent("Bailout used: win flagged for leaderboards.", "warn");
   }
@@ -16236,6 +16719,9 @@ function finalizeGame(result, reason) {
   const endedSlot = session.activeSlot;
   const bailoutUsed = Boolean(state.meta?.bailoutUsed);
   state.meta.gameOver = { result, reason, year: currentYear(), exp: state.meta.exp, bailoutUsed };
+  if (result === "win") {
+    recordWinLeaderboardFromState(reason);
+  }
   setTimeSpeed("pause");
   const title = result === "win" ? "You Won" : "Game Over - You Lost";
   const lines = [
@@ -16645,7 +17131,7 @@ function questTemplates() {
 function buildQuests() {
   const pool = questTemplates();
   if (!pool.length) {
-    logEvent("Quest pool is empty; no quests generated.", "warn");
+    logEvent("Task pool is empty; no tasks generated.", "warn");
     return [];
   }
   const targetCount = Math.min(3, pool.length);
@@ -16662,7 +17148,7 @@ function buildQuests() {
     attempts += 1;
   }
   if (quests.length < targetCount) {
-    logEvent(`Quest pool shortfall: ${quests.length}/${targetCount} quests seeded.`, "warn");
+    logEvent(`Task pool shortfall: ${quests.length}/${targetCount} tasks seeded.`, "warn");
   }
   return quests;
 }
@@ -16733,12 +17219,301 @@ function updateQuests() {
   });
 }
 
+function resolveQuestAutoFulfillReleaseGenre(track) {
+  if (!track) return null;
+  if (track.genre) return track.genre;
+  if (track.theme && track.mood) return makeGenre(track.theme, track.mood);
+  return null;
+}
+
+function resolveQuestAutoFulfillReleaseCandidate(quest) {
+  if (!quest) return { track: null, reason: "Task not found." };
+  const targetGenre = quest.genre || null;
+  const targetProjectType = quest.projectType ? normalizeProjectType(quest.projectType) : null;
+  const candidates = state.tracks.filter((track) => {
+    if (!track || track.status !== "Ready") return false;
+    if (!track.actId || !getAct(track.actId)) return false;
+    if (isTrackReleaseReleased(track, { includeShelved: true })) return false;
+    if (isTrackReleaseScheduled(track)) return false;
+    return true;
+  });
+  const eligible = candidates.filter((track) => {
+    const genre = resolveQuestAutoFulfillReleaseGenre(track);
+    if (!genre) return false;
+    if (quest.type === "trendRelease" && genre !== targetGenre) return false;
+    if (quest.type === "projectRelease") {
+      const projectType = normalizeProjectType(track.projectType || "Single");
+      if (!targetProjectType || projectType !== targetProjectType) return false;
+    }
+    return true;
+  });
+  if (!eligible.length) {
+    if (quest.type === "trendRelease") {
+      return { track: null, reason: `No Ready tracks in ${formatGenreKeyLabel(targetGenre || "")}.` };
+    }
+    if (quest.type === "projectRelease") {
+      return { track: null, reason: `No Ready ${targetProjectType || "project"} tracks.` };
+    }
+    return { track: null, reason: "No Ready tracks with Act + Genre assigned." };
+  }
+  eligible.sort((a, b) => {
+    const qualityA = resolveTrackQualityScore(a) ?? 0;
+    const qualityB = resolveTrackQualityScore(b) ?? 0;
+    if (qualityA !== qualityB) return qualityB - qualityA;
+    const stampA = Number(a.completedAt || a.createdAt || 0);
+    const stampB = Number(b.completedAt || b.createdAt || 0);
+    return stampB - stampA;
+  });
+  return { track: eligible[0], reason: "" };
+}
+
+function resolveQuestAutoFulfillPromoTarget() {
+  const focusEra = getFocusedEra();
+  const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
+  const candidates = [];
+  if (focusEra && focusEra.status === "Active") candidates.push(focusEra);
+  activeEras.forEach((era) => {
+    if (!candidates.some((entry) => entry.id === era.id)) candidates.push(era);
+  });
+  for (const era of candidates) {
+    const act = getAct(era.actId);
+    if (!act) continue;
+    const releases = listMarketTracksForAct(act.id, era.id);
+    if (!releases.length) continue;
+    return { act, era, reason: "" };
+  }
+  return { act: null, era: null, reason: "No active Eras with released content." };
+}
+
+function resolveQuestAutoFulfillPromoType() {
+  if (PROMO_TYPE_DETAILS?.eyeriSocialPost) return "eyeriSocialPost";
+  if (PROMO_TYPE_DETAILS?.[AUTO_PROMO_RIVAL_TYPE]) return AUTO_PROMO_RIVAL_TYPE;
+  const fallback = Object.keys(PROMO_TYPE_DETAILS || {}).find((typeId) => {
+    const details = PROMO_TYPE_DETAILS[typeId];
+    return details && !details.requiresTrack;
+  });
+  return fallback || DEFAULT_PROMO_TYPE;
+}
+
+function resolveQuestAutoFulfillTourTarget() {
+  const focusEra = getFocusedEra();
+  const activeEras = getActiveEras().filter((entry) => entry.status === "Active");
+  const candidates = [];
+  if (focusEra && focusEra.status === "Active") candidates.push(focusEra);
+  activeEras.forEach((era) => {
+    if (!candidates.some((entry) => entry.id === era.id)) candidates.push(era);
+  });
+  for (const era of candidates) {
+    const act = getAct(era.actId);
+    if (!act) continue;
+    const releases = listMarketTracksForAct(act.id, era.id);
+    if (!releases.length) continue;
+    return { act, era, reason: "" };
+  }
+  return { act: null, era: null, reason: "No active Eras with released content." };
+}
+
+function resolveQuestAutoFulfillState(quest) {
+  if (!quest) return { ok: false, reason: "Task not found." };
+  if (state.meta?.cheaterMode) return { ok: false, reason: "Cheater mode active." };
+  if (quest.done) return { ok: false, reason: "Task complete." };
+  if (quest.type === "releaseCount" || quest.type === "trendRelease" || quest.type === "projectRelease") {
+    const candidate = resolveQuestAutoFulfillReleaseCandidate(quest);
+    if (!candidate.track) return { ok: false, reason: candidate.reason || "No Ready tracks available." };
+    return { ok: true, reason: "" };
+  }
+  if (quest.type === "promoRuns") {
+    const target = resolveQuestAutoFulfillPromoTarget();
+    if (!target.act) return { ok: false, reason: target.reason || "No active Era for promo." };
+    const promoType = resolveQuestAutoFulfillPromoType();
+    const details = getPromoTypeDetails(promoType);
+    if (details?.requiresTrack) return { ok: false, reason: "No act-ready promo type available." };
+    const cost = Math.max(0, Math.round(details?.cost || 0));
+    if (cost > 0 && state.label.cash < cost) {
+      return { ok: false, reason: `Need ${formatMoney(cost)} for promo.` };
+    }
+    return { ok: true, reason: "" };
+  }
+  if (quest.type === "tourBookings") {
+    const target = resolveQuestAutoFulfillTourTarget();
+    if (!target.act) return { ok: false, reason: target.reason || "No active Era for touring." };
+    return { ok: true, reason: "" };
+  }
+  return { ok: false, reason: "Manual progress required." };
+}
+
+function autoFulfillQuest(questId) {
+  if (!questId) return { ok: false, reason: "Task not found." };
+  const quest = state.quests.find((entry) => entry.id === questId);
+  if (!quest) {
+    logEvent(`Task auto-fulfill failed: ${questId} not found.`, "warn");
+    return { ok: false, reason: "Task not found." };
+  }
+  const eligibility = resolveQuestAutoFulfillState(quest);
+  if (!eligibility.ok) {
+    const reason = eligibility.reason || "Task auto-fulfill blocked.";
+    logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+    return { ok: false, reason };
+  }
+  logEvent(`Task auto-fulfill started: ${quest.id} (${quest.text}).`);
+
+  if (quest.type === "releaseCount" || quest.type === "trendRelease" || quest.type === "projectRelease") {
+    const candidate = resolveQuestAutoFulfillReleaseCandidate(quest);
+    const track = candidate.track;
+    if (!track) {
+      const reason = candidate.reason || "No Ready tracks available.";
+      logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+      return { ok: false, reason };
+    }
+    if (!track.genre) {
+      const derived = resolveQuestAutoFulfillReleaseGenre(track);
+      if (derived) track.genre = derived;
+    }
+    if (!track.genre) {
+      const reason = "Track needs Theme + Mood to set Genre.";
+      logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+      return { ok: false, reason };
+    }
+    const desiredDist = track.distribution || "Digital";
+    const distResult = resolveReleaseDistributionForTrack(track, desiredDist, {
+      labelFans: Number(state.label?.fans || 0),
+      log: true
+    });
+    let distribution = distResult.distribution;
+    const distFee = getReleaseDistributionFee(distribution);
+    if (distFee > 0 && state.label.cash < distFee) {
+      if (distribution !== "Digital") {
+        logEvent(`Task auto-fulfill: not enough cash for ${distribution} fee. Switching to Digital.`, "warn");
+      }
+      distribution = "Digital";
+    }
+    const released = releaseTrack(track, "Task auto-fulfill", distribution, { chargeFee: true });
+    if (!released) {
+      const reason = "Release failed.";
+      logEvent(`Task auto-fulfill failed: ${quest.id} (${reason}).`, "warn");
+      return { ok: false, reason };
+    }
+    updateQuests();
+    logEvent(`Task auto-fulfill complete: ${quest.id} release logged.`);
+    return { ok: true, action: "release", trackId: track.id };
+  }
+
+  if (quest.type === "promoRuns") {
+    const target = resolveQuestAutoFulfillPromoTarget();
+    if (!target.act) {
+      const reason = target.reason || "No active Era for promo.";
+      logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+      return { ok: false, reason };
+    }
+    const promoType = resolveQuestAutoFulfillPromoType();
+    const details = getPromoTypeDetails(promoType);
+    if (details?.requiresTrack) {
+      const reason = "No act-ready promo type available.";
+      logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+      return { ok: false, reason };
+    }
+    const budget = Math.max(0, Math.round(details?.cost || 0));
+    if (budget > 0 && state.label.cash < budget) {
+      const reason = `Need ${formatMoney(budget)} for promo.`;
+      logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+      return { ok: false, reason };
+    }
+    if (details?.facility) {
+      const availability = getPromoFacilityAvailability(details.facility);
+      if (availability.available < 1) {
+        const reason = "No promo facility slots available.";
+        logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+        return { ok: false, reason };
+      }
+      const reservation = reservePromoFacilitySlot(details.facility, promoType, null, { actId: target.act.id });
+      if (!reservation.ok) {
+        const reason = reservation.reason || "Promo facility reservation failed.";
+        logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+        return { ok: false, reason };
+      }
+    }
+    if (budget > 0) {
+      state.label.cash -= budget;
+      if (state.label.wallet) state.label.wallet.cash = state.label.cash;
+    }
+    const boostWeeks = promoWeeksFromBudget(budget || 0);
+    target.act.promoWeeks = Math.max(target.act.promoWeeks || 0, boostWeeks);
+    state.meta.promoRuns = (state.meta.promoRuns || 0) + 1;
+    const promoIds = new Set([...(target.act.memberIds || [])]);
+    const promoIdList = Array.from(promoIds).filter(Boolean);
+    if (promoIdList.length) {
+      const promoLabel = details?.label || "Promo";
+      applyActStaminaSpend(promoIdList, ACTIVITY_STAMINA_PROMO, {
+        context: {
+          stageName: `Promo: ${promoLabel}`,
+          trackId: null,
+          orderId: `task-${quest.id}`
+        },
+        activityLabel: promoLabel,
+        skillGainPerStamina: ACTIVITY_SKILL_GAIN_PER_STAMINA
+      });
+      markCreatorPromo(promoIdList);
+    }
+    const promoStamp = state.time.epochMs;
+    recordPromoUsage({ act: target.act, promoType, atMs: promoStamp });
+    recordPromoContent({
+      promoType,
+      actId: target.act.id,
+      actName: target.act.name,
+      actNameKey: target.act.nameKey || null,
+      trackId: null,
+      marketId: null,
+      trackTitle: null,
+      projectName: null,
+      label: state.label?.name || "",
+      budget,
+      weeks: boostWeeks,
+      isPlayer: true,
+      targetType: "act"
+    });
+    updateQuests();
+    logEvent(`Task auto-fulfill complete: ${quest.id} promo logged.`);
+    return { ok: true, action: "promo", actId: target.act.id };
+  }
+
+  if (quest.type === "tourBookings") {
+    const target = resolveQuestAutoFulfillTourTarget();
+    if (!target.act) {
+      const reason = target.reason || "No active Era for touring.";
+      logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+      return { ok: false, reason };
+    }
+    const drafts = listTourDrafts().filter((draft) => draft?.actId === target.act.id);
+    const matchingEra = drafts.find((draft) => draft?.eraId === target.era?.id);
+    const draft = matchingEra || drafts[0] || createTourDraft({ actId: target.act.id, eraId: target.era?.id || null });
+    if (!draft) {
+      const reason = "Tour draft unavailable.";
+      logEvent(`Task auto-fulfill failed: ${quest.id} (${reason}).`, "warn");
+      return { ok: false, reason };
+    }
+    selectTourDraft(draft.id);
+    const result = autoGenerateTourDates({ draftId: draft.id, count: 1 });
+    if (!result.ok) {
+      const reason = result.reason || "Tour auto-generate blocked.";
+      logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+      return { ok: false, reason };
+    }
+    updateQuests();
+    logEvent(`Task auto-fulfill complete: ${quest.id} tour booked.`);
+    return { ok: true, action: "tour", draftId: draft.id };
+  }
+
+  const reason = "Manual progress required.";
+  logEvent(`Task auto-fulfill blocked: ${quest.id} (${reason}).`, "warn");
+  return { ok: false, reason };
+}
+
 function refreshQuestPool() {
   if (state.meta?.cheaterMode) return;
   const active = state.quests.filter((quest) => !quest.done);
   const pool = questTemplates();
   if (!pool.length) {
-    logEvent("Quest pool is empty; no quests refreshed.", "warn");
+    logEvent("Task pool is empty; no tasks refreshed.", "warn");
     return;
   }
   const newQuests = [];
@@ -16757,7 +17532,7 @@ function refreshQuestPool() {
     attempts += 1;
   }
   if (active.length < targetCount) {
-    logEvent(`Quest pool shortfall: ${active.length}/${targetCount} quests active.`, "warn");
+    logEvent(`Task pool shortfall: ${active.length}/${targetCount} tasks active.`, "warn");
   }
   state.quests = active;
   newQuests.forEach((quest) => postQuestEmail(quest));
@@ -17269,7 +18044,7 @@ function buildRivalPlanWindowStats(rival, husk, options = {}) {
   const releaseCost = Number.isFinite(options.releaseCost) ? options.releaseCost : RIVAL_COMPETE_DROP_COST;
   const promoReserve = Number.isFinite(promoBudget) ? promoBudget : 0;
   const tourReserve = estimateRivalTourReserve(husk, walletCash).reserve;
-  const cashReserve = RIVAL_COMPETE_CASH_BUFFER + releaseCost + promoReserve + tourReserve;
+  const cashReserve = resolveRivalCompeteBuffer(rival) + releaseCost + promoReserve + tourReserve;
   const operatingCost = estimateRivalOperatingCost(rival, cashReserve);
   const availableCash = Math.max(0, projectedCash - operatingCost);
   return {
@@ -17440,10 +18215,11 @@ function buildRivalAutoOpsBudget(rival, husk, options = {}) {
   const createBudget = createPlan.budgetCap;
   const promoReserve = promoBudget ? promoBudget * (cadence.promoSteps || 0) : 0;
   const tourEstimate = estimateRivalTourReserve(husk, walletCash);
-  const reserveFloor = Math.max(
-    releaseBudget.minCash,
-    Math.round(RIVAL_COMPETE_CASH_BUFFER + releaseCost + promoReserve + tourEstimate.reserve)
+  const reserveBuffer = applyTimeJumpBudgetRelief(
+    Math.round(resolveRivalCompeteBuffer(rival) + releaseCost + promoReserve + tourEstimate.reserve),
+    { min: releaseCost }
   );
+  const reserveFloor = Math.max(releaseBudget.minCash, reserveBuffer);
   const tourBudgetCap = Math.max(0, Math.round(walletCash - reserveFloor));
   return {
     walletCash,
@@ -17483,6 +18259,7 @@ function logRivalAutoOpsBlocker(rival, kind, reason, currentWeekIndex) {
   if (cooldowns[kind] === weekNumber) return;
   cooldowns[kind] = weekNumber;
   autoOps.blockerCooldowns = cooldowns;
+  recordTimeJumpRivalBlocker(rival, kind);
   logEvent(`${rival.name} AutoOps blocked (${kind} gate): ${reason}`, "warn");
 }
 
@@ -18332,7 +19109,7 @@ function canScheduleRivalPromoStep(rival, promoType, promoAt, promoBudgetSlots, 
 function buildRivalReleaseBudget(rival) {
   const walletCash = rival?.wallet?.cash ?? rival?.cash ?? 0;
   const pct = rivalCreateBudgetPct(rival);
-  const minCash = rivalCreateMinCash(rival);
+  const minCash = applyTimeJumpBudgetRelief(rivalCreateMinCash(rival));
   const budgetCap = computeAutoCreateBudget(walletCash, pct, minCash);
   return {
     budgetCap,
@@ -18597,7 +19374,7 @@ function runRivalAutoCreateWeek(rival, husk, options = {}) {
   const weekNumber = Math.max(1, currentWeek + 1);
   const walletCash = rival.wallet?.cash ?? rival.cash ?? 0;
   const reserveFloor = Number.isFinite(options.reserveFloor) ? options.reserveFloor : null;
-  const budget = buildRivalCreateBudget(rival, walletCash, reserveFloor);
+  const budget = buildRivalCreateBudget(rival, walletCash, reserveFloor, { skipOverrideRelief: true });
   const pace = options.pace || resolveRivalPace(rival);
   const paceMultiplier = Number.isFinite(pace?.multiplier) ? pace.multiplier : 1;
   const baseMaxTracks = budget.maxTracks;
@@ -19181,6 +19958,7 @@ function processRivalReleaseQueue() {
       };
       applyCriticsReview({ marketEntry });
       state.marketTracks.push(marketEntry);
+      recordTimeJumpRivalRelease(entry.label);
       markRivalReleaseActivity(entry.label, entry.releaseAt, entry.creatorIds);
       entry.preReleaseMomentum = 0;
       logEvent(`Released: ${entry.trackId || entry.id} (bankedMomentumApplied=${bankedMomentum})`);
@@ -19319,7 +20097,7 @@ function runAutoCreateContent() {
     const existingPerformers = track.creators?.performerIds?.length ? track.creators.performerIds : null;
     const performerPick = existingPerformers ? null : pickCreatorId("Performer", rec.performerId);
     const performerIds = existingPerformers || (performerPick ? [performerPick] : []);
-    if (!performerIds.length) return "no Performer ready under daily limits.";
+    if (!performerIds.length) return "no Vocalist ready under daily limits.";
     const stageCost = getStageCost(1, track.modifier, performerIds);
     const budgetCheck = canSpend(stageCost);
     if (!budgetCheck.ok) return budgetCheck.reason;
@@ -19812,6 +20590,11 @@ function maybeRunAutoPromo() {
 async function weeklyUpdate() {
   const startTime = nowMs();
   const week = weekIndex() + 1;
+  const chartStride = Number.isFinite(session.fastSim?.chartStride)
+    ? Math.max(1, Math.floor(session.fastSim.chartStride))
+    : 1;
+  const hasCharts = Array.isArray(state.charts?.global) && state.charts.global.length > 0;
+  const shouldComputeCharts = chartStride <= 1 || week % chartStride === 0 || !hasCharts;
   ensureMarketCreators();
   decayCreatorMarketHeat();
   processCreatorInactivity();
@@ -19822,7 +20605,8 @@ async function weeklyUpdate() {
   recruitRivalCreators();
   runRivalAutoOpsWeek(state, { weekIndex: weekIndex(), now: state.time.epochMs });
   resolveTourBookings();
-  const { globalScores } = await computeCharts();
+  const chartResult = shouldComputeCharts ? await computeCharts() : null;
+  const globalScores = Array.isArray(chartResult?.globalScores) ? chartResult.globalScores : (state.charts?.global || []);
   applyDistributionInventoryForWeek();
   updateAudienceBiasFromCharts();
   const labelScores = computeLabelScoresFromCharts();
@@ -22544,6 +23328,77 @@ async function advanceHours(hours, options = {}) {
   return advanceQuarters(quarters, { renderQuarterly, renderAfter });
 }
 
+function scheduleEpochMsForWeek(weekNumber, schedule) {
+  const weekStart = weekStartEpochMs(weekNumber);
+  const day = Number.isFinite(schedule?.day) ? schedule.day : 0;
+  const hour = Number.isFinite(schedule?.hour) ? schedule.hour : 0;
+  const minute = Number.isFinite(schedule?.minute) ? schedule.minute : 0;
+  return weekStart + (day * 24 + hour) * HOUR_MS + minute * 60000;
+}
+
+function syncTimeToEpochMs(epochMs) {
+  const startEpochMs = getStartEpochMsFromState();
+  const diffMs = epochMs - startEpochMs;
+  state.time.epochMs = epochMs;
+  state.time.totalHours = Math.max(0, Math.floor(diffMs / HOUR_MS));
+  state.time.totalQuarters = Math.max(0, Math.floor(diffMs / QUARTER_HOUR_MS));
+}
+
+async function runFastScheduleStep(weekNumber, schedule) {
+  const targetEpochMs = scheduleEpochMsForWeek(weekNumber, schedule);
+  if (!Number.isFinite(targetEpochMs)) return;
+  if (targetEpochMs <= state.time.epochMs) return;
+  syncTimeToEpochMs(targetEpochMs);
+  processWorkOrders();
+  processScheduledEvents();
+  await runAwardShowTimeline(state.time.epochMs);
+  expirePromoFacilityBookings();
+  runAutoRolloutStrategies();
+  await runScheduledWeeklyEvents(state.time.epochMs);
+  runYearTicksIfNeeded(currentYear());
+}
+
+// Fast sim helper for diagnostics; skips quarter-hour ticks.
+async function advanceWeeksFast(weeks, options = {}) {
+  if (state.meta?.gameOver) return;
+  if (!Number.isFinite(weeks) || weeks <= 0) return;
+  const totalWeeks = Math.ceil(weeks);
+  const weekStride = Number.isFinite(options.weekStride) ? Math.max(1, Math.floor(options.weekStride)) : 1;
+  const chartStride = Number.isFinite(options.chartStride) ? Math.max(1, Math.floor(options.chartStride)) : 1;
+  const suppressWeeklyRender = typeof options.suppressWeeklyRender === "boolean" ? options.suppressWeeklyRender : true;
+  const renderAfter = typeof options.renderAfter === "boolean" ? options.renderAfter : false;
+  const stopOnGameOver = typeof options.stopOnGameOver === "boolean" ? options.stopOnGameOver : true;
+  const startWeekNumber = weekIndex() + 1;
+  const finalWeekNumber = startWeekNumber + totalWeeks;
+  const prevFastSim = session.fastSim;
+  session.fastSim = { chartStride };
+  if (suppressWeeklyRender) session.suppressWeeklyRender = true;
+  try {
+    let lastWeekNumber = startWeekNumber - 1;
+    for (let i = 0; i < totalWeeks; i += weekStride) {
+      if (stopOnGameOver && state.meta?.gameOver) break;
+      const weekNumber = startWeekNumber + i;
+      lastWeekNumber = weekNumber;
+      await runFastScheduleStep(weekNumber, WEEKLY_SCHEDULE.releaseProcessing);
+      await runFastScheduleStep(weekNumber, WEEKLY_SCHEDULE.trendsUpdate);
+      await runFastScheduleStep(weekNumber, WEEKLY_SCHEDULE.chartUpdate);
+    }
+    if (weekStride > 1 && lastWeekNumber < finalWeekNumber && (!stopOnGameOver || !state.meta?.gameOver)) {
+      await runFastScheduleStep(finalWeekNumber, WEEKLY_SCHEDULE.releaseProcessing);
+      await runFastScheduleStep(finalWeekNumber, WEEKLY_SCHEDULE.trendsUpdate);
+      await runFastScheduleStep(finalWeekNumber, WEEKLY_SCHEDULE.chartUpdate);
+    }
+  } finally {
+    session.fastSim = prevFastSim;
+    if (suppressWeeklyRender) session.suppressWeeklyRender = false;
+  }
+  if (renderAfter) {
+    uiHooks.renderAll?.({ save: false });
+  } else if (suppressWeeklyRender) {
+    uiHooks.renderTime?.();
+  }
+}
+
 async function maybeSyncPausedLiveChanges(now) {
   if (state.time.speed !== "pause") return;
   if (!session.activeSlot) return;
@@ -23144,7 +23999,7 @@ function seedNewGame(options = {}) {
   };
   const baseCreators = [];
   const existingNames = () => baseCreators.map((creator) => creator.name);
-  const rosterCounts = STARTING_ROSTER_COUNTS || { Songwriter: 1, Performer: 1, Producer: 1 };
+  const rosterCounts = resolveStartingRosterCounts(mode?.id);
   Object.entries(rosterCounts).forEach(([role, count]) => {
     const target = Number.isFinite(count) ? count : 0;
     for (let i = 0; i < target; i += 1) {
@@ -23711,7 +24566,7 @@ function normalizeState() {
       markCreatorSigned(normalized);
       return normalized;
     });
-    if (typeof rival.cash !== "number") rival.cash = STARTING_CASH;
+    if (typeof rival.cash !== "number") rival.cash = resolveRivalStartingCash();
     if (!rival.wallet) rival.wallet = { cash: rival.cash };
     if (!rival.studio) rival.studio = { slots: STARTING_STUDIO_SLOTS };
     if (!Array.isArray(rival.achievementsUnlocked)) rival.achievementsUnlocked = [];
@@ -23723,7 +24578,7 @@ function normalizeState() {
     if (typeof rival.eraCompletions !== "number") rival.eraCompletions = 0;
     if (typeof rival.ambition !== "number") rival.ambition = RIVAL_AMBITION_FLOOR;
     if (typeof rival.aiCreatePct !== "number") rival.aiCreatePct = AI_CREATE_BUDGET_PCT;
-    if (typeof rival.aiCreateMinCash !== "number") rival.aiCreateMinCash = AI_CREATE_MIN_CASH;
+    if (typeof rival.aiCreateMinCash !== "number") rival.aiCreateMinCash = resolveRivalCompeteBuffer(rival);
     if (typeof rival.aiReservePct !== "number") rival.aiReservePct = AI_CREATE_RESERVE_PCT;
     if (typeof rival.aiCreateMaxTracksPerWeek !== "number") rival.aiCreateMaxTracksPerWeek = AUTO_CREATE_MAX_TRACKS;
     rival.aiCreatePct = clamp(rival.aiCreatePct, 0, 1);
@@ -23882,6 +24737,14 @@ function normalizeState() {
   }
   if (state.meta.gameOver && typeof state.meta.gameOver.bailoutUsed !== "boolean") {
     state.meta.gameOver.bailoutUsed = Boolean(state.meta.bailoutUsed);
+  }
+  if (typeof state.meta.winLeaderboardRecorded !== "boolean") state.meta.winLeaderboardRecorded = false;
+  if (!state.meta.winLeaderboardRecorded) {
+    if (state.meta.winState) {
+      recordWinLeaderboardFromState(state.meta.winState.reason);
+    } else if (state.meta.gameOver?.result === "win") {
+      recordWinLeaderboardFromState(state.meta.gameOver.reason);
+    }
   }
   if (typeof state.meta.exp !== "number") state.meta.exp = 0;
   if (typeof state.meta.promoRuns !== "number") state.meta.promoRuns = 0;
@@ -25241,7 +26104,18 @@ function computePopulationSnapshot() {
     || state.population.snapshot.nations.some((entry) => !Array.isArray(entry.ageGroups))) {
     refreshPopulationSnapshot(currentYear());
   }
-  return state.population.snapshot;
+  const snapshot = state.population.snapshot;
+  if (ageGroupsNeedConcertBaseline(snapshot?.ageGroups)) {
+    snapshot.ageGroups = ensureConcertBaselinesForAgeGroups(snapshot.ageGroups);
+  }
+  if (Array.isArray(snapshot?.nations) && snapshot.nations.some((entry) => ageGroupsNeedConcertBaseline(entry?.ageGroups))) {
+    snapshot.nations = snapshot.nations.map((entry) => {
+      if (!entry || typeof entry !== "object") return entry;
+      if (!ageGroupsNeedConcertBaseline(entry.ageGroups)) return entry;
+      return { ...entry, ageGroups: ensureConcertBaselinesForAgeGroups(entry.ageGroups) };
+    });
+  }
+  return snapshot;
 }
 
 
@@ -25635,6 +26509,9 @@ export {
   addRolloutStrategyDrop,
   addRolloutStrategyEvent,
   advanceHours,
+  advanceWeeksFast,
+  autoFulfillQuest,
+  resolveQuestAutoFulfillState,
   autoGenerateTourDates,
   alignmentClass,
   assignToSlot,
@@ -25733,6 +26610,7 @@ export {
   getLabelRanking,
   getLatestActiveEraForAct,
   getLossArchives,
+  getWinLeaderboard,
   getModifier,
   getModifierInventoryCount,
   getOwnedStudioSlots,
@@ -25799,6 +26677,7 @@ export {
   loadLossArchives,
   loadSlot,
   logEvent,
+  logTimeJumpSummary,
   makeAct,
   makeActName,
   makeActNameEntry,
@@ -25867,6 +26746,7 @@ export {
   startEraForAct,
   startGameLoop,
   startMasterStage,
+  startTimeJumpSummary,
   state,
   syncLabelWallets,
   themeFromGenre,

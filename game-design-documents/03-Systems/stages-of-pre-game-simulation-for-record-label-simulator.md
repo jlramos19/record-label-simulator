@@ -25,7 +25,7 @@
 
 * Music Genres emerge as Theme \+ Mood combinations, expanding the world’s content vocabulary toward 45 total genres.
 
-* Recorder IDs create Demo Recordings to assign Mood.
+* Vocalist IDs create Demo Recordings to assign Mood.
 
 * Producer IDs finalize the Track, refining Theme/Mood into a finalized content genre and Quality.
 

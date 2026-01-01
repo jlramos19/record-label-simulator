@@ -2,7 +2,7 @@
 
 #### **`Arenas (Capacity 1,000 to 49,000)`**
 
-| `Capacity` | `Total Revenue per Show ($)` | `Total Revenue ($)` | `Venue Share ($)` | `Record Label Share ($)` | `Songwriters Share ($)` | `Recorders Share ($)` | `Producers Share ($)` |
+| `Capacity` | `Total Revenue per Show ($)` | `Total Revenue ($)` | `Venue Share ($)` | `Record Label Share ($)` | `Songwriters Share ($)` | `Vocalists Share ($)` | `Producers Share ($)` |
 | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
 | `1,000` | `100,000` | `25,000,000` | `5,000,000` | `10,000,000` | `5,000,000` | `3,300,000` | `1,700,000` |
 | `2,000` | `200,000` | `50,000,000` | `10,000,000` | `20,000,000` | `10,000,000` | `6,600,000` | `3,400,000` |
@@ -14,7 +14,7 @@
 
 #### **`Stadiums (Capacity 50,000 to 300,000)`**
 
-| `Capacity` | `Total Revenue per Show ($)` | `Total Revenue ($)` | `Venue Share ($)` | `Record Label Share ($)` | `Songwriters Share ($)` | `Recorders Share ($)` | `Producers Share ($)` |
+| `Capacity` | `Total Revenue per Show ($)` | `Total Revenue ($)` | `Venue Share ($)` | `Record Label Share ($)` | `Songwriters Share ($)` | `Vocalists Share ($)` | `Producers Share ($)` |
 | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
 | `50,000` | `10,000,000` | `2,500,000,000` | `500,000,000` | `1,000,000,000` | `500,000,000` | `330,000,000` | `170,000,000` |
 | `60,000` | `12,000,000` | `3,000,000,000` | `600,000,000` | `1,200,000,000` | `600,000,000` | `396,000,000` | `204,000,000` |
@@ -30,7 +30,7 @@
 2. **`Venue Share:`** `20% of the total revenue per show goes to the venue.`  
 3. **`Remaining Revenue:`** `The remaining 80% of the total revenue per show is split between the Record Label and the acts.`  
 4. **`Record Label Share:`** `50% of the remaining revenue.`  
-5. **`Acts Share:`** `The other 50% of the remaining revenue, divided among songwriters, recorders, and producers in the ratio 50:33:17.`
+5. **`Acts Share:`** `The other 50% of the remaining revenue, divided among songwriters, vocalists, and producers in the ratio 50:33:17.`
 
 `This breakdown highlights how the revenue and its distribution scale with the capacity of the venue, providing a comprehensive view of the financial dynamics in the game.`
 

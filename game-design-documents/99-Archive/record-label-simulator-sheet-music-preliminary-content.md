@@ -2,7 +2,7 @@
 
 ## **Purpose**
 
-Define Sheet Music as a Preliminary Content object in Record Label Simulator. This replaces devlog framing and aligns with current canon: Creator occupations (Songwriter, Recorder, Producer), Alignment (Safe/Neutral/Risky), Preferred Theme (5), and Preferred Mood (9).
+Define Sheet Music as a Preliminary Content object in Record Label Simulator. This replaces devlog framing and aligns with current canon: Creator occupations (Songwriter, Vocalist, Producer), Alignment (Safe/Neutral/Risky), Preferred Theme (5), and Preferred Mood (9).
 
 ## **Infobox — Content**
 
@@ -12,7 +12,7 @@ Define Sheet Music as a Preliminary Content object in Record Label Simulator. Th
 | Content Type | Preliminary Content |
 | Phase | Content Creation |
 | Owner Role | Songwriter (primary) |
-| Downstream Users | Recorder, Producer |
+| Downstream Users | Vocalist, Producer |
 | Primary Purpose | Blueprint for a Track: musical structure, lyrics, and Theme |
 | Outputs | Sheet Music asset → inputs to Demo Recording and Track Finalization |
 | Linked Systems | Alignment · Preferred Theme (5) · Preferred Mood (9) · Charts |
@@ -43,7 +43,7 @@ Sheet Music is the authored blueprint of a future Track. It contains the musical
 
 1. Draft: Songwriter authors initial version in a Recording Studio slot.  
 2. Review: Optional internal review for structure/Theme clarity.  
-3. Approved for Demo: Unlocked for Recorder to record a Demo Recording.  
+3. Approved for Demo: Unlocked for Vocalist to record a Demo Recording.  
 4. Consumed: Producer merges with Demo Recording to finalize a Track.  
 5. Archived: Preserved for remixes, alternate takes, or historical reference.
 
@@ -53,7 +53,7 @@ Sheet Music is the authored blueprint of a future Track. It contains the musical
 
 * Creates Sheet Music (lyrics & composition); sets Preferred Theme.
 
-**Recorder (Creator ID) —** 
+**Vocalist (Creator ID) —** 
 
 * Consumes Sheet Music to produce a Demo Recording; expresses Preferred Mood.
 
@@ -63,7 +63,7 @@ Sheet Music is the authored blueprint of a future Track. It contains the musical
 
 ## **Quality & Alignment**
 
-Final Track quality benefits from strong alignment between the Sheet Music’s Preferred Theme and the Recorder’s Preferred Mood. High alignment improves Audience and Critics response and influences Charts velocity.
+Final Track quality benefits from strong alignment between the Sheet Music’s Preferred Theme and the Vocalist’s Preferred Mood. High alignment improves Audience and Critics response and influences Charts velocity.
 
 ## **Telemetry**
 

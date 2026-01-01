@@ -73,7 +73,7 @@ Global multipliers:
 - `region_price_index`: 0.9 to 1.15 (default 1.0).
 - `quality_premium`: 0.9 to 1.2 (default 1.0).
 - `regional_chart_boost`: 0.9 to 1.2 (default 1.0).
-- `concert_interest`: 0.85 to 1.15 (default 1.0).
+- `concert_interest`: 0.85 to 1.15 (default 1.0); rotates weekly across age-group segments and weights by population snapshot concert baselines.
 - `promo_scale`: 5000.
 - `promo_efficiency`: 0.35.
 

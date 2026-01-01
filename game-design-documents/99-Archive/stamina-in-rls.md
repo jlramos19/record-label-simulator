@@ -1,7 +1,7 @@
 `### Stamina Mechanics for Occupations in "Record Label Simulator"`
 
 `#### Overview`  
-`This document summarizes the three main occupations (Songwriters, Recorders, Producers), detailing the content they create, the ticks required, the in-game and real-life time equivalents, and the stamina consumption.`
+`This document summarizes the three main occupations (Songwriters, Vocalists, Producers), detailing the content they create, the ticks required, the in-game and real-life time equivalents, and the stamina consumption.`
 
 `### Songwriters:`  
 `- **Occupation**: Songwriter`  
@@ -12,8 +12,8 @@
 `- **Stamina Type**: Mental`  
 `- **Stamina per Creation**: 25 stamina units`
 
-`### Recorders:`  
-`- **Occupation**: Recorder`  
+`### Vocalists:`  
+`- **Occupation**: Vocalist`  
 `- **Content Created**: Demo Recordings`  
 `- **Ticks per Creation**: 50,000,000 ticks`  
 `- **In-Game Time**: 2 hours`  
@@ -38,7 +38,7 @@
    `- **25 mental stamina units** per sheet.`  
    `- **400 stamina** allows creation of **16 sheets**.`
 
-`2. **Recorders**:`  
+`2. **Vocalists**:`  
    `- Create Demo Recordings.`  
    `- **50,000,000 ticks** per demo.`  
    `- 2 hours in-game, 5 seconds real-life.`  

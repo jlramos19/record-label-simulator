@@ -11,7 +11,7 @@ Defines the universal parameters for Creators in Record Label Simulator. These v
 | Age | 10–100 years old |
 | Gender/Demeanor | Flamboyant · Androgynous · Modest |
 | Continent of Origin | North American · South American · European · African · Asian · Oceanian |
-| Occupation | Songwriter · Recorder · Producer |
+| Occupation | Songwriter · Vocalist · Producer |
 | Alignment | Safe · Neutral · Risky (affects Audience trust, Charts velocity, and Critics’ perception) |
 | Preferred Theme | Freedom · Loyalty · Ambition · Morality · Power |
 | Preferred Mood | Cheering · Saddening · Thrilling · Angering · Calming · Energizing · Uplifting · Boring · Daring |

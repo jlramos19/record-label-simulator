@@ -28,7 +28,7 @@
 
 `Songwriter (Creator)`
 
-`Recorder (Creator)`
+`Vocalist (Creator)`
 
 `Producer (Creator)`
 

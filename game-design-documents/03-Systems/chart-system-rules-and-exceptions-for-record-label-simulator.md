@@ -14,11 +14,11 @@ The stage name shown publicly (Solo Act or Group Act). Acts are the “face that
 
 ### **Solo Act**
 
-An Act representing a single recorder as the public-facing identity.
+An Act representing a single vocalist as the public-facing identity.
 
 ### **Group Act**
 
-An Act representing two or more recorders as the public-facing identity.
+An Act representing two or more vocalists as the public-facing identity.
 
 ### **Creator(s)**
 

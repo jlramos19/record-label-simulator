@@ -93,11 +93,14 @@ import { createRenderScheduler } from "./ui/render-scheduler.js";
 const {
   state,
   session,
+  startTimeJumpSummary,
+  logTimeJumpSummary,
   rankCandidates,
   MARKET_ROLES,
   logEvent,
   checkStorageHealth,
   saveToActiveSlot,
+  autoFulfillQuest,
   makeTrackTitle,
   makeProjectTitle,
   makeLabelName,
@@ -3003,7 +3006,7 @@ function updateAutoCreateSummary(scope) {
       }
       if (modeLabel === "Collab") {
         if (roleCounts[1].endsWith("0")) {
-          reasons.push("No ready Performer available.");
+          reasons.push("No ready Vocalist available.");
         }
         if (roleCounts[2].endsWith("0")) {
           reasons.push("No ready Producer available.");
@@ -3904,6 +3907,17 @@ function bindViewHandlers(route, root) {
       const next = current === VIEW_PANEL_STATES.hidden ? VIEW_PANEL_STATES.open : VIEW_PANEL_STATES.hidden;
       setViewPanelState(route, key, next);
     }
+  });
+
+  root.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-task-action=\"auto-fulfill\"]");
+    if (!btn) return;
+    if (btn.disabled) return;
+    const questId = btn.dataset.taskId;
+    if (!questId) return;
+    autoFulfillQuest(questId);
+    renderAll();
+    saveToActiveSlot();
   });
 
   if (route === "releases") {
@@ -8767,6 +8781,7 @@ function runTimeJump(totalHours, label) {
   }
   timeJumpInFlight = true;
   session.timeJumpActive = true;
+  startTimeJumpSummary(totalHours);
   const chunkSize = totalHours >= 24 * 365 ? 48 : totalHours >= 24 * 90 ? 24 : 12;
   let completed = 0;
   let cancelled = false;
@@ -8780,9 +8795,10 @@ function runTimeJump(totalHours, label) {
     cancelBtn.addEventListener("click", cancelHandler, { once: true });
   }
 
-  const finish = () => {
+  const finish = (status) => {
     timeJumpInFlight = false;
     session.timeJumpActive = false;
+    logTimeJumpSummary({ status });
     closeSkipProgress();
     renderAll();
   };
@@ -8790,7 +8806,7 @@ function runTimeJump(totalHours, label) {
   const step = async () => {
     if (cancelled) {
       logEvent("Time skip canceled.", "warn");
-      finish();
+      finish("canceled");
       return;
     }
     const remaining = totalHours - completed;
@@ -8800,7 +8816,7 @@ function runTimeJump(totalHours, label) {
     } catch (error) {
       console.error("timeJump error:", error);
       logEvent("Time skip failed; stopping.", "warn");
-      finish();
+      finish("failed");
       return;
     }
     completed += stepHours;

@@ -1,14 +1,14 @@
-**`Record Label Simulator - CREATOR ID SKILLS: Recorder`**
+**`Record Label Simulator - CREATOR ID SKILLS: Vocalist`**
 
-# **`Recorder SKILLS`**
+# **`Vocalist SKILLS`**
 
-`Recorders convert sheet music with a theme into DEMO RECORDINGS with a theme and a mood. There are nine moods to choose from. The Recorder has two preferred moods to perform. The demo recordings will come out at random with one of the two preferred moods of the Recorder.`
+`Vocalists convert sheet music with a theme into DEMO RECORDINGS with a theme and a mood. There are nine moods to choose from. The Vocalist has two preferred moods to perform. The demo recordings will come out at random with one of the two preferred moods of the Vocalist.`
 
 ## 
 
-# **`Recorder (CREATOR ID):`**
+# **`Vocalist (CREATOR ID):`**
 
-**Inventory Item Created by Recorder:**
+**Inventory Item Created by Vocalist:**
 
 * Demo Recording
 

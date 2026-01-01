@@ -29,7 +29,7 @@ Status key:
 - write (Create Sheet Music with selected Themes). Status: Live.
 - Parameters: 1 in-game hour, cost 500, stamina 25.
 
-### Recorder (Occupation)
+### Vocalist (Occupation)
 - record (Create Demo Recordings that define Moods). Status: Live.
 - Parameters: 2 in-game hours, cost 800, stamina 50.
 

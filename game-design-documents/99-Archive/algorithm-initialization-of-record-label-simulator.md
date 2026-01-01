@@ -13,7 +13,7 @@
 
 `- member goes out to find work.` 
 
-`- there’s no jobs (yet) so member goes to institution to level up either songwriter or recorder skills.` 
+`- there’s no jobs (yet) so member goes to institution to level up either songwriter or vocalist skills.` 
 
 `- member reaches level 3 of either skill. (cap is 10)`
 
@@ -31,13 +31,13 @@
 
 `- songwriters create sheet music.` 
 
-`- recorders can’t create content until sheet music is available.` 
+`- vocalists can’t create content until sheet music is available.` 
 
-`- recorders have sheet music available and equip it to the “sheet music” slot of the recording studio building structure.` 
+`- vocalists have sheet music available and equip it to the “sheet music” slot of the recording studio building structure.` 
 
 `- demo recording is outputted by the recording studio into the Record Label’s inventory.` 
 
-`- the music executive of the Record Label, who is the CEO as a role and also has the producer occupation, produces a track from the demo recording created by the recorder from the sheet music created by the songwriter creator.` 
+`- the music executive of the Record Label, who is the CEO as a role and also has the producer occupation, produces a track from the demo recording created by the vocalist from the sheet music created by the songwriter creator.` 
 
 `- the track is then scheduled for release and announced on eyeriSocial.` 
 
@@ -45,7 +45,7 @@
 
 `- the content (track) is then released. Remember the content genre of the content for this example is calming freedom.` 
 
-`- Because the songwriter’s theme was freedom and the recorder’s mood was calming.` 
+`- Because the songwriter’s theme was freedom and the vocalist’s mood was calming.` 
 
 `- so then the consumer members all go and consume the content. They still don’t have a preferred content genre because they’ve never consumed content.` 
 

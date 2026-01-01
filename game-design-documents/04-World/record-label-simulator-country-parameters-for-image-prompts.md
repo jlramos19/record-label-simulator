@@ -18,7 +18,7 @@
 
 * `Settings: Forest · Stadium · TV show · Radio interview · (extend as needed)`
 
-* `Professions: Dancer · Singer · Rapper · Recorder · Artist · (all music industry roles)`
+* `Professions: Dancer · Singer · Rapper · Vocalist · Artist · (all music industry roles)`
 
 * `Hair Length: Short · Medium · Long`
 

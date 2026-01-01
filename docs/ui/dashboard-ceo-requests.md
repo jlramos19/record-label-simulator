@@ -19,6 +19,7 @@ Defines the Dashboard focus tab that surfaces CEO Requests (achievements) and th
 
 ## Observability
 - Empty states when no requests are available.
+- Progress bars include scheduled promo activity (rollout events / rival promo queues) alongside executed promos.
 - Bailout notices remind players that achievements keep tracking while wins are flagged for leaderboards.
 - Cheater mode notices clarify achievements and tasks pause while active.
 

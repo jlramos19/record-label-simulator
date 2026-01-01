@@ -3,7 +3,7 @@
 Structures are facilities modeled as data records in the web simulation. They own slots, gate actions, and define capacity limits for production, promotion, and touring.
 
 ## Slot model (shared)
-- ID slots: assign Creator IDs to perform work orders (songwriter/recorder/producer).
+- ID slots: assign Creator IDs to perform work orders (songwriter/vocalist/producer).
 - Input slots: attach required content items (sheet, demo, track).
 - Booking slots: reserve a facility for a date window (broadcast, filming, venue).
 - Upgrade slots: attach gear, permits, or add-ons that change output or capacity.

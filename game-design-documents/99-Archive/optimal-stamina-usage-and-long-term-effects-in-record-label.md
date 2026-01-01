@@ -22,7 +22,7 @@
    `- **Following Year**: 4 hours per sheet music`  
    `- **Further Progression**: 8, 16, 32 hours, etc.`
 
-`2. **Recorder**:`  
+`2. **Vocalist**:`  
    `- **Optimal Stamina**: 200 units per day`  
    `- **Exceeded Usage**: 300 units per day for a year`  
    `- **Initial Creation Time**: 2 hours per demo recording`  

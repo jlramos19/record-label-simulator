@@ -2,19 +2,19 @@
 
 ## **`Game Loop & Objectives`**
 
-`Role & Cycle: In Record Label Simulator (RLS), you play as a music executive managing a label in the Gaia nations. The core loop is to sign Creators (songwriters, recorders, producers), produce tracks through the sheet/demo/master pipeline, schedule releases, fund promotions, and read weekly charts and trends to steer the next cycle. Progress is measured by CEO Requests (achievements). Before year 3000 you must clear 12 Requests without triggering a monopoly; from year 3000-3999 either 12 Requests or a monopoly secures a win state. At year 4000 the game resolves with a final verdict based on win state, monopoly, or top label status. Bankruptcy triggers a bailout choice; declining ends the run, accepting locks achievements.`
+`Role & Cycle: In Record Label Simulator (RLS), you play as a music executive managing a label in the Gaia nations. The core loop is to sign Creators (songwriters, vocalists, producers), produce tracks through the sheet/demo/master pipeline, schedule releases, fund promotions, and read weekly charts and trends to steer the next cycle. Progress is measured by CEO Requests (achievements). Before year 3000 you must clear 12 Requests without triggering a monopoly; from year 3000-3999 either 12 Requests or a monopoly secures a win state. At year 4000 the game resolves with a final verdict based on win state, monopoly, or top label status. Bankruptcy triggers a bailout choice; declining ends the run, accepting locks achievements.`
 
 `High-Level Loop: The gameplay progresses in repeating phases: (1) Recruit & assign Creators to projects, (2) Create content through multiple stages (composition to final track), (3) Schedule releases and fund promotions, (4) Monitor weekly charts and trends for feedback, and (5) Adjust strategy to begin the cycle anew. Time advances in real time: one in-game hour passes every ~2.5 seconds on Play or ~1 second on Fast. Charts refresh weekly (168 hours). Time controls include pause, play, fast, and skip options for day/week/custom date jumps.`
 
 ## **`Creator Recruitment & Management`**
 
-`Signing Creators: Your label signs Creators from the CCC market roster (Songwriters, Recorders, Producers). Signing costs scale with skill and role, and roster size is capped at 125. Accepted offers deduct cash and move the Creator into the roster; rejected offers lock the Sign button until the next 12AM refresh (precondition failures do not lock out). Signed Creators become managed UI entries and can be assigned to Acts or production slots.`
+`Signing Creators: Your label signs Creators from the CCC market roster (Songwriters, Vocalists, Producers). Signing costs scale with skill and role, and roster size is capped at 125. Accepted offers deduct cash and move the Creator into the roster; rejected offers lock the Sign button until the next 12AM refresh (precondition failures do not lock out). Signed Creators become managed UI entries and can be assigned to Acts or production slots.`
 
 `Roles & Functions:`
 
 * `Songwriters - Create Sheet Music, setting the track's Theme. Their skill and theme preference matches contribute to quality potential.`
 
-* `Recorders - Record Demo versions, setting the track's Mood. Their skill and mood preference matches contribute to quality potential.`
+* `Vocalists - Record Demo versions, setting the track's Mood. Their skill and mood preference matches contribute to quality potential.`
 
 * `Producers - Master the track, confirming Alignment and finalizing the Theme+Mood genre. Their skill has the largest impact on quality potential.`
 
@@ -26,7 +26,7 @@
 
 1. `Sheet Music (Composition) - Created by a songwriter, establishing the track's core Theme (e.g. Freedom, Ambition). Takes 1 in-game hour and consumes 25 stamina.`
 
-2. `Demo Recording (Draft) - Recorded by a recorder, layering on a Mood (e.g. Calming, Energizing, Daring) to shape the track's emotional feel. Takes 2 in-game hours and consumes 50 stamina.`
+2. `Demo Recording (Draft) - Recorded by a vocalist, layering on a Mood (e.g. Calming, Energizing, Daring) to shape the track's emotional feel. Takes 2 in-game hours and consumes 50 stamina.`
 
 3. `Master Recording (Final Track) - Finalized by a producer who combines the Theme and Mood into the final content Genre classification and applies studio polish. Takes 3 in-game hours and consumes 100 stamina.`
 

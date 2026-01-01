@@ -19,7 +19,7 @@
    `Crafted by Songwriters, establishes the Track’s conceptual direction.`
 
 * **`Demo Recordings (Mood):`**  
-   `Created by Recorders, defines the emotional tone of the Track.`
+   `Created by Vocalists, defines the emotional tone of the Track.`
 
 * **`Masters (content Genre & Quality):`**  
    `Produced by Producers, finalize the Track’s stylistic identity and performance excellence.`

@@ -22,7 +22,7 @@ Priorities determine what a new Member chooses to be as needed for the in-game s
 ### Songwriter (Occupation)
 - write (Create Sheet Music with selected Themes).
 
-### Recorder (Occupation)
+### Vocalist (Occupation)
 - record (Create Demo Recordings that define Moods).
 
 ### Producer (Occupation)

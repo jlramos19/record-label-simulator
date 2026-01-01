@@ -47,6 +47,7 @@ import {
   computeTourDraftSummary,
   computeTourProjection,
   estimateCreatorMaxConsecutiveTourDates,
+  resolveQuestAutoFulfillState,
   resolveTourDateStaminaCost,
   resolveTourStaffingBoost,
   countryColor,
@@ -133,6 +134,7 @@ import {
   listTourTiers,
   listTourVenues,
   loadLossArchives,
+  getWinLeaderboard,
   logEvent,
   makeGenre,
   moodFromGenre,
@@ -203,6 +205,7 @@ import {
   TRACK_ROLLOUT_TOGGLE_KEYS,
   TRACK_ROLLOUT_WEIGHT_KEYS,
   deriveFocuses,
+  resolveFocusPair,
   getTrackRolloutTemplateCache,
   sanitizeWeights
 } from "../../track-rollout.js";
@@ -6549,10 +6552,6 @@ function renderTrackRolloutStrategy() {
   const draftWeights = sanitizeWeights(rollout.weights || TRACK_ROLLOUT_DEFAULT_WEIGHTS);
   const draftToggles = { ...TRACK_ROLLOUT_DEFAULT_TOGGLES, ...(rollout.toggles || {}) };
   const weightSum = TRACK_ROLLOUT_WEIGHT_KEYS.reduce((total, key) => total + (draftWeights[key] || 0), 0);
-  const focuses = deriveFocuses(draftWeights);
-  const primaryLabel = TRACK_ROLLOUT_FOCUS_LABELS[focuses.primary] || focuses.primary || "Focus";
-  const secondaryLabel = focuses.secondary ? (TRACK_ROLLOUT_FOCUS_LABELS[focuses.secondary] || focuses.secondary) : null;
-  const focusLine = secondaryLabel ? `${primaryLabel} + ${secondaryLabel}` : primaryLabel;
   const selectedTemplate = Array.isArray(templates)
     ? templates.find((template) => template.template_id === rollout.templateId)
     : null;
@@ -6561,6 +6560,16 @@ function renderTrackRolloutStrategy() {
   ) && TRACK_ROLLOUT_TOGGLE_KEYS.every(
     (key) => Boolean(selectedTemplate?.toggles_json?.[key]) === Boolean(draftToggles[key])
   );
+  const focuses = templateMatch
+    ? resolveFocusPair({
+      weights: draftWeights,
+      primaryFocus: selectedTemplate?.primary_focus || null,
+      secondaryFocus: selectedTemplate?.secondary_focus || null
+    })
+    : deriveFocuses(draftWeights);
+  const primaryLabel = TRACK_ROLLOUT_FOCUS_LABELS[focuses.primary] || focuses.primary || "Focus";
+  const secondaryLabel = focuses.secondary ? (TRACK_ROLLOUT_FOCUS_LABELS[focuses.secondary] || focuses.secondary) : null;
+  const focusLine = secondaryLabel ? `${primaryLabel} + ${secondaryLabel}` : primaryLabel;
   const showSave = !selectedTemplate || !templateMatch;
   const duplicateTemplate = Array.isArray(templates)
     ? templates.find((template) => template.template_id === rollout.duplicateTemplateId)
@@ -9022,9 +9031,70 @@ function updateAchievementSummaries() {
   if (viewMeta) viewMeta.textContent = summaryText;
 }
 
+function formatWinLeaderboardPoints(value) {
+  if (!Number.isFinite(value)) return "-";
+  const rounded = Math.round(value * 10) / 10;
+  if (Math.abs(rounded % 1) < 0.05) return formatCount(rounded);
+  return rounded.toFixed(1);
+}
+
+function formatWinLeaderboardTime(entry) {
+  const hours = Number.isFinite(entry?.timeToWinHours) ? entry.timeToWinHours : null;
+  if (!Number.isFinite(hours)) return "-";
+  const weeks = Number.isFinite(entry?.timeToWinWeeks)
+    ? entry.timeToWinWeeks
+    : Math.round((hours / 168) * 10) / 10;
+  const weeksLabel = Number.isFinite(weeks) ? `${weeks}w` : "-";
+  return `${weeksLabel} (${formatCount(hours)}h)`;
+}
+
+function renderWinLeaderboard() {
+  const listEl = $("winLeaderboardList");
+  const metaEl = $("winLeaderboardMeta");
+  if (!listEl) return;
+  const entries = getWinLeaderboard({ includeExcluded: true });
+  if (!entries.length) {
+    if (metaEl) metaEl.textContent = "No wins recorded yet.";
+    listEl.innerHTML = `<div class="muted">No wins recorded yet.</div>`;
+    return;
+  }
+  if (metaEl) {
+    metaEl.textContent = `${formatCount(entries.length)} win${entries.length === 1 ? "" : "s"} recorded. Bailout wins are excluded from ranking.`;
+  }
+  let rank = 0;
+  listEl.innerHTML = entries.map((entry) => {
+    const excluded = Boolean(entry.excluded);
+    const badgeClass = excluded ? "badge warn" : "badge";
+    const badgeText = excluded ? "Excluded" : `#${rank + 1}`;
+    if (!excluded) rank += 1;
+    const difficulty = getGameDifficulty(entry.difficulty)?.label || entry.difficulty || "Unknown";
+    const timeLabel = formatWinLeaderboardTime(entry);
+    const year = Number.isFinite(entry.year) ? entry.year : "?";
+    const week = Number.isFinite(entry.week) ? entry.week : "?";
+    const awardLine = entry.awards
+      ? `Awards: ${formatCount(entry.awards.annualWins || 0)}W/${formatCount(entry.awards.annualNoms || 0)}N annual | ${formatCount(entry.awards.showWins || 0)}W/${formatCount(entry.awards.showNoms || 0)}N shows`
+      : "";
+    return `
+      <div class="list-item">
+        <div class="list-row">
+          <div>
+            <div class="item-title">${entry.label || "Unknown Label"}</div>
+            <div class="muted">${difficulty} | Year ${year} Week ${week}</div>
+          </div>
+          <div class="${badgeClass}">${badgeText}</div>
+        </div>
+        <div class="muted">Chart points ${formatWinLeaderboardPoints(entry.chartPoints)} | Award points ${formatWinLeaderboardPoints(entry.awardPoints)} | Time to win ${timeLabel}</div>
+        ${awardLine ? `<div class="tiny muted">${awardLine}</div>` : ""}
+        ${excluded ? `<div class="tiny muted">Excluded (bailout win).</div>` : ""}
+      </div>
+    `;
+  }).join("");
+}
+
 function renderAchievementsView() {
   renderAchievementChecklist("achievementsList");
   updateAchievementSummaries();
+  renderWinLeaderboard();
 }
 
 function renderAchievements() {
@@ -9138,6 +9208,9 @@ function renderQuests() {
     const expReward = Math.round(quest.expReward ?? (quest.reward / 8));
     const focusRequests = Array.isArray(quest.focusRequests) ? quest.focusRequests.filter(Boolean) : [];
     const focusLine = focusRequests.length ? `Supports CEO Requests: ${focusRequests.join(", ")}` : "";
+    const autoState = resolveQuestAutoFulfillState(quest);
+    const autoDisabled = !autoState.ok;
+    const autoReason = autoDisabled && autoState.reason ? `Auto-fulfill blocked: ${autoState.reason}` : "";
     return `
       <div class="list-item">
         <div class="list-row">
@@ -9149,7 +9222,17 @@ function renderQuests() {
           </div>
           <div class="${badgeClass}">${quest.done ? "Done" : "Active"}</div>
         </div>
-        <div class="muted">${detail} | Reward ${formatMoney(quest.reward)} + ${formatCount(expReward)} EXP</div>
+        <div class="list-row">
+          <div class="muted">${detail} | Reward ${formatMoney(quest.reward)} + ${formatCount(expReward)} EXP</div>
+          <button
+            type="button"
+            class="ghost mini"
+            data-task-action="auto-fulfill"
+            data-task-id="${quest.id}"
+            ${autoDisabled ? "disabled" : ""}
+          >Auto Fulfill</button>
+        </div>
+        ${autoReason ? `<div class="tiny muted">${autoReason}</div>` : ""}
       </div>
     `;
   });

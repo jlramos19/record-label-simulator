@@ -1,7 +1,7 @@
 `### Stamina Recharge Mechanic in "Record Label Simulator"`
 
 `#### Overview`  
-`This document outlines the stamina recharge mechanic for Creators (Songwriters, Recorders, and Producers) in the MVP.`
+`This document outlines the stamina recharge mechanic for Creators (Songwriters, Vocalists, and Producers) in the MVP.`
 
 `### Stamina Recharge Rate:`  
 `- **Recharge Rate**: 50 stamina per in-game hour.`  
@@ -27,7 +27,7 @@
    `- **Recharge**: 100 units total (50 per hour)`  
    `- **Total Stamina after Recharge**: 200 units`
 
-`2. **Recorder**:`  
+`2. **Vocalist**:`  
    `- **Current Stamina**: 50 units`  
    `- **Inactivity**: 1 in-game hour (4 quarter-hour ticks)`  
    `- **Recharge**: 50 units total (13 + 13 + 12 + 12)`  

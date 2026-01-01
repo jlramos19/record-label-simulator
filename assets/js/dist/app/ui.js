@@ -14,7 +14,7 @@ import { showToast } from "./guardrails.js";
 import { closeMainMenu, openMainMenu, refreshSelectOptions, renderActs, renderAll, renderActiveView, renderAwardsCircuit, renderAutoAssignModal, renderCalendarDayDetail, renderCalendarList, renderCalendarView, renderCharts, renderCreateStageControls, renderCreators, renderEraStatus, renderEventLog, renderGenreIndex, renderLossArchives, renderMainMenu, updateSaveStatusPanel, renderMarket, renderQuickRecipes, renderRankingWindow, renderReleaseDesk, renderTrackRolloutStrategy, renderRivalRosterPanel, renderRoleActions, renderSlots, renderSocialFeed, renderStats, renderStudiosList, renderTime, renderTouringDesk, renderTracks, renderTutorialEconomy, updateActMemberFields, updateGenrePreview } from "./ui/render/index.js";
 import { bindThemeSelectAccent, buildMoodOptions, buildThemeOptions, setThemeSelectAccent } from "./ui/themeMoodOptions.js";
 import { createRenderScheduler } from "./ui/render-scheduler.js";
-const { state, session, rankCandidates, MARKET_ROLES, logEvent, checkStorageHealth, saveToActiveSlot, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, registerAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, isTrackReleaseReleased, isTrackReleaseScheduled, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, importSlotData, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
+const { state, session, startTimeJumpSummary, logTimeJumpSummary, rankCandidates, MARKET_ROLES, logEvent, checkStorageHealth, saveToActiveSlot, autoFulfillQuest, makeTrackTitle, makeProjectTitle, makeLabelName, getModifier, getModifierInventoryCount, purchaseModifier, placeAwardPerformanceBid, getProjectTrackLimits, staminaRequirement, getCreatorStaminaSpentToday, STAMINA_OVERUSE_LIMIT, getCrewStageStats, getAdjustedStageHours, getAdjustedTotalStageHours, getStageCost, createTrack, evaluateProjectTrackConstraints, startDemoStage, startMasterStage, advanceHours, makeActName, makeActNameEntry, makeAct, registerAct, pickDistinct, getAct, getCreator, makeEraName, getEraById, getActiveEras, getLatestActiveEraForAct, getStudioAvailableSlots, getFocusedEra, getRolloutPlanningEra, setFocusEraById, setCheaterEconomyOverride, setCheaterMode, startEraForAct, endEraById, createRolloutStrategyForEra, createRolloutStrategyFromTemplate, createTourDraft, autoGenerateTourDates, updateTourDraft, deleteTourDraft, getSelectedTourDraft, selectTourDraft, listTourDrafts, getRolloutPlanById, getRolloutStrategyById, setSelectedRolloutStrategyId, addRolloutStrategyDrop, addRolloutStrategyEvent, expandRolloutStrategy, bookTourDate, removeTourBooking, setTouringBalanceEnabled, uid, weekIndex, clamp, getTrack, getTrackReleaseStatus, getTrackReleaseStatusLabel, isTrackReleaseReleased, isTrackReleaseScheduled, getMarketTrackById, getMarketTrackByTrackId, assignTrackAct, scheduleRelease, getReleaseAsapAtForDistribution, scrapTrack, buildMarketCreators, injectCheaterMarketCreators, getRivalByName, buildPromoProjectKey, buildPromoProjectKeyFromTrack, normalizeCreator, normalizeProjectName, normalizeProjectType, parseAutoPromoSlotTarget, parsePromoProjectKey, postCreatorSigned, importSlotData, getSlotData, resetState, computeAutoCreateBudget, computeAutoPromoBudget, ensureAutoPromoBudgetSlots, ensureAutoPromoSlots, computeCharts, collectTrendRanking, startGameLoop, setTimeSpeed, markUiLogStart, formatCount, formatMoney, formatDate, formatHourCountdown, formatWeekRangeLabel, hoursUntilNextScheduledTime, moodFromGenre, themeFromGenre, TREND_DETAIL_COUNT, UI_REACT_ISLANDS_ENABLED, WEEKLY_SCHEDULE, handleFromName, setSlotTarget, assignToSlot, clearSlot, getSlotValue, loadSlot, deleteSlot, getLossArchives, recommendTrackPlan, recommendActForTrack, recommendReleasePlan, markCreatorPromo, recordTrackPromoCost, getPromoFacilityForType, getPromoFacilityAvailability, reservePromoFacilitySlot, scheduleManualPromoEvent, ensureMarketCreators, attemptSignCreator, listGameModes, DEFAULT_GAME_MODE, listGameDifficulties, DEFAULT_GAME_DIFFICULTY, DEFAULT_TRACK_SLOT_VISIBLE, acceptBailout, declineBailout } = game;
 const renderScheduler = createRenderScheduler({
     renderAll,
     renderEventLog,
@@ -116,8 +116,9 @@ const TRACK_ROLE_TARGETS = {
 };
 const ROLE_LABELS = {
     Songwriter: "Songwriter",
-    Performer: "Recorder",
-    Recorder: "Recorder",
+    Performer: "Vocalist",
+    Recorder: "Vocalist",
+    Vocalist: "Vocalist",
     Producer: "Producer"
 };
 const STATE_EVENT = "rls:state-changed";
@@ -2819,7 +2820,7 @@ function updateAutoCreateSummary(scope) {
             }
             if (modeLabel === "Collab") {
                 if (roleCounts[1].endsWith("0")) {
-                    reasons.push("No ready Performer available.");
+                    reasons.push("No ready Vocalist available.");
                 }
                 if (roleCounts[2].endsWith("0")) {
                     reasons.push("No ready Producer available.");
@@ -3793,6 +3794,19 @@ function bindViewHandlers(route, root) {
             const next = current === VIEW_PANEL_STATES.hidden ? VIEW_PANEL_STATES.open : VIEW_PANEL_STATES.hidden;
             setViewPanelState(route, key, next);
         }
+    });
+    root.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-task-action=\"auto-fulfill\"]");
+        if (!btn)
+            return;
+        if (btn.disabled)
+            return;
+        const questId = btn.dataset.taskId;
+        if (!questId)
+            return;
+        autoFulfillQuest(questId);
+        renderAll();
+        saveToActiveSlot();
     });
     if (route === "releases") {
         const footerPanel = root.querySelector("#calendarFooterPanel");
@@ -5793,7 +5807,7 @@ function updateTrackRecommendation() {
             ? `<div class="muted">Crew: ${stageCount} assigned | ${crewStats.minutesPerPiece}m per piece x${crewStats.pieces} | ${stageInfo.stamina * stageCount} stamina total</div>`
             : `<div class="muted">Crew: 0 assigned</div>`
         : "";
-    const crewSummaryLine = `<div class="muted">Selected crew: ${songwriterCount} songwriter(s) | ${performerCount} recorder(s) | ${producerCount} producer(s)</div>`;
+    const crewSummaryLine = `<div class="muted">Selected crew: ${songwriterCount} songwriter(s) | ${performerCount} vocalist(s) | ${producerCount} producer(s)</div>`;
     const stageLine = stageInfo
         ? `Stage: ${stageLabel} | ${formatHours(adjustedStageHours)}h${stageDeltaLabel} | ${stageInfo.stamina} stamina each`
         : `Stage: ${stageLabel}`;
@@ -5825,7 +5839,7 @@ function updateTrackRecommendation() {
     ${totalLine}
     ${crewSummaryLine}
     <div class="muted">Recommended: ${rec.theme} / ${rec.mood} | Modifier ${recModifier?.label || "None"} | Project ${rec.projectType}</div>
-    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} | Recorder ${performer ? performer.name : "Unassigned"} | Producer ${producer ? producer.name : "Unassigned"}</div>
+    <div class="muted">Songwriter ${writer ? writer.name : "Unassigned"} | Vocalist ${performer ? performer.name : "Unassigned"} | Producer ${producer ? producer.name : "Unassigned"}</div>
     <div class="muted">Act assignment happens at release.</div>
     ${warningHtml}
     <div class="tiny">${rec.reasons}</div>
@@ -8790,6 +8804,7 @@ function runTimeJump(totalHours, label) {
     }
     timeJumpInFlight = true;
     session.timeJumpActive = true;
+    startTimeJumpSummary(totalHours);
     const chunkSize = totalHours >= 24 * 365 ? 48 : totalHours >= 24 * 90 ? 24 : 12;
     let completed = 0;
     let cancelled = false;
@@ -8801,16 +8816,17 @@ function runTimeJump(totalHours, label) {
         cancelBtn.disabled = false;
         cancelBtn.addEventListener("click", cancelHandler, { once: true });
     }
-    const finish = () => {
+    const finish = (status) => {
         timeJumpInFlight = false;
         session.timeJumpActive = false;
+        logTimeJumpSummary({ status });
         closeSkipProgress();
         renderAll();
     };
     const step = async () => {
         if (cancelled) {
             logEvent("Time skip canceled.", "warn");
-            finish();
+            finish("canceled");
             return;
         }
         const remaining = totalHours - completed;
@@ -8821,7 +8837,7 @@ function runTimeJump(totalHours, label) {
         catch (error) {
             console.error("timeJump error:", error);
             logEvent("Time skip failed; stopping.", "warn");
-            finish();
+            finish("failed");
             return;
         }
         completed += stepHours;
