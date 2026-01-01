@@ -3,12 +3,14 @@
 These rules keep the hosted web build runnable while the team iterates quickly.
 
 ## Release stamp (single source of truth)
+
 - Release metadata lives in `assets/js/data/release.js`.
 - Patch ID format: `RLS-PATCH-YYYYMMDD-HHMMZ` (UTC, 24-hour time).
 - Example: `RLS-PATCH-20251225-0830Z`.
 - Patch notes headings must include the patch ID.
 
 ## Live edit guardrails (always follow)
+
 1. Edit TypeScript in `src/`, not `assets/js/dist/`.
 2. Run `npm run build` after TS changes to refresh `assets/js/dist/`.
 3. Update `assets/js/data/release.js` with the new patch ID + timestamp.
@@ -17,10 +19,12 @@ These rules keep the hosted web build runnable while the team iterates quickly.
 6. For local live edits, keep the service worker disabled (localhost defaults off; `?sw=off` also disables it).
 
 ## Patch notes convention
+
 - `docs/PATCH_NOTES.md` entry header format: `## YYYY-MM-DD (RLS-PATCH-YYYYMMDD-HHMMZ)`.
 - Each entry should list user-visible changes plus ops/guardrail updates.
 
 ## Runtime guardrails
+
 - `src/app/guardrails.ts` installs global error handlers and auto-save on pagehide/visibilitychange.
 - Critical runtime errors surface a console error plus an in-app toast (non-blocking, auto-dismiss) for visibility.
 - If initialization fails, the app surfaces a safe-mode message to avoid silent blank screens.
@@ -33,6 +37,7 @@ These rules keep the hosted web build runnable while the team iterates quickly.
 - Debug bundles include a storage health snapshot (save size, localStorage estimate, external mirror status).
 
 ## External storage (File System Access API)
+
 - Optional: logs, saves, and chart history can mirror to a user-selected folder via the Promotions view (route `logs`).
 - On startup, the game prompts to pick a save folder when external storage is not configured and the prompt has not been dismissed; skips persist on cancel/skip and only run on HTTPS or localhost.
 - Usage sessions mirror to `usage-logs/` on session end or explicit sync; saves and chart history sync to `saves/` and `database/`.
