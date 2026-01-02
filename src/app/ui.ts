@@ -21,7 +21,8 @@ import { setUiHooks } from "./game/ui-hooks";
 import { flushUsageSession, getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log";
 import { getStorageHealthSnapshot, recordStorageError } from "./storage-health";
 import { decodeSavePayload, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils";
-import { forceCloudCommitFlush } from "./cloud-commit";
+import { getClientLogSnapshot } from "./client-log";
+import { forceCloudCommitFlush, getCloudCommitStatus } from "./cloud-commit";
 import {
   $,
   closeOverlay as closeOverlayRaw,
@@ -5109,6 +5110,7 @@ function bindViewHandlers(route, root) {
   });
 
   on("exportDebugBtn", "click", exportDebugBundle);
+  on("exportDiagnosticsBtn", "click", exportDiagnostics);
 }
 
 function buildPromoOverlapDebugSnapshot() {
@@ -5282,6 +5284,74 @@ function buildPromoOverlapDebugSnapshot() {
       rivals: rivalBanked
     }
   };
+}
+
+function exportDiagnostics() {
+  const releasePatchId = typeof RLS_RELEASE !== "undefined"
+    ? RLS_RELEASE.patchId
+    : (state.meta?.releasePatchId || null);
+  const releaseTimestamp = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE.timestamp : null;
+  const cloudStatus = getCloudCommitStatus();
+  const storageHealth = getStorageHealthSnapshot();
+  const clientLog = getClientLogSnapshot();
+  const slotId = session.activeSlot || null;
+  const slotError = slotId ? game.getSlotLoadError(slotId) : null;
+
+  const diagnostics = {
+    generatedAt: new Date().toISOString(),
+    releasePatchId,
+    releasePatchTimestamp: releaseTimestamp,
+    slotId,
+    activeSlotLoadError: slotError,
+    lastLocalSaveAt: state.meta?.savedAt || null,
+    lastAutoSaveAt: state.meta?.autoSave?.lastSavedAt || null,
+    cloudCommit: {
+      enabled: cloudStatus.enabled,
+      disabledReason: cloudStatus.disabledReason,
+      pending: cloudStatus.pending,
+      dirty: cloudStatus.dirty,
+      lastAttemptAt: cloudStatus.lastAttemptAt,
+      lastSuccessAt: cloudStatus.lastSuccessAt,
+      lastErrorCode: cloudStatus.lastErrorCode,
+      lastErrorAt: cloudStatus.lastErrorAt,
+      lastCommittedSlotId: cloudStatus.lastCommittedSlotId,
+      lastCommittedHash: cloudStatus.lastCommittedHash,
+      pendingSlotId: cloudStatus.pendingSlotId,
+      pendingHash: cloudStatus.pendingHash
+    },
+    lastCloudErrorCode: cloudStatus.lastErrorCode || null,
+    uiErrorReasons: {
+      lastSaveAttemptAt: session.lastSaveAttemptAt || null,
+      lastSaveFailedAt: session.lastSaveFailedAt || null,
+      lastSaveFailureReason: session.lastSaveFailureReason || null,
+      lastSaveFailureToastReason: session.lastSaveFailureToastReason || null,
+      localStorageDisabled: Boolean(session.localStorageDisabled),
+      localStorageDisabledReason: session.localStorageDisabledReason || null
+    },
+    clientLog: {
+      count: clientLog.length,
+      recent: clientLog
+    },
+    firestoreErrors: {
+      lastCloudErrorCode: cloudStatus.lastErrorCode || null,
+      lastCloudErrorAt: cloudStatus.lastErrorAt || null,
+      storageHealthError: storageHealth?.lastError?.scope === "firestore"
+        ? storageHealth.lastError
+        : null
+    },
+    storageHealth: {
+      localStorageAvailable: storageHealth?.localStorageAvailable ?? null,
+      localStorageDisabledReason: storageHealth?.localStorageDisabledReason ?? null,
+      saveSizeBytes: storageHealth?.saveSizeBytes ?? null,
+      saveRawBytes: storageHealth?.saveRawBytes ?? null,
+      lastError: storageHealth?.lastError ?? null,
+      updatedAt: storageHealth?.updatedAt ?? null
+    }
+  };
+
+  downloadFile("diagnostics.json", JSON.stringify(diagnostics, null, 2), "application/json");
+  logEvent("Diagnostics exported.");
+  logUiEvent("export_diagnostics", { slot_id: diagnostics.slotId });
 }
 
 function exportDebugBundle() {

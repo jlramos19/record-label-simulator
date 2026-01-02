@@ -1,6 +1,8 @@
 import type { DocumentData } from "firebase/firestore";
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { updateDebugStage } from "./debug-panel";
+import { recordClientLog } from "./client-log";
+import { estimatePayloadBytes } from "./storage-utils";
 import {
   getFirebaseServices,
   hasFirebaseConfig,
@@ -172,6 +174,10 @@ async function commitSnapshot(reason: string, force: boolean) {
     state.lastErrorAt = now();
     updateDebugStage("save", { status: "warn", detail: "Cloud commit skipped (Firebase not ready)." });
     notifySaveStatusPanel();
+    recordClientLog("save.cloud.flush.skip", {
+      slotId: state.pendingSlotId,
+      errorCode: "firebase-not-ready"
+    });
     return null;
   }
 
@@ -180,6 +186,7 @@ async function commitSnapshot(reason: string, force: boolean) {
   const payload = state.pendingPayload;
   const payloadHash = state.pendingHash;
   const meta = state.pendingMeta || {};
+  const payloadBytes = estimatePayloadBytes(payload);
 
   if (!force && state.lastCommittedHash === payloadHash && state.lastCommittedSlotId === slotId) {
     state.dirty = false;
@@ -191,6 +198,11 @@ async function commitSnapshot(reason: string, force: boolean) {
   state.lastAttemptAt = now();
   updateDebugStage("save", { status: "active", detail: `Cloud commit in progress (${reason}).` });
   notifySaveStatusPanel();
+  recordClientLog("save.cloud.flush.start", {
+    slotId,
+    payloadHash,
+    bytes: payloadBytes
+  });
 
   const docRef = doc(services.db, "players", user.uid, "slots", String(slotId));
   const docPath = `players/${user.uid}/slots/${slotId}`;
@@ -222,6 +234,11 @@ async function commitSnapshot(reason: string, force: boolean) {
           detail: pendingChanged ? "Cloud commit done; newer changes pending." : "Cloud commit complete."
         }
       );
+      recordClientLog("save.cloud.flush.ok", {
+        slotId,
+        payloadHash: committedHash,
+        bytes: payloadBytes
+      });
       return { ok: true };
     })
     .catch((error) => {
@@ -229,6 +246,13 @@ async function commitSnapshot(reason: string, force: boolean) {
       state.lastErrorCode = code;
       state.lastErrorAt = now();
       updateDebugStage("save", { status: "warn", detail: `Cloud commit failed (${code}).` });
+      recordClientLog("save.cloud.flush.fail", {
+        slotId,
+        payloadHash,
+        bytes: payloadBytes,
+        errorCode: code,
+        errorMessage: (error as { message?: string })?.message || "Cloud commit failed."
+      });
       return { ok: false, reason: code };
     })
     .finally(() => {

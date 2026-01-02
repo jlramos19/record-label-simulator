@@ -1,5 +1,16 @@
 # Patch Notes
 
+## 2026-01-02 (RLS-PATCH-20260102-1255Z)
+- Added preview-only Firestore client logging for save/load events, gated by preview channels or `?debug=1`, with sampling and per-session limits. [PN-20260102-AC164]
+- Cloud commit + slot load flows now emit structured client log events, and Diagnostics JSON includes recent client log entries plus the last cloud error code. [PN-20260102-AC165]
+- Firestore rules now allow authenticated preview client logs under `players_preview/{uid}/client_log`. [PN-20260102-AC166]
+- README now documents using the Emulator UI Firestore Requests monitor to debug save/load failures. [PN-20260102-AC167]
+
+## 2026-01-02 (RLS-PATCH-20260102-1210Z)
+- Added Firebase Hosting preview channel scripts (`preview:deploy/open/list`) and aligned the local emulator serve script to run the build first. [PN-20260102-AC161]
+- Internal Log now includes a Diagnostics JSON export with save timestamps, cloud sync status, and error reason codes. [PN-20260102-AC162]
+- Documented current save/load known issues and error sequences in `docs/KNOWN_ISSUES.md`. [PN-20260102-AC163]
+
 ## 2026-01-02 (RLS-PATCH-20260102-1101Z)
 - Save slots now load/save directly from Firestore with offline cache, removing external folder prompts and File System Access API dependence while updating save-status messaging. [PN-20260102-AC160]
 
@@ -952,6 +963,13 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20260102-AC164 (2026-01-02 12:55Z): Added preview-only Firestore client logging for save/load events, gated by preview channels or `?debug=1`, with sampling and per-session limits.
+- PN-20260102-AC165 (2026-01-02 12:55Z): Cloud commit + slot load flows now emit structured client log events, and Diagnostics JSON includes recent client log entries plus the last cloud error code.
+- PN-20260102-AC166 (2026-01-02 12:55Z): Firestore rules now allow authenticated preview client logs under `players_preview/{uid}/client_log`.
+- PN-20260102-AC167 (2026-01-02 12:55Z): README now documents using the Emulator UI Firestore Requests monitor to debug save/load failures.
+- PN-20260102-AC161 (2026-01-02 12:10Z): Added Firebase Hosting preview channel scripts (`preview:deploy/open/list`) and aligned the local emulator serve script to run the build first.
+- PN-20260102-AC162 (2026-01-02 12:10Z): Internal Log now includes a Diagnostics JSON export with save timestamps, cloud sync status, and error reason codes.
+- PN-20260102-AC163 (2026-01-02 12:10Z): Documented current save/load known issues and error sequences in `docs/KNOWN_ISSUES.md`.
 - PN-20260102-AC160 (2026-01-02 11:01Z): Save slots now load/save directly from Firestore with offline cache, removing external folder prompts and File System Access API dependence while updating save-status messaging.
 - PN-20260102-AC159 (2026-01-02 09:11Z): Implemented modular Firebase local-cache persistence with snapshot-only cloud commits (autosave/guardrails), cloud restore fallback, save-status cloud sync visibility, and a local Hosting+Auth+Firestore emulator script.
 - PN-20260102-AC158 (2026-01-02 07:55Z): Added Firebase emulator wiring (Auth + Firestore) with optional offline persistence and local-only anonymous auth for dev flows.

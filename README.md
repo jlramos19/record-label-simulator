@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2026-01-02 07:02:11 -04:00
+Last updated: 2026-01-02 08:56:21 -04:00
 
 ## Quick start
 
@@ -39,6 +39,14 @@ npm run serve:local
 ```
 Open `http://localhost:5000` to verify the built app and hash-route refreshes (Hosting + Auth + Firestore emulators).
 
+### Firebase preview channels (Hosting)
+```bash
+npm run preview:deploy
+npm run preview:open
+npm run preview:list
+```
+- Deploys a preview channel named `playtest` (7-day expiry) for external playtests. Avoid live Hosting deploys.
+
 ### VS Code Run/Debug (Edge)
 - Terminal A: `npm run dev`
 - Then launch the `RLS: Edge` Run/Debug config to open the game at `http://localhost:5173`.
@@ -50,6 +58,12 @@ firebase emulators:start
 ```
 - Create `.env.local` with your `VITE_FIREBASE_*` values from the Firebase console.
 - Auth emulator runs on `http://localhost:9099`, Firestore emulator runs on `localhost:8080`, Hosting emulator runs on `http://localhost:5000` (UI may appear at `http://localhost:4000`).
+
+### How to debug saving (emulator UI)
+1) Open `http://127.0.0.1:4000`
+2) Navigate to Firestore -> Requests
+3) Reproduce the save/load issue
+4) Inspect the request path, status (OK/DENIED), and rules evaluation details
 
 ### React SPA (optional)
 ```bash
@@ -75,11 +89,18 @@ npm run dev:islands
 - `npm run preview` - preview the Vite build at `http://localhost:5173`
 - `npm run typecheck` - TypeScript typecheck (`tsc --noEmit`)
 - `npm run serve:local` - build + serve `dist/` via Firebase Hosting + Auth + Firestore emulators
+- `npm run preview:deploy` - build + deploy a Hosting preview channel named `playtest` (7-day expiry)
+- `npm run preview:open` - open the `playtest` preview channel in your browser
+- `npm run preview:list` - list active Hosting preview channels
 - `npm run optimize:portraits` - generate resized creator portraits into `assets/png/portraits/creator-ids-optimized` (build will prefer optimized assets when present)
 - `npm run watch:portraits` - watch creator portrait folders and auto-optimize on add/change/remove
 - `npm run lint` - lint JS/MJS/CJS files with ESLint (TypeScript checks stay in `tsc`)
 - `npm run emulators` - start Firebase emulators (Auth/Firestore/Hosting)
 - `npm run deploy:hosting` - build then deploy Firebase Hosting
+
+## Diagnostics
+
+- Internal Log panel includes a "Download Diagnostics JSON" action for support cases. The export captures release patch info, active slot, save timestamps, cloud commit status, recent error codes, and the latest client log events (when enabled).
 
 ## Runtime entrypoints
 

@@ -3,6 +3,7 @@ import { fetchChartSnapshot, fetchChartSnapshotsForWeek, listChartWeeks, storeCh
 import { deleteCloudSlotSnapshot, fetchCloudSlotSnapshot, flushCloudCommitIfDue, getCloudCommitStatus, markCloudCommitDirty } from "./cloud-commit";
 import { recordStorageError, setStorageWarningHandler, updateStorageHealth } from "./storage-health";
 import { decodeSavePayload, encodeSavePayload, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils";
+import { recordClientLog } from "./client-log";
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types";
 import { useCalendarProjection } from "./calendar";
 import { uiHooks } from "./game/ui-hooks";
@@ -23679,29 +23680,49 @@ async function fetchSlotSnapshot(index, options = {}) {
   const status = getSlotLoadStatus(index);
   if (!force && (status === "loading" || status === "ready")) {
     const cached = slotCache.get(index);
-    if (!cached) return null;
+    if (!cached) {
+      recordClientLog("load.local.miss", { slotId: index, errorCode: "cache-miss" });
+      return null;
+    }
+    recordClientLog("load.local.cache", {
+      slotId: index,
+      bytes: cached.payload ? estimatePayloadBytes(cached.payload) : null
+    });
     return { data: cached.data, payload: cached.payload, meta: cached.meta };
   }
   setSlotLoadStatus(index, "loading");
   const snapshot = await fetchCloudSlotSnapshot(index);
   if (!snapshot) {
     setSlotLoadStatus(index, "missing");
+    recordClientLog("load.cloud.missing", { slotId: index, errorCode: "missing" });
     return null;
   }
   if (snapshot.storedSlotId && snapshot.storedSlotId !== index) {
     setSlotLoadStatus(index, "error", "slot-id-mismatch");
     logEvent(`Cloud slot mismatch (expected slot ${index}, got ${snapshot.storedSlotId}).`, "warn");
+    recordClientLog("load.cloud.fail", {
+      slotId: index,
+      errorCode: "slot-id-mismatch"
+    });
     return null;
   }
   if (Number.isFinite(snapshot.schemaVersion) && snapshot.schemaVersion > STATE_VERSION) {
     setSlotLoadStatus(index, "error", "schema-too-new");
     logEvent(`Cloud slot schema is newer than this build (slot ${index}).`, "warn");
+    recordClientLog("load.cloud.fail", {
+      slotId: index,
+      errorCode: "schema-too-new"
+    });
     return null;
   }
   const decoded = decodeSavePayload(snapshot.payload);
   if (!decoded.ok || !decoded.payload) {
     setSlotLoadStatus(index, "error", "decode");
     recordStorageError({ scope: "firestore", message: "Cloud slot payload could not be decoded." });
+    recordClientLog("load.cloud.fail", {
+      slotId: index,
+      errorCode: "decode"
+    });
     return null;
   }
   let parsed = null;
@@ -23710,13 +23731,26 @@ async function fetchSlotSnapshot(index, options = {}) {
   } catch {
     setSlotLoadStatus(index, "error", "parse");
     recordStorageError({ scope: "firestore", message: "Cloud slot payload could not be parsed." });
+    recordClientLog("load.cloud.fail", {
+      slotId: index,
+      errorCode: "parse"
+    });
     return null;
   }
   if (!parsed || typeof parsed !== "object") {
     setSlotLoadStatus(index, "error", "parse");
+    recordClientLog("load.cloud.fail", {
+      slotId: index,
+      errorCode: "parse"
+    });
     return null;
   }
   cacheSlotSnapshot(index, snapshot.payload, parsed, snapshot);
+  recordClientLog("load.cloud.restore", {
+    slotId: index,
+    payloadHash: snapshot.payloadHash || null,
+    bytes: estimatePayloadBytes(snapshot.payload)
+  });
   return { data: parsed, payload: snapshot.payload, meta: snapshot };
 }
 
@@ -23890,6 +23924,11 @@ function saveToSlot(index, options = {}) {
     payload = JSON.stringify(state);
   } catch (error) {
     recordStorageError({ scope: "localStorage", message: "Save serialization failed.", error, notify: "saveSerialize" });
+    recordClientLog("save.local.fail", {
+      slotId: index,
+      errorCode: "serialize",
+      errorMessage: error?.message || "Save serialization failed."
+    });
     noteSaveAttempt(now, false, "serialize");
     if (notify) maybeToastSaveFailure("serialize");
     return { ok: false, reason: "serialize", error };
@@ -23912,14 +23951,28 @@ function saveToSlot(index, options = {}) {
     releasePatchId
   });
   const cloudStatus = getCloudCommitStatus();
+  recordClientLog("save.cloud.markDirty", {
+    slotId: index,
+    payloadHash: cloudStatus.pendingHash || null,
+    bytes: payloadBytes
+  });
   if (!cloudStatus.enabled) {
     const failureReason = cloudStatus.disabledReason || "firebase-not-ready";
+    recordClientLog("save.cloud.disabled", {
+      slotId: index,
+      errorCode: failureReason
+    });
     noteSaveAttempt(now, false, failureReason);
     if (notify) maybeToastSaveFailure(failureReason, payloadBytes);
     return { ok: false, reason: failureReason, payloadBytes };
   }
   state.meta.savedAt = now;
   if (state.meta.autoSave) state.meta.autoSave.lastSavedAt = state.meta.savedAt;
+  recordClientLog("save.local.ok", {
+    slotId: index,
+    payloadHash: cloudStatus.pendingHash || null,
+    bytes: payloadBytes
+  });
   noteSaveAttempt(now, true, null);
   if (session.activeSlot === index) {
     session.lastSlotPayload = storedPayload;
@@ -23941,8 +23994,17 @@ function storeSlotPayload(index, payload, data, options = {}) {
   const releasePatchId = options.releasePatchId ?? data?.meta?.releasePatchId ?? null;
   markCloudCommitDirty(index, payload, { schemaVersion, releasePatchId });
   const cloudStatus = getCloudCommitStatus();
+  recordClientLog("save.import.markDirty", {
+    slotId: index,
+    payloadHash: cloudStatus.pendingHash || null,
+    bytes: payloadBytes
+  });
   if (!cloudStatus.enabled) {
     const failureReason = cloudStatus.disabledReason || "firebase-not-ready";
+    recordClientLog("save.cloud.disabled", {
+      slotId: index,
+      errorCode: failureReason
+    });
     noteSaveAttempt(Date.now(), false, failureReason);
     if (notify) maybeToastSaveFailure(failureReason, payloadBytes);
     return { ok: false, reason: failureReason };
@@ -23958,6 +24020,11 @@ function storeSlotPayload(index, payload, data, options = {}) {
   if (session.activeSlot === index) {
     session.lastSlotPayload = payload;
   }
+  recordClientLog("save.import.ok", {
+    slotId: index,
+    payloadHash: cloudStatus.pendingHash || null,
+    bytes: payloadBytes
+  });
   noteSaveAttempt(Date.now(), true, null);
   return { ok: true, payloadBytes };
 }
@@ -23968,6 +24035,11 @@ function importSlotData(index, data, options = {}) {
     payload = JSON.stringify(data);
   } catch (error) {
     recordStorageError({ scope: "save-import", message: "Save import serialization failed.", error });
+    recordClientLog("save.import.fail", {
+      slotId: index,
+      errorCode: "serialize",
+      errorMessage: error?.message || "Save import serialization failed."
+    });
     return { ok: false, reason: "serialize", error };
   }
   const encoded = encodeSavePayload(payload);
@@ -24071,6 +24143,10 @@ async function loadSlot(index, forceNew = false, options = {}) {
     const snapshot = forceNew ? null : await fetchSlotSnapshot(index, { force: true });
     const data = snapshot?.data || null;
     if (!data && !forceNew && !seedIfMissing) {
+      recordClientLog("load.local.fail", {
+        slotId: index,
+        errorCode: "missing"
+      });
       return { ok: false, reason: "missing" };
     }
     resetState(data);
@@ -24097,9 +24173,19 @@ async function loadSlot(index, forceNew = false, options = {}) {
     }
     uiHooks.closeMainMenu?.();
     startGameLoop();
+    recordClientLog("load.local.ok", {
+      slotId: index,
+      bytes: session.lastSlotPayload ? estimatePayloadBytes(session.lastSlotPayload) : null,
+      errorCode: data ? "cloud" : "seed"
+    });
     return { ok: true, loaded: Boolean(data) };
   } catch (error) {
     console.error("loadSlot error:", error);
+    recordClientLog("load.local.fail", {
+      slotId: index,
+      errorCode: "load-error",
+      errorMessage: error?.message || "Load failed."
+    });
     return { ok: false, reason: "load-error", error };
   }
 }
