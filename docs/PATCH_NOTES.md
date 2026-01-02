@@ -1,5 +1,11 @@
 # Patch Notes
 
+## 2026-01-02 (RLS-PATCH-20260102-0911Z)
+- Implemented modular Firebase local-cache persistence with snapshot-only cloud commits (autosave/guardrails), cloud restore fallback, and save-status cloud sync visibility. [PN-20260102-AC159]
+
+## 2026-01-02 (RLS-PATCH-20260102-0755Z)
+- Added Firebase emulator wiring (Auth + Firestore) with optional offline persistence and local-only anonymous auth for dev flows. [PN-20260102-AC158]
+
 ## 2026-01-01 (RLS-PATCH-20260101-1135Z)
 - Boot now continues past the external storage prompt so the game loads even if the save folder dialog is skipped or delayed. [PN-20260101-AC155]
 - Added a boot loading screen with step-by-step status (boot, UI, slot, charts, render, external storage) so stall points are visible. [PN-20260101-AC156]
@@ -943,6 +949,8 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
+- PN-20260102-AC159 (2026-01-02 09:11Z): Implemented modular Firebase local-cache persistence with snapshot-only cloud commits (autosave/guardrails), cloud restore fallback, and save-status cloud sync visibility.
+- PN-20260102-AC158 (2026-01-02 07:55Z): Added Firebase emulator wiring (Auth + Firestore) with optional offline persistence and local-only anonymous auth for dev flows.
 - PN-20260101-AC157 (2026-01-01 11:35Z): Updated the service worker cache stamp to the new release ID so clients fetch the latest boot fixes.
 - PN-20260101-AC156 (2026-01-01 11:35Z): Added a boot loading screen that surfaces boot stage progress and optional external storage status.
 - PN-20260101-AC155 (2026-01-01 11:35Z): Boot now continues past the external storage prompt so loading is not blocked by the save folder dialog.

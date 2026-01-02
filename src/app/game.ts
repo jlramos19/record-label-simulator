@@ -1,18 +1,19 @@
 // @ts-nocheck
-import { fetchChartSnapshot, fetchChartSnapshotsForWeek, listChartWeeks, storeChartSnapshot } from "./db.js";
-import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, readSaveSlotFromExternal } from "./file-storage.js";
-import { recordStorageError, setStorageWarningHandler, updateStorageHealth } from "./storage-health.js";
+import { fetchChartSnapshot, fetchChartSnapshotsForWeek, listChartWeeks, storeChartSnapshot } from "./db";
+import { fetchCloudSlotSnapshot, flushCloudCommitIfDue, markCloudCommitDirty } from "./cloud-commit";
+import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, readSaveSlotFromExternal } from "./file-storage";
+import { recordStorageError, setStorageWarningHandler, updateStorageHealth } from "./storage-health";
 import {
   decodeSavePayload,
   encodeSavePayload,
   estimateLocalStorageBytes,
   estimatePayloadBytes,
   isQuotaExceededError
-} from "./storage-utils.js";
-import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types.js";
-import { useCalendarProjection } from "./calendar.js";
-import { uiHooks } from "./game/ui-hooks.js";
-import { recordUsageEvent } from "./usage-log.js";
+} from "./storage-utils";
+import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types";
+import { useCalendarProjection } from "./calendar";
+import { uiHooks } from "./game/ui-hooks";
+import { recordUsageEvent } from "./usage-log";
 import {
   CREATOR_NAME_PARTS,
   ERA_NAME_TEMPLATES,
@@ -27,7 +28,7 @@ import {
   hasHangulText,
   lookupActNameDetails,
   renderActNameByNation
-} from "./game/names.js";
+} from "./game/names";
 import {
   AI_CREATE_BUDGET_PCT,
   AI_CREATE_MIN_CASH,
@@ -139,20 +140,20 @@ import {
   UNASSIGNED_SLOT_LABEL,
   WEEKLY_SCHEDULE,
   WEEKLY_UPDATE_WARN_MS
-} from "./game/config.js";
+} from "./game/config";
 import {
   evaluateProjectTrackConstraints as evaluateProjectTrackConstraintsWithTracks,
   getProjectTrackLimits,
   normalizeProjectName,
   normalizeProjectType
-} from "./game/project-tracks.js";
+} from "./game/project-tracks";
 import {
   buildDefaultTrackSlotVisibility,
   buildEmptyTrackSlotList,
   parseTrackRoleTarget,
   roleLabel,
   trackRoleLimit
-} from "./game/track-roles.js";
+} from "./game/track-roles";
 import {
   alignmentClass,
   countryColor,
@@ -164,7 +165,7 @@ import {
   resolveLabelAcronym,
   slugify,
   themeFromGenre
-} from "./game/label-utils.js";
+} from "./game/label-utils";
 
 const ECONOMY_BASELINES_DEFAULT = { ...ECONOMY_BASELINES };
 const ECONOMY_TUNING_DEFAULT = { ...ECONOMY_TUNING };
@@ -8441,11 +8442,6 @@ function isEraLegacyReady(era, now = state.time.epochMs) {
   return Number.isFinite(gap) && gap >= ERA_PROJECT_GAP_WEEKS;
 }
 
-function isPromoActionType(actionType) {
-  if (!actionType) return false;
-  return Boolean(PROMO_TYPE_DETAILS[actionType]);
-}
-
 function hasTrackPhysicalInventory(track) {
   if (!track?.physicalInventory || typeof track.physicalInventory !== "object") return false;
   const inventory = track.physicalInventory;
@@ -14251,7 +14247,7 @@ function terminateChartWorker(reason) {
 function getChartWorker() {
   if (chartWorker || typeof Worker === "undefined") return chartWorker;
   try {
-    chartWorker = new Worker(new URL("./chartWorker.js", import.meta.url), { type: "module" });
+    chartWorker = new Worker(new URL("./chartWorker", import.meta.url), { type: "module" });
     chartWorker.addEventListener("message", (event) => {
       const message = event?.data || {};
       const pending = chartWorkerRequests.get(message.id);
@@ -23597,6 +23593,7 @@ function maybeAutoSave() {
   if (Date.now() - last < intervalMs) return;
   saveToActiveSlot({ immediate: true });
   state.meta.autoSave.lastSavedAt = Date.now();
+  flushCloudCommitIfDue("autosave");
   if (typeof window !== "undefined" && typeof window.updateSaveStatusPanel === "function") {
     window.updateSaveStatusPanel();
   }
@@ -23718,29 +23715,37 @@ async function getSlotDataWithExternal(index) {
   const data = getSlotData(index);
   if (data) return data;
   const external = await readSaveSlotFromExternal(index);
-  if (!external) return null;
-  if (typeof localStorage !== "undefined") {
-    try {
-      const encoded = encodeSavePayload(JSON.stringify(external));
-      localStorage.setItem(slotKey(index), encoded.payload);
-    } catch (error) {
-      const quota = isQuotaExceededError(error);
-      markLocalStorageDisabled(quota ? "quota" : "error");
-      warnLocalStorageIssue(
-        quota
-          ? "Local save storage is full; external save loaded but local cache skipped."
-          : "Local save cache failed; external save loaded.",
-        error,
-        { reason: quota ? "localStorageQuota" : "localStorageError", skipRecord: true }
-      );
-      recordStorageError({
-        scope: "localStorage",
-        message: "Failed to cache external save locally.",
-        error
-      });
+  if (external) {
+    if (typeof localStorage !== "undefined") {
+      try {
+        const encoded = encodeSavePayload(JSON.stringify(external));
+        localStorage.setItem(slotKey(index), encoded.payload);
+      } catch (error) {
+        const quota = isQuotaExceededError(error);
+        markLocalStorageDisabled(quota ? "quota" : "error");
+        warnLocalStorageIssue(
+          quota
+            ? "Local save storage is full; external save loaded but local cache skipped."
+            : "Local save cache failed; external save loaded.",
+          error,
+          { reason: quota ? "localStorageQuota" : "localStorageError", skipRecord: true }
+        );
+        recordStorageError({
+          scope: "localStorage",
+          message: "Failed to cache external save locally.",
+          error
+        });
+      }
     }
+    return external;
   }
-  return external;
+
+  const cloud = await fetchCloudSlotSnapshot(index);
+  if (!cloud) return null;
+  if (cloud.payload) {
+    storeSlotPayload(index, cloud.payload, { notify: false });
+  }
+  return cloud.data || null;
 }
 
 function markLocalStorageEnabled() {
@@ -23966,6 +23971,13 @@ function saveToSlot(index, options = {}) {
   if (storedLocal) {
     state.meta.savedAt = now;
     if (state.meta.autoSave) state.meta.autoSave.lastSavedAt = state.meta.savedAt;
+  }
+  if (storedLocal) {
+    const releasePatchId = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE.patchId : null;
+    markCloudCommitDirty(index, storedPayload, {
+      schemaVersion: state.meta?.version || null,
+      releasePatchId
+    });
   }
   noteSaveAttempt(now, storedLocal, failureReason);
   if (storedLocal && session.activeSlot === index) {

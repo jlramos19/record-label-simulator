@@ -3,8 +3,8 @@ import path from "path";
 import sharp from "sharp";
 import chokidar from "chokidar";
 
-const SOURCE_ROOT = path.resolve("assets/png/portraits/creator-ids");
-const OUTPUT_ROOT = path.resolve("assets/png/portraits/creator-ids-optimized");
+const SOURCE_ROOT = path.resolve("public/assets/png/portraits/creator-ids");
+const OUTPUT_ROOT = path.resolve("public/assets/png/portraits/creator-ids-optimized");
 const EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 
 const MAX_SIZE = Number(process.env.RLS_PORTRAIT_MAX_SIZE || 512);

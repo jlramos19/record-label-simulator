@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { storeChartSnapshot } from "./db.js";
+import { storeChartSnapshot } from "./db";
 
 const workerScope = self;
 const FALLBACK_WEIGHTS = { sales: 0.35, streaming: 0.2, airplay: 0.3, social: 0.15 };

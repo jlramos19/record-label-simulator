@@ -8,3 +8,8 @@ usage-logs/
 Thumbs.db
 tmp_*.txt
 tmp_*.ts
+dist/
+.env
+.env.*
+.firebase/
+firebase-debug.log

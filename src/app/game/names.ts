@@ -1,24 +1,24 @@
 // @ts-nocheck
 // Name pools mix lore vocabulary with language-specific lists; Hangul is preserved where required.
 
-import { RLS_GIVEN_NAMES } from "./names/rls.js";
-import { WESTERN_NAMES } from "./names/western.js";
-import { LATIN_NAMES } from "./names/latin.js";
-import { EAST_ASIAN_NAMES } from "./names/east-asian.js";
+import { RLS_GIVEN_NAMES } from "./names/rls";
+import { WESTERN_NAMES } from "./names/western";
+import { LATIN_NAMES } from "./names/latin";
+import { EAST_ASIAN_NAMES } from "./names/east-asian";
 import {
   ANGLORAN_GIVEN_NAMES,
   ANGLORAN_GIVEN_NAMES_MAN,
   ANGLORAN_GIVEN_NAMES_NONBINARY,
   ANGLORAN_GIVEN_NAMES_WOMAN,
   ANGLORAN_SURNAMES
-} from "./names/annglora.js";
+} from "./names/annglora";
 import {
   CROWLYA_GIVEN_NAMES,
   CROWLYA_GIVEN_NAMES_MAN,
   CROWLYA_GIVEN_NAMES_NONBINARY,
   CROWLYA_GIVEN_NAMES_WOMAN,
   CROWLYA_SURNAMES
-} from "./names/crowlya.js";
+} from "./names/crowlya";
 import {
   BYTENZA_GIVEN_NAMES_2_MAN,
   BYTENZA_GIVEN_NAMES_2_NONBINARY,
@@ -37,7 +37,7 @@ import {
   BYTENZA_GIVEN_NAMES_NONBINARY,
   BYTENZA_GIVEN_NAMES_WOMAN,
   BYTENZA_SURNAMES
-} from "./names/bytenza.js";
+} from "./names/bytenza";
 import {
   ERA_NAME_TEMPLATES,
   LABEL_NAMES,
@@ -46,7 +46,7 @@ import {
   PROJECT_TITLE_TRANSLATIONS,
   PROJECT_TITLES,
   TRACK_TITLE_TEMPLATES
-} from "./names/templates.js";
+} from "./names/templates";
 
 const CREATOR_NAME_PARTS = {
   // Annglora = English-language pool
@@ -114,6 +114,6 @@ export {
   WESTERN_NAMES
 };
 
-export * from "./names/act-name-pools.js";
-export * from "./names/act-name-generator.js";
-export * from "./names/act-name-renderer.js";
+export * from "./names/act-name-pools";
+export * from "./names/act-name-generator";
+export * from "./names/act-name-renderer";

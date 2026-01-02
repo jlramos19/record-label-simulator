@@ -12,13 +12,24 @@
 - Markdownlint (`davidanson.vscode-markdownlint`): lint docs against repo Markdown rules.
 
 ## Run/Debug (Edge)
-- Terminal A: `npm run start`
-- Terminal B: `npm run watch`
+- Terminal A: `npm run dev`
 - Optional Terminal C: `npm run watch:portraits` to auto-optimize new creator portrait images.
-- Launch the `RLS: Edge` Run/Debug config to open `http://localhost:5173` (keep both terminals running for live TS updates).
+- Launch the `RLS: Edge` Run/Debug config to open `http://localhost:5173` (Vite dev server).
 - The React SPA dev server uses `http://localhost:5174` to avoid conflicts.
 - The React islands dev server uses `http://localhost:5175` to avoid conflicts.
 - After `cd ui-react && npm run build`, the React SPA is served from `http://localhost:5173/ui-react/`.
+
+## Firebase emulators (optional)
+- One-time install: `npm install -g firebase-tools`.
+- Ensure `firebase.json` exists (Auth 9099, Firestore 8080, Hosting 5000) and update `.firebaserc` with your project ID if needed.
+- Java JDK 11+ is required for emulator runs.
+- Create `.env.local` with your `VITE_FIREBASE_*` values from the Firebase console.
+- Terminal C (or D): `firebase emulators:start` to run Auth + Firestore + Hosting locally (Emulator UI may appear at `http://localhost:4000`).
+- Offline persistence is enabled automatically; expect a warning if multiple tabs open or IndexedDB is blocked.
+
+## Local Hosting emulator (dist/)
+- Build + serve with Hosting emulator: `npm run serve:local`.
+- Open `http://localhost:5000` to verify the built app (hash routes should refresh correctly).
 
 ## Observability
 - Use Edge DevTools console (in the browser) for runtime errors.
@@ -34,5 +45,5 @@
 - Markdownlint reads `.markdownlint.json` for doc rules.
 
 ## Live edit reminders
-- HTML/CSS/data JS changes show on refresh.
-- TypeScript changes require `npm run watch` (or a build) to update `assets/js/dist`.
+- Vite handles TypeScript + CSS updates automatically during `npm run dev`.
+- Static assets live under `public/` and update on refresh.

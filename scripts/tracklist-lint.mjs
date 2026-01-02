@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
-const TRACKLIST_PATH = path.join(ROOT, "assets/js/data/tracklist.js");
+const TRACKLIST_PATH = path.join(ROOT, "public/assets/js/data/tracklist.js");
 
 function loadTracklists() {
   const code = fs.readFileSync(TRACKLIST_PATH, "utf8");

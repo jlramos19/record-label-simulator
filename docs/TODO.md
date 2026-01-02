@@ -1,5 +1,7 @@
 # TODO
 
+- [ ] RLS-OPS-VITE-FIREBASE-001: Refactor web MVP to Vite + Firebase Hosting with emulator-ready local dev and Firestore snapshot/event-log persistence. (Agent Codex, started 2026-01-02 04:16:59 -04:00)
+- [x] RLS-OPS-FIREBASE-EMU-001: Wire Firebase emulators (Auth + Firestore) with offline persistence scaffolding for local dev. (Agent Codex, started 2026-01-02 03:50:28 -04:00, completed 2026-01-02 03:50:28 -04:00)
 - [x] RLS-OPS-TRACKLIST-GLOBAL-001: Define a TRACKLIST alias for track titles and make boot global checks resilient. (Agent Codex, started 2026-01-01 07:02:30 -04:00, completed 2026-01-01 07:02:30 -04:00)
 - [x] RLS-OPS-SW-OFF-CTA-001: Add reload-with-`?sw=off` actions to boot fallback + safe mode to recover from stale service worker caches. (Agent Codex, started 2026-01-01 06:42:08 -04:00, completed 2026-01-01 06:42:08 -04:00)
 - [x] RLS-OPS-BOOT-GUARD-001: Add a boot watchdog + asset-load fallback to surface nonresponsive loads and make boot dependency checks resilient. (Agent Codex, started 2026-01-01 06:36:17 -04:00, completed 2026-01-01 06:36:17 -04:00)

@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 
-const SOURCE_ROOT = path.resolve("assets/png/portraits/creator-ids");
-const OPTIMIZED_ROOT = path.resolve("assets/png/portraits/creator-ids-optimized");
-const OUTPUT = path.resolve("assets/js/data/creator-portraits.js");
+const SOURCE_ROOT = path.resolve("public/assets/png/portraits/creator-ids");
+const OPTIMIZED_ROOT = path.resolve("public/assets/png/portraits/creator-ids-optimized");
+const OUTPUT = path.resolve("public/assets/js/data/creator-portraits.js");
 const EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 
 function collectEntries(rootDir) {

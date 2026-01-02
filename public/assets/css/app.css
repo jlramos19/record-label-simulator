@@ -4081,3 +4081,66 @@ html[data-boot-ready="true"] .boot-screen {
   font-size: 11px;
   color: var(--muted);
 }
+.debug-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 280px;
+  padding: 12px 14px;
+  background: rgba(10, 7, 3, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  color: var(--text);
+  font-size: 12px;
+  z-index: 9999;
+}
+.debug-panel-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+.debug-panel-list {
+  display: grid;
+  gap: 8px;
+}
+.debug-stage {
+  display: grid;
+  gap: 2px;
+  padding-left: 16px;
+  position: relative;
+}
+.debug-stage::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.debug-stage[data-status="active"]::before {
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.5);
+}
+.debug-stage[data-status="ok"]::before {
+  background: var(--accent-2);
+}
+.debug-stage[data-status="warn"]::before {
+  background: var(--warn);
+}
+.debug-stage[data-status="error"]::before {
+  background: var(--danger);
+}
+.debug-stage-label {
+  font-weight: 600;
+}
+.debug-stage-detail {
+  color: var(--muted);
+  font-size: 11px;
+}

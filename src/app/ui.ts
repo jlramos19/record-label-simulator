@@ -1,7 +1,7 @@
 // @ts-nocheck
-import * as game from "./game.js";
-import { loadCSV } from "./csv.js";
-import { fetchChartSnapshot, listChartWeeks } from "./db.js";
+import * as game from "./game";
+import { loadCSV } from "./csv";
+import { fetchChartSnapshot, listChartWeeks } from "./db";
 import {
   TRACK_ROLLOUT_DEFAULT_TOGGLES,
   TRACK_ROLLOUT_DEFAULT_WEIGHTS,
@@ -15,12 +15,12 @@ import {
   saveTrackRolloutInstance,
   saveTrackRolloutTemplate,
   setTrackRolloutTemplateCache
-} from "./track-rollout.js";
-import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails, PROMO_TYPE_DETAILS } from "./promo_types.js";
-import { setUiHooks } from "./game/ui-hooks.js";
-import { flushUsageSession, getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log.js";
-import { getStorageHealthSnapshot, recordStorageError } from "./storage-health.js";
-import { decodeSavePayload, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
+} from "./track-rollout";
+import { buildPromoHint, DEFAULT_PROMO_TYPE, getPromoTypeCosts, getPromoTypeDetails, PROMO_TYPE_DETAILS } from "./promo_types";
+import { setUiHooks } from "./game/ui-hooks";
+import { flushUsageSession, getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log";
+import { getStorageHealthSnapshot, recordStorageError } from "./storage-health";
+import { decodeSavePayload, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils";
 import {
   clearExternalStorageHandle,
   getExternalStorageStatus,
@@ -29,7 +29,7 @@ import {
   isExternalStorageSupported,
   requestExternalStorageHandle,
   syncExternalStorageNow
-} from "./file-storage.js";
+} from "./file-storage";
 import {
   $,
   closeOverlay as closeOverlayRaw,
@@ -40,9 +40,9 @@ import {
   shakeField,
   shakeSlot,
   showEndScreen
-} from "./ui/dom.js";
-import { showToast } from "./guardrails.js";
-import { getBootStatus } from "./boot-status.js";
+} from "./ui/dom";
+import { showToast } from "./guardrails";
+import { getBootStatus } from "./boot-status";
 import {
   closeMainMenu,
   openMainMenu,
@@ -82,14 +82,14 @@ import {
   renderWallet,
   updateActMemberFields,
   updateGenrePreview
-} from "./ui/render/index.js";
+} from "./ui/render/index";
 import {
   bindThemeSelectAccent,
   buildMoodOptions,
   buildThemeOptions,
   setThemeSelectAccent
-} from "./ui/themeMoodOptions.js";
-import { createRenderScheduler } from "./ui/render-scheduler.js";
+} from "./ui/themeMoodOptions";
+import { createRenderScheduler } from "./ui/render-scheduler";
 
 const {
   state,

@@ -1,4 +1,4 @@
-import { formatCompactDateRange } from "./game.js";
+import { formatCompactDateRange } from "./game";
 
 type CalendarEvent = {
   id?: string;

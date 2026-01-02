@@ -5,7 +5,7 @@ import {
   TRACK_ROLE_KEYS,
   TRACK_ROLE_MATCH,
   TRACK_ROLE_TARGET_PATTERN
-} from "./config.js";
+} from "./config";
 
 function trackRoleLimit(role) {
   const limit = TRACK_ROLE_LIMITS?.[role];

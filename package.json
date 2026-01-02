@@ -1,17 +1,26 @@
 {
   "scripts": {
-    "build": "node scripts/build-creator-portrait-manifest.mjs && tsc -p tsconfig.json",
+    "dev": "vite",
+    "prebuild": "node scripts/build-creator-portrait-manifest.mjs",
+    "build": "vite build",
+    "preview": "vite preview --port 5173",
+    "typecheck": "tsc --noEmit",
+    "emulators": "firebase emulators:start",
+    "serve:local": "vite build && firebase emulators:start --only hosting",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
     "optimize:portraits": "node scripts/optimize-creator-portraits.mjs",
     "watch:portraits": "node scripts/optimize-creator-portraits.mjs --watch",
     "report:lines": "node scripts/report-line-counts.mjs",
-    "watch": "tsc -p tsconfig.json --watch",
-    "start": "powershell -Command \"python -m http.server 5173\"",
     "lint": "eslint . --ext .js,.mjs,.cjs"
   },
   "devDependencies": {
     "chokidar": "^5.0.0",
     "eslint": "^8.57.0",
     "sharp": "^0.33.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "firebase": "^12.7.0"
   }
 }

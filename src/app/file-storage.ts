@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { clearFileHandle, fetchFileHandle, listChartSnapshots, storeFileHandle, storeChartSnapshot } from "./db.js";
-import { recordExternalMirrorStatus, recordStorageError, updateStorageHealth } from "./storage-health.js";
-import { decodeSavePayload, encodeSavePayload, isQuotaExceededError } from "./storage-utils.js";
+import { clearFileHandle, fetchFileHandle, listChartSnapshots, storeFileHandle, storeChartSnapshot } from "./db";
+import { recordExternalMirrorStatus, recordStorageError, updateStorageHealth } from "./storage-health";
+import { decodeSavePayload, encodeSavePayload, isQuotaExceededError } from "./storage-utils";
 
 const STORAGE_HANDLE_ID = "rls_external_storage_root_v1";
 const STORAGE_MANIFEST_NAME = "rls-storage.json";

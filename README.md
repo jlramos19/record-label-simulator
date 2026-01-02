@@ -2,14 +2,15 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2026-01-01 07:47:44 -04:00
+Last updated: 2026-01-02 05:15:15 -04:00
 
 ## Quick start
 
 ### Prereqs
 - Node.js 24 LTS (npm 11)
 - pnpm 10.26+ (optional; npm is the repo default)
-- Python 3 (static file server for `npm run start`)
+- Firebase CLI (optional, for emulators/hosting)
+- Java JDK 11+ (required for Firebase emulators)
 - Microsoft Edge (VS Code Run/Debug target; optional otherwise)
 
 ### Install
@@ -22,20 +23,33 @@ npm install
 npm run build
 ```
 
-### Run locally (static server)
+### Run locally (Vite)
 ```bash
-npm run start
+npm run dev
 ```
 
-### Dev (TypeScript watch)
+### Preview (static build)
 ```bash
-npm run watch
+npm run preview
 ```
+
+### Local Hosting emulator (dist/)
+```bash
+npm run serve:local
+```
+Open `http://localhost:5000` to verify the built app and hash-route refreshes.
 
 ### VS Code Run/Debug (Edge)
-- Terminal A: `npm run start`
-- Terminal B: `npm run watch`
+- Terminal A: `npm run dev`
 - Then launch the `RLS: Edge` Run/Debug config to open the game at `http://localhost:5173`.
+
+### Firebase emulators (optional)
+```bash
+npm install -g firebase-tools
+firebase emulators:start
+```
+- Create `.env.local` with your `VITE_FIREBASE_*` values from the Firebase console.
+- Auth emulator runs on `http://localhost:9099`, Firestore emulator runs on `localhost:8080`, Hosting emulator runs on `http://localhost:5000` (UI may appear at `http://localhost:4000`).
 
 ### React SPA (optional)
 ```bash
@@ -56,16 +70,20 @@ npm run dev:islands
 
 ## Project scripts
 
-- `npm run build` - compile TypeScript (`tsc -p tsconfig.json`)
-- `npm run watch` - compile in watch mode (`tsc -p tsconfig.json --watch`)
-- `npm run start` - serve via PowerShell + Python (`python -m http.server 5173`)
+- `npm run dev` - Vite dev server for local development
+- `npm run build` - Vite production build into `dist/`
+- `npm run preview` - preview the Vite build at `http://localhost:5173`
+- `npm run typecheck` - TypeScript typecheck (`tsc --noEmit`)
+- `npm run serve:local` - build + serve `dist/` via Firebase Hosting emulator
 - `npm run optimize:portraits` - generate resized creator portraits into `assets/png/portraits/creator-ids-optimized` (build will prefer optimized assets when present)
 - `npm run watch:portraits` - watch creator portrait folders and auto-optimize on add/change/remove
 - `npm run lint` - lint JS/MJS/CJS files with ESLint (TypeScript checks stay in `tsc`)
+- `npm run emulators` - start Firebase emulators (Auth/Firestore/Hosting)
+- `npm run deploy:hosting` - build then deploy Firebase Hosting
 
 ## Runtime entrypoints
 
-- `index.html` loads global data from `assets/js/data/*.js` and the app module from `assets/js/dist/main.js`.
+- `index.html` loads global data from `public/assets/js/data/*.js` and the app module from `src/main.ts` (Vite).
 - React UI islands (optional) load from `assets/js/ui-react/ui-react.js` + `assets/js/ui-react/ui-react.css`.
 - React SPA bundle (optional) loads from `assets/js/ui-react-spa/ui-react-spa.js` + `assets/js/ui-react-spa/ui-react-spa.css` via `/ui-react/`.
 - `src/main.ts` calls `initUI()` and registers `service-worker.js`.
@@ -85,6 +103,7 @@ npm run dev:islands
 
 - Acronyms + abbreviations: `docs/glossary/acronyms.md`
 - Dev environment: `docs/dev-environment.md`
+- Security notes: `SECURITY.md`
 - Tutorial draft: `docs/tutorial-draft.md`
 - Unity to web glossary: `docs/glossary/unity-to-web.md`
 - Awards circuit: `docs/systems/awards/award-shows.md`
@@ -101,10 +120,10 @@ npm run dev:islands
 - `src/app/game/config.ts` - gameplay tuning constants and scheduling defaults.
 - `src/app/game/names.ts` - name pools barrel; region lists live in `src/app/game/names/`.
 - `src/app/chartWorker.ts` - chart computation in a Web Worker.
-- `src/app/db.ts` — IndexedDB helpers for chart history snapshots.
-- `src/app/csv.ts` — CSV loading utilities for `csv/` mirror data.
-- `src/app/globals.d.ts` — type declarations for globals from `assets/js/data/*.js`.
-- `assets/js/dist/` — compiled JS output from `tsc` (commit contains generated output).
+- `src/app/db.ts` - IndexedDB helpers for chart history snapshots.
+- `src/app/csv.ts` - CSV loading utilities for `csv/` mirror data.
+- `src/app/globals.d.ts` - type declarations for globals from `assets/js/data/*.js`.
+- `dist/` - Vite production build output for Firebase Hosting.
 
 ## Persistence
 
@@ -140,7 +159,7 @@ Used for save slots, UI state, and preferences:
 
 ## Development conventions
 
-- Edit TypeScript under `src/`; run `npm run build` to emit JS into `assets/js/dist/`.
+- Edit TypeScript under `src/`; Vite serves and builds the bundle into `dist/`.
 - Service worker registration is disabled on localhost; local runs auto-unregister any existing worker and clear `rls-cache-*`.
 - Global constants live in `assets/js/data/*.js` and are referenced via `src/app/globals.d.ts`.
 - Manual test checklist is in `TESTING.md`.

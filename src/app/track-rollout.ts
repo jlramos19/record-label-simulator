@@ -5,7 +5,7 @@ import {
   listRolloutStrategyTemplates as listTemplatesFromDb,
   upsertRolloutStrategyTemplate,
   upsertTrackRolloutInstance
-} from "./db.js";
+} from "./db";
 
 type RolloutTemplateSource = "premade" | "player_saved";
 type TrackRolloutWeightKey = "interviews" | "live" | "eyeriSocial" | "tour";

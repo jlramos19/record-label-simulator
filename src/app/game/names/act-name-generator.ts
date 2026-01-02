@@ -3,7 +3,7 @@ import {
   ACT_NAME_NOUN_CATEGORY_IDS,
   ACT_NAME_CATEGORIES,
   ACT_NAME_TOTALS
-} from "./act-name-pools.js";
+} from "./act-name-pools";
 
 export const ACT_NAME_KEY_SEPARATOR = "::";
 

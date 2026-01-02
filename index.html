@@ -4,18 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Record Label Simulator - MVP</title>
-<base href="./">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Ubuntu:wght@400;700&family=Ubuntu+Mono:wght@400;700&family=Ubuntu+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css">
-<link rel="stylesheet" href="assets/js/ui-react/ui-react.css">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="/assets/css/app.css">
+<link rel="stylesheet" href="/assets/js/ui-react/ui-react.css">
+<link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0a0703">
-<link rel="icon" href="assets/icons/favicon-lightmode-512.png" sizes="512x512">
-<link rel="icon" href="assets/icons/favicon-darkmode-512.png" sizes="512x512" media="(prefers-color-scheme: dark)">
-<link rel="apple-touch-icon" href="assets/icons/favicon-lightmode-512.png" sizes="512x512">
+<link rel="icon" href="/assets/icons/favicon-lightmode-512.png" sizes="512x512">
+<link rel="icon" href="/assets/icons/favicon-darkmode-512.png" sizes="512x512" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="/assets/icons/favicon-lightmode-512.png" sizes="512x512">
 </head>
 <body>
 <div id="mainMenu" class="menu">
@@ -85,6 +84,10 @@
       <div class="save-status-row">
         <div id="saveTargetLabel" class="save-status-meta">Save target: Local storage</div>
         <div id="saveTargetDetail" class="save-status-meta">External storage not configured.</div>
+      </div>
+      <div class="save-status-row">
+        <div id="saveCloudLabel" class="save-status-meta">Cloud commit: -</div>
+        <div id="saveCloudDetail" class="save-status-meta">Cloud status: -</div>
       </div>
       <div class="save-status-row">
         <div id="saveAutoLabel" class="save-status-meta">Auto-save interval: -</div>
@@ -2376,14 +2379,15 @@
   })();
 </script>
 
-<script src="assets/js/data/release.js"></script>
-<script src="assets/js/data/constants.js"></script>
-<script src="assets/js/data/tracklist.js"></script>
-<script src="assets/js/data/ai_labels.js"></script>
-<script src="assets/js/data/social_templates.js"></script>
-<script src="assets/js/data/creator-portraits.js"></script>
-<script type="module" src="assets/js/dist/main.js"></script>
-<script type="module" src="assets/js/ui-react/ui-react.js"></script>
+<script src="/assets/js/data/release.js"></script>
+<script src="/assets/js/data/constants.js"></script>
+<script src="/assets/js/data/tracklist.js"></script>
+<script src="/assets/js/data/ai_labels.js"></script>
+<script src="/assets/js/data/social_templates.js"></script>
+<script src="/assets/js/data/creator-portraits.js"></script>
+<script type="module" src="/src/main.ts"></script>
+<script type="module" src="/assets/js/ui-react/ui-react.js"></script>
 <div id="viewSwitchToast" class="view-switch-toast hidden" aria-live="polite">Switching view…</div>
 </body>
 </html>
+

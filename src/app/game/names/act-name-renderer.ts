@@ -1,5 +1,5 @@
-import { ACT_NAME_ADJECTIVES, ACT_NAME_NOUNS, romanizeHangul } from "./act-name-pools.js";
-import { ActKind, parseActNameKey } from "./act-name-generator.js";
+import { ACT_NAME_ADJECTIVES, ACT_NAME_NOUNS, romanizeHangul } from "./act-name-pools";
+import { ActKind, parseActNameKey } from "./act-name-generator";
 
 const HANGUL_REGEX = /[\uac00-\ud7a3]/;
 

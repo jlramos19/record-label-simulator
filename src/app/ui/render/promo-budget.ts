@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { state } from "../../game.js";
-import { getPromoTypeCosts, PROMO_TYPE_DETAILS } from "../../promo_types.js";
+import { state } from "../../game";
+import { getPromoTypeCosts, PROMO_TYPE_DETAILS } from "../../promo_types";
 
 const PROMO_BUDGET_MIN = 100;
 

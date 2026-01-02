@@ -1,4 +1,4 @@
-let releaseStamp = { patchId: "RLS-PATCH-20260101-1135Z" };
+let releaseStamp = { patchId: "RLS-PATCH-20260102-0911Z" };
 try {
   importScripts("assets/js/data/release.js");
   if (self.RLS_RELEASE?.patchId) {
@@ -15,23 +15,14 @@ const ASSETS = [
   "manifest.webmanifest",
   "assets/js/data/release.js",
   "assets/css/app.css",
-  "assets/js/dist/main.js",
   "assets/js/ui-react/ui-react.js",
   "assets/js/ui-react/ui-react.css",
-  "assets/js/dist/app/guardrails.js",
-  "assets/js/dist/app/game.js",
-  "assets/js/dist/app/ui.js",
-  "assets/js/dist/app/ui/render-scheduler.js",
-  "assets/js/dist/app/calendar.js",
-  "assets/js/dist/app/csv.js",
-  "assets/js/dist/app/db.js",
-  "assets/js/dist/app/promo_types.js",
-  "assets/js/dist/app/chartWorker.js",
   "assets/js/data/constants.js",
   "assets/js/data/names.js",
   "assets/js/data/tracklist.js",
   "assets/js/data/ai_labels.js",
   "assets/js/data/social_templates.js",
+  "assets/js/data/creator-portraits.js",
   "assets/icons/favicon-lightmode-512.png",
   "assets/icons/favicon-darkmode-512.png"
 ];

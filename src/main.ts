@@ -1,11 +1,15 @@
-import initUI from "./app/ui.js";
-import { installLiveEditGuardrails, showToast } from "./app/guardrails.js";
-import { UI_REACT_ISLANDS_ENABLED } from "./app/game/config.js";
-import { initBootStatus } from "./app/boot-status.js";
+import initUI from "./app/ui";
+import { installLiveEditGuardrails, showToast } from "./app/guardrails";
+import { UI_REACT_ISLANDS_ENABLED } from "./app/game/config";
+import { initBootStatus } from "./app/boot-status";
+import { initDebugPanel, updateDebugStage } from "./app/debug-panel";
+import { initFirebaseClient } from "./firebase/client";
 
 const releaseStamp = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE : null;
 const guardrails = installLiveEditGuardrails(releaseStamp);
 const bootStatus = initBootStatus();
+initDebugPanel();
+updateDebugStage("vite", { status: "active", detail: "Booting app entry." });
 const bootGuard = typeof window !== "undefined"
   ? (window as typeof window & { __RLS_BOOT_GUARD__?: { markReady?: () => void } }).__RLS_BOOT_GUARD__
   : null;
@@ -78,6 +82,8 @@ if (typeof document !== "undefined" && releaseStamp?.patchId) {
 if (typeof window !== "undefined") {
   const root = window as typeof window & { UI_REACT_ISLANDS_ENABLED?: boolean };
   root.UI_REACT_ISLANDS_ENABLED = UI_REACT_ISLANDS_ENABLED;
+  initFirebaseClient()
+    .catch((error) => console.warn("[firebase] Init failed.", error));
 }
 
 if (!bootBlocked) {
@@ -85,6 +91,7 @@ if (!bootBlocked) {
   bootStatus?.setSummary("Starting UI...");
   initUI()
     .then(() => {
+      updateDebugStage("vite", { status: "ok", detail: "UI booted." });
       markBootReady();
       bootStatus?.markReady();
       if (typeof sessionStorage === "undefined") return;

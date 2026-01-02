@@ -2,6 +2,7 @@ import initUI from "./app/ui.js";
 import { installLiveEditGuardrails, showToast } from "./app/guardrails.js";
 import { UI_REACT_ISLANDS_ENABLED } from "./app/game/config.js";
 import { initBootStatus } from "./app/boot-status.js";
+import { initFirebaseClient } from "./firebase-client.js";
 const releaseStamp = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE : null;
 const guardrails = installLiveEditGuardrails(releaseStamp);
 const bootStatus = initBootStatus();
@@ -82,6 +83,8 @@ if (typeof document !== "undefined" && releaseStamp?.patchId) {
 if (typeof window !== "undefined") {
     const root = window;
     root.UI_REACT_ISLANDS_ENABLED = UI_REACT_ISLANDS_ENABLED;
+    initFirebaseClient()
+        .catch((error) => console.warn("[firebase] Init failed.", error));
 }
 if (!bootBlocked) {
     bootStatus?.updateStep("ui", { status: "active", detail: "Starting UI." });

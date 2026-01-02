@@ -179,25 +179,26 @@ import {
   weekStartEpochMs,
   weekNumberFromEpochMs,
   validateTourBooking,
-} from "../../game.js";
-import { PROMO_TYPE_DETAILS } from "../../promo_types.js";
-import { CalendarView } from "../../calendar.js";
-import { fetchChartSnapshot, listChartWeeks } from "../../db.js";
-import { getExternalStorageStatus } from "../../file-storage.js";
-import { showToast } from "../../guardrails.js";
-import { $, describeSlot, getSlotElement, openOverlay } from "../dom.js";
+} from "../../game";
+import { PROMO_TYPE_DETAILS } from "../../promo_types";
+import { CalendarView } from "../../calendar";
+import { fetchChartSnapshot, listChartWeeks } from "../../db";
+import { getCloudCommitStatus } from "../../cloud-commit";
+import { getExternalStorageStatus } from "../../file-storage";
+import { showToast } from "../../guardrails";
+import { $, describeSlot, getSlotElement, openOverlay } from "../dom";
 import {
   buildMoodOptions,
   buildThemeOptions,
   bindThemeSelectAccent,
   getMoodEmoji,
   setThemeSelectAccent
-} from "../themeMoodOptions.js";
+} from "../themeMoodOptions";
 import {
   buildRolloutBudgetSummary,
   getModifierCosts,
   getPromoInflationMultiplier
-} from "./promo-budget.js";
+} from "./promo-budget";
 import {
   TRACK_ROLLOUT_DEFAULT_TOGGLES,
   TRACK_ROLLOUT_DEFAULT_WEIGHTS,
@@ -208,7 +209,7 @@ import {
   resolveFocusPair,
   getTrackRolloutTemplateCache,
   sanitizeWeights
-} from "../../track-rollout.js";
+} from "../../track-rollout";
 
 const ACCESSIBLE_TEXT = { dark: "#000000", light: "#ffffff" };
 const PROMO_TRACK_REQUIRED_TYPES = Object.keys(PROMO_TYPE_DETAILS)
@@ -3213,6 +3214,8 @@ async function updateSaveStatusPanel(root) {
   const lastLabel = scope.querySelector("#saveLastLabel");
   const targetLabel = scope.querySelector("#saveTargetLabel");
   const targetDetail = scope.querySelector("#saveTargetDetail");
+  const cloudLabel = scope.querySelector("#saveCloudLabel");
+  const cloudDetail = scope.querySelector("#saveCloudDetail");
   const autoLabel = scope.querySelector("#saveAutoLabel");
   const autoLast = scope.querySelector("#saveAutoLastLabel");
   const savedAt = state.meta?.savedAt;
@@ -3232,6 +3235,37 @@ async function updateSaveStatusPanel(root) {
   if (autoLast) {
     const lastAuto = autoSave?.lastSavedAt;
     autoLast.textContent = lastAuto ? `Last auto save: ${formatDate(lastAuto)}` : "Last auto save: Pending";
+  }
+  if (cloudLabel || cloudDetail) {
+    const cloudStatus = getCloudCommitStatus();
+    const disabled = !cloudStatus.enabled;
+    if (cloudLabel) {
+      if (disabled) {
+        cloudLabel.textContent = "Cloud commit: Disabled";
+      } else if (cloudStatus.pending) {
+        cloudLabel.textContent = "Cloud commit: Syncing...";
+      } else if (cloudStatus.dirty) {
+        cloudLabel.textContent = "Cloud commit: Pending";
+      } else if (cloudStatus.lastSuccessAt) {
+        cloudLabel.textContent = `Cloud commit: ${formatDate(cloudStatus.lastSuccessAt)}`;
+      } else {
+        cloudLabel.textContent = "Cloud commit: Not synced yet";
+      }
+    }
+    if (cloudDetail) {
+      if (disabled) {
+        cloudDetail.textContent = cloudStatus.disabledReason === "firebase-config-missing"
+          ? "Firebase config missing; cloud sync off."
+          : "Cloud sync unavailable.";
+      } else if (cloudStatus.lastErrorCode) {
+        cloudDetail.textContent = `Last error: ${cloudStatus.lastErrorCode}`;
+      } else if (cloudStatus.pending) {
+        const stamp = cloudStatus.lastAttemptAt ? formatDate(cloudStatus.lastAttemptAt) : "Pending";
+        cloudDetail.textContent = `Last attempt: ${stamp}`;
+      } else {
+        cloudDetail.textContent = cloudStatus.lastSuccessAt ? "Cloud sync up to date." : "Awaiting first cloud commit.";
+      }
+    }
   }
   const localDisabled = session.localStorageDisabled;
   const localReason = session.localStorageDisabledReason;

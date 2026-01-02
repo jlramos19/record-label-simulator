@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { queueUsageSessionWrite } from "./file-storage.js";
-import { recordStorageError } from "./storage-health.js";
-import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils.js";
+import { queueUsageSessionWrite } from "./file-storage";
+import { recordStorageError } from "./storage-health";
+import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils";
 
 const SESSION_INDEX_KEY = "rls_usage_session_index_v1";
 const SESSION_KEY_PREFIX = "rls_usage_session_v1:";

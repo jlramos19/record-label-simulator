@@ -1,5 +1,6 @@
-import { saveToActiveSlot, session } from "./game.js";
-import { finalizeUsageSession, flushUsageSession, recordUsageError, recordUsageEvent, startUsageSession } from "./usage-log.js";
+import { forceCloudCommitFlush } from "./cloud-commit";
+import { saveToActiveSlot, session } from "./game";
+import { finalizeUsageSession, flushUsageSession, recordUsageError, recordUsageEvent, startUsageSession } from "./usage-log";
 
 const RELEASE_STORAGE_KEY = "rls_release_patch_id";
 const TOAST_STACK_ID = "rls-toast-stack";
@@ -23,15 +24,22 @@ function safeSetStorage(storage, key, value) {
 
 function safeSave(reason) {
   const now = Date.now();
-  if (now - lastSaveAt < SAVE_THROTTLE_MS) return;
-  lastSaveAt = now;
-  try {
-    if (session?.activeSlot) {
-      saveToActiveSlot({ immediate: true });
-      console.info(`[guardrails] auto-saved (${reason}).`);
+  const throttled = now - lastSaveAt < SAVE_THROTTLE_MS;
+  if (!throttled) {
+    lastSaveAt = now;
+    try {
+      if (session?.activeSlot) {
+        saveToActiveSlot({ immediate: true });
+        console.info(`[guardrails] auto-saved (${reason}).`);
+      }
+    } catch (error) {
+      console.warn("[guardrails] auto-save failed.", error);
     }
+  }
+  try {
+    void forceCloudCommitFlush(`guardrails:${reason}`);
   } catch (error) {
-    console.warn("[guardrails] auto-save failed.", error);
+    console.warn("[guardrails] cloud flush failed.", error);
   }
 }
 
