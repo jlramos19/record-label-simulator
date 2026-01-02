@@ -82,8 +82,8 @@
         <div id="saveLastLabel" class="save-status-meta">Last saved: -</div>
       </div>
       <div class="save-status-row">
-        <div id="saveTargetLabel" class="save-status-meta">Save target: Local storage</div>
-        <div id="saveTargetDetail" class="save-status-meta">External storage not configured.</div>
+        <div id="saveTargetLabel" class="save-status-meta">Save target: Firestore (offline cache)</div>
+        <div id="saveTargetDetail" class="save-status-meta">IndexedDB cache keeps saves available offline.</div>
       </div>
       <div class="save-status-row">
         <div id="saveCloudLabel" class="save-status-meta">Cloud commit: -</div>
@@ -226,23 +226,6 @@
           </a>
         </div>
       </nav>
-    </div>
-  </div>
-</div>
-<div id="externalStoragePrompt" class="overlay" aria-hidden="true" data-overlay-lock="true">
-  <div class="overlay-card panel">
-    <div class="card-head">
-      <h2>Choose a Save Folder</h2>
-      <button id="externalStoragePromptSkipBtn" type="button" class="ghost">Skip</button>
-    </div>
-    <div class="card-body">
-      <div class="callout">Pick a folder to store save slots, logs, and chart history.</div>
-      <div id="externalStoragePromptStatus" class="tiny muted"></div>
-      <div id="externalStoragePromptDetail" class="tiny muted"></div>
-      <div class="actions">
-        <button id="externalStoragePromptPickBtn" type="button">Choose Folder</button>
-      </div>
-      <div class="tiny">You can set this later in the Internal Log.</div>
     </div>
   </div>
 </div>
@@ -564,14 +547,6 @@
         <div class="time-row">
           <button id="saveBtn" type="button" class="ghost">Save Slot</button>
           <label class="file-btn">Load File <input type="file" id="loadInput" accept="application/json"></label>
-        </div>
-      </div>
-      <div class="field">
-        <label>Save Location</label>
-        <div id="saveLocationStatus" class="tiny muted">Slot - (local)</div>
-        <div id="saveLocationDetail" class="tiny muted">Choose a folder to sync saves and logs.</div>
-        <div class="actions">
-          <button id="saveLocationChangeBtn" type="button" class="ghost mini">Save Location (Change…)</button>
         </div>
       </div>
     </div>
@@ -2055,15 +2030,6 @@
         <h2>Internal Log</h2>
         <div class="card-body">
           <div id="eventLogList" class="list"></div>
-          <div class="subhead">External Storage</div>
-          <div id="externalStorageStatus" class="tiny muted">External storage not set.</div>
-          <div id="externalStorageDetail" class="tiny muted"></div>
-          <div class="actions">
-            <button id="externalStoragePickBtn" type="button" class="ghost mini">Choose Folder</button>
-            <button id="externalStorageSyncBtn" type="button" class="ghost mini" disabled>Sync Now</button>
-            <button id="externalStorageImportBtn" type="button" class="ghost mini" disabled>Import</button>
-            <button id="externalStorageClearBtn" type="button" class="ghost mini" disabled>Disconnect</button>
-          </div>
           <div class="subhead">Debug Bundle</div>
           <div class="tiny muted">Downloads the active usage session plus UI/system logs for sharing.</div>
           <div class="actions">

@@ -32,14 +32,12 @@ These rules keep the hosted web build runnable while the team iterates quickly.
 - Boot fallback + safe-mode screens include a reload option that appends `?sw=off` to bypass service worker cache.
 - Boot dependency checks expect `TRACKLIST`; `assets/js/data/tracklist.js` should keep the alias aligned with track title arrays.
 - Usage sessions now track session IDs, action trails, and captured errors; debug exports include the active session log.
-- Usage sessions flush on pagehide/visibilitychange and when exporting the debug bundle; external mirrors only write on session end/errors.
+- Usage sessions flush on pagehide/visibilitychange and when exporting the debug bundle.
 - Internal Log includes an Export Debug Bundle button to download usage sessions plus UI/system logs for sharing.
-- Debug bundles include a storage health snapshot (save size, localStorage estimate, external mirror status).
+- Debug bundles include a storage health snapshot (save size, localStorage estimate).
 
-## External storage (File System Access API)
+## Save storage (Firestore)
 
-- Optional: logs, saves, and chart history can mirror to a user-selected folder via the Promotions view (route `logs`).
-- On startup, the game prompts to pick a save folder when external storage is not configured and the prompt has not been dismissed; skips persist on cancel/skip and only run on HTTPS or localhost.
-- Usage sessions mirror to `usage-logs/` on session end or explicit sync; saves and chart history sync to `saves/` and `database/`.
-- Imports pull saves and chart history back into local storage/IndexedDB for recovery.
-- External mirror failures keep the local copy and are recorded in storage diagnostics.
+- Save slots live in Firestore under `players/{uid}/slots/{slotId}` and store the encoded payload string.
+- Firestore offline persistence is enabled via `initializeFirestore(... localCache ...)` to keep offline play workable.
+- The web client no longer prompts for local folders or uses the File System Access API.

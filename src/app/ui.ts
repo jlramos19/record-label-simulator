@@ -21,15 +21,7 @@ import { setUiHooks } from "./game/ui-hooks";
 import { flushUsageSession, getUsageSessionSnapshot, recordUsageEvent, updateUsageSessionContext } from "./usage-log";
 import { getStorageHealthSnapshot, recordStorageError } from "./storage-health";
 import { decodeSavePayload, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils";
-import {
-  clearExternalStorageHandle,
-  getExternalStorageStatus,
-  importChartHistoryFromExternal,
-  importSavesFromExternal,
-  isExternalStorageSupported,
-  requestExternalStorageHandle,
-  syncExternalStorageNow
-} from "./file-storage";
+import { forceCloudCommitFlush } from "./cloud-commit";
 import {
   $,
   closeOverlay as closeOverlayRaw,
@@ -302,7 +294,6 @@ const GAME_MODE_KEY = "rls_game_mode_v1";
 const GAME_DIFFICULTY_KEY = "rls_game_difficulty_v1";
 const START_PREFS_KEY = "rls_start_prefs_v1";
 const UI_THEME_KEY = "rls_ui_theme_v1";
-const EXTERNAL_STORAGE_PROMPT_KEY = "rls_external_storage_prompt_v1";
 const UI_THEME_DEFAULT = "dark";
 const UI_THEME_META = { dark: "#0a0703", light: "#ccffff" };
 let uiThemeMediaQuery = null;
@@ -325,8 +316,6 @@ let calendarWheelAt = 0;
 let calendarDragState = null;
 let timeJumpInFlight = false;
 let horizontalWheelBound = false;
-let externalStoragePromptPromise = null;
-let externalStoragePromptResolve = null;
 
 const TRACK_ROLE_KEYS = {
   Songwriter: "songwriterIds",
@@ -416,53 +405,16 @@ function buildSaveExportFilename(slot) {
   return `rls_${slotLabel}_${formatTimestampForFilename(Date.now())}.json`;
 }
 
-function buildSaveLocationLabel(status) {
-  const slotPrefix = session.activeSlot ? `Slot ${session.activeSlot}` : "Slot -";
-  const localDisabled = session.localStorageDisabled;
-  const localReason = session.localStorageDisabledReason;
-  const localLabel = localDisabled ? (localReason === "quota" ? "local full" : "local disabled") : "local";
-  if (!status) {
-    return `${slotPrefix} (${localLabel})`;
-  }
-  const name = status.name || "External folder";
-  if (status.status === "ready") {
-    return localDisabled ? `${slotPrefix}  ${name} (${localLabel})` : `${slotPrefix}  ${name}`;
-  }
-  if (status.status === "not-set") {
-    return `${slotPrefix} (${localLabel})`;
-  }
-  const note = status.status === "unsupported" ? "unsupported" : status.status;
-  const detail = localDisabled ? `${note}, ${localLabel}` : note;
-  return `${slotPrefix}  ${name} (${detail})`;
-}
-
-async function describeSaveLocation() {
-  try {
-    const status = await getExternalStorageStatus();
-    return buildSaveLocationLabel(status);
-  } catch {
-    return buildSaveLocationLabel(null);
-  }
-}
-
-async function refreshSaveLocationStatus() {
-  const statusEl = $("saveLocationStatus");
-  if (!statusEl) return;
-  const label = await describeSaveLocation();
-  statusEl.textContent = label;
-}
-
 function describeSaveFailure(reason) {
   switch (reason) {
-    case "localStorageQuota":
-      return "Local storage is full. Clear old saves or configure External Storage in Internal Log.";
-    case "localStorageUnavailable":
-    case "localStorageDisabled":
-      return "Local storage is unavailable. Enable browser storage or use External Storage in Internal Log.";
+    case "firebase-config-missing":
+      return "Firebase config is missing; saves are not configured.";
+    case "firebase-not-ready":
+      return "Firebase is not ready yet. Try again in a moment.";
+    case "cloud-commit-failed":
+      return "Cloud save failed. Check your connection and retry.";
     case "serialize":
       return "Save data could not be serialized. Reload and try again.";
-    case "localStorageError":
-      return "Local storage write failed. Check browser settings and retry.";
     default:
       return "Check storage permissions or retry.";
   }
@@ -551,74 +503,6 @@ function getStoredUiTheme() {
 
 function setStoredUiTheme(value) {
   safeSetLocalStorageString(UI_THEME_KEY, value, { context: "UI theme" });
-}
-
-function readExternalStoragePromptState(storage) {
-  if (!storage) return null;
-  try {
-    const raw = storage.getItem(EXTERNAL_STORAGE_PROMPT_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function getExternalStoragePromptState() {
-  const local = typeof localStorage === "undefined" ? null : readExternalStoragePromptState(localStorage);
-  if (local) return local;
-  const sessionStore = typeof sessionStorage === "undefined" ? null : readExternalStoragePromptState(sessionStorage);
-  return sessionStore || null;
-}
-
-function isExternalStoragePromptDismissed() {
-  if (session?.externalStoragePromptDismissed) return true;
-  const stored = getExternalStoragePromptState();
-  if (!stored) return false;
-  if (stored === true) return true;
-  if (typeof stored === "string") return stored === "dismissed";
-  return Boolean(stored.dismissedAt);
-}
-
-function setExternalStoragePromptDismissed(reason) {
-  const payload = {
-    dismissedAt: new Date().toISOString(),
-    reason: reason || "skipped"
-  };
-  let stored = false;
-  if (typeof localStorage !== "undefined") {
-    stored = safeSetLocalStorageJson(
-      EXTERNAL_STORAGE_PROMPT_KEY,
-      payload,
-      { context: "external storage prompt status" }
-    );
-  }
-  if (!stored && typeof sessionStorage !== "undefined") {
-    try {
-      sessionStorage.setItem(EXTERNAL_STORAGE_PROMPT_KEY, JSON.stringify(payload));
-    } catch {
-      // Ignore storage failures (private mode, quota, etc.).
-    }
-  }
-  if (session) session.externalStoragePromptDismissed = true;
-}
-
-function clearExternalStoragePromptDismissed() {
-  if (session) session.externalStoragePromptDismissed = false;
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.removeItem(EXTERNAL_STORAGE_PROMPT_KEY);
-    } catch {
-      // Ignore storage failures (private mode, quota, etc.).
-    }
-  }
-  if (typeof sessionStorage !== "undefined") {
-    try {
-      sessionStorage.removeItem(EXTERNAL_STORAGE_PROMPT_KEY);
-    } catch {
-      // Ignore storage failures (private mode, quota, etc.).
-    }
-  }
 }
 
 function getPreferredUiTheme() {
@@ -1596,188 +1480,6 @@ function recordSessionReady(source) {
     gameTs: state.time?.epochMs,
     reportToConsole: true
   });
-}
-
-async function refreshExternalStorageStatus(root) {
-  const scope = root || document;
-  const statusEl = scope.querySelector("#externalStorageStatus");
-  const detailEl = scope.querySelector("#externalStorageDetail");
-  const pickBtn = scope.querySelector("#externalStoragePickBtn");
-  const syncBtn = scope.querySelector("#externalStorageSyncBtn");
-  const importBtn = scope.querySelector("#externalStorageImportBtn");
-  const clearBtn = scope.querySelector("#externalStorageClearBtn");
-
-  if (!isExternalStorageSupported()) {
-    if (statusEl) statusEl.textContent = "External storage is not supported in this browser.";
-    if (detailEl) detailEl.textContent = "Use Edge or Chrome on localhost or HTTPS.";
-    if (pickBtn) pickBtn.disabled = true;
-    if (syncBtn) syncBtn.disabled = true;
-    if (importBtn) importBtn.disabled = true;
-    if (clearBtn) clearBtn.disabled = true;
-    return;
-  }
-
-  const status = await getExternalStorageStatus();
-  if (!status || status.status === "not-set") {
-    if (statusEl) statusEl.textContent = "External storage not set.";
-    if (detailEl) detailEl.textContent = "Choose a folder to capture logs, saves, and database exports.";
-    if (pickBtn) pickBtn.disabled = false;
-    if (syncBtn) syncBtn.disabled = true;
-    if (importBtn) importBtn.disabled = true;
-    if (clearBtn) clearBtn.disabled = true;
-    return;
-  }
-
-  if (statusEl) statusEl.textContent = `Folder: ${status.name || "External folder"}`;
-  if (detailEl) {
-    const hint = status.status === "ready"
-      ? "Write access granted."
-      : "Permission needed; click Sync or Import to re-authorize.";
-    detailEl.textContent = hint;
-  }
-  if (pickBtn) pickBtn.disabled = false;
-  if (syncBtn) syncBtn.disabled = false;
-  if (importBtn) importBtn.disabled = false;
-  if (clearBtn) clearBtn.disabled = false;
-}
-
-async function handleExternalStoragePick(root, { fromPrompt = false } = {}) {
-  const result = await requestExternalStorageHandle();
-  if (!result.ok) {
-    if (result.reason === "cancelled" && fromPrompt) {
-      setExternalStoragePromptDismissed("cancelled");
-    } else if (result.reason !== "cancelled") {
-      logEvent(`External storage folder could not be set (${result.reason}).`, "warn");
-      const detail = result.detail || result.reason || "unknown issue";
-      showToast(
-        "Save folder unavailable",
-        `Unable to open the save folder picker (${detail}). Check browser permissions or try a supported browser.`,
-        { tone: "warn" }
-      );
-    }
-  }
-  const usageSession = getUsageSessionSnapshot();
-  if (result.ok) {
-    clearExternalStoragePromptDismissed();
-    const summary = await syncExternalStorageNow({ usageSession });
-    if (summary.ok) {
-      logEvent(`External storage synced (${summary.saves} saves, ${summary.charts} charts).`);
-    }
-  }
-  await refreshExternalStorageStatus(root);
-}
-
-async function handleExternalStorageSync(root) {
-  const usageSession = getUsageSessionSnapshot();
-  const summary = await syncExternalStorageNow({ usageSession });
-  if (!summary.ok) {
-    logEvent(`External storage sync failed (${summary.reason || "unknown"}).`, "warn");
-  } else {
-    logEvent(`External storage synced (${summary.saves} saves, ${summary.charts} charts).`);
-  }
-  await refreshExternalStorageStatus(root);
-}
-
-async function handleExternalStorageImport(root) {
-  const saveResult = await importSavesFromExternal();
-  const chartResult = await importChartHistoryFromExternal();
-  if (!saveResult.ok && !chartResult.ok) {
-    logEvent(
-      `External storage import failed (${saveResult.reason || chartResult.reason || "unknown"}).`,
-      "warn"
-    );
-  } else {
-    const saves = saveResult.ok ? saveResult.imported : 0;
-    const charts = chartResult.ok ? chartResult.imported : 0;
-    logEvent(`External storage imported (${saves} saves, ${charts} chart snapshots).`);
-    renderMainMenu();
-  }
-  await refreshExternalStorageStatus(root);
-}
-
-async function handleExternalStorageClear(root) {
-  await clearExternalStorageHandle();
-  logEvent("External storage disconnected.");
-  await refreshExternalStorageStatus(root);
-}
-
-function resolveExternalStoragePrompt(detail = "") {
-  const bootStatus = getBootStatus();
-  if (bootStatus) {
-    const summary = detail || (externalStoragePromptResolve ? "External storage prompt resolved." : "External storage prompt closed.");
-    bootStatus.updateStep("external", { status: "done", detail: summary });
-  }
-  if (!externalStoragePromptResolve) return;
-  externalStoragePromptResolve();
-  externalStoragePromptResolve = null;
-  externalStoragePromptPromise = null;
-}
-
-function updateExternalStoragePromptStatus(status) {
-  const statusEl = $("externalStoragePromptStatus");
-  const detailEl = $("externalStoragePromptDetail");
-  const pickBtn = $("externalStoragePromptPickBtn");
-  if (!statusEl || !detailEl || !pickBtn) return;
-
-  if (!status || status.supported === false || status.status === "unsupported") {
-    statusEl.textContent = "External storage is not supported in this browser.";
-    detailEl.textContent = "Use Edge or Chrome on localhost or HTTPS.";
-    pickBtn.disabled = true;
-    return;
-  }
-
-  if (status.status === "ready") {
-    statusEl.textContent = `Folder: ${status.name || "External folder"}`;
-    detailEl.textContent = "Ready to sync saves, logs, and charts.";
-    pickBtn.disabled = false;
-    return;
-  }
-
-  if (status.status === "not-set") {
-    statusEl.textContent = "No folder selected yet.";
-    detailEl.textContent = "Choose a folder to store save slots and logs.";
-    pickBtn.disabled = false;
-    return;
-  }
-
-  statusEl.textContent = `Folder: ${status.name || "External folder"}`;
-  detailEl.textContent = "Permission needed; choose a folder to re-authorize.";
-  pickBtn.disabled = false;
-}
-
-async function refreshExternalStoragePromptStatus() {
-  const status = await getExternalStorageStatus();
-  updateExternalStoragePromptStatus(status);
-  return status;
-}
-
-async function maybePromptExternalStorageOnStart() {
-  const bootStatus = getBootStatus();
-  if (!isExternalStorageSupported()) {
-    bootStatus?.updateStep("external", { status: "done", detail: "External storage unsupported." });
-    return null;
-  }
-  if (!$("externalStoragePrompt")) {
-    bootStatus?.updateStep("external", { status: "done", detail: "External storage prompt unavailable." });
-    return null;
-  }
-  if (isExternalStoragePromptDismissed()) {
-    bootStatus?.updateStep("external", { status: "done", detail: "External storage skipped." });
-    return null;
-  }
-  const status = await refreshExternalStoragePromptStatus();
-  if (status?.status === "ready") {
-    clearExternalStoragePromptDismissed();
-    bootStatus?.updateStep("external", { status: "done", detail: "External storage ready." });
-    return null;
-  }
-  if (externalStoragePromptPromise) return externalStoragePromptPromise;
-  bootStatus?.updateStep("external", { status: "active", detail: "Choose a folder or skip." });
-  openOverlay("externalStoragePrompt");
-  externalStoragePromptPromise = new Promise((resolve) => {
-    externalStoragePromptResolve = resolve;
-  });
-  return externalStoragePromptPromise;
 }
 
 function chartScopeKey(chartKey) {
@@ -3225,39 +2927,25 @@ function bindGlobalHandlers() {
     }
     try {
       const result = saveToActiveSlot({ immediate: true, notify: false });
-      let externalReady = false;
-      try {
-        const status = await getExternalStorageStatus();
-        externalReady = status?.status === "ready";
-      } catch {
-        externalReady = false;
-      }
+      const flushResult = result?.ok ? await forceCloudCommitFlush("manual") : null;
       if (refreshMenu) renderMainMenu();
       await updateSaveStatusPanel(document);
       if (!result?.ok) {
-        if (externalReady) {
-          logEvent("Local save failed; external save queued.", "warn");
-          showToast(
-            "Save queued",
-            "Local storage is unavailable. External storage will sync this slot when ready.",
-            { tone: "warn" }
-          );
-          return;
-        }
         const detail = describeSaveFailure(result?.reason);
         logEvent("Manual save failed.", "warn");
         showToast("Save failed", detail, { tone: "warn" });
         return;
       }
-      const timestamp = formatTimestampShort(Date.now());
-      let locationLabel = "";
-      try {
-        locationLabel = await describeSaveLocation();
-      } catch {
-        locationLabel = "Unknown location";
+      if (flushResult && flushResult.ok === false) {
+        const detail = flushResult.reason
+          ? `Cloud save failed (${flushResult.reason}).`
+          : describeSaveFailure("cloud-commit-failed");
+        logEvent("Manual save failed.", "warn");
+        showToast("Save failed", detail, { tone: "warn" });
+        return;
       }
-      const toastDetail = locationLabel ? `Saved at ${timestamp} (${locationLabel}).` : `Saved at ${timestamp}.`;
-      showToast("Save complete", toastDetail, { tone: "success" });
+      const timestamp = formatTimestampShort(Date.now());
+      showToast("Save complete", `Saved at ${timestamp} (Firestore).`, { tone: "success" });
       logEvent("Saved Game Slot.");
     } catch (error) {
       const detail = error?.message || "Check storage permissions or retry.";
@@ -3330,13 +3018,28 @@ function bindGlobalHandlers() {
       showToast("Import failed", detail, { tone: "warn" });
       return;
     }
+    const flushResult = await forceCloudCommitFlush("import");
+    if (flushResult && flushResult.ok === false) {
+      const detail = flushResult.reason
+        ? `Cloud save failed (${flushResult.reason}).`
+        : describeSaveFailure("cloud-commit-failed");
+      showToast("Cloud sync issue", detail, { tone: "warn" });
+    }
     renderMainMenu();
     await updateSaveStatusPanel(document);
     logEvent(`Imported save to slot ${slot}.`);
     showToast("Import complete", `Slot ${slot} updated.`, {
       tone: "success",
       actions: [
-        { label: "Load", handler: () => loadSlot(slot, false) },
+        {
+          label: "Load",
+          handler: async () => {
+            const loadResult = await loadSlot(slot, false, { seedIfMissing: false });
+            if (!loadResult?.ok) {
+              showToast("Load failed", "Cloud slot unavailable. Try again after sync.", { tone: "warn" });
+            }
+          }
+        },
         { label: "Dismiss", handler: (toast) => toast?.remove() }
       ]
     });
@@ -3435,18 +3138,11 @@ function bindGlobalHandlers() {
     openOverlay("tutorialModal");
   });
   on("labelSettingsBtn", "click", () => {
-    void refreshSaveLocationStatus();
     refreshSelectOptions();
     openOverlay("labelSettingsModal");
   });
   on("dashboardAchievementViewBtn", "click", () => {
     window.location.hash = "#/achievements";
-  });
-  on("saveLocationChangeBtn", "click", () => {
-    void (async () => {
-      await handleExternalStoragePick();
-      await refreshSaveLocationStatus();
-    })();
   });
   on("hudStatsMoreBtn", "click", () => toggleHudStatsExpanded());
   on("panelMenuBtn", "click", () => {
@@ -3506,20 +3202,6 @@ function bindGlobalHandlers() {
     const file = input?.files ? input.files[0] : null;
     if (input) input.value = "";
     if (file) void handleImportSaveFile(file);
-  });
-  on("externalStoragePromptPickBtn", "click", async () => {
-    await handleExternalStoragePick(document, { fromPrompt: true });
-    const status = await refreshExternalStoragePromptStatus();
-    if (status?.status === "ready") {
-      closeOverlay("externalStoragePrompt");
-      resolveExternalStoragePrompt("External storage ready.");
-    }
-  });
-  on("externalStoragePromptSkipBtn", "click", () => {
-    closeOverlay("externalStoragePrompt");
-    setExternalStoragePromptDismissed("skipped");
-    logEvent("External storage setup skipped. Saves will remain local.", "warn");
-    resolveExternalStoragePrompt("External storage skipped; local saves only.");
   });
   on("uiThemeSelect", "change", (e) => {
     applyUiTheme(e.target.value, { persist: true });
@@ -4415,22 +4097,6 @@ function bindViewHandlers(route, root) {
   }
 
   if (route === "logs") {
-    on("externalStoragePickBtn", "click", () => {
-      void handleExternalStoragePick(root).then(() => {
-        refreshSaveLocationStatus();
-      });
-    });
-    on("externalStorageSyncBtn", "click", () => {
-      void handleExternalStorageSync(root);
-    });
-    on("externalStorageImportBtn", "click", () => {
-      void handleExternalStorageImport(root);
-    });
-    on("externalStorageClearBtn", "click", () => {
-      void handleExternalStorageClear(root);
-    });
-    void refreshExternalStorageStatus(root);
-
     on("promoTypeSelect", "change", (e) => {
       const typeId = e.target.value || DEFAULT_PROMO_TYPE;
       const trackContext = getPromoTargetContext(
@@ -8234,27 +7900,14 @@ export async function initUI() {
   bootStatus?.setSummary("Loading save slot...");
   const stored = Number(sessionStorage.getItem("rls_active_slot"));
   if (stored && stored >= 1 && stored <= SLOT_COUNT) {
-    session.activeSlot = stored;
-    markUiLogStart();
-    const data = getSlotData(stored);
-    if (data) {
-      resetState(data);
+    const loadResult = await loadSlot(stored, false, { seedIfMissing: false });
+    if (loadResult?.ok) {
       lastLoggedLabelAlignment = state.label?.alignment || null;
       setLabelAlignmentStatus(state.label?.alignment ? `Current alignment: ${state.label.alignment}.` : "");
-      refreshSelectOptions();
       bootStatus?.updateStep("slot", { status: "done", detail: `Slot ${stored} loaded.` });
-      bootStatus?.updateStep("charts", { status: "active", detail: "Computing charts." });
-      bootStatus?.setSummary("Computing charts...");
-      await computeCharts();
       bootStatus?.updateStep("charts", { status: "done", detail: "Charts ready." });
-      bootStatus?.updateStep("render", { status: "active", detail: "Rendering game UI." });
-      bootStatus?.setSummary("Rendering UI...");
-      renderAll();
       bootStatus?.updateStep("render", { status: "done", detail: "Game UI ready." });
-      closeMainMenu();
       recordSessionReady("slot-load");
-      startGameLoop();
-      void maybePromptExternalStorageOnStart();
       return;
     }
     bootStatus?.updateStep("slot", { status: "done", detail: "Active slot unavailable; showing menu." });
@@ -8270,7 +7923,6 @@ export async function initUI() {
   syncUiThemeSelect();
   bootStatus?.updateStep("render", { status: "done", detail: "Main menu ready." });
   recordSessionReady("main-menu");
-  void maybePromptExternalStorageOnStart();
 }
 
 function setupPanelControls() {

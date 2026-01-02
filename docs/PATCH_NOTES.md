@@ -1,7 +1,10 @@
 # Patch Notes
 
+## 2026-01-02 (RLS-PATCH-20260102-1101Z)
+- Save slots now load/save directly from Firestore with offline cache, removing external folder prompts and File System Access API dependence while updating save-status messaging. [PN-20260102-AC160]
+
 ## 2026-01-02 (RLS-PATCH-20260102-0911Z)
-- Implemented modular Firebase local-cache persistence with snapshot-only cloud commits (autosave/guardrails), cloud restore fallback, and save-status cloud sync visibility. [PN-20260102-AC159]
+- Implemented modular Firebase local-cache persistence with snapshot-only cloud commits (autosave/guardrails), cloud restore fallback, save-status cloud sync visibility, and a local Hosting+Auth+Firestore emulator script. [PN-20260102-AC159]
 
 ## 2026-01-02 (RLS-PATCH-20260102-0755Z)
 - Added Firebase emulator wiring (Auth + Firestore) with optional offline persistence and local-only anonymous auth for dev flows. [PN-20260102-AC158]
@@ -949,7 +952,8 @@
 - Summary: weekly timing split (release/trends/charts), rolling trends with global/community views, and new promo facilities (broadcast/filming + ads).
 
 ## Patch Note Codes
-- PN-20260102-AC159 (2026-01-02 09:11Z): Implemented modular Firebase local-cache persistence with snapshot-only cloud commits (autosave/guardrails), cloud restore fallback, and save-status cloud sync visibility.
+- PN-20260102-AC160 (2026-01-02 11:01Z): Save slots now load/save directly from Firestore with offline cache, removing external folder prompts and File System Access API dependence while updating save-status messaging.
+- PN-20260102-AC159 (2026-01-02 09:11Z): Implemented modular Firebase local-cache persistence with snapshot-only cloud commits (autosave/guardrails), cloud restore fallback, save-status cloud sync visibility, and a local Hosting+Auth+Firestore emulator script.
 - PN-20260102-AC158 (2026-01-02 07:55Z): Added Firebase emulator wiring (Auth + Firestore) with optional offline persistence and local-only anonymous auth for dev flows.
 - PN-20260101-AC157 (2026-01-01 11:35Z): Updated the service worker cache stamp to the new release ID so clients fetch the latest boot fixes.
 - PN-20260101-AC156 (2026-01-01 11:35Z): Added a boot loading screen that surfaces boot stage progress and optional external storage status.

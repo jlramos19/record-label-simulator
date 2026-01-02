@@ -2,7 +2,7 @@
 
 Record Label Simulator is a browser-based management/simulation game. This repo contains the TypeScript source, static HTML/CSS, and client-side persistence used for the current MVP.
 
-Last updated: 2026-01-02 05:15:15 -04:00
+Last updated: 2026-01-02 07:02:11 -04:00
 
 ## Quick start
 
@@ -37,7 +37,7 @@ npm run preview
 ```bash
 npm run serve:local
 ```
-Open `http://localhost:5000` to verify the built app and hash-route refreshes.
+Open `http://localhost:5000` to verify the built app and hash-route refreshes (Hosting + Auth + Firestore emulators).
 
 ### VS Code Run/Debug (Edge)
 - Terminal A: `npm run dev`
@@ -74,7 +74,7 @@ npm run dev:islands
 - `npm run build` - Vite production build into `dist/`
 - `npm run preview` - preview the Vite build at `http://localhost:5173`
 - `npm run typecheck` - TypeScript typecheck (`tsc --noEmit`)
-- `npm run serve:local` - build + serve `dist/` via Firebase Hosting emulator
+- `npm run serve:local` - build + serve `dist/` via Firebase Hosting + Auth + Firestore emulators
 - `npm run optimize:portraits` - generate resized creator portraits into `assets/png/portraits/creator-ids-optimized` (build will prefer optimized assets when present)
 - `npm run watch:portraits` - watch creator portrait folders and auto-optimize on add/change/remove
 - `npm run lint` - lint JS/MJS/CJS files with ESLint (TypeScript checks stay in `tsc`)
@@ -127,6 +127,12 @@ npm run dev:islands
 
 ## Persistence
 
+### Firestore (primary save storage)
+
+- Collection: `players/{uid}/slots/{slotId}`
+- Fields: `payload`, `payloadHash`, `schemaVersion`, `releasePatchId`, `slotId`, `updatedAtClientMs`, `updatedAtServer`
+- Offline: Firestore uses IndexedDB cache via the modular `initializeFirestore(... localCache ...)` setup.
+
 ### IndexedDB
 
 - Database: `record-label-simulator`
@@ -144,13 +150,11 @@ Used for chart history snapshots, event logging, and KPI/materialized projection
 
 ### localStorage
 
-Used for save slots, UI state, and preferences:
+Used for UI state and preferences:
 
-- save slots keyed by `SLOT_PREFIX` (see `assets/js/data/constants.js`)
 - panel + sidebar layout, per-view panel visibility
 - UI event log and loss archive
 - usage session index + per-session logs (session IDs, action trail, error capture)
-- external storage mirror (File System Access API) for logs, saves, and chart history
 - selected game mode, difficulty, and start preferences
 
 ### sessionStorage

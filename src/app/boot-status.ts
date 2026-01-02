@@ -14,8 +14,7 @@ const DEFAULT_STEPS: BootStep[] = [
   { id: "ui", label: "UI wiring", detail: "Binding controls and routes." },
   { id: "slot", label: "Save slot", detail: "Scanning for active slot." },
   { id: "charts", label: "Charts", detail: "Computing chart data." },
-  { id: "render", label: "Render", detail: "Drawing UI panels." },
-  { id: "external", label: "External storage (optional)", detail: "Save folder setup.", optional: true }
+  { id: "render", label: "Render", detail: "Drawing UI panels." }
 ];
 
 function buildBootScreen() {

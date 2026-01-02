@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] RLS-OPS-FIRESTORE-ONLY-001: Remove external folder storage and make Firestore the sole save-slot persistence with offline cache + slot load fixes. (Agent Codex, started 2026-01-02 06:10:37 -04:00)
 - [ ] RLS-OPS-VITE-FIREBASE-001: Refactor web MVP to Vite + Firebase Hosting with emulator-ready local dev and Firestore snapshot/event-log persistence. (Agent Codex, started 2026-01-02 04:16:59 -04:00)
 - [x] RLS-OPS-FIREBASE-EMU-001: Wire Firebase emulators (Auth + Firestore) with offline persistence scaffolding for local dev. (Agent Codex, started 2026-01-02 03:50:28 -04:00, completed 2026-01-02 03:50:28 -04:00)
 - [x] RLS-OPS-TRACKLIST-GLOBAL-001: Define a TRACKLIST alias for track titles and make boot global checks resilient. (Agent Codex, started 2026-01-01 07:02:30 -04:00, completed 2026-01-01 07:02:30 -04:00)

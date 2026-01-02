@@ -1,7 +1,6 @@
 import type { DocumentData } from "firebase/firestore";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { updateDebugStage } from "./debug-panel";
-import { decodeSavePayload } from "./storage-utils";
 import {
   getFirebaseServices,
   hasFirebaseConfig,
@@ -13,6 +12,17 @@ import {
 type CloudCommitMeta = {
   schemaVersion?: number | null;
   releasePatchId?: string | null;
+};
+
+type CloudSlotSnapshot = {
+  slotId: number;
+  storedSlotId: number | null;
+  payload: string;
+  payloadHash: string | null;
+  schemaVersion: number | null;
+  releasePatchId: string | null;
+  updatedAtClientMs: number | null;
+  updatedAtServer: unknown;
 };
 
 type CloudCommitStatus = {
@@ -183,10 +193,14 @@ async function commitSnapshot(reason: string, force: boolean) {
   notifySaveStatusPanel();
 
   const docRef = doc(services.db, "players", user.uid, "slots", String(slotId));
+  const docPath = `players/${user.uid}/slots/${slotId}`;
   const committedHash = payloadHash;
   const committedSlotId = slotId;
   const write = setDoc(docRef, buildDocPayload(slotId, payload, payloadHash, meta), { merge: true })
     .then(() => {
+      if (typeof console !== "undefined") {
+        console.log("[firestore] save slot", { path: docPath, uid: user.uid, slotId, payloadHash });
+      }
       state.lastSuccessAt = now();
       state.lastErrorCode = null;
       state.lastErrorAt = null;
@@ -235,12 +249,13 @@ export function forceCloudCommitFlush(reason = "guardrails") {
   return commitSnapshot(reason, true);
 }
 
-export async function fetchCloudSlotSnapshot(slotId: number) {
+export async function fetchCloudSlotSnapshot(slotId: number): Promise<CloudSlotSnapshot | null> {
   if (!slotId) return null;
   const context = await resolveFirebaseContext();
   if (!context) return null;
   const { services, user } = context;
   const docRef = doc(services.db, "players", user.uid, "slots", String(slotId));
+  const docPath = `players/${user.uid}/slots/${slotId}`;
   try {
     updateDebugStage("save", { status: "active", detail: "Checking cloud slot..." });
     const snap = await getDoc(docRef);
@@ -248,15 +263,29 @@ export async function fetchCloudSlotSnapshot(slotId: number) {
     const data = snap.data() as DocumentData;
     const payload = typeof data?.payload === "string" ? data.payload : null;
     if (!payload) return null;
-    const decoded = decodeSavePayload(payload);
-    if (!decoded.ok || !decoded.payload) return null;
-    try {
-      const parsed = JSON.parse(decoded.payload);
-      updateDebugStage("save", { status: "ok", detail: "Cloud slot restored." });
-      return { payload, data: parsed };
-    } catch {
-      return null;
+    const storedSlotId = Number.isFinite(data?.slotId)
+      ? Number(data.slotId)
+      : (Number.isFinite(Number.parseInt(data?.slotId, 10)) ? Number.parseInt(data?.slotId, 10) : null);
+    const snapshot: CloudSlotSnapshot = {
+      slotId,
+      storedSlotId,
+      payload,
+      payloadHash: typeof data?.payloadHash === "string" ? data.payloadHash : null,
+      schemaVersion: Number.isFinite(data?.schemaVersion) ? Number(data.schemaVersion) : null,
+      releasePatchId: typeof data?.releasePatchId === "string" ? data.releasePatchId : null,
+      updatedAtClientMs: Number.isFinite(data?.updatedAtClientMs) ? Number(data.updatedAtClientMs) : null,
+      updatedAtServer: data?.updatedAtServer ?? null
+    };
+    if (typeof console !== "undefined") {
+      console.log("[firestore] load slot", {
+        path: docPath,
+        uid: user.uid,
+        slotId,
+        payloadHash: snapshot.payloadHash
+      });
     }
+    updateDebugStage("save", { status: "ok", detail: "Cloud slot restored." });
+    return snapshot;
   } catch (error) {
     const code = (error as { code?: string })?.code || "cloud-read-failed";
     state.lastErrorCode = code;
@@ -264,5 +293,28 @@ export async function fetchCloudSlotSnapshot(slotId: number) {
     updateDebugStage("save", { status: "warn", detail: `Cloud read failed (${code}).` });
     notifySaveStatusPanel();
     return null;
+  }
+}
+
+export async function deleteCloudSlotSnapshot(slotId: number) {
+  if (!slotId) return { ok: false, reason: "no-slot" };
+  const context = await resolveFirebaseContext();
+  if (!context) return { ok: false, reason: "firebase-not-ready" };
+  const { services, user } = context;
+  const docRef = doc(services.db, "players", user.uid, "slots", String(slotId));
+  const docPath = `players/${user.uid}/slots/${slotId}`;
+  try {
+    await deleteDoc(docRef);
+    if (typeof console !== "undefined") {
+      console.log("[firestore] delete slot", { path: docPath, uid: user.uid, slotId });
+    }
+    return { ok: true };
+  } catch (error) {
+    const code = (error as { code?: string })?.code || "delete-failed";
+    state.lastErrorCode = code;
+    state.lastErrorAt = now();
+    updateDebugStage("save", { status: "warn", detail: `Cloud delete failed (${code}).` });
+    notifySaveStatusPanel();
+    return { ok: false, reason: code, error };
   }
 }

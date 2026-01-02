@@ -1,7 +1,7 @@
 # IndexedDB Schema (Web MVP)
 
 ## Intent
-Define the IndexedDB physical schema used by the web client for append-only logs and materialized views. The schema complements localStorage save slots and is optimized for indexed queries.
+Define the IndexedDB physical schema used by the web client for append-only logs and materialized views. The schema complements Firestore save slots and is optimized for indexed queries.
 
 ## Database
 - Name: `record-label-simulator`
@@ -23,7 +23,7 @@ Define the IndexedDB physical schema used by the web client for append-only logs
 - Indexes:
   - `by_ts` -> `ts`
 
-### file_handles (external storage)
+### file_handles (legacy external storage)
 - Key path: `id`
 
 ### event_log (append-only)

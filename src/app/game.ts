@@ -1,15 +1,8 @@
 // @ts-nocheck
 import { fetchChartSnapshot, fetchChartSnapshotsForWeek, listChartWeeks, storeChartSnapshot } from "./db";
-import { fetchCloudSlotSnapshot, flushCloudCommitIfDue, markCloudCommitDirty } from "./cloud-commit";
-import { queueChartSnapshotsWrite, queueSaveSlotDelete, queueSaveSlotWrite, readSaveSlotFromExternal } from "./file-storage";
+import { deleteCloudSlotSnapshot, fetchCloudSlotSnapshot, flushCloudCommitIfDue, getCloudCommitStatus, markCloudCommitDirty } from "./cloud-commit";
 import { recordStorageError, setStorageWarningHandler, updateStorageHealth } from "./storage-health";
-import {
-  decodeSavePayload,
-  encodeSavePayload,
-  estimateLocalStorageBytes,
-  estimatePayloadBytes,
-  isQuotaExceededError
-} from "./storage-utils";
+import { decodeSavePayload, encodeSavePayload, estimatePayloadBytes, isQuotaExceededError } from "./storage-utils";
 import { DEFAULT_PROMO_TYPE, PROMO_TYPE_DETAILS, getPromoTypeDetails } from "./promo_types";
 import { useCalendarProjection } from "./calendar";
 import { uiHooks } from "./game/ui-hooks";
@@ -307,7 +300,6 @@ const PERF_LOG_COOLDOWN_MS = 12000;
 const PERF_CHART_REBUILD_LOG_MS = 30;
 const PERF_TREND_REFRESH_LOG_MS = 12;
 const PERF_INDEX_REBUILD_LOG_MS = 4;
-const LOCAL_SAVE_QUOTA_BYTES = 4.5 * 1024 * 1024;
 const SAVE_DEBOUNCE_MS = 1500;
 const LOCAL_STORAGE_PROBE_KEY = "rls_storage_probe_v1";
 const SAVE_FAILURE_TOAST_THROTTLE_MS = 4000;
@@ -14292,7 +14284,6 @@ function requestChartWorker(type, payload) {
 
 function queueChartSnapshotPersistence(snapshots) {
   if (!Array.isArray(snapshots) || !snapshots.length) return false;
-  queueChartSnapshotsWrite(snapshots);
   const worker = getChartWorker();
   if (worker) {
     requestChartWorker("persistSnapshots", { snapshots }).catch(() => {
@@ -23483,46 +23474,10 @@ async function advanceWeeksFast(weeks, options = {}) {
 }
 
 async function maybeSyncPausedLiveChanges(now) {
-  if (state.time.speed !== "pause") return;
   if (!session.activeSlot) return;
+  if (state.time.speed !== "pause") return;
   if (now - session.lastLiveSyncAt < LIVE_SYNC_INTERVAL_MS) return;
-  if (session.localStorageDisabled || typeof localStorage === "undefined") return;
   session.lastLiveSyncAt = now;
-  let raw = null;
-  try {
-    raw = localStorage.getItem(slotKey(session.activeSlot));
-  } catch (error) {
-    markLocalStorageDisabled("unavailable");
-    recordStorageError({
-      scope: "localStorage",
-      message: "Local storage unavailable; live slot sync skipped.",
-      error,
-      notify: "localStorageDisabled"
-    });
-    return;
-  }
-  if (!raw || raw === session.lastSlotPayload) return;
-  const decoded = decodeSavePayload(raw);
-  if (!decoded.ok || !decoded.payload) {
-    recordStorageError({ scope: "localStorage", message: "Live slot payload could not be decoded." });
-    return;
-  }
-  let parsed = null;
-  try {
-    parsed = JSON.parse(decoded.payload);
-  } catch {
-    return;
-  }
-  if (!parsed || typeof parsed !== "object") return;
-  const prevSpeed = state.time.speed;
-  const prevView = state.ui?.activeView || null;
-  resetState(parsed);
-  state.time.speed = prevSpeed;
-  if (prevView) state.ui.activeView = prevView;
-  uiHooks.refreshSelectOptions?.();
-  await computeCharts();
-  uiHooks.renderAll?.({ save: false });
-  session.lastSlotPayload = raw;
 }
 
 async function tick(now) {
@@ -23673,79 +23628,100 @@ function seedMarketTracks({ rng = Math.random, count = 6, dominantLabelId = null
   }
 }
 
-function slotKey(index) {
-  return `${SLOT_PREFIX}${index}`;
+const slotCache = new Map();
+const slotLoadStatus = new Map();
+
+function setSlotLoadStatus(index, status, errorCode = null) {
+  if (!index) return;
+  slotLoadStatus.set(index, {
+    status,
+    errorCode: errorCode || null,
+    updatedAt: Date.now()
+  });
+}
+
+function getSlotLoadStatus(index) {
+  if (!index) return "idle";
+  return slotLoadStatus.get(index)?.status || "idle";
+}
+
+function getSlotLoadError(index) {
+  if (!index) return null;
+  return slotLoadStatus.get(index)?.errorCode || null;
+}
+
+function cacheSlotSnapshot(index, payload, data, meta = {}) {
+  if (!index) return;
+  slotCache.set(index, {
+    payload,
+    data,
+    meta,
+    cachedAt: Date.now()
+  });
+  setSlotLoadStatus(index, data ? "ready" : "missing");
 }
 
 function getSlotData(index) {
-  if (typeof localStorage === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(slotKey(index));
-    if (!raw) return null;
-    const decoded = decodeSavePayload(raw);
-    if (!decoded.ok || !decoded.payload) {
-      recordStorageError({
-        scope: "localStorage",
-        message: "Save payload could not be decoded.",
-        notify: "saveDecode"
-      });
-      return null;
-    }
-    try {
-      return JSON.parse(decoded.payload);
-    } catch {
-      recordStorageError({ scope: "localStorage", message: "Save payload could not be parsed." });
-      return null;
-    }
-  } catch (error) {
-    session.localStorageDisabled = true;
-    session.localStorageDisabledReason = "unavailable";
-    recordStorageError({
-      scope: "localStorage",
-      message: "Local storage unavailable; save slots could not be loaded.",
-      error,
-      notify: "localStorageDisabled"
-    });
-    updateStorageHealth({ localStorageAvailable: false, localStorageDisabledReason: session.localStorageDisabledReason });
-    return null;
-  }
+  if (!index) return null;
+  if (session.activeSlot === index) return state;
+  return slotCache.get(index)?.data || null;
 }
 
-async function getSlotDataWithExternal(index) {
-  const data = getSlotData(index);
-  if (data) return data;
-  const external = await readSaveSlotFromExternal(index);
-  if (external) {
-    if (typeof localStorage !== "undefined") {
-      try {
-        const encoded = encodeSavePayload(JSON.stringify(external));
-        localStorage.setItem(slotKey(index), encoded.payload);
-      } catch (error) {
-        const quota = isQuotaExceededError(error);
-        markLocalStorageDisabled(quota ? "quota" : "error");
-        warnLocalStorageIssue(
-          quota
-            ? "Local save storage is full; external save loaded but local cache skipped."
-            : "Local save cache failed; external save loaded.",
-          error,
-          { reason: quota ? "localStorageQuota" : "localStorageError", skipRecord: true }
-        );
-        recordStorageError({
-          scope: "localStorage",
-          message: "Failed to cache external save locally.",
-          error
-        });
-      }
-    }
-    return external;
-  }
+function getSlotPayload(index) {
+  if (!index) return null;
+  if (session.activeSlot === index && session.lastSlotPayload) return session.lastSlotPayload;
+  return slotCache.get(index)?.payload || null;
+}
 
-  const cloud = await fetchCloudSlotSnapshot(index);
-  if (!cloud) return null;
-  if (cloud.payload) {
-    storeSlotPayload(index, cloud.payload, { notify: false });
+async function fetchSlotSnapshot(index, options = {}) {
+  if (!index) return null;
+  const { force = false } = options || {};
+  const status = getSlotLoadStatus(index);
+  if (!force && (status === "loading" || status === "ready")) {
+    const cached = slotCache.get(index);
+    if (!cached) return null;
+    return { data: cached.data, payload: cached.payload, meta: cached.meta };
   }
-  return cloud.data || null;
+  setSlotLoadStatus(index, "loading");
+  const snapshot = await fetchCloudSlotSnapshot(index);
+  if (!snapshot) {
+    setSlotLoadStatus(index, "missing");
+    return null;
+  }
+  if (snapshot.storedSlotId && snapshot.storedSlotId !== index) {
+    setSlotLoadStatus(index, "error", "slot-id-mismatch");
+    logEvent(`Cloud slot mismatch (expected slot ${index}, got ${snapshot.storedSlotId}).`, "warn");
+    return null;
+  }
+  if (Number.isFinite(snapshot.schemaVersion) && snapshot.schemaVersion > STATE_VERSION) {
+    setSlotLoadStatus(index, "error", "schema-too-new");
+    logEvent(`Cloud slot schema is newer than this build (slot ${index}).`, "warn");
+    return null;
+  }
+  const decoded = decodeSavePayload(snapshot.payload);
+  if (!decoded.ok || !decoded.payload) {
+    setSlotLoadStatus(index, "error", "decode");
+    recordStorageError({ scope: "firestore", message: "Cloud slot payload could not be decoded." });
+    return null;
+  }
+  let parsed = null;
+  try {
+    parsed = JSON.parse(decoded.payload);
+  } catch {
+    setSlotLoadStatus(index, "error", "parse");
+    recordStorageError({ scope: "firestore", message: "Cloud slot payload could not be parsed." });
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object") {
+    setSlotLoadStatus(index, "error", "parse");
+    return null;
+  }
+  cacheSlotSnapshot(index, snapshot.payload, parsed, snapshot);
+  return { data: parsed, payload: snapshot.payload, meta: snapshot };
+}
+
+async function prefetchSlotData(index, options = {}) {
+  return fetchSlotSnapshot(index, options);
 }
 
 function markLocalStorageEnabled() {
@@ -23788,24 +23764,39 @@ function shouldToastSaveFailure(reason) {
 
 function getSaveFailureToast(reason, payloadBytes = null) {
   switch (reason) {
+    case "firebase-config-missing":
+      return {
+        summary: "Cloud save disabled",
+        detail: "Firebase config is missing; saves cannot sync."
+      };
+    case "firebase-not-ready":
+      return {
+        summary: "Cloud save pending",
+        detail: "Firebase is still initializing; try again shortly."
+      };
+    case "cloud-commit-failed":
+      return {
+        summary: "Cloud save failed",
+        detail: "Firestore write failed. Check your connection and retry."
+      };
     case "localStorageQuota": {
       const sizeDetail = Number.isFinite(payloadBytes) && payloadBytes > 0
         ? ` (save size ${formatByteSize(payloadBytes)})`
         : "";
       return {
         summary: "Storage full",
-        detail: `Local storage is full${sizeDetail}. Clear old saves or configure External Storage in Internal Log.`
+        detail: `Local storage is full${sizeDetail}. Clear browser storage to continue saving settings.`
       };
     }
     case "localStorageUnavailable":
       return {
         summary: "Storage unavailable",
-        detail: "Local storage is unavailable. Enable browser storage or use External Storage in Internal Log."
+        detail: "Local storage is unavailable. Enable browser storage to keep settings."
       };
     case "localStorageDisabled":
       return {
         summary: "Saving disabled",
-        detail: "Local storage is disabled. Enable browser storage or use External Storage in Internal Log."
+        detail: "Local storage is disabled. Enable browser storage to keep settings."
       };
     case "serialize":
       return {
@@ -23890,11 +23881,6 @@ function formatByteSize(bytes) {
   return `${mb.toFixed(2)}MB`;
 }
 
-function estimateLocalStorageFreeBytes(usedBytes) {
-  if (!Number.isFinite(usedBytes)) return null;
-  return Math.max(0, LOCAL_SAVE_QUOTA_BYTES - usedBytes);
-}
-
 function saveToSlot(index, options = {}) {
   if (!index) return { ok: false, reason: "no-slot" };
   const notify = options.notify !== false;
@@ -23914,119 +23900,66 @@ function saveToSlot(index, options = {}) {
     ? encoded.storedBytes
     : estimatePayloadBytes(storedPayload);
   const rawBytes = Number.isFinite(encoded.rawBytes) ? encoded.rawBytes : estimatePayloadBytes(payload);
-  const localStorageAvailable = typeof localStorage !== "undefined";
-  const storageBytes = localStorageAvailable ? estimateLocalStorageBytes() : 0;
-  const freeBytes = localStorageAvailable ? estimateLocalStorageFreeBytes(storageBytes) : null;
   updateStorageHealth({
     saveSizeBytes: payloadBytes,
     saveRawBytes: rawBytes,
-    localStorageUsedBytes: localStorageAvailable ? storageBytes : null,
-    localStorageFreeBytes: freeBytes
+    localStorageUsedBytes: null,
+    localStorageFreeBytes: null
   });
-  let storedLocal = false;
-  let failureReason = null;
-  let localError = null;
-  if (!localStorageAvailable) {
-    markLocalStorageDisabled("unavailable");
-    failureReason = "localStorageUnavailable";
-    warnLocalStorageIssue(
-      "Local storage unavailable; saves are disabled. Configure External Storage in Internal Log.",
-      null,
-      { reason: failureReason, toast: notify }
-    );
-  } else if (session.localStorageDisabled) {
-    failureReason = "localStorageDisabled";
+  const releasePatchId = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE.patchId : null;
+  markCloudCommitDirty(index, storedPayload, {
+    schemaVersion: state.meta?.version || null,
+    releasePatchId
+  });
+  const cloudStatus = getCloudCommitStatus();
+  if (!cloudStatus.enabled) {
+    const failureReason = cloudStatus.disabledReason || "firebase-not-ready";
+    noteSaveAttempt(now, false, failureReason);
     if (notify) maybeToastSaveFailure(failureReason, payloadBytes);
-  } else {
-    const projectedBytes = storageBytes ? storageBytes + payloadBytes : payloadBytes;
-    if (projectedBytes > LOCAL_SAVE_QUOTA_BYTES) {
-      const sizeLabel = encoded.compressed
-        ? `${formatByteSize(rawBytes)} raw, ${formatByteSize(payloadBytes)} stored`
-        : formatByteSize(payloadBytes);
-      warnLocalStorageIssue(
-        `Local save is large (${sizeLabel}). Attempting write; consider External Storage for larger saves.`,
-        null,
-        { toast: false, skipLog: true }
-      );
-    }
-    try {
-      localStorage.setItem(slotKey(index), storedPayload);
-      storedLocal = true;
-      markLocalStorageEnabled();
-    } catch (error) {
-      localError = error;
-      const quota = isQuotaExceededError(error);
-      failureReason = quota ? "localStorageQuota" : "localStorageError";
-      markLocalStorageDisabled(quota ? "quota" : "error");
-      console.warn(`[storage] Failed to save slot ${index} to localStorage.`, error);
-      warnLocalStorageIssue(
-        quota
-          ? "Local save storage is full. Configure External Storage in Internal Log to keep saves synced."
-          : "Local save failed. Check browser storage settings.",
-        error,
-        { reason: failureReason, toast: notify }
-      );
-    }
+    return { ok: false, reason: failureReason, payloadBytes };
   }
-  if (storedLocal) {
-    state.meta.savedAt = now;
-    if (state.meta.autoSave) state.meta.autoSave.lastSavedAt = state.meta.savedAt;
-  }
-  if (storedLocal) {
-    const releasePatchId = typeof RLS_RELEASE !== "undefined" ? RLS_RELEASE.patchId : null;
-    markCloudCommitDirty(index, storedPayload, {
-      schemaVersion: state.meta?.version || null,
-      releasePatchId
-    });
-  }
-  noteSaveAttempt(now, storedLocal, failureReason);
-  if (storedLocal && session.activeSlot === index) {
+  state.meta.savedAt = now;
+  if (state.meta.autoSave) state.meta.autoSave.lastSavedAt = state.meta.savedAt;
+  noteSaveAttempt(now, true, null);
+  if (session.activeSlot === index) {
     session.lastSlotPayload = storedPayload;
   }
-  queueSaveSlotWrite(index, storedPayload);
-  return { ok: storedLocal, storedLocal, reason: failureReason, error: localError, payloadBytes };
+  return { ok: true, payloadBytes };
 }
 
-function storeSlotPayload(index, payload, options = {}) {
+function storeSlotPayload(index, payload, data, options = {}) {
   if (!index) return { ok: false, reason: "no-slot" };
   const notify = options.notify !== false;
   const payloadBytes = estimatePayloadBytes(payload);
-  const localStorageAvailable = typeof localStorage !== "undefined";
-  const storageBytes = localStorageAvailable ? estimateLocalStorageBytes() : 0;
-  const freeBytes = localStorageAvailable ? estimateLocalStorageFreeBytes(storageBytes) : null;
   updateStorageHealth({
     saveSizeBytes: payloadBytes,
     saveRawBytes: null,
-    localStorageUsedBytes: localStorageAvailable ? storageBytes : null,
-    localStorageFreeBytes: freeBytes
+    localStorageUsedBytes: null,
+    localStorageFreeBytes: null
   });
-  if (!localStorageAvailable) {
-    markLocalStorageDisabled("unavailable");
-    warnLocalStorageIssue(
-      "Local storage unavailable; import skipped.",
-      null,
-      { reason: "localStorageUnavailable", toast: notify }
-    );
-    return { ok: false, reason: "localStorageUnavailable" };
+  const schemaVersion = options.schemaVersion ?? data?.meta?.version ?? null;
+  const releasePatchId = options.releasePatchId ?? data?.meta?.releasePatchId ?? null;
+  markCloudCommitDirty(index, payload, { schemaVersion, releasePatchId });
+  const cloudStatus = getCloudCommitStatus();
+  if (!cloudStatus.enabled) {
+    const failureReason = cloudStatus.disabledReason || "firebase-not-ready";
+    noteSaveAttempt(Date.now(), false, failureReason);
+    if (notify) maybeToastSaveFailure(failureReason, payloadBytes);
+    return { ok: false, reason: failureReason };
   }
-  try {
-    localStorage.setItem(slotKey(index), payload);
-    markLocalStorageEnabled();
-    if (session.activeSlot === index) {
-      session.lastSlotPayload = payload;
-    }
-    queueSaveSlotWrite(index, payload);
-    return { ok: true, payloadBytes };
-  } catch (error) {
-    const quota = isQuotaExceededError(error);
-    markLocalStorageDisabled(quota ? "quota" : "error");
-    warnLocalStorageIssue(
-      quota ? "Local storage is full; import skipped." : "Local storage unavailable; import skipped.",
-      error,
-      { reason: quota ? "localStorageQuota" : "localStorageError", toast: notify }
-    );
-    return { ok: false, reason: quota ? "localStorageQuota" : "localStorageError", error };
+  if (data) {
+    cacheSlotSnapshot(index, payload, data, {
+      slotId: index,
+      schemaVersion,
+      releasePatchId,
+      payloadHash: cloudStatus.pendingHash || null
+    });
   }
+  if (session.activeSlot === index) {
+    session.lastSlotPayload = payload;
+  }
+  noteSaveAttempt(Date.now(), true, null);
+  return { ok: true, payloadBytes };
 }
 
 function importSlotData(index, data, options = {}) {
@@ -24034,11 +23967,11 @@ function importSlotData(index, data, options = {}) {
   try {
     payload = JSON.stringify(data);
   } catch (error) {
-    recordStorageError({ scope: "localStorage", message: "Save import serialization failed.", error });
+    recordStorageError({ scope: "save-import", message: "Save import serialization failed.", error });
     return { ok: false, reason: "serialize", error };
   }
   const encoded = encodeSavePayload(payload);
-  return storeSlotPayload(index, encoded.payload, options);
+  return storeSlotPayload(index, encoded.payload, data, options);
 }
 
 function queueActiveSlotSave(options = {}) {
@@ -24134,7 +24067,12 @@ function seedNewGame(options = {}) {
 
 async function loadSlot(index, forceNew = false, options = {}) {
   try {
-    const data = forceNew ? null : await getSlotDataWithExternal(index);
+    const seedIfMissing = options.seedIfMissing !== false;
+    const snapshot = forceNew ? null : await fetchSlotSnapshot(index, { force: true });
+    const data = snapshot?.data || null;
+    if (!data && !forceNew && !seedIfMissing) {
+      return { ok: false, reason: "missing" };
+    }
     resetState(data);
     if (!data) seedNewGame({
       mode: options.mode,
@@ -24143,20 +24081,7 @@ async function loadSlot(index, forceNew = false, options = {}) {
     });
     logQualityPotentialDeterminismCheck(state.tracks, data ? "load" : "seed");
     session.activeSlot = index;
-    if (typeof localStorage !== "undefined") {
-      try {
-        session.lastSlotPayload = localStorage.getItem(slotKey(index));
-      } catch (error) {
-        markLocalStorageDisabled("unavailable");
-        recordStorageError({
-          scope: "localStorage",
-          message: "Local storage unavailable; slot cache skipped.",
-          error,
-          notify: "localStorageDisabled"
-        });
-        session.lastSlotPayload = null;
-      }
-    }
+    session.lastSlotPayload = snapshot?.payload || null;
     markUiLogStart();
     sessionStorage.setItem("rls_active_slot", String(index));
     uiHooks.refreshSelectOptions?.();
@@ -24172,26 +24097,21 @@ async function loadSlot(index, forceNew = false, options = {}) {
     }
     uiHooks.closeMainMenu?.();
     startGameLoop();
+    return { ok: true, loaded: Boolean(data) };
   } catch (error) {
     console.error("loadSlot error:", error);
+    return { ok: false, reason: "load-error", error };
   }
 }
 
 function deleteSlot(index) {
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.removeItem(slotKey(index));
-    } catch (error) {
-      markLocalStorageDisabled("error");
-      recordStorageError({
-        scope: "localStorage",
-        message: "Local storage unavailable; slot delete skipped.",
-        error,
-        notify: "localStorageDisabled"
-      });
-    }
+  if (!index) return;
+  slotCache.delete(index);
+  setSlotLoadStatus(index, "missing");
+  if (session.activeSlot === index) {
+    session.lastSlotPayload = null;
   }
-  queueSaveSlotDelete(index);
+  void deleteCloudSlotSnapshot(index);
 }
 
 function normalizeState() {
@@ -26728,6 +26648,9 @@ export {
   getRolloutStrategiesForEra,
   getRolloutStrategyById,
   getSlotData,
+  getSlotLoadError,
+  getSlotLoadStatus,
+  prefetchSlotData,
   importSlotData,
   getSlotGameMode,
   getSlotValue,

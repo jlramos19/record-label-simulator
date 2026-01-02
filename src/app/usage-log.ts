@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { queueUsageSessionWrite } from "./file-storage";
 import { recordStorageError } from "./storage-health";
 import { estimatePayloadBytes, isQuotaExceededError } from "./storage-utils";
 
@@ -161,7 +160,7 @@ function baseContext() {
   };
 }
 
-function persistSession({ syncExternal = false } = {}) {
+function persistSession() {
   if (!currentSession) return;
   if (storage) {
     const { payload, bytes } = buildSessionPayload(currentSession);
@@ -188,22 +187,19 @@ function persistSession({ syncExternal = false } = {}) {
       });
     }
   }
-  if (syncExternal) {
-    queueUsageSessionWrite(currentSession);
-  }
 }
 
-function flushPersist({ syncExternal = false } = {}) {
+function flushPersist() {
   if (persistTimer) {
     clearTimeout(persistTimer);
     persistTimer = null;
   }
-  persistSession({ syncExternal });
+  persistSession();
 }
 
-export function flushUsageSession({ syncExternal = false } = {}) {
+export function flushUsageSession() {
   if (!currentSession) return null;
-  flushPersist({ syncExternal });
+  flushPersist();
   return currentSession;
 }
 
@@ -368,7 +364,7 @@ export function recordUsageError({
   if (reportToConsole) {
     logToConsole("error", "[usage] session.error", entry);
   }
-  flushPersist({ syncExternal: true });
+  flushPersist();
   return entry;
 }
 
@@ -393,7 +389,7 @@ export function finalizeUsageSession(reason = "ended") {
     },
     { reportToConsole: true, level: "info" }
   );
-  flushPersist({ syncExternal: true });
+  flushPersist();
   return currentSession;
 }
 

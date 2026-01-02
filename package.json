@@ -6,7 +6,7 @@
     "preview": "vite preview --port 5173",
     "typecheck": "tsc --noEmit",
     "emulators": "firebase emulators:start",
-    "serve:local": "vite build && firebase emulators:start --only hosting",
+    "serve:local": "vite build && firebase emulators:start --only hosting,auth,firestore",
     "deploy:hosting": "npm run build && firebase deploy --only hosting",
     "optimize:portraits": "node scripts/optimize-creator-portraits.mjs",
     "watch:portraits": "node scripts/optimize-creator-portraits.mjs --watch",

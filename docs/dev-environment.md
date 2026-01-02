@@ -29,7 +29,7 @@
 
 ## Local Hosting emulator (dist/)
 - Build + serve with Hosting emulator: `npm run serve:local`.
-- Open `http://localhost:5000` to verify the built app (hash routes should refresh correctly).
+- Open `http://localhost:5000` to verify the built app (Hosting + Auth + Firestore emulators; hash routes should refresh correctly).
 
 ## Observability
 - Use Edge DevTools console (in the browser) for runtime errors.

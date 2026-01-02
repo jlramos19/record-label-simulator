@@ -100,6 +100,9 @@ import {
   getRolloutPlanningEra,
   getRolloutStrategiesForEra,
   getSlotData,
+  prefetchSlotData,
+  getSlotLoadError,
+  getSlotLoadStatus,
   getSlotGameMode,
   getSlotValue,
   getStageCost,
@@ -184,7 +187,6 @@ import { PROMO_TYPE_DETAILS } from "../../promo_types";
 import { CalendarView } from "../../calendar";
 import { fetchChartSnapshot, listChartWeeks } from "../../db";
 import { getCloudCommitStatus } from "../../cloud-commit";
-import { getExternalStorageStatus } from "../../file-storage";
 import { showToast } from "../../guardrails";
 import { $, describeSlot, getSlotElement, openOverlay } from "../dom";
 import {
@@ -3267,41 +3269,25 @@ async function updateSaveStatusPanel(root) {
       }
     }
   }
-  const localDisabled = session.localStorageDisabled;
-  const localReason = session.localStorageDisabledReason;
-  const localIssue = localDisabled
-    ? (localReason === "quota" ? "Local storage full." : "Local storage unavailable.")
-    : "";
-  const withLocalIssue = (detail) => (localIssue ? `${localIssue} ${detail}` : detail);
+  const cloudStatus = getCloudCommitStatus();
   if (targetLabel) {
-    targetLabel.textContent = localDisabled ? "Save target: External storage" : "Save target: Local storage";
+    targetLabel.textContent = cloudStatus.enabled
+      ? "Save target: Firestore (offline cache)"
+      : "Save target: Firestore (disabled)";
   }
-  if (targetDetail) targetDetail.textContent = withLocalIssue("External storage not configured.");
+  if (targetDetail) {
+    if (!cloudStatus.enabled) {
+      targetDetail.textContent = cloudStatus.disabledReason === "firebase-config-missing"
+        ? "Firebase config missing; saves disabled."
+        : "Firestore unavailable.";
+    } else {
+      targetDetail.textContent = "IndexedDB cache keeps saves available offline.";
+    }
+  }
   if (typeof window === "undefined") return;
   const saveBtn = scope.querySelector("#menuSaveBtn");
-  let externalReady = false;
-  try {
-    const status = await getExternalStorageStatus();
-    if (status?.supported === false) {
-      if (targetDetail) targetDetail.textContent = withLocalIssue("External storage not supported in this browser.");
-    } else if (status?.status === "ready") {
-      if (targetLabel) targetLabel.textContent = `Save target: ${status.name || "External folder"}`;
-      if (targetDetail) targetDetail.textContent = withLocalIssue("External storage ready.");
-      externalReady = true;
-    } else if (status?.status === "not-set") {
-      if (targetDetail) targetDetail.textContent = withLocalIssue("External folder not selected.");
-    } else if (status?.status) {
-      if (targetDetail) targetDetail.textContent = withLocalIssue(`External storage permission: ${status.status}.`);
-    }
-  } catch {
-    if (targetDetail) targetDetail.textContent = withLocalIssue("Unable to read external storage status.");
-  }
   if (saveBtn) {
-    const saveBlocked = localDisabled && !externalReady;
-    saveBtn.disabled = !session.activeSlot || saveBlocked;
-    if (saveBlocked && targetDetail) {
-      targetDetail.textContent = withLocalIssue("Saving disabled until External Storage is ready.");
-    }
+    saveBtn.disabled = !session.activeSlot || !cloudStatus.enabled;
   }
 }
 
@@ -9376,9 +9362,15 @@ function renderSystemLog() {
 function renderMainMenu() {
   const list = [];
   for (let i = 1; i <= SLOT_COUNT; i += 1) {
+    const loadStatus = getSlotLoadStatus(i);
+    if (loadStatus === "idle") {
+      void prefetchSlotData(i).then(() => renderMainMenu());
+    }
     const data = getSlotData(i);
     const hasData = Boolean(data);
-    const labelName = data?.label?.name || "Empty Game Slot";
+    const isLoading = loadStatus === "loading";
+    const isError = loadStatus === "error";
+    const labelName = data?.label?.name || (isLoading ? "Loading..." : "Empty Game Slot");
     const savedAt = data?.meta?.savedAt ? new Date(data.meta.savedAt).toLocaleString() : "Never saved";
     const totalQuarters = data?.time?.totalQuarters;
     const hours = Number.isFinite(totalQuarters)
@@ -9391,14 +9383,19 @@ function renderMainMenu() {
     const modeTag = mode && modeLabel
       ? `<span class="pill mode-pill" data-mode="${mode.id}" title="${mode.label}">${modeLabel}</span>`
       : "";
-    const metaLine = data
-      ? `${modeTag ? `${modeTag} ` : ""}${formatWeekRangeLabel(week)} | ${formatMoney(cash)} | ${savedAt}`
-      : "Create a new label in this game slot.";
+    const errorCode = getSlotLoadError(i);
+    const metaLine = isLoading
+      ? "Loading save slot from Firestore..."
+      : isError
+        ? `Cloud slot failed to load${errorCode ? ` (${errorCode})` : ""}.`
+        : data
+          ? `${modeTag ? `${modeTag} ` : ""}${formatWeekRangeLabel(week)} | ${formatMoney(cash)} | ${savedAt}`
+          : "Create a new label in this game slot.";
     list.push(`
       <div class="slot-card" data-slot-index="${i}" data-slot-has-data="${hasData ? "1" : "0"}" data-slot-default="${hasData ? "continue" : "new"}">
         <div class="slot-row">
           <div>
-            <div class="item-title">Game Slot ${i}: ${data ? labelName : "Empty"}</div>
+            <div class="item-title">Game Slot ${i}: ${data ? labelName : (isLoading ? "Loading..." : "Empty")}</div>
             <div class="muted">${metaLine}</div>
           </div>
           <div class="actions">
